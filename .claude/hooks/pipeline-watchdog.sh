@@ -28,7 +28,7 @@ PY
   IFS='|' read -r phase tier age_min marker <<< "$result"
   limit=$(cfg get watchdog_minutes)
   [ "$age_min" -gt "${limit:-30}" ] || return 0
-  echo "WARNING: Pipeline interrupted - phase '$phase' (tier=$tier) stuck for ${age_min} min. Resume or reset." >&2
+  echo "WARNING: Pipeline interrupted - phase '$phase' (tier=$tier) stuck for ${age_min} min. Continue it, or pipeline-advance.sh pause it (resume <issue> later)." >&2
   should=1
   if [ -f "$marker" ]; then
     age=$(python3 -I -c "import os,sys,time; print(int(time.time()-os.path.getmtime(sys.argv[1])))" "$marker")
