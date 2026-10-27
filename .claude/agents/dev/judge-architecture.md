@@ -44,8 +44,9 @@ You review code diffs for architectural correctness. You catch the bugs that tes
   updated ADR-0001 and a migration of every lesson under `course/`. Content validation must pass.
 - [ ] Module boundaries: `apps/web` never imports from `services/*` directly; it talks to the
   workspace service over its HTTP/WS API. Shared types come from `packages/*` only.
-- [ ] Tests exist at the right level: unit for logic, integration (real Postgres/Docker) for
-  adapters, e2e (Playwright) for user flows touched by the change.
+- [ ] Tests exist where breakage is expensive (logic, adapters against real Postgres/Docker, user
+  flows via Playwright). Do NOT FAIL a change for missing tests on trivial code; DO flag
+  tests that only restate the implementation as noise.
 
 ## Response format
 

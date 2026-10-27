@@ -81,6 +81,15 @@ describe("validateCourses", () => {
     expect(messages()).toMatch(/starter contains a checks\/ directory/);
   });
 
+  it("rejects a starter that is the checks/ directory", () => {
+    validCourse();
+    write(
+      `${L}/lesson.yaml`,
+      readLesson().replace("workspace: { starter: starter }", "workspace: { starter: checks }"),
+    );
+    expect(messages()).toMatch(/starter points into checks\//);
+  });
+
   it("detects learner-visible text referencing checks/", () => {
     validCourse();
     write(`${L}/task.md`, "see checks/hidden/task.md");

@@ -25,6 +25,10 @@ in LEARN tasks, the learner's job). You may write and fix TESTS.
 
 The design (with its list of required tests), the plan and the diff.
 
+## Proportionality
+Do not chase coverage. Add a test only when it guards behavior that can break expensively. Never
+add tests for trivial code just to have them; say "not worth a test" in the report instead.
+
 ## Steps
 
 1. `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck` : must be clean.

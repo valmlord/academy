@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { parse } from "yaml";
 import type { z } from "zod";
@@ -27,13 +27,20 @@ function zodIssues(file: string, err: z.ZodError): ValidationIssue[] {
   }));
 }
 
-function listFiles(dir: string): string[] {
+/** Files under dir. With includeLinks, symlinks are returned (not followed) so callers can reject them. */
+function listFiles(dir: string, includeLinks = false): string[] {
   if (!existsSync(dir)) return [];
   const out: string[] = [];
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) out.push(...listFiles(p));
-    else out.push(p);
+    const st = lstatSync(p);
+    if (st.isSymbolicLink()) {
+      if (includeLinks) out.push(p);
+    } else if (st.isDirectory()) {
+      out.push(...listFiles(p, includeLinks));
+    } else {
+      out.push(p);
+    }
   }
   return out;
 }
@@ -142,10 +149,21 @@ export function validateCourses(root: string): ValidationResult {
         }
 
         // Leak guard: nothing learner-visible may mention or contain the hidden directory.
+        for (const f of listFiles(lessonDir, true)) {
+          if (lstatSync(f).isSymbolicLink()) issue(f, "symlinks are not allowed in lessons");
+        }
         if (l.workspace) {
           const starterDir = join(lessonDir, l.workspace.starter);
-          if (!existsSync(starterDir))
+          const hiddenDir = join(lessonDir, HIDDEN_DIR);
+          if (!existsSync(starterDir)) {
             issue(lessonDir, `workspace starter not found: ${l.workspace.starter}`);
+          } else if (existsSync(hiddenDir)) {
+            const real = realpathSync(starterDir);
+            const hidden = realpathSync(hiddenDir);
+            if (real === hidden || real.startsWith(`${hidden}/`)) {
+              issue(lessonDir, `workspace starter points into ${HIDDEN_DIR}/ (leak)`);
+            }
+          }
           for (const f of listFiles(starterDir)) {
             const rel = relative(starterDir, f);
             if (rel.split("/").includes(HIDDEN_DIR))

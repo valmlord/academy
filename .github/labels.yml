@@ -1,4 +1,4 @@
-# Applied by scripts/github-bootstrap.sh
+# Applied by scripts/github_bootstrap.py
 - { name: "type:feature", color: "1d76db", description: "New capability" }
 - { name: "type:bug", color: "d73a4a", description: "Something is broken" }
 - { name: "type:chore", color: "c5def5", description: "Maintenance, tooling" }

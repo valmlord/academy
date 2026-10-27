@@ -32,7 +32,7 @@ tests/pipeline/           самотест хуков пайплайна
 
 ## Старт
 
-Нужно: Node 22, pnpm 10, Docker, git, gh, Claude Code.
+Нужно: Node 22, pnpm 10, Docker, git, gh, python3, свежий Claude Code (хуки используют SubagentStop с `agent_transcript_path`).
 
 ```bash
 pnpm install

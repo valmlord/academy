@@ -39,5 +39,6 @@ You are the person who makes sure a lesson cannot be passed without learning it.
   file assertions), not "ask the model if it looks good".
 - **Rubrics**: 3-6 criteria, each with what PASS looks like and a concrete FAIL example.
 - Nothing from `checks/` may be referenced by `starter/`.
+- Keep checks lean: one solid check per outcome beats five overlapping ones.
 - Bug-hunt bugs must be realistic (race, N+1, auth gap, wrong timeout, off-by-one in pagination),
   not syntax errors.

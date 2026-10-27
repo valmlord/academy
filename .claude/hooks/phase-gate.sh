@@ -1,57 +1,64 @@
 #!/bin/bash
-# PreToolUse (Agent): enforce which role agents may be spawned in which phase.
-# Rules come from .claude/pipeline.json: agent_gates (earliest phase) + judge_agents.
+# PreToolUse (Agent|Task): enforce which role agent may be spawned in which phase.
+# The role is the LEADING "Read .claude/agents/<team>/<file>.md first" of the prompt, or the
+# subagent_type (lib/hookio.py). Windows come from .claude/pipeline.json agent_gates.
 
+DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+cfg() { python3 "$DIR/.claude/hooks/lib/cfg.py" "$@"; }
 INPUT=$(cat)
-TOOL_NAME=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null)
-[ "$TOOL_NAME" != "Agent" ] && exit 0
+TOOL_NAME=$(printf '%s' "$INPUT" | python3 "$DIR/.claude/hooks/lib/hookio.py" field tool_name)
+case "$TOOL_NAME" in Agent|Task) ;; *) exit 0 ;; esac
 
-STATE_FILE="$CLAUDE_PROJECT_DIR/.claude/pipeline_state.json"
-[ ! -f "$STATE_FILE" ] && exit 0
-CFG="python3 $CLAUDE_PROJECT_DIR/.claude/hooks/lib/cfg.py"
+ROLE=$(printf '%s' "$INPUT" | python3 "$DIR/.claude/hooks/lib/hookio.py" role)
+[ -z "$ROLE" ] && exit 0   # not one of our role agents (e.g. a plain Explore search)
 
-WIN_PATH=$(cygpath -w "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
-PHASE=$(python3 -c "import json; print(json.load(open(r'$WIN_PATH'))['phase'])" 2>/dev/null)
-TIER=$(python3 -c "import json; print(json.load(open(r'$WIN_PATH'))['tier'])" 2>/dev/null)
-ORDER=($($CFG phases "$TIER"))
-PROMPT=$(echo "$INPUT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('tool_input',{}).get('prompt','')[:400])" 2>/dev/null)
+STATE_FILE="$DIR/.claude/pipeline_state.json"
+GATED=" $(cfg gated_agents) "
+JUDGE_FILES=" $(cfg all_judges | tr ' ' '\n' | cut -d= -f2 | tr '\n' ' ') "
+IS_GATED=0; IS_JUDGE=0
+case "$GATED" in *" $ROLE "*) IS_GATED=1 ;; esac
+case "$JUDGE_FILES" in *" $ROLE "*) IS_JUDGE=1 ;; esac
 
+if [ ! -f "$STATE_FILE" ]; then
+  if [ "$IS_GATED" = 1 ] || [ "$IS_JUDGE" = 1 ]; then
+    echo "BLOCKED: $ROLE needs an active pipeline. Run: bash .claude/hooks/pipeline-advance.sh init <TIER> <issue>" >&2
+    exit 2
+  fi
+  exit 0
+fi
+
+PHASE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['phase'])" "$STATE_FILE" 2>/dev/null)
+TIER=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['tier'])" "$STATE_FILE" 2>/dev/null)
+read -r -a ORDER <<< "$(cfg phases "$TIER")"
 idx_of() { local i; for i in "${!ORDER[@]}"; do [ "${ORDER[$i]}" = "$1" ] && { echo "$i"; return; }; done; echo -1; }
 CUR_IDX=$(idx_of "$PHASE")
 
-# LEARN tier: Stepan writes the code. The coder agent is never allowed.
-if [ "$($CFG tier_flag "$TIER" learner_writes_code)" = "1" ] && echo "$PROMPT" | grep -q "coder\.md"; then
-  echo "BLOCKED: tier $TIER is a learning task: the code is written by the learner, not the coder agent. Use mentor.md for hints." >&2
+if [ "$ROLE" = "coder.md" ] && [ "$(cfg tier_flag "$TIER" learner_writes_code)" = "1" ]; then
+  echo "BLOCKED: tier $TIER is a learning task: the learner writes the code, not the coder agent. Use mentor.md for hints." >&2
   exit 2
 fi
 
-# Role agents with an earliest phase.
-for pair in $(python3 -c "import json; d=json.load(open('$CLAUDE_PROJECT_DIR/.claude/pipeline.json'))['agent_gates']; print(' '.join('%s=%s'%(k,v) for k,v in d.items() if not k.startswith('_')))"); do
-  FILE="${pair%%=*}"; EARLIEST="${pair#*=}"
-  if echo "$PROMPT" | grep -q "/$FILE\|^$FILE\| $FILE"; then
-    E_IDX=$(idx_of "$EARLIEST")
-    if [ "$E_IDX" -eq -1 ]; then
-      echo "BLOCKED: $FILE is not part of tier $TIER (phases: ${ORDER[*]})." >&2; exit 2
-    fi
-    if [ "$CUR_IDX" -lt "$E_IDX" ]; then
-      echo "BLOCKED: $FILE may start only at phase '$EARLIEST' (tier $TIER). Current phase: $PHASE." >&2; exit 2
-    fi
+if [ "$IS_GATED" = 1 ]; then
+  read -r FIRST LAST <<< "$(cfg gate "$ROLE")"
+  F_IDX=$(idx_of "$FIRST"); L_IDX=$(idx_of "$LAST")
+  if [ "$F_IDX" -eq -1 ] || [ "$L_IDX" -eq -1 ]; then
+    echo "BLOCKED: $ROLE is not part of tier $TIER (phases: ${ORDER[*]})." >&2; exit 2
   fi
-done
+  if [ "$CUR_IDX" -lt "$F_IDX" ] || [ "$CUR_IDX" -gt "$L_IDX" ]; then
+    echo "BLOCKED: $ROLE may run only in phases $FIRST..$LAST (tier $TIER). Current phase: $PHASE." >&2; exit 2
+  fi
+fi
 
-# Judges: only in a judge phase of this tier (or the phase right before it), and only this tier's judges.
-TIER_JUDGES=" $($CFG judges "$TIER") "
-for pair in $($CFG all_judges); do
-  KEY="${pair%%=*}"; FILE="${pair#*=}"
-  if echo "$PROMPT" | grep -q "$FILE"; then
-    if ! echo "$TIER_JUDGES" | grep -q " $KEY "; then
-      echo "BLOCKED: $FILE is not a judge of tier $TIER (judges:$TIER_JUDGES)." >&2; exit 2
-    fi
-    NEXT="${ORDER[$((CUR_IDX + 1))]:-}"
-    if [[ "$PHASE" != judge_* ]] && [[ "$NEXT" != judge_* ]]; then
-      echo "BLOCKED: judges run only in a judge phase. Current phase: $PHASE." >&2; exit 2
-    fi
-  fi
-done
+if [ "$IS_JUDGE" = 1 ]; then
+  KEY=$(cfg all_judges | tr ' ' '\n' | grep "=$ROLE\$" | cut -d= -f1)
+  case " $(cfg judges "$TIER") " in
+    *" $KEY "*) ;;
+    *) echo "BLOCKED: $ROLE is not a judge of tier $TIER (judges: $(cfg judges "$TIER"))." >&2; exit 2 ;;
+  esac
+  case "$PHASE" in
+    judge_*) ;;
+    *) echo "BLOCKED: judges run only inside a judge phase; advance first. Current phase: $PHASE." >&2; exit 2 ;;
+  esac
+fi
 
 exit 0

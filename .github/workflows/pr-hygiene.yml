@@ -15,7 +15,7 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "$TITLE" | grep -Eq '^(feat|fix|refactor|perf|test|docs|chore|ci|build|content)(\([a-z0-9-]+\))?!?: .+' \
+          echo "$TITLE" | grep -Eq '^(feat|fix|refactor|perf|test|docs|chore|ci|build|content|learn)(\([a-z0-9-]+\))?!?: .+' \
             || { echo "PR title must look like 'feat(web): lesson page'"; exit 1; }
       - name: Body links an issue
         env:

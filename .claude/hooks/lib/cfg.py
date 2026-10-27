@@ -7,7 +7,7 @@ Usage: cfg.py <command> [args]
   judges <TIER>                 space-separated judge keys
   judge_phases <TIER>           judge phases (phase names starting with judge_)
   all_judges                    "key=file" pairs for every judge
-  gate <agent_file>             earliest phase for an agent file, or empty
+  gate <agent_file>             "<first> <last>" phase window for an agent file, or empty
   tier_flag <TIER> <flag>       prints 1 if flag is true for tier, else 0
   get <key>                     top-level scalar or list (lists space-separated)
 """
@@ -42,7 +42,10 @@ def main(argv):
     elif cmd == "all_judges":
         print(" ".join("%s=%s" % (k, v) for k, v in cfg["judge_agents"].items()))
     elif cmd == "gate":
-        print(cfg["agent_gates"].get(args[0], ""))
+        w = cfg["agent_gates"].get(args[0], "")
+        print(" ".join(w) if isinstance(w, list) else w)
+    elif cmd == "gated_agents":
+        print(" ".join(k for k in cfg["agent_gates"] if not k.startswith("_")))
     elif cmd == "tier_flag":
         print("1" if tiers.get(args[0], {}).get(args[1]) else "0")
     elif cmd == "get":

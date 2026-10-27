@@ -77,14 +77,20 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
 | judge_code / judge_content | 3 judges, ONE message, review diff + test/student report | |
 
 ### Hooks enforce
-- Edit/Write blocked until a `[TIER #n] pipeline` announcement (`require-pipeline.sh`).
-- In LEARN, you cannot Edit/Write code at all; only `.claude/`, `pipeline/`, `docs/`, `plans/`,
-  `learner/`, `backlog/` (`require-pipeline.sh`). The coder agent is blocked (`phase-gate.sh`).
-- Agents spawn only from their phase on; agents of the other team are blocked (`phase-gate.sh`).
-- Judge votes only from spawned judges of the tier, recorded by `judge-vote.sh` / `judge-count.sh`.
-- No leaving a judge phase without 3/3 PASS for that round.
+- Product files are writable only inside an active pipeline (`init` done, phase != done).
+  `.claude/agents/`, `.claude/feedback/`, `pipeline/`, `plans/` are always writable; the
+  pipeline core (`pipeline.json`, `settings.json`, `hooks/`) only inside a pipeline; the state
+  file never (`require-pipeline.sh`, `bash-code-guard.sh`).
+- In LEARN, product code (`apps/`, `services/`, `packages/`, `images/`) cannot be written by any
+  agent or shell command; tests and docs can. The coder agent is blocked (`phase-gate.sh`).
+- Each role agent may run only inside its phase window; the role is the LEADING
+  `Read .claude/agents/<team>/<file>.md first` of the prompt (or `subagent_type`).
+- Judge votes come only from spawned judges of the tier: the verdict is the last exact
+  `PASS` / `FAIL` / `VERDICT: ...` line of the judge's report. No leaving a judge round without
+  3/3 PASS.
 - `pr` requires: not on main, clean tree, last commit references `#<issue>`.
-- Stop blocked until `done`, rounds unanimous, notify run, tree clean, not on main.
+- Stop is blocked until `done` (once per turn; it never loops). In the `learner` phase stopping
+  is allowed: you are waiting for Stepan.
 
 ---
 

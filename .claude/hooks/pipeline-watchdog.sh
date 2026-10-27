@@ -3,7 +3,8 @@
 # Multi-line python is run from a temp file for portability.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-STATE_FILE="$CLAUDE_PROJECT_DIR/.claude/pipeline_state.json"
+DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+STATE_FILE="$DIR/.claude/pipeline_state.json"
 [ ! -f "$STATE_FILE" ] && exit 0
 
 WIN_PATH=$(cygpath -w "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
@@ -41,7 +42,7 @@ if [ "$AGE_MIN" -gt "${LIMIT:-30}" ]; then
   MARKER="${TMPDIR:-/tmp}/pipeline_watchdog_sent"
   SHOULD=1
   if [ -f "$MARKER" ]; then
-    AGE=$(( $(date +%s) - $(date -r "$MARKER" +%s 2>/dev/null || echo 0) ))
+    AGE=$(python3 -c "import os,sys,time; print(int(time.time()-os.path.getmtime(sys.argv[1])))" "$MARKER" 2>/dev/null || echo 0)
     [ "$AGE" -lt 900 ] && SHOULD=0
   fi
   if [ "$SHOULD" -eq 1 ] && [ -f "$SCRIPT_DIR/notify.sh" ]; then

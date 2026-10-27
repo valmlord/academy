@@ -123,13 +123,13 @@
     }
   },
   "agent_gates": {
-    "_comment": "agent file name -> earliest phase it may be spawned in. If that phase is not in the tier, the agent is not allowed in that tier at all.",
-    "coder.md": "coder",
-    "tester.md": "tester",
-    "curriculum-architect.md": "architect",
-    "lesson-author.md": "author",
-    "practice-designer.md": "author",
-    "student.md": "student"
+    "_comment": "agent file -> [first phase, last phase] window in which it may be spawned. Outside the window, or if the window's phases are not in the tier, the spawn is blocked.",
+    "coder.md": ["coder", "judge_code"],
+    "tester.md": ["tester", "judge_code"],
+    "curriculum-architect.md": ["architect", "judge_design"],
+    "lesson-author.md": ["author", "judge_content"],
+    "practice-designer.md": ["author", "judge_content"],
+    "student.md": ["student", "judge_content"]
   },
   "judge_agents": {
     "security": "judge-security.md",
@@ -139,5 +139,18 @@
     "pedagogy": "judge-pedagogy.md",
     "assessment": "judge-assessment.md"
   },
-  "learn_tier_editable_paths": [".claude/", "pipeline/", "docs/", "plans/", "learner/", "backlog/"]
+  "learn_tier_editable_paths": [".claude/", "pipeline/", "docs/", "plans/", "learner/", "backlog/"],
+  "human_wait_phases": ["learner"],
+  "learn_tier_test_globs": [
+    "**/test/**",
+    "**/tests/**",
+    "**/e2e/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "learn_tier_code_dirs": ["apps/", "services/", "packages/", "images/"],
+  "protected_files": [".claude/pipeline_state.json", ".claude/pipeline_state.json.lock"],
+  "pipeline_core_files": [".claude/pipeline.json", ".claude/settings.json", ".claude/hooks/"]
 }

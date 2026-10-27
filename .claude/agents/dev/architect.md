@@ -38,7 +38,9 @@ The researcher's findings. Design against the facts, not against assumptions.
 
 - Respect accepted ADRs in `docs/adr/`. A design that contradicts one must propose a new ADR
   (status Proposed) instead of silently deviating.
-- Every design names its tests: which unit, integration and e2e tests prove it works.
+- Every design names its tests, proportionally: test behavior that can break expensively
+  (concurrency, data integrity, security boundaries, the lesson contract, user flows), not trivial
+  code (getters, simple mapping, config wiring, UI markup). A few meaningful tests beat many shallow ones.
 - Mark costly-to-change decisions (DB schema, lesson contract, workspace API, public routes)
   explicitly; they get extra scrutiny and an ADR.
 - In LEARN tasks the learner will implement your design by hand: keep it decomposed into steps of

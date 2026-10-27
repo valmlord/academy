@@ -16,7 +16,7 @@
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CFG="python3 $SCRIPT_DIR/lib/cfg.py"
+cfg() { python3 "$SCRIPT_DIR/lib/cfg.py" "$@"; }
 STATE_FILE_UNIX="$SCRIPT_DIR/../pipeline_state.json"
 STATE_FILE=$(cygpath -w "$STATE_FILE_UNIX" 2>/dev/null || echo "$STATE_FILE_UNIX")
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -110,10 +110,10 @@ if [ "$PHASE" = "init" ]; then
   TIER="${1:?Usage: pipeline-advance.sh init <TIER> [issue-number]}"
   ISSUE="${2:-}"
   ISSUE="${ISSUE#\#}"
-  if ! $CFG tiers | tr ' ' '\n' | grep -qx "$TIER"; then
-    echo "ERROR: Unknown tier: $TIER. Known: $($CFG tiers)" >&2; exit 1
+  if ! cfg tiers | tr ' ' '\n' | grep -qx "$TIER"; then
+    echo "ERROR: Unknown tier: $TIER. Known: $(cfg tiers)" >&2; exit 1
   fi
-  if [ "$($CFG tier_flag "$TIER" requires_issue)" = "1" ]; then
+  if [ "$(cfg tier_flag "$TIER" requires_issue)" = "1" ]; then
     if ! [[ "$ISSUE" =~ ^[0-9]+$ ]]; then
       echo "ERROR: tier $TIER requires a GitHub issue number: pipeline-advance.sh init $TIER <issue>" >&2
       echo "No issue yet? Create one first (gh issue create --template ...)." >&2
@@ -123,7 +123,7 @@ if [ "$PHASE" = "init" ]; then
   if [ -f "$STATE_FILE" ]; then
     PREV_PHASE=$(read_state phase || true)
     if [ -n "$PREV_PHASE" ] && [ "$PREV_PHASE" != "done" ]; then
-      TTL_H=$($CFG get state_ttl_hours)
+      TTL_H=$(cfg get state_ttl_hours)
       AGE=$(echo "import json,time; d=json.load(open(r'$STATE_FILE')); print(int(time.time()-d.get('session_ts',0)))" | py_run 2>/dev/null || echo 999999)
       if [ "$AGE" -lt $((TTL_H * 3600)) ]; then
         echo "ERROR: a pipeline is still active (phase=$PREV_PHASE, ${AGE}s old). Finish it, or wait for TTL ${TTL_H}h." >&2
@@ -144,7 +144,7 @@ json.dump({'tier':tier,'phase':'init','issue': int(issue) if issue else None,'br
 },open(r'$STATE_FILE','w'),indent=2,ensure_ascii=False)
 PYEOF
   echo "Pipeline initialized: tier=$TIER issue=${ISSUE:-none}"
-  echo "Phases: $($CFG phases "$TIER")"
+  echo "Phases: $(cfg phases "$TIER")"
   if [ -n "$ISSUE" ]; then
     echo "Work on a branch named <type>/$ISSUE-<slug> (e.g. feat/$ISSUE-lesson-page). Never commit to main."
   fi
@@ -158,8 +158,8 @@ fi
 TIER=$(read_state tier)
 CURRENT=$(read_state phase)
 ISSUE=$(read_state issue)
-ORDER="$($CFG phases "$TIER")"
-JUDGES="$($CFG judges "$TIER")"
+ORDER="$(cfg phases "$TIER")"
+JUDGES="$(cfg judges "$TIER")"
 
 # ---------------------------------------------------------------- JUDGE VOTE
 if [[ "$PHASE" == judge_* ]] && [ "$CURRENT" = "$PHASE" ] && [ $# -ge 2 ]; then
@@ -167,7 +167,7 @@ if [[ "$PHASE" == judge_* ]] && [ "$CURRENT" = "$PHASE" ] && [ $# -ge 2 ]; then
   if [ "${JUDGE_HOOK_CALLER:-}" != "judge-count-hook" ]; then
     echo "REJECTED: Inline judge votes are not allowed. Spawn the judges for tier $TIER in ONE message:" >&2
     for j in $JUDGES; do
-      F=$($CFG all_judges | tr ' ' '\n' | grep "^$j=" | cut -d= -f2)
+      F=$(cfg all_judges | tr ' ' '\n' | grep "^$j=" | cut -d= -f2)
       echo "  Agent(prompt=\"Read .claude/agents/<team>/$F first. Then review: ...\")" >&2
     done
     exit 1
@@ -224,7 +224,7 @@ if [ "$PHASE" = "pr" ]; then
   fi
   if [ -n "$ISSUE" ]; then
     BR=$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-    for pb in $($CFG get protected_branches); do
+    for pb in $(cfg get protected_branches); do
       if [ "$BR" = "$pb" ]; then
         echo "BLOCKED: you are on protected branch '$BR'. Work happens on <type>/$ISSUE-<slug>, merged via PR." >&2; exit 1
       fi
