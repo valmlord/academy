@@ -29,3 +29,26 @@ target ad-hoc.
 Added features and refactored surrounding code that the plan did not call for.
 Rule: Follow the plan exactly. Small, focused edits. On judge feedback, fix ONLY the identified
 issues; don't refactor around them.
+
+### 2026-10-27: Reused a path-prefix list as a shell substring rule (#21)
+bash-code-guard.sh built its core regex from `pipeline_core_files` verbatim. Those entries are
+prefixes for relative file paths in the write gate, so `.claude/hooks/` carries a trailing slash.
+In a shell command the directory is usually named without it. As a result `rm -rf .claude/hooks`,
+`cp x.sh .claude/hooks`, `mv .claude/hooks .claude/hooks.bak` and `ln -sf /tmp/x .claude/hooks`
+passed outside PIPELINE. Deleting or renaming the hooks dir makes every hook command exit 127,
+which is a non-blocking error, so all the gates fail open. The design's 2.7 text listed the same
+slash form, but D-4 ("core writable only in PIPELINE, shell writes too") is the requirement. The
+D11 test only exercised the `.claude/hooks/x.sh` form, so it could not catch this.
+Rule: When a prefix list for one matcher (relative paths) feeds another (free-form shell text),
+match the bare directory name with a token boundary too, as well as any ancestor that contains it.
+Add a test for the directory named without a trailing slash.
+
+### 2026-10-27: A failed state write reported as success through `[ "$(cmd)" = x ]` (#21)
+pipeline-advance.sh's vote branch ran `if [ "$(state_op vote ...)" = "vote-dup" ]` and otherwise
+printed "Judge recorded" and exited 0. A failure inside a command substitution used as a `[`
+argument is invisible to `set -e`, so state.py's lock timeout (75), phase race (3) or unreadable
+state (1) became "Judge recorded ... exit 0". pl_record_vote then logged `vote-ignored:advance-rc-0`
+with the wrong rc. This broke the design's rule that the CLI passes 1/3/4/75 through, and the
+message misinforms. The A10 test called state.py directly, so it never ran this branch.
+Rule: Capture a command's output and its rc separately (`out=$(cmd) || rc=$?`) before comparing.
+Every error path of a CLI wrapper needs a test that goes through the wrapper, not just the library.

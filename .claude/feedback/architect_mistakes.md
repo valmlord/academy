@@ -203,3 +203,13 @@ exact command to create it, validate it, or remove an issue, while every other S
 has one.
 Rule: A mutation row asserts the distinguishing message, and its stated failure mechanism is reproduced
 before it is written down. Every step a human performs gets copy-paste commands plus a check command.
+
+## 2026-10-27: Wrote a path-prefix list that the shell guard reused as a substring rule (#21)
+Design 2.7/2.12 listed pipeline core as `.claude/hooks/` with a trailing slash, and D11 tested only
+`.claude/hooks/x.sh`. The shell guard matched that string verbatim, so `rm -rf .claude/hooks`,
+`mv .claude/hooks x` and `rm -rf .claude` passed outside PIPELINE; removing the hooks directory makes
+every hook exit 127 (non-blocking), so all gates fail open. Design 2.3 (logs carry only relative
+paths) also contradicted 2.6 step 4 (REL is absolute when no checkout owns the path).
+Rule: A protected directory is specified for both matchers: as a path prefix for tools and as a
+directory token (with and without a trailing slash, plus its ancestors) for shell commands, with a
+test row for each spelling. Cross-check every "only"/"never" claim against the steps that produce it.
