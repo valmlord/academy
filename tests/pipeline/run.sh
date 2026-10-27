@@ -3,15 +3,39 @@
 # with a copy of .claude/. Usage: bash tests/pipeline/run.sh   (also runs in CI)
 set -uo pipefail
 SRC="$(cd "$(dirname "$0")/../.." && pwd)"
-BASE=$(mktemp -d)
+# Physical path: the hooks report realpaths (macOS /var is a symlink to /private/var).
+BASE=$(cd "$(mktemp -d)" && pwd -P)
 WORK="$BASE/work dir"
-mkdir -p "$WORK"
+mkdir -p "$WORK" "$BASE/home" "$BASE/tmp"
 trap 'rm -rf "$BASE"' EXIT
-cp -r "$SRC/.claude" "$WORK/.claude"
+# Copy .claude without the real repo's runtime files: a real worktree drags in node_modules and a
+# .git file that reaches into the real gitdir, local settings may disable hooks, a real grant would
+# authorize test inits, and a live state would leak into the first test group.
+python3 -I - "$SRC/.claude" "$WORK/.claude" <<'PY'
+import shutil, sys
+src = sys.argv[1]
+RUNTIME_NAMES = ("worktrees", "settings.local.json", "settings.pipeline-grant.json")
+
+def runtime_only(directory, names):
+    if directory != src:
+        return []
+    return [n for n in names if n in RUNTIME_NAMES or n.startswith("pipeline_state")]
+
+shutil.copytree(src, sys.argv[2], ignore=runtime_only)
+PY
+for leaked in worktrees settings.local.json settings.pipeline-grant.json pipeline_state.json pipeline_state.flock pipeline_state.parked; do
+  if [ -e "$WORK/.claude/$leaked" ]; then
+    echo "  FAIL copy excludes worktrees, local settings, grant file and runtime state"
+    echo "1 failed"
+    exit 1
+  fi
+done
 cp "$SRC/.gitignore" "$WORK/.gitignore"
-rm -f "$WORK/.claude/pipeline_state.json"
+# Tests write user-level files (transcripts, settings) and temp markers; keep them out of the real home.
+export HOME="$BASE/home" TMPDIR="$BASE/tmp"
 cd "$WORK" || exit 1
 git init -q -b main . && git config user.email t@t && git config user.name t
+echo '.claude/worktrees/' >> .git/info/exclude
 echo x > README.md && git add -A && git commit -qm "init"
 export CLAUDE_PROJECT_DIR="$WORK"
 H="$WORK/.claude/hooks"
@@ -53,6 +77,27 @@ JS="Read .claude/agents/dev/judge-security.md first. Then review the design."
 JA="Read .claude/agents/dev/judge-architecture.md first. Do not duplicate judge-security.md findings."
 JO="Read .claude/agents/dev/judge-operations.md first. Then review."
 CODER="Read .claude/agents/dev/coder.md first. Then implement the plan."
+
+WT="$WORK/.claude/worktrees/wt one"
+# reset_state: remove every runtime file a test group may leave behind, in WORK and in each test
+# worktree, and drop extra worktrees, so one red test does not cascade into the next group.
+reset_state() {
+  local root
+  for root in "$WORK" "$WT"; do
+    rm -rf "$root/.claude/pipeline_state.json" "$root/.claude/pipeline_state.flock" \
+      "$root/.claude/pipeline_state.parked" "$root/.claude/settings.pipeline-grant.json"
+  done
+  git -C "$WORK" worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= read -r w; do
+    case "$w" in "$WORK"|"$WT") ;; *) git -C "$WORK" worktree remove --force "$w" >/dev/null 2>&1 ;; esac
+  done
+  git -C "$WORK" worktree prune
+}
+# make_wt: the linked test worktree, created from HEAD (which carries the copied .claude).
+make_wt() {
+  [ -d "$WT" ] || git -C "$WORK" worktree add -q -b feat/77-wt "$WT" HEAD >/dev/null 2>&1
+}
+
+ok "copy excludes worktrees, local settings, grant file and runtime state"
 
 echo "== no pipeline"
 expect_rc "edit blocked without a pipeline" 2 write_to "apps/web/page.tsx"
