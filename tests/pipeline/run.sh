@@ -874,6 +874,22 @@ else bad "absent or malformed background_tasks does not allow stop"; fi
 reset_state
 git checkout -q main
 
+echo "== shell core guard spellings, vote errors, malformed input"
+reset_state
+git checkout -q -B feat/108-review main
+put_state "$WORK" PROJECT coder
+for c in "rm -rf .claude/hooks" "cp x.sh .claude/hooks" "mv .claude/hooks .claude/hooks.bak" "ln -sf /tmp/x .claude/hooks" \
+         "rm -rf .claude" "rm -rf .claude/" "git restore .claude"; do
+  expect_rc "shell write to hooks blocked outside PIPELINE: $c" 2 bashcmd "$c"
+done
+for c in "ls .claude" "cat .claude/hooks/x.sh" "echo x >> .claude/feedback/coder_mistakes.md" \
+         "cp x.md .claude/agents/dev/y.md" "echo x > plans/x.md" "rm -rf .claude/worktrees/old-one"; do
+  expect_rc "shell write outside core stays allowed: $c" 0 bashcmd "$c"
+done
+
+reset_state
+git checkout -q main
+
 echo
 echo "pipeline self-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

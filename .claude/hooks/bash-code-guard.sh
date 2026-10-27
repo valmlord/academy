@@ -22,6 +22,10 @@ import cfg, checkout
 WRITE_VERB = (r"(?:>>?|\btee\b|\bsed\s+-i|\bperl\s+-pi|\bcp\b|\bmv\b|\brm\b|\bln\b|\bchmod\b|\btruncate\b"
               r"|\bgit\s+checkout\s+--|\bgit\s+restore\b)")
 SAME_SEGMENT = r"[^|;&\n]*"
+# A directory named whole: followed by "/" or by anything that cannot continue a file name.
+TOKEN_END_OR_SLASH = r"(?:/|(?![\w.-]))"
+# The .claude directory itself (ancestor of every core path), with or without a trailing slash.
+CLAUDE_DIR_TOKEN = r"(?<![\w.-])\.claude/?(?=[\s'\";|&)]|$)"
 HOME = re.escape(os.path.expanduser("~"))
 NEVER_WRITTEN = (
     ("git-dir", r"(?<![\w.-])\.git(?![\w.-])", "a .git path"),
@@ -39,6 +43,20 @@ def writes_to(cmd, target):
     return re.search(WRITE_VERB + SAME_SEGMENT + target, cmd) is not None
 
 
+def core_pattern(core_files):
+    """pipeline_core_files are path prefixes for the write gate. In shell text a directory entry
+    (trailing slash) is usually named without the slash, and removing or renaming the directory or
+    an ancestor (.claude) turns every hook into a non-blocking exit 127, so all of these count."""
+    parts = []
+    for prefix in core_files:
+        if prefix.endswith("/"):
+            parts.append(re.escape(prefix.rstrip("/")) + TOKEN_END_OR_SLASH)
+        else:
+            parts.append(re.escape(prefix))
+    parts.append(CLAUDE_DIR_TOKEN)
+    return "(?:" + "|".join(parts) + ")"
+
+
 def tier_of(status):
     return status.split(":")[1] if status.startswith("own:") else ""
 
@@ -53,7 +71,7 @@ def decide(cmd, conf):
     for reason, target, what in NEVER_WRITTEN:
         if writes_to(cmd, target):
             raise Blocked(reason, "shell writes to %s are never allowed" % what)
-    core = "(?:" + "|".join(re.escape(p) for p in conf["pipeline_core_files"]) + ")"
+    core = core_pattern(conf["pipeline_core_files"])
     # The main-checkout check keeps a PIPELINE state that ended up in a worktree from opening
     # main's core to shell writes.
     if writes_to(cmd, core) and not (state_root == main_root and has_flag(conf, tier_of(cwd_status), "edits_pipeline_core")):
