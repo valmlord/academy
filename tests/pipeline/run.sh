@@ -712,6 +712,152 @@ expect_rc "legacy state on another branch is foreign" 2 write_to "apps/x.txt"
 reset_state
 git checkout -q main
 
+echo "== pause, resume, PIPELINE tier and grants"
+reset_state
+git checkout -q -B feat/91-a main
+git branch -f feat/91-b main
+grant() { printf '%s\n' "$1" > "$WORK/.claude/settings.pipeline-grant.json"; }
+parked_count() { find "$PARKED" -name '*.json' 2>/dev/null | wc -l | tr -d ' '; }
+
+put_state "$WORK" PROJECT coder 91
+"${ADV[@]}" pause >/dev/null 2>&1
+if [ "$("${ADV[@]}" status 2>/dev/null)" = "No active pipeline." ] && [ "$(parked_reasons)" = pause ]; then
+  ok "pause parks the active state and frees the checkout"
+else bad "pause parks the active state and frees the checkout ($(parked_reasons))"; fi
+put_state "$WORK" PROJECT coder 92
+STATUS_OUT=$("${ADV[@]}" status 2>"$BASE/status.err")
+if printf '%s' "$STATUS_OUT" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null && grep -q "Parked here: #91" "$BASE/status.err"; then
+  ok "status prints parked summary on stderr and pure JSON on stdout"
+else bad "status prints parked summary on stderr and pure JSON on stdout"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 93 120
+"${ADV[@]}" pause >/dev/null 2>&1
+expect_rc "parked: write" 2 write_to "apps/x.txt"
+expect_rc "parked: coder spawn" 2 agent "$CODER"
+expect_rc "parked: judge spawn" 2 agent "$JS"
+transcript "$TDIR/$SID/subagents/agent-p1.jsonl" "$JS"
+handback p1 "PASS" "$MAIN_T" >/dev/null 2>&1
+[ "$(log_last event)" = vote-ignored:no-state ] && ok "parked: vote" || bad "parked: vote ($(log_last event))"
+expect_rc "parked: stop" 0 stop 0
+rm -f "$LOG"
+write_json "$WORK/plans/x.md" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+grep -q '"watchdog-notify"' "$LOG" 2>/dev/null && bad "parked: watchdog" || ok "parked: watchdog"
+reset_state
+
+put_state "$WORK" PROJECT coder 94
+"${ADV[@]}" pause >/dev/null 2>&1
+put_state "$WORK" PROJECT coder 94
+"${ADV[@]}" pause >/dev/null 2>&1
+capture "${ADV[@]}" resume 94
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "more than once" && [ "$(parked_count)" = 2 ]; then
+  ok "second pause of the same issue keeps both; resume by issue is refused as ambiguous"
+else bad "second pause of the same issue keeps both; resume by issue is refused as ambiguous (rc=$RC parked=$(parked_count))"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 95
+"${ADV[@]}" pause >/dev/null 2>&1
+put_state "$WORK" PROJECT coder 96
+capture "${ADV[@]}" resume 95
+if [ "$RC" = 1 ] && [ "$(state_get "$WORK" "d['issue']")" = 96 ] && [ "$(parked_count)" = 1 ]; then
+  ok "resume refuses while a pipeline is active"
+else bad "resume refuses while a pipeline is active (rc=$RC)"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 97
+"${ADV[@]}" pause >/dev/null 2>&1
+git checkout -q feat/91-b
+put_state "$WORK" PROJECT coder 98 600
+cp "$WORK/.claude/pipeline_state.json" "$BASE/slot.before"
+capture "${ADV[@]}" resume 97
+if [ "$RC" = 1 ] && cmp -s "$BASE/slot.before" "$WORK/.claude/pipeline_state.json" && [ "$(parked_count)" = 1 ]; then
+  ok "resume refuses on a different branch"
+else bad "resume refuses on a different branch (rc=$RC)"; fi
+git checkout -q feat/91-a
+reset_state
+
+put_state "$WORK" PROJECT judge_design 99
+edit_state "$WORK" '{"artifacts": {"judge_votes": [{"agent": "security", "verdict": "PASS", "round": "judge_design"}]}}'
+"${ADV[@]}" pause >/dev/null 2>&1
+"${ADV[@]}" resume 99 >/dev/null 2>&1
+if [ "$(state_get "$WORK" "d['phase'] + ':' + str(len(d['artifacts']['judge_votes'])) + ':' + d['phase_history'][-1]['phase']")" = "judge_design:1:resume" ]; then
+  ok "resume restores phase, votes and history"
+else bad "resume restores phase, votes and history"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 100
+edit_state "$WORK" '{"gitdir_at_init": "/elsewhere/.git"}'
+"${ADV[@]}" pause >/dev/null 2>&1
+[ "$(parked_reasons)" = pause-foreign ] && [ ! -f "$WORK/.claude/pipeline_state.json" ] && ok "pause parks a foreign state" || bad "pause parks a foreign state ($(parked_reasons))"
+reset_state
+
+put_state "$WORK" PROJECT coder 101
+"${ADV[@]}" pause >/dev/null 2>&1
+python3 -c "import glob,json,sys; f=glob.glob(sys.argv[1]+'/*.json')[0]; d=json.load(open(f)); d['gitdir_at_init']='/old/place/.git'; json.dump(d, open(f,'w'))" "$PARKED"
+"${ADV[@]}" resume 101 >/dev/null 2>&1
+[ "$(state_get "$WORK" "d['gitdir_at_init']")" = "$WORK/.git" ] && ok "resume after a repository move rebases gitdir_at_init" || bad "resume after a repository move rebases gitdir_at_init"
+reset_state
+
+put_state "$WORK" PROJECT coder
+expect_rc "pipeline core not writable in PROJECT" 2 write_to ".claude/hooks/x.sh"
+if ! bashcmd "echo x >> .claude/hooks/x.sh" >/dev/null 2>&1 && ! bashcmd "sed -i '' 's/a/b/' .claude/pipeline.json" >/dev/null 2>&1; then
+  ok "shell write to hooks blocked outside PIPELINE"
+else bad "shell write to hooks blocked outside PIPELINE"; fi
+expect_rc "shell write to settings.local.json blocked outside PIPELINE" 2 bashcmd "echo '{}' > .claude/settings.local.json"
+put_state "$WORK" PIPELINE coder
+expect_rc "pipeline core writable in PIPELINE" 0 write_to ".claude/hooks/x.sh"
+expect_rc "shell write to hooks allowed in PIPELINE" 0 bashcmd "echo x >> .claude/hooks/x.sh"
+expect_rc "grant file is never written by tools or shell, even in PIPELINE (tool)" 2 write_to ".claude/settings.pipeline-grant.json"
+expect_rc "grant file is never written by tools or shell, even in PIPELINE (shell)" 2 bashcmd "printf '{}' > .claude/settings.pipeline-grant.json"
+put_state "$WORK" LEARN learner
+expect_rc "pipeline core not writable in LEARN" 2 write_to ".claude/hooks/x.sh"
+reset_state
+make_wt
+put_state "$WT" PIPELINE coder
+expect_rc "shell core write refused from a worktree holding a PIPELINE state" 2 at "$WT" bashcmd "echo x >> \"$WORK/.claude/hooks/x.sh\""
+reset_state
+
+capture "${ADV[@]}" init PIPELINE 102
+if [ "$RC" = 4 ] && printf '%s' "$ERR" | grep -q "settings.pipeline-grant.json"; then
+  ok "init PIPELINE refused without a grant"
+else bad "init PIPELINE refused without a grant (rc=$RC)"; fi
+grant '{"version": 1, "pipeline_init": [102]}'
+"${ADV[@]}" init PIPELINE 102 >/dev/null 2>&1
+[ "$(state_get "$WORK" "'grant:pipeline_init:102' in [h['phase'] for h in d['phase_history']]")" = True ] \
+  && ok "init PIPELINE allowed with a grant naming the issue" || bad "init PIPELINE allowed with a grant naming the issue"
+reset_state
+grant '{"version": 1, "pipeline_init": [998]}'
+expect_rc "a grant for another issue does not admit init PIPELINE" 4 "${ADV[@]}" init PIPELINE 999
+grant '{"version": 1, "pipeline-init": [999]}'
+capture "${ADV[@]}" init PIPELINE 999
+[ "$RC" = 4 ] && printf '%s' "$ERR" | grep -q invalid && ok "an invalid grant file grants nothing (unknown key)" || bad "an invalid grant file grants nothing (unknown key) (rc=$RC)"
+grant 'not json'
+capture "${ADV[@]}" init PIPELINE 999
+[ "$RC" = 4 ] && printf '%s' "$ERR" | grep -q invalid && ok "an invalid grant file grants nothing (not JSON)" || bad "an invalid grant file grants nothing (not JSON) (rc=$RC)"
+reset_state
+
+put_state "$WORK" LEARN learner 103
+capture "${ADV[@]}" pause
+[ "$RC" = 4 ] && slot_is LEARN:learner && ok "pause of an own LEARN state refused without a grant" || bad "pause of an own LEARN state refused without a grant (rc=$RC)"
+grant '{"version": 1, "learn_pause": [103]}'
+"${ADV[@]}" pause >/dev/null 2>&1
+[ "$(parked_reasons)" = pause ] && ok "pause of an own LEARN state allowed with a learn_pause grant" || bad "pause of an own LEARN state allowed with a learn_pause grant"
+reset_state
+
+put_state "$WORK" LEARN learner 104
+git checkout -q feat/91-b
+capture "${ADV[@]}" init TASK 105
+[ "$RC" = 4 ] && slot_is LEARN:learner && ok "init cannot park an own LEARN state without a grant" || bad "init cannot park an own LEARN state without a grant (rc=$RC)"
+git checkout -q feat/91-a
+reset_state
+
+make_wt
+grant '{"version": 1, "pipeline_init": [106]}'
+capture eval 'cd "$WT" && "${ADV[@]}" init PIPELINE 106'
+[ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "main checkout" && ok "PIPELINE init refused in a linked worktree" || bad "PIPELINE init refused in a linked worktree (rc=$RC)"
+reset_state
+git checkout -q main
+
 echo
 echo "pipeline self-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -12,9 +12,12 @@ torn file.
   state.py record_spawn <root> <round> <agent_id> <judge>
   state.py set_artifact <root> <key> <value>
   state.py finish <root>
+  state.py park <root> <reason> <code_root> <gitdir> <branch>     (pause: reason "pause")
+  state.py resume <root> <issue|key> <code_root> <gitdir> <branch>
+  state.py parked <root>
 
 Exit codes: 0 done (one result line on stdout), 1 refused, 3 the state changed under the caller,
-75 the lock was not acquired in time. Errors go to stderr; nothing is written on any error.
+4 Stepan's grant is missing or invalid, 75 the lock was not acquired in time. Errors go to stderr; nothing is written on any error.
 """
 import contextlib
 import fcntl
@@ -31,6 +34,7 @@ import checkout  # noqa: E402
 
 EXIT_REFUSED = 1
 EXIT_CONFLICT = 3
+EXIT_NO_GRANT = 4
 # EX_TEMPFAIL from sysexits.h: nothing happened, the caller may retry.
 EXIT_LOCK_TIMEOUT = 75
 LOCK_POLL_SECONDS = 0.05
@@ -52,8 +56,63 @@ class Conflict(Refused):
     code = EXIT_CONFLICT
 
 
+class GrantRefused(Refused):
+    code = EXIT_NO_GRANT
+
+
 class StateLockTimeout(Exception):
     pass
+
+
+GRANT_KEYS = ("version", "pipeline_init", "learn_pause")
+GRANT_VERSION = 1
+
+
+def _grant_invalid(conf, why):
+    return GrantRefused("%s is invalid: %s; no grant applies" % (conf["grant_file"], why))
+
+
+def read_grant(conf, code_root):
+    """Stepan's grant file in the main checkout, read on every decision and never cached. -> dict,
+    or None when absent. Anything malformed raises: a typo must be reported, never grant silently."""
+    path = os.path.join(code_root, conf["grant_file"])
+    if not os.path.lexists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise _grant_invalid(conf, "not readable JSON (%s)" % exc.__class__.__name__)
+    if not isinstance(data, dict):
+        raise _grant_invalid(conf, "not a JSON object")
+    unknown = sorted(set(data) - set(GRANT_KEYS))
+    if unknown:
+        raise _grant_invalid(conf, "unknown key %s" % ", ".join(unknown))
+    # bool is a subclass of int in Python: JSON true must not pass as version 1 or as issue 1.
+    if type(data.get("version")) is not int or data["version"] != GRANT_VERSION:
+        raise _grant_invalid(conf, '"version" must be the integer %d' % GRANT_VERSION)
+    for key in GRANT_KEYS[1:]:
+        if key not in data:
+            continue
+        if not isinstance(data[key], list):
+            raise _grant_invalid(conf, '"%s" must be a list' % key)
+        if any(type(x) is not int or x <= 0 for x in data[key]):
+            raise _grant_invalid(conf, '"%s" must list positive issue numbers' % key)
+    return data
+
+
+def require_grant(conf, code_root, kind, issue, refusal, root):
+    """Raise GrantRefused(refusal) unless the grant file lists issue under kind."""
+    try:
+        grant = read_grant(conf, code_root)
+    except GrantRefused:
+        checkout.log_event(event="grant-invalid", hook="state.py", checkout=root, grant=kind, issue=str(issue))
+        raise
+    number = int(issue) if str(issue).isdigit() else None
+    if grant is None or number not in grant.get(kind, []):
+        checkout.log_event(event="grant-missing", hook="state.py", checkout=root, grant=kind, issue=str(issue))
+        raise GrantRefused(refusal)
+    checkout.log_event(event="grant-used", hook="state.py", checkout=root, grant=kind, issue=str(issue))
 
 
 def _claude_dir(root):
@@ -149,9 +208,18 @@ def _branch_exists(root, branch):
         return False
 
 
-def _park(root, data, reason, branch):
+def _park(root, data, reason, code_root, gitdir, branch):
     """Move the slot's state to parked/<issue>-<epoch>[-n].json. Nothing is ever deleted: parking
-    keeps the votes and history of a task that was set aside."""
+    keeps the votes and history of a task that was set aside. Parking this checkout's own LEARN
+    task would lift its rules, so it needs Stepan's learn_pause grant; pause, init and resume all
+    pass through here."""
+    conf = cfg.load()
+    if conf["tiers"].get(data.get("tier"), {}).get("learner_writes_code") \
+            and checkout.foreign_reason(data, gitdir, branch) == "":
+        issue = data.get("issue") or ""
+        require_grant(conf, code_root, "learn_pause", issue,
+                      '%s #%s is the task in this checkout; Stepan grants pausing it: add %s to "learn_pause" in %s'
+                      % (data.get("tier"), issue, issue, conf["grant_file"]), root)
     parked_dir = os.path.join(_claude_dir(root), PARKED_DIR)
     os.makedirs(parked_dir, exist_ok=True)
     base = "%s-%d" % (data.get("issue") or "noissue", int(time.time()))
@@ -192,25 +260,36 @@ def _init_park_reason(root, data, gitdir, branch, conf):
 
 def op_init(root, tier, issue, branch, gitdir, code_root):
     conf = cfg.load()
+    tier_conf = conf["tiers"].get(tier, {})
     # A branch is what identifies the task; branch_at_init must name a task branch.
     if not branch:
         raise Refused("HEAD is detached; check out a branch first")
-    if conf["tiers"].get(tier, {}).get("requires_issue") and branch in conf["protected_branches"]:
+    if tier_conf.get("requires_issue") and branch in conf["protected_branches"]:
         raise Refused("you are on protected branch '%s'. Create the task branch first: git switch -c <type>/%s-<slug>"
                       % (branch, issue))
     with transaction(root):
+        if tier_conf.get("edits_pipeline_core"):
+            # Only the main checkout's hooks are live, so core edits anywhere else cannot be checked.
+            if os.path.realpath(root) != os.path.realpath(code_root):
+                raise Refused("%s tasks run in the main checkout: only its hooks are live" % tier)
+            require_grant(conf, code_root, "pipeline_init", issue,
+                          '%s #%s needs a grant: Stepan adds %s to "pipeline_init" in %s (main checkout)'
+                          % (tier, issue, issue, conf["grant_file"]), root)
         data = load(root)
         reason = _init_park_reason(root, data, gitdir, branch, conf)
         _test_delay()
         if reason:
-            _park(root, data, reason, branch)
+            _park(root, data, reason, code_root, gitdir, branch)
         now = time.time()
-        save(root, {
+        state = {
             "tier": tier, "phase": "init", "issue": int(issue) if issue else None,
             "branch_at_init": branch, "gitdir_at_init": gitdir, "session_ts": now,
             "phase_history": [{"phase": "init", "ts": now, "ts_str": _stamp()}],
             "artifacts": {"last_ts": _stamp()},
-        })
+        }
+        if tier_conf.get("edits_pipeline_core"):
+            append_history(state, "grant:pipeline_init:%s" % issue)
+        save(root, state)
     checkout.log_event(event="init", hook="state.py", checkout=root, issue=issue)
     return "initialized"
 
@@ -280,6 +359,95 @@ def op_finish(root):
     return "finished"
 
 
+def op_park(root, reason, code_root, gitdir, branch):
+    """pause: set the active state aside, own or foreign (a foreign one is what a repository move or
+    the v2 migration leaves behind), and free the checkout."""
+    with transaction(root):
+        data = load(root)
+        if data is None or data.get("phase") == "done":
+            raise Refused("no active pipeline to pause here")
+        if checkout.foreign_reason(data, gitdir, branch) != "":
+            reason += "-foreign"
+        _test_delay()
+        key = _park(root, data, reason, code_root, gitdir, branch)
+    return "parked as %s" % key
+
+
+def _parked_dir(root):
+    return os.path.join(_claude_dir(root), PARKED_DIR)
+
+
+def _parked_keys(root):
+    d = _parked_dir(root)
+    return sorted(f[:-len(".json")] for f in os.listdir(d) if f.endswith(".json")) if os.path.isdir(d) else []
+
+
+def _pick_parked(root, wanted):
+    keys = _parked_keys(root)
+    if wanted in keys:
+        return wanted
+    matches = [k for k in keys if wanted.isdigit() and k.startswith(wanted + "-")]
+    if len(matches) > 1:
+        raise Refused("#%s is parked more than once (%s); resume by key" % (wanted, ", ".join(matches)))
+    if not matches:
+        raise Refused("nothing parked here matches %s (parked: %s)" % (wanted, ", ".join(keys) or "none"))
+    return matches[0]
+
+
+def op_resume(root, wanted, code_root, gitdir, branch):
+    """Restore a parked state in one transaction. Every refusal comes before anything moves, so a
+    refused resume leaves the slot and the parked directory as they were."""
+    conf = cfg.load()
+    with transaction(root):
+        current = load(root)
+        slot_reason = None
+        if current is not None and current.get("phase") != "done":
+            if checkout.foreign_reason(current, gitdir, branch) != "":
+                slot_reason = "foreign"
+            else:
+                idle = int(time.time() - last_activity(current))
+                if idle < conf["state_ttl_hours"] * SECONDS_PER_HOUR:
+                    raise Refused("#%s is active here; finish or pause #%s first" % (current.get("issue"), current.get("issue")))
+                slot_reason = "stale"
+        key = _pick_parked(root, wanted)
+        path = os.path.join(_parked_dir(root), key + ".json")
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        if not branch or data.get("branch_at_init") != branch:
+            raise Refused("%s was started on branch %s; check it out first (now %s)"
+                          % (key, data.get("branch_at_init"), branch or "detached HEAD"))
+        _test_delay()
+        if slot_reason:
+            _park(root, current, slot_reason, code_root, gitdir, branch)
+        # Found in this checkout's own parked directory, so location proves ownership; a different
+        # gitdir means the repository moved.
+        if data.get("gitdir_at_init") != gitdir:
+            data["gitdir_at_init"] = gitdir
+            checkout.log_event(event="resume:gitdir-rebased", hook="state.py", checkout=root, issue=str(data.get("issue") or ""))
+        for field in ("parked_reason", "parked_branch", "parked_ts"):
+            data.pop(field, None)
+        append_history(data, "resume")
+        save(root, data)
+        os.remove(path)
+    checkout.log_event(event="resume", hook="state.py", checkout=root, issue=str(data.get("issue") or ""))
+    return "resumed %s" % key
+
+
+def op_parked(root):
+    lines = []
+    for key in _parked_keys(root):
+        try:
+            with open(os.path.join(_parked_dir(root), key + ".json"), encoding="utf-8") as fh:
+                d = json.load(fh)
+        except (OSError, ValueError):
+            lines.append("%s (unreadable)" % key)
+            continue
+        lines.append("#%s %s/%s (%s, key %s, parked %s, %s)" % (
+            d.get("issue") or "-", d.get("tier"), d.get("phase"), d.get("branch_at_init"), key,
+            time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(d.get("parked_ts") or 0)), d.get("parked_reason")))
+    return "\n".join(lines)
+
+
 OPS = {
     "init": (op_init, 6, 6),
     "advance": (op_advance, 3, 3),
@@ -287,6 +455,9 @@ OPS = {
     "record_spawn": (op_record_spawn, 4, 4),
     "set_artifact": (op_set_artifact, 3, 3),
     "finish": (op_finish, 1, 1),
+    "park": (op_park, 5, 5),
+    "resume": (op_resume, 5, 5),
+    "parked": (op_parked, 1, 1),
 }
 
 
@@ -300,7 +471,9 @@ def main(argv):
         print("ERROR: state.py %s takes %d-%d arguments, got %d" % (argv[1], least, most, len(args)), file=sys.stderr)
         return EXIT_REFUSED
     try:
-        print(fn(*args))
+        result = fn(*args)
+        if result:
+            print(result)
     except StateLockTimeout as exc:
         checkout.log_event(event="lock-timeout", hook="state.py", checkout=args[0], reason=argv[1])
         print("ERROR: %s" % exc, file=sys.stderr)

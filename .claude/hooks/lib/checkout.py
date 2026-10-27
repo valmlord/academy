@@ -203,10 +203,11 @@ def read_state(root):
     return "ok", data
 
 
-def state_is_own(data, gitdir, branch):
-    """-> "" when the state belongs to this checkout, else why it is foreign. A state copied from
-    another checkout keeps its gitdir_at_init; a legacy state without one is own only on the branch
-    it was started on, so a copy that landed in a new worktree (seen in #15) unlocks nothing."""
+def foreign_reason(data, gitdir, branch):
+    """The ownership rule: "" when the state belongs to this checkout, else why it is foreign
+    ("gitdir" or "branch"). A state copied from another checkout keeps its gitdir_at_init; a legacy
+    state without one is own only on the branch it was started on, so a copy that landed in a new
+    worktree (seen in #15) unlocks nothing."""
     recorded = data.get("gitdir_at_init")
     if recorded:
         return "" if recorded == gitdir else "gitdir"
@@ -218,7 +219,7 @@ def state_status(root, gitdir, branch):
     status, data = read_state(root)
     if status != "ok":
         return status
-    foreign = state_is_own(data, gitdir, branch)
+    foreign = foreign_reason(data, gitdir, branch)
     if foreign:
         return "foreign:" + foreign
     if data["phase"] == "done":

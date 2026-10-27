@@ -53,6 +53,27 @@
       ],
       "judges": ["security", "architecture", "operations"]
     },
+    "PIPELINE": {
+      "team": "dev",
+      "requires_issue": true,
+      "edits_pipeline_core": true,
+      "phases": [
+        "init",
+        "researcher",
+        "architect",
+        "judge_design",
+        "planner",
+        "coder",
+        "tester",
+        "judge_code",
+        "compound",
+        "commit",
+        "pr",
+        "notify",
+        "done"
+      ],
+      "judges": ["security", "architecture", "operations"]
+    },
     "LEARN": {
       "team": "dev",
       "requires_issue": true,

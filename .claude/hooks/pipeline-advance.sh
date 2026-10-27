@@ -9,7 +9,10 @@
 #   pipeline-advance.sh pr <url>                        record the opened PR and advance
 #   pipeline-advance.sh pr skip "reason"                no remote yet: record why, advance
 #   pipeline-advance.sh notify                          run notify hook and advance
-#   pipeline-advance.sh status                          print state
+#   pipeline-advance.sh status                          print state (parked ones on stderr)
+#   pipeline-advance.sh pause                           park the active state, free the checkout
+#   pipeline-advance.sh resume <issue|key>              restore a parked state on its own branch
+#   pipeline-advance.sh parked                          list parked states
 # Judge votes and the judge spawn map are recorded ONLY by the judge hooks (JUDGE_HOOK_CALLER):
 #   pipeline-advance.sh <judge_phase> <judge> <PASS|FAIL> [agent_id] [path]
 #   pipeline-advance.sh spawn <judge_phase> <agent_id> <judge>
@@ -69,9 +72,37 @@ else:
 PYEOF
 }
 
+# Parked states and a foreign slot are reported on stderr, so stdout stays pure JSON for consumers.
+report_parked() {
+  local line
+  state_op parked | while IFS= read -r line; do echo "Parked here: $line" >&2; done
+}
+
 # ---------------------------------------------------------------- STATUS
 if [ "$PHASE" = "status" ]; then
-  [ -f "$STATE_FILE" ] && read_state_json || echo "No active pipeline."
+  case "$STATE_STATUS" in
+    own:*|done) read_state_json ;;
+    foreign:*)
+      echo "No active pipeline."
+      echo "Foreign state in slot: #$(read_state issue) $(read_state tier)/$(read_state phase) (started on $(read_state branch_at_init); pause parks it)" >&2 ;;
+    unreadable) echo "ERROR: state file unreadable: $STATE_FILE; Stepan inspects it" >&2; exit 1 ;;
+    *) echo "No active pipeline." ;;
+  esac
+  report_parked
+  exit 0
+fi
+
+# ---------------------------------------------------------------- PAUSE / RESUME / PARKED
+if [ "$PHASE" = "pause" ]; then
+  state_op park pause "$CODE_ROOT" "$GITDIR" "$BRANCH"
+  exit 0
+fi
+if [ "$PHASE" = "resume" ]; then
+  state_op resume "${1:?Usage: pipeline-advance.sh resume <issue|key>}" "$CODE_ROOT" "$GITDIR" "$BRANCH"
+  exit 0
+fi
+if [ "$PHASE" = "parked" ]; then
+  state_op parked
   exit 0
 fi
 
@@ -101,7 +132,12 @@ if [ "$PHASE" = "init" ]; then
   exit 0
 fi
 
-[ ! -f "$STATE_FILE" ] && { echo "ERROR: No pipeline state. Run: pipeline-advance.sh init <TIER> <issue>" >&2; exit 1; }
+case "$STATE_STATUS" in
+  own:*|done) ;;
+  foreign:*) echo "ERROR: the state here belongs to another checkout or branch ($STATE_STATUS). pause parks it; then init or resume." >&2; exit 1 ;;
+  unreadable) echo "ERROR: state file unreadable: $STATE_FILE; Stepan inspects it" >&2; exit 1 ;;
+  *) echo "ERROR: No pipeline state. Run: pipeline-advance.sh init <TIER> <issue>" >&2; exit 1 ;;
+esac
 
 TIER=$(read_state tier)
 CURRENT=$(read_state phase)
