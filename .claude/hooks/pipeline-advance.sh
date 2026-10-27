@@ -9,24 +9,33 @@
 #   pipeline-advance.sh pr <url>                        record the opened PR and advance
 #   pipeline-advance.sh pr skip "reason"                no remote yet: record why, advance
 #   pipeline-advance.sh notify                          run notify hook and advance
-#   pipeline-advance.sh status                          print state
-# Judge votes are recorded ONLY by the judge-vote / judge-count hooks (JUDGE_HOOK_CALLER).
+#   pipeline-advance.sh status                          print state (parked ones on stderr)
+#   pipeline-advance.sh pause                           park the active state, free the checkout
+#   pipeline-advance.sh resume <issue|key>              restore a parked state on its own branch
+#   pipeline-advance.sh parked                          list parked states
+# Judge votes and the judge spawn map are recorded ONLY by the judge hooks (JUDGE_HOOK_CALLER):
+#   pipeline-advance.sh <judge_phase> <judge> <PASS|FAIL> [agent_id] [path]
+#   pipeline-advance.sh spawn <judge_phase> <agent_id> <judge>
 #
-# State: .claude/pipeline_state.json
+# State: .claude/pipeline_state.json of the checkout that contains the current directory (a
+# registered worktree, else the main checkout). Run the main checkout's copy of this script; from a
+# worktree: bash "$(git rev-parse --path-format=absolute --git-common-dir)/../.claude/hooks/pipeline-advance.sh"
+HOOK_KIND=cli
+case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# shellcheck source=lib/common.sh
+source "$HOOK_DIR/lib/common.sh"
 
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cfg() { python3 "$SCRIPT_DIR/lib/cfg.py" "$@"; }
-STATE_FILE_UNIX="$SCRIPT_DIR/../pipeline_state.json"
-STATE_FILE=$(cygpath -w "$STATE_FILE_UNIX" 2>/dev/null || echo "$STATE_FILE_UNIX")
-REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SCRIPT_DIR="$CODE_ROOT/.claude/hooks"
+STATE_FILE=$(cygpath -w "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
+REPO_DIR="$STATE_ROOT"
 PHASE="${1:?Usage: pipeline-advance.sh <phase> [args...]}"
 shift
 
 py_run() {
   local tmpf; tmpf=$(mktemp "${TMPDIR:-/tmp}/pipeline_py.XXXXXX.py")
   cat > "$tmpf"
-  python3 "$tmpf" "$@"
+  python3 -I "$tmpf" "$@"
   local rc=$?
   rm -f "$tmpf"
   return $rc
@@ -35,45 +44,9 @@ py_run() {
 read_state()      { echo "import json; d=json.load(open(r'$STATE_FILE')); v=d.get('$1',''); print('' if v is None else v)" | py_run; }
 read_state_json() { echo "import json; print(json.dumps(json.load(open(r'$STATE_FILE')),indent=2,ensure_ascii=False))" | py_run; }
 
-# write_state key=value ... (values parsed as JSON when possible)
-write_state() {
-  py_run "$@" <<PYEOF
-import json,sys
-f = r'$STATE_FILE'
-try: d = json.load(open(f))
-except Exception: d = {}
-for a in sys.argv[1:]:
-    k,v = a.split('=',1)
-    try: v = json.loads(v)
-    except Exception: pass
-    d[k] = v
-json.dump(d, open(f,'w'), indent=2, ensure_ascii=False)
-PYEOF
-}
-
-# set_artifact key value
-set_artifact() {
-  py_run "$1" "$2" <<PYEOF
-import json,sys
-f = r'$STATE_FILE'
-d = json.load(open(f))
-d.setdefault('artifacts',{})[sys.argv[1]] = sys.argv[2]
-json.dump(d, open(f,'w'), indent=2, ensure_ascii=False)
-PYEOF
-}
-
-append_history() {
-  py_run "$1" <<PYEOF
-import json,time,sys
-f = r'$STATE_FILE'
-d = json.load(open(f))
-now = time.time()
-entry = {'phase': sys.argv[1], 'ts': now, 'ts_str': time.strftime('%Y-%m-%dT%H:%M:%S')}
-d.setdefault('phase_history',[]).append(entry)
-d.setdefault('artifacts',{})['last_ts'] = entry['ts_str']
-json.dump(d, open(f,'w'), indent=2, ensure_ascii=False)
-PYEOF
-}
+# Every state write is one locked transaction in lib/state.py.
+state_op() { python3 -I "$LIB/state.py" "$1" "$STATE_ROOT" "${@:2}"; }
+set_artifact() { state_op set_artifact "$1" "$2" >/dev/null; }
 
 # Unanimity for the CURRENT judge round. Prints OK / FAIL:<..> NOTVOTED:<..>
 check_judges_unanimous() {
@@ -99,9 +72,43 @@ else:
 PYEOF
 }
 
+unreadable_state() {
+  echo "ERROR: state file unreadable: $STATE_FILE. Stepan inspects it, then moves it aside by hand:" >&2
+  echo "  mv \"$STATE_FILE\" \"$STATE_FILE.broken\"" >&2
+  exit 1
+}
+
+# Parked states and a foreign slot are reported on stderr, so stdout stays pure JSON for consumers.
+report_parked() {
+  local line
+  state_op parked | while IFS= read -r line; do echo "Parked here: $line" >&2; done
+}
+
 # ---------------------------------------------------------------- STATUS
 if [ "$PHASE" = "status" ]; then
-  [ -f "$STATE_FILE" ] && read_state_json || echo "No active pipeline."
+  case "$STATE_STATUS" in
+    own:*|done) read_state_json ;;
+    foreign:*)
+      echo "No active pipeline."
+      echo "Foreign state in slot: #$(read_state issue) $(read_state tier)/$(read_state phase) (started on $(read_state branch_at_init); pause parks it)" >&2 ;;
+    unreadable) unreadable_state ;;
+    *) echo "No active pipeline." ;;
+  esac
+  report_parked
+  exit 0
+fi
+
+# ---------------------------------------------------------------- PAUSE / RESUME / PARKED
+if [ "$PHASE" = "pause" ]; then
+  state_op park pause "$CODE_ROOT" "$GITDIR" "$BRANCH"
+  exit 0
+fi
+if [ "$PHASE" = "resume" ]; then
+  state_op resume "${1:?Usage: pipeline-advance.sh resume <issue|key>}" "$CODE_ROOT" "$GITDIR" "$BRANCH"
+  exit 0
+fi
+if [ "$PHASE" = "parked" ]; then
+  state_op parked
   exit 0
 fi
 
@@ -120,29 +127,7 @@ if [ "$PHASE" = "init" ]; then
       exit 1
     fi
   fi
-  if [ -f "$STATE_FILE" ]; then
-    PREV_PHASE=$(read_state phase || true)
-    if [ -n "$PREV_PHASE" ] && [ "$PREV_PHASE" != "done" ]; then
-      TTL_H=$(cfg get state_ttl_hours)
-      AGE=$(echo "import json,time; d=json.load(open(r'$STATE_FILE')); print(int(time.time()-d.get('session_ts',0)))" | py_run 2>/dev/null || echo 999999)
-      if [ "$AGE" -lt $((TTL_H * 3600)) ]; then
-        echo "ERROR: a pipeline is still active (phase=$PREV_PHASE, ${AGE}s old). Finish it, or wait for TTL ${TTL_H}h." >&2
-        exit 1
-      fi
-      echo "Auto-resetting stale state (${AGE}s old)."
-    fi
-  fi
-  BRANCH=$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-  py_run "$TIER" "$ISSUE" "$BRANCH" <<PYEOF
-import json,time,sys
-tier, issue, branch = sys.argv[1], sys.argv[2], sys.argv[3]
-now = time.time()
-json.dump({'tier':tier,'phase':'init','issue': int(issue) if issue else None,'branch_at_init':branch,
-  'session_ts':now,
-  'phase_history':[{'phase':'init','ts':now,'ts_str':time.strftime('%Y-%m-%dT%H:%M:%S')}],
-  'artifacts':{'last_ts':time.strftime('%Y-%m-%dT%H:%M:%S')}
-},open(r'$STATE_FILE','w'),indent=2,ensure_ascii=False)
-PYEOF
+  state_op init "$TIER" "$ISSUE" "$BRANCH" "$GITDIR" "$CODE_ROOT" >/dev/null
   echo "Pipeline initialized: tier=$TIER issue=${ISSUE:-none}"
   echo "Phases: $(cfg phases "$TIER")"
   if [ -n "$ISSUE" ]; then
@@ -153,7 +138,12 @@ PYEOF
   exit 0
 fi
 
-[ ! -f "$STATE_FILE" ] && { echo "ERROR: No pipeline state. Run: pipeline-advance.sh init <TIER> <issue>" >&2; exit 1; }
+case "$STATE_STATUS" in
+  own:*|done) ;;
+  foreign:*) echo "ERROR: the state here belongs to another checkout or branch ($STATE_STATUS). pause parks it; then init or resume." >&2; exit 1 ;;
+  unreadable) unreadable_state ;;
+  *) echo "ERROR: No pipeline state. Run: pipeline-advance.sh init <TIER> <issue>" >&2; exit 1 ;;
+esac
 
 TIER=$(read_state tier)
 CURRENT=$(read_state phase)
@@ -177,32 +167,28 @@ if [[ "$PHASE" == judge_* ]] && [ "$CURRENT" = "$PHASE" ] && [ $# -ge 2 ]; then
     exit 0
   fi
   case "$VERDICT" in PASS|FAIL) ;; *) echo "IGNORED: verdict '$VERDICT'" >&2; exit 0 ;; esac
-  py_run "$AGENT" "$VERDICT" "$PHASE" <<PYEOF
-import json,time,os,sys
-agent, verdict, rnd = sys.argv[1], sys.argv[2], sys.argv[3]
-f = r'$STATE_FILE'
-lock = f + '.lock'
-for _ in range(50):
-    try:
-        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY); os.close(fd); break
-    except FileExistsError:
-        time.sleep(0.1)
-else:
-    try: os.remove(lock)
-    except Exception: pass
-try:
-    d = json.load(open(f))
-    d.setdefault('artifacts',{}).setdefault('judge_votes',[]).append(
-        {'agent':agent,'verdict':verdict,'source':'hook','round':rnd,'ts':time.strftime('%Y-%m-%dT%H:%M:%S')})
-    now = time.time()
-    d.setdefault('phase_history',[]).append({'phase':'judge:%s:%s'%(agent,verdict),'ts':now,'ts_str':time.strftime('%Y-%m-%dT%H:%M:%S')})
-    d['artifacts']['last_ts'] = time.strftime('%Y-%m-%dT%H:%M:%S')
-    json.dump(d, open(f,'w'), indent=2, ensure_ascii=False)
-finally:
-    try: os.remove(lock)
-    except Exception: pass
-PYEOF
+  # Output and rc are taken apart: inside a [ ] argument a failed write (lock timeout 75, phase
+  # race 3, unreadable state 1) would read as success.
+  VOTE_RESULT=$(state_op vote "$PHASE" "$AGENT" "$VERDICT" "${3:-}" "${4:-}") || exit $?
+  if [ "$VOTE_RESULT" = "vote-dup" ]; then
+    echo "Duplicate vote ignored ($PHASE: $AGENT, agent ${3:-?} already voted this round)."
+    exit 0
+  fi
   echo "Judge recorded ($PHASE: $AGENT=$VERDICT). Round status: $(check_judges_unanimous "$JUDGES")"
+  exit 0
+fi
+
+# ---------------------------------------------------------------- SPAWN map (judge-count hook)
+# spawn <round> <agent_id> <judge>: remember which judge an agent id is, for a handback whose
+# transcript cannot be found.
+if [ "$PHASE" = "spawn" ]; then
+  if [ "${JUDGE_HOOK_CALLER:-}" != "judge-count-hook" ]; then
+    echo "REJECTED: the spawn map is written only by the judge-count hook." >&2; exit 1
+  fi
+  if ! echo " $JUDGES " | grep -q " ${3:?Usage: pipeline-advance.sh spawn <round> <agent_id> <judge>} "; then
+    echo "IGNORED: judge '$3' is not part of tier $TIER (judges: $JUDGES)." >&2; exit 0
+  fi
+  state_op record_spawn "$1" "$2" "$3"
   exit 0
 fi
 
@@ -287,6 +273,5 @@ if [[ "$CURRENT" == judge_* ]]; then
   fi
 fi
 
-write_state "phase=$PHASE"
-append_history "$PHASE"
+state_op advance "$CURRENT" "$PHASE" >/dev/null
 echo "Advanced: $CURRENT -> $PHASE (tier=$TIER, issue=#${ISSUE:-none})"

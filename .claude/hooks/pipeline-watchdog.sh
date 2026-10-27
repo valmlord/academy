@@ -1,54 +1,45 @@
 #!/bin/bash
-# PreToolUse (any): warn if the pipeline has been stuck at a non-done phase for >15 min.
-# Multi-line python is run from a temp file for portability.
+# PreToolUse (any): warn if the pipeline has been stuck at a non-done phase for too long.
+HOOK_KIND=observer
+case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# shellcheck source=lib/common.sh
+source "$HOOK_DIR/lib/common.sh"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-STATE_FILE="$DIR/.claude/pipeline_state.json"
-[ ! -f "$STATE_FILE" ] && exit 0
-
-WIN_PATH=$(cygpath -w "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
-
-RF=$(mktemp "${TMPDIR:-/tmp}/wd.XXXXXX.py")
-cat > "$RF" <<'PYEOF'
-import json, time, sys
+main_fn() {
+  case "$STATE_STATUS" in own:*) ;; *) return 0 ;; esac
+  local state_path result phase tier age_min marker limit should age
+  state_path=$(cygpath -w "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
+  # The marker is per checkout (hash of its root), so a stuck worktree does not silence main.
+  result=$(python3 -I - "$state_path" "$STATE_ROOT" "${TMPDIR:-/tmp}" <<'PY'
+import hashlib, json, os, time, sys
 d = json.load(open(sys.argv[1]))
-phase = d.get('phase', '')
-if phase == 'done':
-    print('done')
-else:
-    last_ts = d.get('session_ts', 0)
-    for entry in d.get('phase_history', []):
-        if isinstance(entry, dict):
-            t = entry.get('ts', 0)
-            if t > last_ts:
-                last_ts = t
-    age_min = (time.time() - last_ts) / 60 if last_ts else 999
-    print('%s|%s|%.0f' % (phase, d.get('tier', '?'), age_min))
-PYEOF
-RESULT=$(python3 "$RF" "$WIN_PATH" 2>/dev/null)
-rm -f "$RF"
-
-[ "$RESULT" = "done" ] && exit 0
-[ -z "$RESULT" ] && exit 0
-
-PHASE=$(echo "$RESULT" | cut -d'|' -f1)
-TIER=$(echo "$RESULT" | cut -d'|' -f2)
-AGE_MIN=$(echo "$RESULT" | cut -d'|' -f3)
-
-LIMIT=$(python3 "$SCRIPT_DIR/lib/cfg.py" get watchdog_minutes 2>/dev/null || echo 30)
-if [ "$AGE_MIN" -gt "${LIMIT:-30}" ]; then
-  echo "WARNING: Pipeline interrupted - phase '$PHASE' (tier=$TIER) stuck for ${AGE_MIN} min. Resume or reset." >&2
-  MARKER="${TMPDIR:-/tmp}/pipeline_watchdog_sent"
-  SHOULD=1
-  if [ -f "$MARKER" ]; then
-    AGE=$(python3 -c "import os,sys,time; print(int(time.time()-os.path.getmtime(sys.argv[1])))" "$MARKER" 2>/dev/null || echo 0)
-    [ "$AGE" -lt 900 ] && SHOULD=0
+last_ts = d.get('session_ts', 0)
+for entry in d.get('phase_history', []):
+    if isinstance(entry, dict):
+        t = entry.get('ts', 0)
+        if t > last_ts:
+            last_ts = t
+age_min = (time.time() - last_ts) / 60 if last_ts else 999
+marker = os.path.join(sys.argv[3], 'pipeline_watchdog_' + hashlib.sha1(sys.argv[2].encode('utf-8')).hexdigest()[:12])
+print('%s|%s|%.0f|%s' % (d.get('phase', ''), d.get('tier', '?'), age_min, marker))
+PY
+)
+  [ -n "$result" ] || return 0
+  IFS='|' read -r phase tier age_min marker <<< "$result"
+  limit=$(cfg get watchdog_minutes)
+  [ "$age_min" -gt "${limit:-30}" ] || return 0
+  echo "WARNING: Pipeline interrupted - phase '$phase' (tier=$tier) stuck for ${age_min} min. Continue it, or pipeline-advance.sh pause it (resume <issue> later)." >&2
+  should=1
+  if [ -f "$marker" ]; then
+    age=$(python3 -I -c "import os,sys,time; print(int(time.time()-os.path.getmtime(sys.argv[1])))" "$marker")
+    [ "$age" -lt 900 ] && should=0
   fi
-  if [ "$SHOULD" -eq 1 ] && [ -f "$SCRIPT_DIR/notify.sh" ]; then
-    touch "$MARKER"
-    echo "Pipeline stuck: phase=$PHASE tier=$TIER age=${AGE_MIN}min" | bash "$SCRIPT_DIR/notify.sh" "$TIER" >/dev/null 2>&1 || true
+  if [ "$should" -eq 1 ] && [ -f "$CODE_ROOT/.claude/hooks/notify.sh" ]; then
+    touch "$marker"
+    pl_log event=watchdog-notify
+    echo "Pipeline stuck: phase=$phase tier=$tier age=${age_min}min" | bash "$CODE_ROOT/.claude/hooks/notify.sh" "$tier" >/dev/null 2>&1 || true
   fi
-fi
+  return 0
+}
 
-exit 0
+run_hook "$@"

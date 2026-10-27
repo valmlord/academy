@@ -21,7 +21,7 @@ body:
     id: tier
     attributes:
       label: Pipeline tier
-      options: [TASK, PROJECT, LEARN, HOTFIX]
+      options: [TASK, PROJECT, PIPELINE, LEARN, HOTFIX]
     validations: { required: true }
   - type: dropdown
     id: area

@@ -3,15 +3,39 @@
 # with a copy of .claude/. Usage: bash tests/pipeline/run.sh   (also runs in CI)
 set -uo pipefail
 SRC="$(cd "$(dirname "$0")/../.." && pwd)"
-BASE=$(mktemp -d)
+# Physical path: the hooks report realpaths (macOS /var is a symlink to /private/var).
+BASE=$(cd "$(mktemp -d)" && pwd -P)
 WORK="$BASE/work dir"
-mkdir -p "$WORK"
+mkdir -p "$WORK" "$BASE/home" "$BASE/tmp"
 trap 'rm -rf "$BASE"' EXIT
-cp -r "$SRC/.claude" "$WORK/.claude"
+# Copy .claude without the real repo's runtime files: a real worktree drags in node_modules and a
+# .git file that reaches into the real gitdir, local settings may disable hooks, a real grant would
+# authorize test inits, and a live state would leak into the first test group.
+python3 -I - "$SRC/.claude" "$WORK/.claude" <<'PY'
+import shutil, sys
+src = sys.argv[1]
+RUNTIME_NAMES = ("worktrees", "settings.local.json", "settings.pipeline-grant.json")
+
+def runtime_only(directory, names):
+    if directory != src:
+        return []
+    return [n for n in names if n in RUNTIME_NAMES or n.startswith("pipeline_state")]
+
+shutil.copytree(src, sys.argv[2], ignore=runtime_only)
+PY
+for leaked in worktrees settings.local.json settings.pipeline-grant.json pipeline_state.json pipeline_state.flock pipeline_state.parked; do
+  if [ -e "$WORK/.claude/$leaked" ]; then
+    echo "  FAIL copy excludes worktrees, local settings, grant file and runtime state"
+    echo "1 failed"
+    exit 1
+  fi
+done
 cp "$SRC/.gitignore" "$WORK/.gitignore"
-rm -f "$WORK/.claude/pipeline_state.json"
+# Tests write user-level files (transcripts, settings) and temp markers; keep them out of the real home.
+export HOME="$BASE/home" TMPDIR="$BASE/tmp"
 cd "$WORK" || exit 1
 git init -q -b main . && git config user.email t@t && git config user.name t
+echo '.claude/worktrees/' >> .git/info/exclude
 echo x > README.md && git add -A && git commit -qm "init"
 export CLAUDE_PROJECT_DIR="$WORK"
 H="$WORK/.claude/hooks"
@@ -24,29 +48,108 @@ expect_rc() { local d="$1" want="$2"; shift 2; "$@" >/dev/null 2>&1; local rc=$?
 adv_ok()   { expect_rc "$1" 0 "${ADV[@]}" "${@:2}"; }
 adv_fail() { expect_rc "$1" 1 "${ADV[@]}" "${@:2}"; }
 vote() { JUDGE_HOOK_CALLER=judge-count-hook "${ADV[@]}" "$1" "$2" "$3" >/dev/null 2>&1; }
-json() { python3 -c "import json,sys; d=json.loads(sys.argv[1]); print(json.dumps(d))" "$1"; }
+# Every hook input carries cwd, as in production. HCWD is the default; `at <dir> <helper> ...`
+# runs one helper with another cwd (bash locals are visible to the functions a function calls).
+HCWD="$WORK"
+at() { local HCWD="$1"; shift; "$@"; }
 agent() { # agent <prompt> [subagent_type] -> phase-gate rc
-  python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','tool_input':{'prompt':sys.argv[1],'subagent_type':sys.argv[2]}}))" "$1" "${2:-}" \
+  python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[3],'tool_input':{'prompt':sys.argv[1],'subagent_type':sys.argv[2]}}))" "$1" "${2:-}" "$HCWD" \
     | bash "$H/phase-gate.sh"; }
-write_to() { # write_to <rel path> -> require-pipeline rc
-  python3 -c "import json,sys; print(json.dumps({'tool_name':'Write','tool_input':{'file_path':sys.argv[1]}}))" "$WORK/$1" \
-    | bash "$H/require-pipeline.sh"; }
-bashcmd() { python3 -c "import json,sys; print(json.dumps({'tool_name':'Bash','tool_input':{'command':sys.argv[1]}}))" "$1" | bash "$H/bash-code-guard.sh"; }
-stop() { python3 -c "import json,sys; print(json.dumps({'hook_event_name':'Stop','stop_hook_active':sys.argv[1]=='1'}))" "${1:-0}" | bash "$H/phase-complete.sh"; }
+write_json() { # write_json <absolute path> -> hook input of a Write
+  python3 -c "import json,sys; print(json.dumps({'tool_name':'Write','cwd':sys.argv[2],'tool_input':{'file_path':sys.argv[1]}}))" "$1" "$HCWD"; }
+write_abs() { write_json "$1" | bash "$H/require-pipeline.sh"; }
+write_to() { write_abs "$WORK/$1"; } # write_to <rel path> -> require-pipeline rc
+bash_json() { python3 -c "import json,sys; print(json.dumps({'tool_name':'Bash','cwd':sys.argv[2],'tool_input':{'command':sys.argv[1]}}))" "$1" "$HCWD"; }
+bashcmd() { bash_json "$1" | bash "$H/bash-code-guard.sh"; }
+stop_json() { python3 -c "import json,sys; print(json.dumps({'hook_event_name':'Stop','cwd':sys.argv[2],'stop_hook_active':sys.argv[1]=='1'}))" "${1:-0}" "$HCWD"; }
+stop() { stop_json "${1:-0}" | bash "$H/phase-complete.sh"; }
 subagent_stop() { # subagent_stop <spawn prompt> <final message> [use_transcript_only]
   local t="$WORK/agent_$RANDOM.jsonl"
   python3 -c "import json,sys; print(json.dumps({'type':'user','message':{'content':sys.argv[1]}})); print(json.dumps({'type':'assistant','message':{'content':[{'type':'text','text':sys.argv[2]}]}}))" "$1" "$2" > "$t"
-  python3 -c "import json,sys; d={'hook_event_name':'SubagentStop','agent_transcript_path':sys.argv[1]}; d.update({} if sys.argv[3]=='1' else {'last_assistant_message':sys.argv[2]}); print(json.dumps(d))" "$t" "$2" "${3:-0}" \
+  python3 -c "import json,sys; d={'hook_event_name':'SubagentStop','cwd':sys.argv[4],'agent_transcript_path':sys.argv[1]}; d.update({} if sys.argv[3]=='1' else {'last_assistant_message':sys.argv[2]}); print(json.dumps(d))" "$t" "$2" "${3:-0}" "$HCWD" \
+    | bash "$H/judge-vote.sh" >/dev/null 2>&1
+  rm -f "$t"; }
+subagent_handback() { # subagent_handback <spawn prompt> <report>: report sent via SubagentHandback, not text
+  local t="$WORK/agent_$RANDOM.jsonl"
+  python3 -c "import json,sys; print(json.dumps({'type':'user','message':{'content':sys.argv[1]}})); print(json.dumps({'type':'assistant','message':{'content':[{'type':'tool_use','name':'SubagentHandback','input':{'message':sys.argv[2]}}]}}))" "$1" "$2" > "$t"
+  python3 -c "import json,sys; print(json.dumps({'hook_event_name':'SubagentStop','cwd':sys.argv[2],'agent_transcript_path':sys.argv[1],'last_assistant_message':'Report delivered.'}))" "$t" "$HCWD" \
     | bash "$H/judge-vote.sh" >/dev/null 2>&1
   rm -f "$t"; }
 post_agent() { # synchronous PostToolUse path
-  python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','tool_input':{'prompt':sys.argv[1]},'tool_response':{'content':[{'type':'text','text':sys.argv[2]}]}}))" "$1" "$2" \
+  python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[3],'tool_input':{'prompt':sys.argv[1]},'tool_response':{'content':[{'type':'text','text':sys.argv[2]}]}}))" "$1" "$2" "$HCWD" \
     | bash "$H/judge-count.sh" >/dev/null 2>&1; }
+# capture <cmd...>: run it, keep its exit code in RC and its stderr in ERR.
+capture() { ERR=$("$@" 2>&1 >/dev/null); RC=$?; }
+LOG="$WORK/.git/pipeline-hooks.log"
+log_last() { # log_last <field>: that field of the newest hook log line
+  tail -n 1 "$LOG" 2>/dev/null | python3 -c "import json,sys; v=json.loads(sys.stdin.read() or '{}').get(sys.argv[1], ''); print(v)" "$1"; }
+ctx_field() { # ctx_field <cwd> <index>: one field of `checkout.py context` for that cwd
+  python3 -c "import json,sys; print(json.dumps({'cwd':sys.argv[1]}))" "$1" \
+    | python3 -I "$H/lib/checkout.py" context | python3 -c "import sys; print(sys.stdin.read().rstrip('\n').split('\x1f')[int(sys.argv[1])])" "$2"; }
+edit_state() { # edit_state <root> <json object>: merge top-level keys into that checkout's state
+  python3 -c "import json,sys; f=sys.argv[1]+'/.claude/pipeline_state.json'; d=json.load(open(f)); d.update(json.loads(sys.argv[2])); json.dump(d, open(f,'w'))" "$1" "$2"; }
+state_get() { # state_get <root> <python expression over d> [value visible as sys.argv[3]]
+  python3 -c "import json,sys; d=json.load(open(sys.argv[1]+'/.claude/pipeline_state.json')); print(eval(sys.argv[2]))" "$@" 2>/dev/null; }
+CFG_SAVED="$BASE/pipeline.json.saved"
+set_cfg() { # set_cfg <key> <json value> in the test repo's pipeline.json; restore_cfg undoes it
+  [ -f "$CFG_SAVED" ] || cp "$WORK/.claude/pipeline.json" "$CFG_SAVED"
+  python3 -c "import json,sys; c=json.load(open(sys.argv[1])); c[sys.argv[2]]=json.loads(sys.argv[3]); json.dump(c, open(sys.argv[1],'w'))" "$WORK/.claude/pipeline.json" "$1" "$2"; }
+restore_cfg() { [ -f "$CFG_SAVED" ] && mv "$CFG_SAVED" "$WORK/.claude/pipeline.json"; return 0; }
+hold_lock() { # hold_lock <root> <seconds>: hold that checkout's state lock in the background
+  rm -f "$BASE/locked"
+  python3 -c "import fcntl,sys,time; f=open(sys.argv[1],'a'); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[2],'w').close(); time.sleep(float(sys.argv[3]))" \
+    "$1/.claude/pipeline_state.flock" "$BASE/locked" "$2" &
+  while [ ! -f "$BASE/locked" ]; do sleep 0.05; done; }
+ST=(python3 -I "$H/lib/state.py")
+put_state() { # put_state <root> <tier> <phase> [issue] [minutes since last activity]: a state as init writes it
+  python3 - "$@" <<'PY'
+import json, os, subprocess, sys, time
+root, tier, phase = sys.argv[1:4]
+issue = int(sys.argv[4]) if len(sys.argv) > 4 else 77
+idle_minutes = float(sys.argv[5]) if len(sys.argv) > 5 else 0
+dotgit = os.path.join(root, ".git")
+if os.path.isdir(dotgit):
+    gitdir = os.path.realpath(dotgit)
+else:
+    line = open(dotgit).readline().strip()[len("gitdir: "):]
+    gitdir = os.path.realpath(os.path.join(root, line))
+branch = subprocess.run(["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"], stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL, universal_newlines=True).stdout.strip()
+now = time.time() - idle_minutes * 60
+state = {"tier": tier, "phase": phase, "issue": issue, "branch_at_init": branch, "gitdir_at_init": gitdir,
+         "session_ts": now, "phase_history": [{"phase": phase, "ts": now, "ts_str": time.strftime("%Y-%m-%dT%H:%M:%S")}],
+         "artifacts": {}}
+os.makedirs(os.path.join(root, ".claude"), exist_ok=True)
+with open(os.path.join(root, ".claude", "pipeline_state.json"), "w") as fh:
+    json.dump(state, fh, indent=2)
+PY
+}
 votes() { "${ADV[@]}" status | python3 -c "import json,sys; d=json.load(sys.stdin); print(' '.join('%s:%s'%(v['agent'],v['verdict']) for v in d.get('artifacts',{}).get('judge_votes',[])))"; }
 JS="Read .claude/agents/dev/judge-security.md first. Then review the design."
 JA="Read .claude/agents/dev/judge-architecture.md first. Do not duplicate judge-security.md findings."
 JO="Read .claude/agents/dev/judge-operations.md first. Then review."
 CODER="Read .claude/agents/dev/coder.md first. Then implement the plan."
+
+WT="$WORK/.claude/worktrees/wt one"
+# reset_state: remove every runtime file a test group may leave behind, in WORK and in each test
+# worktree, and drop extra worktrees, so one red test does not cascade into the next group.
+reset_state() {
+  local root
+  for root in "$WORK" "$WT"; do
+    rm -rf "$root/.claude/pipeline_state.json" "$root/.claude/pipeline_state.flock" \
+      "$root/.claude/pipeline_state.parked" "$root/.claude/settings.pipeline-grant.json"
+  done
+  git -C "$WORK" worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= read -r w; do
+    case "$w" in "$WORK"|"$WT") ;; *) git -C "$WORK" worktree remove --force "$w" >/dev/null 2>&1 ;; esac
+  done
+  git -C "$WORK" worktree prune
+}
+# make_wt: the linked test worktree, created from HEAD (which carries the copied .claude).
+make_wt() {
+  [ -d "$WT" ] || git -C "$WORK" worktree add -q -b feat/77-wt "$WT" HEAD >/dev/null 2>&1
+}
+
+ok "copy excludes worktrees, local settings, grant file and runtime state"
 
 echo "== no pipeline"
 expect_rc "edit blocked without a pipeline" 2 write_to "apps/web/page.tsx"
@@ -58,6 +161,7 @@ expect_rc "plain Explore agent allowed" 0 agent "Find where lessons are loaded"
 expect_rc "stop allowed without a pipeline" 0 stop
 
 echo "== init"
+git checkout -q -b feat/12-demo
 adv_fail "TASK without issue is rejected" init TASK
 adv_fail "unknown tier is rejected" init FOO 1
 adv_ok   "TASK with issue starts (path with a space)" init TASK 12
@@ -105,14 +209,17 @@ adv_ok   "tester" tester
 adv_ok   "judge_code" judge_code
 expect_rc "coder allowed in judge_code (fix after FAIL)" 0 agent "$CODER"
 adv_fail "earlier-round PASS does not count in new round" compound
-for p in "$JS" "$JA" "$JO"; do subagent_stop "$p" "VERDICT: PASS"; done
-adv_ok   "compound skip" compound skip "nothing new"
+for p in "$JS" "$JA"; do subagent_stop "$p" "VERDICT: PASS"; done
+subagent_handback "$JO" "Checked compose.
+PASS"
+adv_ok   "verdict read from a SubagentHandback report; compound skip" compound skip "nothing new"
 expect_rc "coder blocked after its window" 2 agent "$CODER"
 adv_ok   "commit" commit
 
 echo "== PR gate"
+git checkout -q main
 adv_fail "pr blocked on main" pr skip "no remote"
-git checkout -qb feat/12-demo
+git checkout -q feat/12-demo
 echo y >> README.md
 adv_fail "pr blocked with dirty tree" pr skip "no remote"
 git add -A && git commit -qm "feat: demo"
@@ -129,7 +236,7 @@ expect_rc "stop passes when complete" 0 stop 0
 [ ! -f .claude/pipeline_state.json ] && ok "state cleaned up" || bad "state cleaned up"
 
 echo "== LEARN tier"
-git checkout -q main
+git checkout -q -b feat/5-learn main
 adv_ok "LEARN starts" init LEARN 5
 for p in researcher architect judge_design; do "${ADV[@]}" "$p" >/dev/null 2>&1; done
 for p in "$JS" "$JA" "$JO"; do subagent_stop "$p" "PASS"; done
@@ -147,6 +254,7 @@ expect_rc "stop allowed while waiting for the learner" 0 stop 0
 rm -f .claude/pipeline_state.json
 
 echo "== content tier"
+git checkout -q -b content/20-module main
 adv_ok "MODULE starts" init MODULE 20
 "${ADV[@]}" researcher >/dev/null 2>&1
 expect_rc "coder not part of MODULE" 2 agent "$CODER"
@@ -159,6 +267,668 @@ adv_ok "off-tier judge vote ignored, content trio enough" planner
 expect_rc "lesson-author allowed in author phase" 0 agent "Read .claude/agents/content/lesson-author.md first."
 expect_rc "course files writable" 0 write_to "course/ai-for-developers/00-introduction/module.yaml"
 rm -f .claude/pipeline_state.json
+
+echo "== resolver, forwarding and fail-closed"
+reset_state
+git checkout -q main
+make_wt
+
+put_state "$WT" PROJECT coder
+if at "$WT" agent "$CODER" >/dev/null 2>&1 && ! agent "$CODER" >/dev/null 2>&1; then
+  ok "cwd in a linked worktree selects that worktree's state"
+else bad "cwd in a linked worktree selects that worktree's state"; fi
+B17_NAME="worktree path with spaces resolves"
+at "$WT" bashcmd "cat x_pipeline_state" >/dev/null 2>&1
+if [ "$(log_last checkout)" = "$WT" ] && [ "$(ctx_field "$WT" 0)" = "$WT" ]; then ok "$B17_NAME"; else bad "$B17_NAME ($(log_last checkout))"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder
+expect_rc "cwd outside git uses the main checkout's state" 0 at "$BASE/tmp" agent "$CODER"
+reset_state
+
+FOREIGN="$BASE/foreign repo"
+git init -q "$FOREIGN" && put_state "$FOREIGN" PROJECT coder
+expect_rc "cwd in a foreign git repo uses the main checkout's state" 2 at "$FOREIGN" agent "$CODER"
+FAKE="$BASE/fake co"
+mkdir -p "$FAKE" && printf 'gitdir: %s\n' "$WORK/.git" > "$FAKE/.git" && put_state "$FAKE" PROJECT coder
+expect_rc "fake .git-file directory uses the main checkout's state" 2 at "$FAKE" agent "$CODER"
+
+put_state "$WORK" PROJECT coder
+python3 - "$WT/.claude" <<'PY'
+import json, os, sys
+c = sys.argv[1]
+conf = json.load(open(os.path.join(c, "pipeline.json")))
+conf["pipeline_core_files"] = []
+conf["protected_files"] = []
+json.dump(conf, open(os.path.join(c, "pipeline.json"), "w"))
+lib = os.path.join(c, "hooks", "lib")
+for name in os.listdir(lib):
+    if name.endswith(".py"):
+        open(os.path.join(lib, name), "w").write("raise SystemExit(0)\n")
+PY
+expect_rc "a registered worktree's own hook files never decide" 2 at "$WT" write_to ".claude/hooks/x.sh"
+git -C "$WT" checkout -q -- .claude
+reset_state
+
+put_state "$WT" TASK coder 78
+put_state "$WORK" PROJECT coder 9
+if (cd "$WT" && "${ADV[@]}" status 2>/dev/null) | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('issue') == 78 else 1)"; then
+  ok "pipeline-advance status follows pwd into a worktree"
+else bad "pipeline-advance status follows pwd into a worktree"; fi
+capture eval 'cd "$WT" && bash "$WT/.claude/hooks/pipeline-advance.sh" status'
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "run the main checkout's copy"; then
+  ok "a linked worktree's own pipeline-advance copy refuses to run"
+else bad "a linked worktree's own pipeline-advance copy refuses to run (rc=$RC)"; fi
+reset_state
+
+write_to "apps/x.txt" >/dev/null 2>&1
+if [ "$(log_last checkout)" = "$WORK" ] && [ "$(log_last source)" = "cwd" ] && [ "$(log_last decision)" = "block" ]; then
+  ok "hook log records checkout, source and decision"
+else bad "hook log records checkout, source and decision ($(tail -n 1 "$LOG"))"; fi
+bashcmd "echo ghp_canary_21 > .claude/pipeline_state.json" >/dev/null 2>&1
+if [ "$(log_last hook)" = "bash-code-guard.sh" ] && ! grep -q ghp_canary_21 "$LOG"; then
+  ok "hook log never contains a bash command"
+else bad "hook log never contains a bash command"; fi
+
+set_cfg hook_log_max_bytes 2000
+rm -f "$LOG" "$LOG.1" "$LOG.2"
+for _ in $(seq 60); do python3 -I "$H/lib/checkout.py" log event=rotation-test reason=padding-padding-padding-padding-padding; done
+LOG_SIZE=$(wc -c < "$LOG" | tr -d ' ')
+if [ "$LOG_SIZE" -le 3000 ] && [ -f "$LOG.1" ] && [ ! -e "$LOG.2" ]; then
+  ok "hook log rotates at hook_log_max_bytes"
+else bad "hook log rotates at hook_log_max_bytes (size=$LOG_SIZE)"; fi
+restore_cfg
+rm -f "$LOG" "$LOG.1"
+
+printf 'canary\n' > "$BASE/canary"
+ln -s "$BASE/canary" "$LOG"
+capture write_to "apps/x.txt"
+if [ "$RC" = 2 ] && [ "$(cat "$BASE/canary")" = "canary" ] && [ -L "$LOG" ]; then
+  ok "hook log symlink is not followed"
+else bad "hook log symlink is not followed (rc=$RC)"; fi
+rm -f "$LOG"
+
+mkdir "$LOG"
+capture write_to "apps/x.txt"; BLOCKED_RC=$RC
+capture at "$BASE/tmp" write_to "plans/x.md"
+if [ "$BLOCKED_RC" = 2 ] && [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "pipeline log write failed"; then
+  ok "failed log write does not change the gate result"
+else bad "failed log write does not change the gate result (blocked=$BLOCKED_RC allowed=$RC)"; fi
+rmdir "$LOG"
+
+git checkout -q --detach
+expect_rc "context line keeps empty fields: no state on a detached HEAD allows Stop" 0 stop 0
+git checkout -q main
+
+NESTED="$WORK/.claude/hooks/lib/json"
+git worktree add -q --detach "$NESTED" HEAD >/dev/null 2>&1
+rm -f "$LOG"
+if [ "$(ctx_field "$NESTED" 0)" = "$WORK" ] && grep -q '"worktree-skipped:nested"' "$LOG"; then
+  ok "worktree registered inside main's tree is not a checkout"
+else bad "worktree registered inside main's tree is not a checkout"; fi
+git worktree remove --force "$NESTED"
+
+printf 'raise SystemExit(3)\n' > "$H/lib/json.py"
+expect_rc "a lib file named like a stdlib module does not shadow it" 0 write_to "plans/x.md"
+rm -f "$H/lib/json.py"
+
+put_state "$WORK" PROJECT coder
+python3 -c "import json,sys; c=json.load(open(sys.argv[1])); c['pipeline_core_files']=[]; json.dump(c, open(sys.argv[1],'w'))" "$WT/.claude/pipeline.json"
+capture eval 'at "$WT" write_json "$WORK/.claude/hooks/x.sh" | CLAUDE_PROJECT_DIR="$WT" bash "$WT/.claude/hooks/require-pipeline.sh"'
+if [ "$RC" = 2 ] && [ "$(log_last forwarded)" = "true" ]; then
+  ok "a session started in a linked worktree runs main's hooks"
+else bad "a session started in a linked worktree runs main's hooks (rc=$RC forwarded=$(log_last forwarded))"; fi
+git -C "$WT" checkout -q -- .claude
+reset_state
+
+put_state "$WT" PROJECT coder
+cp "$WT/.git" "$BASE/wt.git.saved"
+python3 - "$WT" <<'PY'
+import os, sys
+wt = sys.argv[1]
+target = open(os.path.join(wt, ".git")).readline().strip()[len("gitdir: "):]
+open(os.path.join(wt, ".git"), "w").write("gitdir: %s\n" % os.path.relpath(target, wt))
+PY
+rm -f "$LOG"
+at "$WT" bash_json "cat x_pipeline_state" | bash "$WT/.claude/hooks/bash-code-guard.sh" >/dev/null 2>&1
+if [ "$(ctx_field "$WT" 0)" = "$WT" ] && grep -q '"forwarded": "true"' "$LOG"; then
+  ok "relative gitdir line in a worktree resolves"
+else bad "relative gitdir line in a worktree resolves"; fi
+cp "$BASE/wt.git.saved" "$WT/.git"
+reset_state
+
+mode_of() { python3 -c "import os,stat,sys; print(oct(stat.S_IMODE(os.stat(sys.argv[1]).st_mode))[2:])" "$1"; }
+CFG_MODE=$(mode_of "$WORK/.claude/pipeline.json")
+chmod 000 "$WORK/.claude/pipeline.json"
+capture write_to "plans/x.md"
+chmod "$CFG_MODE" "$WORK/.claude/pipeline.json"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally" && [ "$(mode_of "$WORK/.claude/pipeline.json")" = "$CFG_MODE" ]; then
+  ok "gate crash blocks"
+else bad "gate crash blocks (rc=$RC)"; fi
+
+mkdir -p "$BASE/badpy" "$BASE/emptybin"
+printf '#!/bin/sh\nexit 127\n' > "$BASE/badpy/python3" && chmod +x "$BASE/badpy/python3"
+WJ=$(write_json "$WORK/plans/x.md")
+ERR=$(printf '%s' "$WJ" | PATH="$BASE/badpy:$PATH" bash "$H/require-pipeline.sh" 2>&1 >/dev/null); RC=$?
+printf '%s' "$WJ" | PATH="$BASE/badpy:$PATH" bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1; OBS_RC=$?
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "python3 not found or unusable" && [ "$OBS_RC" = 0 ]; then
+  ok "broken python3 blocks gates with a clear message, observers exit 0"
+else bad "broken python3 blocks gates with a clear message, observers exit 0 (rc=$RC obs=$OBS_RC)"; fi
+ERR=$(printf '%s' "$WJ" | PATH="$BASE/emptybin" /bin/bash "$H/require-pipeline.sh" 2>&1 >/dev/null); RC=$?
+printf '%s' "$WJ" | PATH="$BASE/emptybin" /bin/bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1; OBS_RC=$?
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "python3 not found or unusable" && [ "$OBS_RC" = 0 ]; then
+  ok "missing python3 blocks gates with a clear message, observers exit 0"
+else bad "missing python3 blocks gates with a clear message, observers exit 0 (rc=$RC obs=$OBS_RC)"; fi
+
+CK_MODE=$(mode_of "$H/lib/checkout.py")
+chmod 000 "$H/lib/checkout.py"
+capture write_to "plans/x.md"
+printf '%s' "$WJ" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1; OBS_RC=$?
+chmod "$CK_MODE" "$H/lib/checkout.py"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "pipeline resolver failed" && [ "$OBS_RC" = 0 ] && [ "$(mode_of "$H/lib/checkout.py")" = "$CK_MODE" ]; then
+  ok "resolver failure blocks gates"
+else bad "resolver failure blocks gates (rc=$RC obs=$OBS_RC)"; fi
+reset_state
+
+echo "== write gate on real paths"
+reset_state
+make_wt
+put_state "$WT" PROJECT coder
+expect_rc "main checkout without state still blocks while the worktree is active" 2 at "$WT" write_to "apps/x.txt"
+reset_state
+
+put_state "$WORK" PROJECT coder
+# The message tells the owner apart: main would block it as an unregistered .claude/worktrees path.
+capture write_abs "$WT/apps/x.txt"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "no active pipeline"; then
+  ok "nested worktree file is governed by its own checkout"
+else bad "nested worktree file is governed by its own checkout (rc=$RC)"; fi
+expect_rc "nested worktree state file is protected" 2 write_abs "$WT/.claude/pipeline_state.json"
+mkdir -p "$WORK/.claude/worktrees/stray"
+reset_state
+expect_rc "unregistered directory under .claude/worktrees is never auto-allowed" 2 write_abs "$WORK/.claude/worktrees/stray/x"
+rm -rf "$WORK/.claude/worktrees/stray"
+
+put_state "$WORK" PROJECT coder 77 120
+put_state "$WT" PROJECT coder 78 120
+rm -f "$LOG"
+WJ=$(write_json "$WORK/plans/x.md")
+printf '%s' "$WJ" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+at "$WT" write_json "$WT/plans/x.md" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+if [ "$(grep -c '"watchdog-notify"' "$LOG")" = 2 ]; then
+  ok "watchdog markers are per checkout"
+else bad "watchdog markers are per checkout"; fi
+reset_state
+
+NESTED="$WORK/.claude/hooks/lib/json"
+git worktree add -q --detach "$NESTED" HEAD >/dev/null 2>&1
+put_state "$NESTED" PROJECT coder
+capture write_abs "$NESTED/x.py"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "is pipeline core"; then
+  ok "main's core stays core under a nested worktree"
+else bad "main's core stays core under a nested worktree (rc=$RC)"; fi
+git worktree remove --force "$NESTED"
+
+put_state "$WORK" PROJECT coder
+expect_rc "settings.local.json not writable by tools outside PIPELINE" 2 write_to ".claude/settings.local.json"
+mkdir -p "$WORK/apps" && ln -s ../.claude/hooks "$WORK/apps/link"
+expect_rc "symlink into hooks is core" 2 write_to "apps/link/x.sh"
+rm -f "$WORK/apps/link"
+expect_rc "transcript files are not writable, memory is (transcript)" 2 write_abs "$HOME/.claude/projects/p/s/subagents/agent-x.jsonl"
+expect_rc "transcript files are not writable, memory is (memory)" 0 write_abs "$HOME/.claude/projects/p/memory/m.md"
+if ! write_to ".git/hooks/pre-commit" >/dev/null 2>&1 && ! write_to ".git/config" >/dev/null 2>&1; then
+  ok "git dir is never written by tools"
+else bad "git dir is never written by tools"; fi
+if ! write_abs "$WT/.git" >/dev/null 2>&1 && ! write_to "apps/sub/.git/config" >/dev/null 2>&1; then
+  ok "a .git path component is never written by tools"
+else bad "a .git path component is never written by tools"; fi
+if ! write_abs "$HOME/.claude/settings.json" >/dev/null 2>&1 && ! write_abs "$HOME/.claude/settings.local.json" >/dev/null 2>&1; then
+  ok "user-level settings are never written by tools"
+else bad "user-level settings are never written by tools"; fi
+reset_state
+
+echo "== state transactions"
+reset_state
+git checkout -q -B feat/88-state
+put_state "$WORK" PROJECT judge_design
+for i in 1 2 3 4 5; do
+  PIPELINE_STATE_TEST_DELAY_MS=300 "${ST[@]}" vote "$WORK" judge_design "judge$i" PASS "agent$i" test >/dev/null 2>&1 &
+done
+wait
+[ "$(state_get "$WORK" "len(d['artifacts']['judge_votes'])")" = 5 ] && ok "concurrent votes are all recorded" || bad "concurrent votes are all recorded"
+
+put_state "$WORK" PROJECT judge_design
+PIPELINE_STATE_TEST_DELAY_MS=300 "${ST[@]}" advance "$WORK" judge_design planner >/dev/null 2>&1 &
+sleep 0.1
+SPAWN_ERR=$(PIPELINE_STATE_TEST_DELAY_MS=300 "${ST[@]}" record_spawn "$WORK" judge_design agentX security 2>&1 >/dev/null); SPAWN_RC=$?
+wait
+if [ "$(state_get "$WORK" "d['phase']")" = planner ] && { [ "$(state_get "$WORK" "'agentX' in d['artifacts'].get('judge_spawns', {})")" = True ] \
+  || { [ "$SPAWN_RC" = 3 ] && printf '%s' "$SPAWN_ERR" | grep -q "not in a judge phase"; }; }; then
+  ok "concurrent advance and spawn record lose nothing"
+else bad "concurrent advance and spawn record lose nothing (phase=$(state_get "$WORK" "d['phase']") spawn rc=$SPAWN_RC)"; fi
+
+put_state "$WORK" PROJECT coder
+set_cfg state_lock_timeout_seconds 1
+hold_lock "$WORK" 3
+capture "${ST[@]}" advance "$WORK" coder tester
+wait
+if [ "$RC" = 75 ] && printf '%s' "$ERR" | grep -q "could not lock" && [ "$(state_get "$WORK" "d['phase']")" = coder ]; then
+  ok "lock timeout writes nothing and fails"
+else bad "lock timeout writes nothing and fails (rc=$RC)"; fi
+
+restore_cfg
+# The default lock timeout (5 s) applies here: a changed pipeline.json would make the tree dirty.
+put_state "$WORK" RESEARCH done
+edit_state "$WORK" '{"artifacts": {"notify": "sent"}}'
+hold_lock "$WORK" 7
+stop 0 >/dev/null 2>&1; LOCKED_RC=$?
+[ -f "$WORK/.claude/pipeline_state.json" ] && KEPT=1 || KEPT=0
+wait
+stop 0 >/dev/null 2>&1; RELEASED_RC=$?
+if [ "$LOCKED_RC" = 0 ] && [ "$KEPT" = 1 ] && [ "$RELEASED_RC" = 0 ] && [ ! -f "$WORK/.claude/pipeline_state.json" ]; then
+  ok "stop removes a done state only under the lock"
+else bad "stop removes a done state only under the lock (locked rc=$LOCKED_RC kept=$KEPT)"; fi
+
+put_state "$WORK" PROJECT coder
+edit_state "$WORK" "{\"session_ts\": $(python3 -c 'import time; print(time.time() - 9 * 3600)')}"
+adv_fail "TTL counts from last activity, not session start" init TASK 88
+reset_state
+git checkout -q main
+
+echo "== judge vote paths"
+reset_state
+git checkout -q -B feat/89-votes
+TDIR="$HOME/.claude/projects/p"; SID="sess1"
+mkdir -p "$TDIR/$SID/subagents" "$TDIR/x"
+MAIN_T="$TDIR/$SID.jsonl"; : > "$MAIN_T"
+transcript() { # transcript <file> <spawn prompt> [handback message]: a subagent transcript as the harness writes it
+  python3 - "$@" <<'PY'
+import json, sys
+path, prompt = sys.argv[1], sys.argv[2]
+recs = [{"type": "user", "message": {"role": "user", "content": prompt}},
+        {"type": "attachment", "attachment": {"type": "hook_success", "hookName": "PreToolUse:SubagentHandback"}}]
+if len(sys.argv) > 3:
+    recs.append({"type": "assistant", "message": {"role": "assistant", "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": "SubagentHandback", "input": {"message": sys.argv[3]}}]}})
+with open(path, "w") as fh:
+    for rec in recs:
+        fh.write(json.dumps(rec) + "\n")
+PY
+}
+handback_json() { # handback_json <agent_id> <message> <transcript_path>
+  python3 -c "import json,sys; print(json.dumps({'hook_event_name':'PreToolUse','tool_name':'SubagentHandback','session_id':sys.argv[4],'transcript_path':sys.argv[3],'cwd':sys.argv[5],'agent_id':sys.argv[1],'agent_type':'general-purpose','tool_input':{'message':sys.argv[2]}}))" "$1" "$2" "$3" "$SID" "$HCWD"; }
+handback() { handback_json "$@" | bash "$H/judge-handback.sh"; }
+live_stop() { # live_stop <agent_id> <agent transcript>: SubagentStop with the fields of the live diag log
+  python3 -c "import json,sys; print(json.dumps({'session_id':sys.argv[3],'transcript_path':sys.argv[4],'cwd':sys.argv[5],'scratchpad_dir':'/tmp/s','prompt_id':'p1','permission_mode':'auto','agent_id':sys.argv[1],'agent_type':'general-purpose','effort':'high','hook_event_name':'SubagentStop','stop_hook_active':False,'agent_transcript_path':sys.argv[2],'background_tasks':[{'id':sys.argv[1],'type':'subagent','status':'running','description':'judge'}],'session_crons':[]}))" "$1" "$2" "$SID" "$MAIN_T" "$HCWD" \
+    | bash "$H/judge-vote.sh"; }
+votes_by() { state_get "$WORK" "' '.join('%s:%s:%s' % (v['agent'], v['verdict'], v.get('path')) for v in d['artifacts'].get('judge_votes', []) if v.get('agent_id') == sys.argv[3])" "$1"; }
+put_state "$WORK" PROJECT judge_design
+
+transcript "$TDIR/$SID/subagents/agent-a1.jsonl" "$JS"
+handback a1 "Checked.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ "$(votes_by a1)" = "security:PASS:handback" ] && [ "$(log_last transcript_kind)" = main ]; then
+  ok "handback vote recorded from tool_input.message (subagent transcript under main transcript dir)"
+else bad "handback vote recorded from tool_input.message (subagent transcript under main transcript dir) ($(votes_by a1))"; fi
+transcript "$TDIR/x/agent-a2.jsonl" "$JA"
+handback a2 "PASS" "$TDIR/x/agent-a2.jsonl" >/dev/null 2>&1
+if [ "$(votes_by a2)" = "architecture:PASS:handback" ] && [ "$(log_last transcript_kind)" = subagent ]; then
+  ok "handback vote recorded when transcript_path is the subagent's own"
+else bad "handback vote recorded when transcript_path is the subagent's own ($(votes_by a2))"; fi
+edit_state "$WORK" '{"artifacts": {"judge_spawns": {"a3": "operations"}}}'
+handback a3 "PASS" "$TDIR/missing/$SID.jsonl" >/dev/null 2>&1
+if [ "$(votes_by a3)" = "operations:PASS:handback" ] && [ "$(log_last role_source)" = spawn_map ]; then
+  ok "handback role from spawn map when no transcript exists"
+else bad "handback role from spawn map when no transcript exists ($(votes_by a3))"; fi
+
+transcript "$TDIR/$SID/subagents/agent-a4.jsonl" "$JS" "Checked.
+FAIL: 1 issue"
+live_stop a4 "$TDIR/$SID/subagents/agent-a4.jsonl" >/dev/null 2>&1
+[ "$(votes_by a4)" = "security:FAIL:subagent_stop" ] && ok "live-shaped SubagentStop records the vote" || bad "live-shaped SubagentStop records the vote ($(votes_by a4))"
+transcript "$TDIR/$SID/subagents/agent-a5.jsonl" "$JS"
+live_stop a5 "$TDIR/$SID/subagents/agent-a5.jsonl" >/dev/null 2>&1
+if [ -z "$(votes_by a5)" ] && [ "$(log_last event)" = verdict-unknown ] && [ "$(log_last handback_in_transcript)" = false ]; then
+  ok "lagging transcript gives verdict-unknown, logged with handback_in_transcript=false"
+else bad "lagging transcript gives verdict-unknown, logged with handback_in_transcript=false"; fi
+
+transcript "$TDIR/$SID/subagents/agent-a6.jsonl" "$JO" "PASS"
+handback a6 "PASS" "$MAIN_T" >/dev/null 2>&1
+live_stop a6 "$TDIR/$SID/subagents/agent-a6.jsonl" >/dev/null 2>&1
+[ "$(votes_by a6)" = "operations:PASS:handback" ] && ok "handback then SubagentStop records one vote" || bad "handback then SubagentStop records one vote ($(votes_by a6))"
+transcript "$TDIR/$SID/subagents/agent-a7.jsonl" "$JO" "PASS"
+live_stop a7 "$TDIR/$SID/subagents/agent-a7.jsonl" >/dev/null 2>&1
+handback a7 "PASS" "$MAIN_T" >/dev/null 2>&1
+[ "$(votes_by a7)" = "operations:PASS:subagent_stop" ] && ok "SubagentStop then handback records one vote" || bad "SubagentStop then handback records one vote ($(votes_by a7))"
+
+handback "../../x" "PASS" "$MAIN_T" >/dev/null 2>&1
+if [ -z "$(votes_by ../../x)" ] && [ "$(log_last event)" = vote-ignored:bad-agent-id ]; then
+  ok "bad agent_id is ignored"
+else bad "bad agent_id is ignored"; fi
+transcript "$TDIR/$SID/subagents/agent-a12.jsonl" "$CODER"
+handback a12 "All tests green.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ -z "$(votes_by a12)" ] && [ "$(log_last event)" = vote-ignored:not-a-judge ]; then
+  ok "non-judge handback is not a vote"
+else bad "non-judge handback is not a vote ($(log_last event))"; fi
+transcript "$TDIR/$SID/subagents/agent-a13.jsonl" "$JA"
+handback a13 "Checked ghp_canary_21b.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ "$(log_last event)" = vote-recorded ] && ! grep -q ghp_canary_21b "$LOG"; then
+  ok "hook log never contains a handback message"
+else bad "hook log never contains a handback message"; fi
+
+ISO=$(python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[2],'tool_input':{'prompt':sys.argv[1],'isolation':'worktree'}}))" "$JS" "$WORK")
+printf '%s' "$ISO" | bash "$H/phase-gate.sh" >/dev/null 2>&1; ISO_RC=$?
+[ "$ISO_RC" = 2 ] && ok "judge spawn with isolation worktree is blocked" || bad "judge spawn with isolation worktree is blocked (rc=$ISO_RC)"
+
+printf 'not json{' | bash "$H/judge-handback.sh" >/dev/null 2>&1; GARBAGE_RC=$?
+set_cfg state_lock_timeout_seconds 1
+transcript "$TDIR/$SID/subagents/agent-a14.jsonl" "$JA"
+hold_lock "$WORK" 3
+handback a14 "PASS" "$MAIN_T" >/dev/null 2>&1; LOCKED_RC=$?
+wait
+restore_cfg
+reset_state
+handback a14 "PASS" "$MAIN_T" >/dev/null 2>&1; NOSTATE_RC=$?
+if [ "$GARBAGE_RC" = 0 ] && [ "$LOCKED_RC" = 0 ] && [ "$NOSTATE_RC" = 0 ]; then
+  ok "handback hook never blocks"
+else bad "handback hook never blocks (garbage=$GARBAGE_RC locked=$LOCKED_RC no-state=$NOSTATE_RC)"; fi
+
+if python3 - "$WORK/.claude/settings.json" "$H" <<'PY'
+import json, os, re, sys
+hooks = json.load(open(sys.argv[1]))["hooks"]
+wired, handback = set(), False
+for event, entries in hooks.items():
+    for entry in entries:
+        for h in entry["hooks"]:
+            m = re.fullmatch(r'bash "\$CLAUDE_PROJECT_DIR/\.claude/hooks/([a-z-]+\.sh)"', h["command"])
+            assert m and isinstance(h.get("timeout"), int), h
+            wired.add(m.group(1))
+            handback |= event == "PreToolUse" and entry.get("matcher") == "SubagentHandback" and m.group(1) == "judge-handback.sh"
+scripts = {f for f in os.listdir(sys.argv[2]) if f.endswith(".sh")} - {"pipeline-advance.sh", "notify.sh"}
+sys.exit(0 if handback and wired == scripts else 1)
+PY
+then ok "settings.json wires every hook from CLAUDE_PROJECT_DIR with a timeout, including judge-handback"
+else bad "settings.json wires every hook from CLAUDE_PROJECT_DIR with a timeout, including judge-handback"; fi
+git checkout -q main
+
+echo "== init table and checkout ownership"
+reset_state
+git checkout -q -B feat/90-a main
+git branch -f feat/90-b main
+PARKED="$WORK/.claude/pipeline_state.parked"
+parked_reasons() { # parked_reasons [root]: parked_reason of every parked state, sorted
+  python3 -c "import json,os,sys; d=sys.argv[1]; print(' '.join(sorted(json.load(open(os.path.join(d,f))).get('parked_reason','') for f in os.listdir(d))) if os.path.isdir(d) else '')" "${1:-$WORK}/.claude/pipeline_state.parked"; }
+slot_is() { [ "$(state_get "${2:-$WORK}" "d['tier'] + ':' + d['phase']")" = "$1" ]; } # slot_is <tier:phase> [root]
+
+put_state "$WORK" PROJECT coder
+git checkout -q --detach
+capture eval 'stop_json 0 | bash "$H/phase-complete.sh"'
+git checkout -q feat/90-a
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "Pipeline not complete. Current phase: coder" && ! printf '%s' "$ERR" | grep -q "resolver failed"; then
+  ok "context line keeps empty fields: own state on a detached HEAD still blocks Stop"
+else bad "context line keeps empty fields: own state on a detached HEAD still blocks Stop (rc=$RC)"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 90
+edit_state "$WORK" '{"gitdir_at_init": "/elsewhere/.git"}'
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = foreign ] && slot_is TASK:init && ok "init parks a state copied from another checkout" || bad "init parks a state copied from another checkout ($(parked_reasons))"
+reset_state
+
+put_state "$WORK" PROJECT coder 90
+git checkout -q feat/90-b
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = branch-switched ] && slot_is TASK:init && ok "init parks a state from a switched branch" || bad "init parks a state from a switched branch ($(parked_reasons))"
+git checkout -q feat/90-a
+reset_state
+
+put_state "$WORK" PROJECT coder 90
+edit_state "$WORK" '{"branch_at_init": "feat/gone"}'
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = branch-missing:feat/gone ] && slot_is TASK:init && ok "init parks a state whose branch ref is missing" || bad "init parks a state whose branch ref is missing ($(parked_reasons))"
+reset_state
+
+git checkout -q --detach
+adv_fail "init refuses on detached HEAD" init TASK 90
+git checkout -q main
+adv_fail "init refuses on main for an issue tier" init TASK 90
+git checkout -q feat/90-a
+reset_state
+
+put_state "$WORK" PROJECT coder 90 600
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = stale ] && slot_is TASK:init && ok "init parks a stale state instead of deleting it" || bad "init parks a stale state instead of deleting it ($(parked_reasons))"
+reset_state
+
+make_wt
+put_state "$WT" PROJECT coder
+edit_state "$WT" "{\"gitdir_at_init\": \"$WORK/.git\"}"
+expect_rc "gates ignore a foreign state" 2 at "$WT" write_abs "$WT/apps/x.txt"
+reset_state
+put_state "$WORK" PROJECT coder
+edit_state "$WORK" '{"gitdir_at_init": null, "branch_at_init": "feat/other"}'
+expect_rc "legacy state on another branch is foreign" 2 write_to "apps/x.txt"
+reset_state
+git checkout -q main
+
+echo "== pause, resume, PIPELINE tier and grants"
+reset_state
+git checkout -q -B feat/91-a main
+git branch -f feat/91-b main
+grant() { printf '%s\n' "$1" > "$WORK/.claude/settings.pipeline-grant.json"; }
+parked_count() { find "$PARKED" -name '*.json' 2>/dev/null | wc -l | tr -d ' '; }
+
+put_state "$WORK" PROJECT coder 91
+"${ADV[@]}" pause >/dev/null 2>&1
+if [ "$("${ADV[@]}" status 2>/dev/null)" = "No active pipeline." ] && [ "$(parked_reasons)" = pause ]; then
+  ok "pause parks the active state and frees the checkout"
+else bad "pause parks the active state and frees the checkout ($(parked_reasons))"; fi
+put_state "$WORK" PROJECT coder 92
+STATUS_OUT=$("${ADV[@]}" status 2>"$BASE/status.err")
+if printf '%s' "$STATUS_OUT" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null && grep -q "Parked here: #91" "$BASE/status.err"; then
+  ok "status prints parked summary on stderr and pure JSON on stdout"
+else bad "status prints parked summary on stderr and pure JSON on stdout"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 93 120
+"${ADV[@]}" pause >/dev/null 2>&1
+expect_rc "parked: write" 2 write_to "apps/x.txt"
+expect_rc "parked: coder spawn" 2 agent "$CODER"
+expect_rc "parked: judge spawn" 2 agent "$JS"
+transcript "$TDIR/$SID/subagents/agent-p1.jsonl" "$JS"
+handback p1 "PASS" "$MAIN_T" >/dev/null 2>&1
+[ "$(log_last event)" = vote-ignored:no-state ] && ok "parked: vote" || bad "parked: vote ($(log_last event))"
+expect_rc "parked: stop" 0 stop 0
+rm -f "$LOG"
+write_json "$WORK/plans/x.md" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+grep -q '"watchdog-notify"' "$LOG" 2>/dev/null && bad "parked: watchdog" || ok "parked: watchdog"
+reset_state
+
+put_state "$WORK" PROJECT coder 94
+"${ADV[@]}" pause >/dev/null 2>&1
+put_state "$WORK" PROJECT coder 94
+"${ADV[@]}" pause >/dev/null 2>&1
+capture "${ADV[@]}" resume 94
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "more than once" && [ "$(parked_count)" = 2 ]; then
+  ok "second pause of the same issue keeps both; resume by issue is refused as ambiguous"
+else bad "second pause of the same issue keeps both; resume by issue is refused as ambiguous (rc=$RC parked=$(parked_count))"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 95
+"${ADV[@]}" pause >/dev/null 2>&1
+put_state "$WORK" PROJECT coder 96
+capture "${ADV[@]}" resume 95
+if [ "$RC" = 1 ] && [ "$(state_get "$WORK" "d['issue']")" = 96 ] && [ "$(parked_count)" = 1 ]; then
+  ok "resume refuses while a pipeline is active"
+else bad "resume refuses while a pipeline is active (rc=$RC)"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 97
+"${ADV[@]}" pause >/dev/null 2>&1
+git checkout -q feat/91-b
+put_state "$WORK" PROJECT coder 98 600
+cp "$WORK/.claude/pipeline_state.json" "$BASE/slot.before"
+capture "${ADV[@]}" resume 97
+if [ "$RC" = 1 ] && cmp -s "$BASE/slot.before" "$WORK/.claude/pipeline_state.json" && [ "$(parked_count)" = 1 ]; then
+  ok "resume refuses on a different branch"
+else bad "resume refuses on a different branch (rc=$RC)"; fi
+git checkout -q feat/91-a
+reset_state
+
+put_state "$WORK" PROJECT judge_design 99
+edit_state "$WORK" '{"artifacts": {"judge_votes": [{"agent": "security", "verdict": "PASS", "round": "judge_design"}]}}'
+"${ADV[@]}" pause >/dev/null 2>&1
+"${ADV[@]}" resume 99 >/dev/null 2>&1
+if [ "$(state_get "$WORK" "d['phase'] + ':' + str(len(d['artifacts']['judge_votes'])) + ':' + d['phase_history'][-1]['phase']")" = "judge_design:1:resume" ]; then
+  ok "resume restores phase, votes and history"
+else bad "resume restores phase, votes and history"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 100
+edit_state "$WORK" '{"gitdir_at_init": "/elsewhere/.git"}'
+"${ADV[@]}" pause >/dev/null 2>&1
+[ "$(parked_reasons)" = pause-foreign ] && [ ! -f "$WORK/.claude/pipeline_state.json" ] && ok "pause parks a foreign state" || bad "pause parks a foreign state ($(parked_reasons))"
+reset_state
+
+put_state "$WORK" PROJECT coder 101
+"${ADV[@]}" pause >/dev/null 2>&1
+python3 -c "import glob,json,sys; f=glob.glob(sys.argv[1]+'/*.json')[0]; d=json.load(open(f)); d['gitdir_at_init']='/old/place/.git'; json.dump(d, open(f,'w'))" "$PARKED"
+"${ADV[@]}" resume 101 >/dev/null 2>&1
+[ "$(state_get "$WORK" "d['gitdir_at_init']")" = "$WORK/.git" ] && ok "resume after a repository move rebases gitdir_at_init" || bad "resume after a repository move rebases gitdir_at_init"
+reset_state
+
+put_state "$WORK" PROJECT coder
+expect_rc "pipeline core not writable in PROJECT" 2 write_to ".claude/hooks/x.sh"
+if ! bashcmd "echo x >> .claude/hooks/x.sh" >/dev/null 2>&1 && ! bashcmd "sed -i '' 's/a/b/' .claude/pipeline.json" >/dev/null 2>&1; then
+  ok "shell write to hooks blocked outside PIPELINE"
+else bad "shell write to hooks blocked outside PIPELINE"; fi
+expect_rc "shell write to settings.local.json blocked outside PIPELINE" 2 bashcmd "echo '{}' > .claude/settings.local.json"
+put_state "$WORK" PIPELINE coder
+expect_rc "pipeline core writable in PIPELINE" 0 write_to ".claude/hooks/x.sh"
+expect_rc "shell write to hooks allowed in PIPELINE" 0 bashcmd "echo x >> .claude/hooks/x.sh"
+expect_rc "grant file is never written by tools or shell, even in PIPELINE (tool)" 2 write_to ".claude/settings.pipeline-grant.json"
+expect_rc "grant file is never written by tools or shell, even in PIPELINE (shell)" 2 bashcmd "printf '{}' > .claude/settings.pipeline-grant.json"
+put_state "$WORK" LEARN learner
+expect_rc "pipeline core not writable in LEARN" 2 write_to ".claude/hooks/x.sh"
+reset_state
+make_wt
+put_state "$WT" PIPELINE coder
+expect_rc "shell core write refused from a worktree holding a PIPELINE state" 2 at "$WT" bashcmd "echo x >> \"$WORK/.claude/hooks/x.sh\""
+reset_state
+
+capture "${ADV[@]}" init PIPELINE 102
+if [ "$RC" = 4 ] && printf '%s' "$ERR" | grep -q "settings.pipeline-grant.json"; then
+  ok "init PIPELINE refused without a grant"
+else bad "init PIPELINE refused without a grant (rc=$RC)"; fi
+grant '{"version": 1, "pipeline_init": [102]}'
+"${ADV[@]}" init PIPELINE 102 >/dev/null 2>&1
+[ "$(state_get "$WORK" "'grant:pipeline_init:102' in [h['phase'] for h in d['phase_history']]")" = True ] \
+  && ok "init PIPELINE allowed with a grant naming the issue" || bad "init PIPELINE allowed with a grant naming the issue"
+reset_state
+grant '{"version": 1, "pipeline_init": [998]}'
+expect_rc "a grant for another issue does not admit init PIPELINE" 4 "${ADV[@]}" init PIPELINE 999
+grant '{"version": 1, "pipeline-init": [999]}'
+capture "${ADV[@]}" init PIPELINE 999
+[ "$RC" = 4 ] && printf '%s' "$ERR" | grep -q invalid && ok "an invalid grant file grants nothing (unknown key)" || bad "an invalid grant file grants nothing (unknown key) (rc=$RC)"
+grant 'not json'
+capture "${ADV[@]}" init PIPELINE 999
+[ "$RC" = 4 ] && printf '%s' "$ERR" | grep -q invalid && ok "an invalid grant file grants nothing (not JSON)" || bad "an invalid grant file grants nothing (not JSON) (rc=$RC)"
+reset_state
+
+put_state "$WORK" LEARN learner 103
+capture "${ADV[@]}" pause
+[ "$RC" = 4 ] && slot_is LEARN:learner && ok "pause of an own LEARN state refused without a grant" || bad "pause of an own LEARN state refused without a grant (rc=$RC)"
+grant '{"version": 1, "learn_pause": [103]}'
+"${ADV[@]}" pause >/dev/null 2>&1
+[ "$(parked_reasons)" = pause ] && ok "pause of an own LEARN state allowed with a learn_pause grant" || bad "pause of an own LEARN state allowed with a learn_pause grant"
+reset_state
+
+put_state "$WORK" LEARN learner 104
+git checkout -q feat/91-b
+capture "${ADV[@]}" init TASK 105
+[ "$RC" = 4 ] && slot_is LEARN:learner && ok "init cannot park an own LEARN state without a grant" || bad "init cannot park an own LEARN state without a grant (rc=$RC)"
+git checkout -q feat/91-a
+reset_state
+
+make_wt
+grant '{"version": 1, "pipeline_init": [106]}'
+capture eval 'cd "$WT" && "${ADV[@]}" init PIPELINE 106'
+[ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "main checkout" && ok "PIPELINE init refused in a linked worktree" || bad "PIPELINE init refused in a linked worktree (rc=$RC)"
+reset_state
+git checkout -q main
+
+echo "== stop with background tasks"
+reset_state
+git checkout -q -B feat/107-stop main
+stop_bg() { # stop_bg <background_tasks JSON, or "absent">: Stop mid-pipeline with that task list
+  python3 -c "import json,sys; d={'hook_event_name':'Stop','cwd':sys.argv[2],'stop_hook_active':False}; d.update({} if sys.argv[1]=='absent' else {'background_tasks':json.loads(sys.argv[1])}); print(json.dumps(d))" "$1" "$HCWD" \
+    | bash "$H/phase-complete.sh"; }
+put_state "$WORK" PROJECT judge_code
+expect_rc "stop allowed while a subagent runs" 0 stop_bg '[{"id":"a1","type":"subagent","status":"running","description":"judge"}]'
+expect_rc "running shell task does not allow stop" 2 stop_bg '[{"id":"s1","type":"shell","status":"running","description":"dev server"}]'
+expect_rc "completed subagent does not allow stop" 2 stop_bg '[{"id":"a1","type":"subagent","status":"completed","description":"judge"}]'
+if ! stop_bg absent >/dev/null 2>&1 && ! stop_bg '"broken"' >/dev/null 2>&1 && ! stop_bg 'null' >/dev/null 2>&1; then
+  ok "absent or malformed background_tasks does not allow stop"
+else bad "absent or malformed background_tasks does not allow stop"; fi
+reset_state
+git checkout -q main
+
+echo "== shell core guard spellings, vote errors, malformed input"
+reset_state
+git checkout -q -B feat/108-review main
+put_state "$WORK" PROJECT coder
+for c in "rm -rf .claude/hooks" "cp x.sh .claude/hooks" "mv .claude/hooks .claude/hooks.bak" "ln -sf /tmp/x .claude/hooks" \
+         "rm -rf .claude" "rm -rf .claude/" "git restore .claude" \
+         "git checkout main -- .claude/hooks" "git checkout main -- .claude" "git checkout HEAD .claude/hooks" \
+         "rm -rf .claude/*" "rm -rf .claude/h*"; do
+  expect_rc "shell write to hooks blocked outside PIPELINE: $c" 2 bashcmd "$c"
+done
+for c in "ls .claude" "cat .claude/hooks/x.sh" "echo x >> .claude/feedback/coder_mistakes.md" \
+         "cp x.md .claude/agents/dev/y.md" "echo x > plans/x.md" "rm -rf .claude/worktrees/old-one" \
+         "git checkout feat/x" "git diff .claude" "git log -- .claude/hooks" "git show HEAD:.claude/hooks/x.sh" \
+         "rm -rf .claude/agents/*" "rm -rf .claude/feedback/*" "rm -rf .claude/worktrees/*"; do
+  expect_rc "shell write outside core stays allowed: $c" 0 bashcmd "$c"
+done
+
+put_state "$WORK" PROJECT judge_design
+set_cfg state_lock_timeout_seconds 1
+hold_lock "$WORK" 3
+VOTE_OUT=$(JUDGE_HOOK_CALLER=judge-count-hook "${ADV[@]}" judge_design security PASS agentlock handback 2>&1); VOTE_RC=$?
+wait
+if [ "$VOTE_RC" = 75 ] && ! printf '%s' "$VOTE_OUT" | grep -q "Judge recorded"; then
+  ok "a vote that cannot take the lock fails with rc 75"
+else bad "a vote that cannot take the lock fails with rc 75 (rc=$VOTE_RC)"; fi
+transcript "$TDIR/$SID/subagents/agent-lk2.jsonl" "$JS"
+hold_lock "$WORK" 3
+handback lk2 "PASS" "$MAIN_T" >/dev/null 2>&1
+wait
+[ "$(log_last event)" = vote-ignored:advance-rc-75 ] && ok "judge hook logs the real rc of a failed vote" || bad "judge hook logs the real rc of a failed vote ($(log_last event))"
+restore_cfg
+reset_state
+
+capture "${ADV[@]}" init RESEARCH abc
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "issue must be a GitHub issue number" && ! printf '%s' "$ERR" | grep -q Traceback; then
+  ok "init refuses a non-numeric issue without a traceback"
+else bad "init refuses a non-numeric issue without a traceback (rc=$RC)"; fi
+mkdir -p "$PARKED" && printf 'not json\n' > "$PARKED/109-1.json"
+capture "${ADV[@]}" resume 109-1
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "109-1.json is unreadable" && ! printf '%s' "$ERR" | grep -q Traceback; then
+  ok "resume refuses a corrupt parked file without a traceback"
+else bad "resume refuses a corrupt parked file without a traceback (rc=$RC)"; fi
+printf '[]\n' > "$PARKED/110-1.json"
+capture "${ADV[@]}" resume 110-1
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "110-1.json is not a JSON object" && ! printf '%s' "$ERR" | grep -q Traceback; then
+  ok "resume refuses a parked file that is not a JSON object without a traceback"
+else bad "resume refuses a parked file that is not a JSON object without a traceback (rc=$RC)"; fi
+reset_state
+printf 'not json\n' > "$WORK/.claude/pipeline_state.json"
+capture "${ADV[@]}" status
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "pipeline_state.json.broken"; then
+  ok "unreadable state message names the command to move it aside"
+else bad "unreadable state message names the command to move it aside (rc=$RC)"; fi
+reset_state
+git checkout -q main
 
 echo
 echo "pipeline self-test: $PASS passed, $FAIL failed"

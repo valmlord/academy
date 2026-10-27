@@ -39,9 +39,10 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
    ```
    [TASK #12] pipeline: lesson page reads course/ via lesson-schema
    ```
-3. `bash .claude/hooks/pipeline-advance.sh init TASK 12`
-4. Branch: `git switch -c feat/12-lesson-page` (types: feat, fix, refactor, perf, test, docs,
-   chore, ci, build, content, learn). Never work on `main`.
+3. Branch: `git switch -c feat/12-lesson-page` (types: feat, fix, refactor, perf, test, docs,
+   chore, ci, build, content, learn). Never work on `main`. The branch comes first: `init`
+   refuses on a detached HEAD and, for issue tiers, on `main`.
+4. `bash .claude/hooks/pipeline-advance.sh init TASK 12`
 5. Run the phases. Plans go to `plans/<issue>-<slug>.md`.
 6. Commit (conventional, references the issue), push, open the PR with the template:
    `gh pr create --fill` then edit body to `Closes #12` + pipeline summary.
@@ -60,6 +61,7 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
 | LESSON | one lesson fix/rewrite | init, researcher, author, student, validate, judge_content, commit, pr, notify, done |
 | RESEARCH | question, no change | init, researcher, notify, done |
 | RELEASE | tag a version, rebuild stack | init, release, notify, done |
+| PIPELINE | changes to `.claude/hooks`, `pipeline.json`, `settings*.json` | same as PROJECT, main checkout only, needs Stepan's grant (section 7) |
 
 ### Phase -> agent
 | Phase | Dev tiers | Content tiers |
@@ -77,10 +79,23 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
 | judge_code / judge_content | 3 judges, ONE message, review diff + test/student report | |
 
 ### Hooks enforce
-- Product files are writable only inside an active pipeline (`init` done, phase != done).
-  `.claude/agents/`, `.claude/feedback/`, `pipeline/`, `plans/` are always writable; the
-  pipeline core (`pipeline.json`, `settings.json`, `hooks/`) only inside a pipeline; the state
-  file never (`require-pipeline.sh`, `bash-code-guard.sh`).
+Threat model: the hooks are a guardrail against the mistakes of an honest agent, not a sandbox.
+Deliberate bypasses (`python3 -c`, relative `cd`, forged transcripts) are accepted residual risks
+(ADR-0005), caught by review and by Stepan at merge.
+- Hooks, `pipeline.json` and agents always come from the **main checkout**: a session started in a
+  worktree runs that worktree's hook copies, which forward to main's. Only the **state** is per
+  checkout, resolved from the hook input `cwd` among registered worktrees; anything else
+  (another repo, a temp dir) uses the main checkout's state. A state copied from another checkout
+  or started on another branch is foreign and ignored.
+- Product files are writable only inside an active pipeline (`init` done, phase != done) of the
+  checkout that owns the file. `.claude/agents/`, `.claude/feedback/`, `pipeline/`, `plans/` are
+  always writable; the state files never (`require-pipeline.sh`, `bash-code-guard.sh`).
+- Pipeline core (`.claude/hooks/`, `.claude/pipeline.json`, `.claude/settings*` including
+  `settings.local.json`) is writable by tools and shell only in a PIPELINE task in the main
+  checkout. `.git` paths, session transcripts, `~/.claude/settings*.json` and the grant file are
+  never written by agents.
+- Gates fail closed: a crashed gate, a broken resolver or a missing `python3` blocks with a
+  message. Every block, fallback and crash is logged to `.git/pipeline-hooks.log`.
 - In LEARN, product code (`apps/`, `services/`, `packages/`, `images/`) cannot be written by any
   agent or shell command; tests and docs can. The coder agent is blocked (`phase-gate.sh`).
 - Each role agent may run only inside its phase window; the role is the LEADING
@@ -90,7 +105,9 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
   3/3 PASS.
 - `pr` requires: not on main, clean tree, last commit references `#<issue>`.
 - Stop is blocked until `done` (once per turn; it never loops). In the `learner` phase stopping
-  is allowed: you are waiting for Stepan.
+  is allowed: you are waiting for Stepan. It is also allowed while a spawned subagent still runs.
+- Never spawn role agents or judges with `isolation: worktree` (`phase-gate.sh` blocks it): they
+  would resolve a worktree without a state.
 
 ---
 
@@ -119,9 +136,61 @@ architect's design is decomposed into 30-60 LOC steps, no implementation code). 
   methodologists use to adapt the course.
 
 ## 6. Session start
-- `git status`, current branch, `bash .claude/hooks/pipeline-advance.sh status`.
+- `git status`, current branch, `bash .claude/hooks/pipeline-advance.sh status` and `parked`.
 - Read `.claude/feedback/orchestrator_mistakes.md` and the meta-rules
   (`agent_roles_mandatory.md`, `judge_must_be_spawned.md`, `design_review_genuine.md`).
+
+## 7. Checkouts, pause/resume and the grant
+
+**Invocation.** From the main checkout: `bash .claude/hooks/pipeline-advance.sh ...`. From a
+worktree: `bash "$(git rev-parse --path-format=absolute --git-common-dir)/../.claude/hooks/pipeline-advance.sh" ...`
+(a worktree's own copy refuses to run). Both resolve the state from the current directory.
+
+**Worktrees.**
+- Create them only under `.claude/worktrees/` (others inside the repo are ignored by the resolver).
+- The main checkout must always be on a branch that contains pipeline v2
+  (`git merge-base --is-ancestor <v2 commit> HEAD`); bring an older branch up with `git merge main`
+  (or the `rebase --onto` below) **before** checking it out in the main checkout.
+- A worktree on an older branch runs `git merge main` before its pipeline continues: its hook
+  wiring comes from its own `settings.json`.
+- Run `pipeline-advance.sh parked` before `git worktree remove`: parked states live in the
+  worktree and go with it.
+
+**One active pipeline plus parked ones per checkout.**
+- `pause`: parks the active state (own or foreign) in `.claude/pipeline_state.parked/<issue>-<epoch>.json`
+  and frees the checkout. `init` parks a foreign, branch-switched, branch-missing or stale state
+  by itself and refuses only for this branch's live task.
+- `resume <issue|key>`: restores a parked state; only on its own branch, only when no pipeline is
+  active here; ambiguous issue numbers need the key.
+- `parked`: lists them; `status` also prints them on stderr.
+
+**Stepan's grant** (`.claude/settings.pipeline-grant.json`, main checkout only, git-ignored).
+`init PIPELINE <n>` needs `n` in `pipeline_init`; pausing (or letting init/resume park) an own
+LEARN task needs its issue in `learn_pause`. Stepan writes the file by hand in his own terminal;
+agents never can (tool and shell writes are blocked). A malformed file grants nothing. Format:
+`{"version": 1, "pipeline_init": [21], "learn_pause": [5]}`. Commands, from
+`/Users/stepankorshukov/Documents/Projects/academy`:
+- create or change (`>` overwrites the whole file, so retype every issue that should stay):
+  `printf '%s\n' '{"version": 1, "pipeline_init": [21], "learn_pause": []}' > .claude/settings.pipeline-grant.json`
+- check the syntax: `python3 -I -m json.tool .claude/settings.pipeline-grant.json`
+- remove one issue: rerun the create command without it; remove every grant:
+  `rm .claude/settings.pipeline-grant.json`
+- after the issue's PR is merged, remove it from the grant, together with any parked PIPELINE
+  state of that issue: `bash .claude/hooks/pipeline-advance.sh parked` shows the key, then
+  `rm .claude/pipeline_state.parked/<key>.json`.
+
+**Kill switch.** Stepan writes `{"disableAllHooks": true}` into `.claude/settings.local.json` by
+hand and starts a new session (also the escape from a lockout, e.g. a broken `python3`).
+
+**One-time migration to v2** (after #21 is merged; details in `plans/21-pipeline-v2-design.md`
+section 12):
+- #1 (`feat/1-web-bootstrap`, pre-v2): Stepan runs `git rebase --onto main 5ad27f4 feat/1-web-bootstrap`
+  (not a plain rebase: 5ad27f4 is already in main via the squash and would conflict), checks
+  `git diff --name-only main feat/1-web-bootstrap` lists only `plans/1-*`, checks the branch out in
+  the main checkout, then `pipeline-advance.sh resume 1`.
+- #15 worktree (`content/15-module-introduction`, pre-v2): before any session starts in it again,
+  `git -C <worktree> merge --ff-only main`; then its orchestrator runs `init MODULE 15` from the
+  worktree with the canonical invocation above.
 
 ## Completion block
 ```

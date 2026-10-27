@@ -4,7 +4,7 @@ Closes #
 
 ## Pipeline
 
-- Tier: <!-- HOTFIX | TASK | PROJECT | LEARN | MODULE | LESSON -->
+- Tier: <!-- HOTFIX | TASK | PROJECT | PIPELINE | LEARN | MODULE | LESSON | RESEARCH | RELEASE -->
 - Judges: <!-- e.g. design 3/3 PASS, code 3/3 PASS -->
 - Plan: <!-- plans/<issue>-*.md -->
 
