@@ -88,8 +88,8 @@ ctx_field() { # ctx_field <cwd> <index>: one field of `checkout.py context` for 
     | python3 -I "$H/lib/checkout.py" context | python3 -c "import sys; print(sys.stdin.read().rstrip('\n').split('\x1f')[int(sys.argv[1])])" "$2"; }
 edit_state() { # edit_state <root> <json object>: merge top-level keys into that checkout's state
   python3 -c "import json,sys; f=sys.argv[1]+'/.claude/pipeline_state.json'; d=json.load(open(f)); d.update(json.loads(sys.argv[2])); json.dump(d, open(f,'w'))" "$1" "$2"; }
-state_get() { # state_get <root> <python expression over d>
-  python3 -c "import json,sys; d=json.load(open(sys.argv[1]+'/.claude/pipeline_state.json')); print(eval(sys.argv[2]))" "$1" "$2" 2>/dev/null; }
+state_get() { # state_get <root> <python expression over d> [value visible as sys.argv[3]]
+  python3 -c "import json,sys; d=json.load(open(sys.argv[1]+'/.claude/pipeline_state.json')); print(eval(sys.argv[2]))" "$@" 2>/dev/null; }
 CFG_SAVED="$BASE/pipeline.json.saved"
 set_cfg() { # set_cfg <key> <json value> in the test repo's pipeline.json; restore_cfg undoes it
   [ -f "$CFG_SAVED" ] || cp "$WORK/.claude/pipeline.json" "$CFG_SAVED"
@@ -530,6 +530,123 @@ put_state "$WORK" PROJECT coder
 edit_state "$WORK" "{\"session_ts\": $(python3 -c 'import time; print(time.time() - 9 * 3600)')}"
 adv_fail "TTL counts from last activity, not session start" init TASK 88
 reset_state
+git checkout -q main
+
+echo "== judge vote paths"
+reset_state
+git checkout -q -B feat/89-votes
+TDIR="$HOME/.claude/projects/p"; SID="sess1"
+mkdir -p "$TDIR/$SID/subagents" "$TDIR/x"
+MAIN_T="$TDIR/$SID.jsonl"; : > "$MAIN_T"
+transcript() { # transcript <file> <spawn prompt> [handback message]: a subagent transcript as the harness writes it
+  python3 - "$@" <<'PY'
+import json, sys
+path, prompt = sys.argv[1], sys.argv[2]
+recs = [{"type": "user", "message": {"role": "user", "content": prompt}},
+        {"type": "attachment", "attachment": {"type": "hook_success", "hookName": "PreToolUse:SubagentHandback"}}]
+if len(sys.argv) > 3:
+    recs.append({"type": "assistant", "message": {"role": "assistant", "content": [
+        {"type": "tool_use", "id": "toolu_1", "name": "SubagentHandback", "input": {"message": sys.argv[3]}}]}})
+with open(path, "w") as fh:
+    for rec in recs:
+        fh.write(json.dumps(rec) + "\n")
+PY
+}
+handback_json() { # handback_json <agent_id> <message> <transcript_path>
+  python3 -c "import json,sys; print(json.dumps({'hook_event_name':'PreToolUse','tool_name':'SubagentHandback','session_id':sys.argv[4],'transcript_path':sys.argv[3],'cwd':sys.argv[5],'agent_id':sys.argv[1],'agent_type':'general-purpose','tool_input':{'message':sys.argv[2]}}))" "$1" "$2" "$3" "$SID" "$HCWD"; }
+handback() { handback_json "$@" | bash "$H/judge-handback.sh"; }
+live_stop() { # live_stop <agent_id> <agent transcript>: SubagentStop with the fields of the live diag log
+  python3 -c "import json,sys; print(json.dumps({'session_id':sys.argv[3],'transcript_path':sys.argv[4],'cwd':sys.argv[5],'scratchpad_dir':'/tmp/s','prompt_id':'p1','permission_mode':'auto','agent_id':sys.argv[1],'agent_type':'general-purpose','effort':'high','hook_event_name':'SubagentStop','stop_hook_active':False,'agent_transcript_path':sys.argv[2],'background_tasks':[{'id':sys.argv[1],'type':'subagent','status':'running','description':'judge'}],'session_crons':[]}))" "$1" "$2" "$SID" "$MAIN_T" "$HCWD" \
+    | bash "$H/judge-vote.sh"; }
+votes_by() { state_get "$WORK" "' '.join('%s:%s:%s' % (v['agent'], v['verdict'], v.get('path')) for v in d['artifacts'].get('judge_votes', []) if v.get('agent_id') == sys.argv[3])" "$1"; }
+put_state "$WORK" PROJECT judge_design
+
+transcript "$TDIR/$SID/subagents/agent-a1.jsonl" "$JS"
+handback a1 "Checked.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ "$(votes_by a1)" = "security:PASS:handback" ] && [ "$(log_last transcript_kind)" = main ]; then
+  ok "handback vote recorded from tool_input.message (subagent transcript under main transcript dir)"
+else bad "handback vote recorded from tool_input.message (subagent transcript under main transcript dir) ($(votes_by a1))"; fi
+transcript "$TDIR/x/agent-a2.jsonl" "$JA"
+handback a2 "PASS" "$TDIR/x/agent-a2.jsonl" >/dev/null 2>&1
+if [ "$(votes_by a2)" = "architecture:PASS:handback" ] && [ "$(log_last transcript_kind)" = subagent ]; then
+  ok "handback vote recorded when transcript_path is the subagent's own"
+else bad "handback vote recorded when transcript_path is the subagent's own ($(votes_by a2))"; fi
+edit_state "$WORK" '{"artifacts": {"judge_spawns": {"a3": "operations"}}}'
+handback a3 "PASS" "$TDIR/missing/$SID.jsonl" >/dev/null 2>&1
+if [ "$(votes_by a3)" = "operations:PASS:handback" ] && [ "$(log_last role_source)" = spawn_map ]; then
+  ok "handback role from spawn map when no transcript exists"
+else bad "handback role from spawn map when no transcript exists ($(votes_by a3))"; fi
+
+transcript "$TDIR/$SID/subagents/agent-a4.jsonl" "$JS" "Checked.
+FAIL: 1 issue"
+live_stop a4 "$TDIR/$SID/subagents/agent-a4.jsonl" >/dev/null 2>&1
+[ "$(votes_by a4)" = "security:FAIL:subagent_stop" ] && ok "live-shaped SubagentStop records the vote" || bad "live-shaped SubagentStop records the vote ($(votes_by a4))"
+transcript "$TDIR/$SID/subagents/agent-a5.jsonl" "$JS"
+live_stop a5 "$TDIR/$SID/subagents/agent-a5.jsonl" >/dev/null 2>&1
+if [ -z "$(votes_by a5)" ] && [ "$(log_last event)" = verdict-unknown ] && [ "$(log_last handback_in_transcript)" = false ]; then
+  ok "lagging transcript gives verdict-unknown, logged with handback_in_transcript=false"
+else bad "lagging transcript gives verdict-unknown, logged with handback_in_transcript=false"; fi
+
+transcript "$TDIR/$SID/subagents/agent-a6.jsonl" "$JO" "PASS"
+handback a6 "PASS" "$MAIN_T" >/dev/null 2>&1
+live_stop a6 "$TDIR/$SID/subagents/agent-a6.jsonl" >/dev/null 2>&1
+[ "$(votes_by a6)" = "operations:PASS:handback" ] && ok "handback then SubagentStop records one vote" || bad "handback then SubagentStop records one vote ($(votes_by a6))"
+transcript "$TDIR/$SID/subagents/agent-a7.jsonl" "$JO" "PASS"
+live_stop a7 "$TDIR/$SID/subagents/agent-a7.jsonl" >/dev/null 2>&1
+handback a7 "PASS" "$MAIN_T" >/dev/null 2>&1
+[ "$(votes_by a7)" = "operations:PASS:subagent_stop" ] && ok "SubagentStop then handback records one vote" || bad "SubagentStop then handback records one vote ($(votes_by a7))"
+
+handback "../../x" "PASS" "$MAIN_T" >/dev/null 2>&1
+if [ -z "$(votes_by ../../x)" ] && [ "$(log_last event)" = vote-ignored:bad-agent-id ]; then
+  ok "bad agent_id is ignored"
+else bad "bad agent_id is ignored"; fi
+transcript "$TDIR/$SID/subagents/agent-a12.jsonl" "$CODER"
+handback a12 "All tests green.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ -z "$(votes_by a12)" ] && [ "$(log_last event)" = vote-ignored:not-a-judge ]; then
+  ok "non-judge handback is not a vote"
+else bad "non-judge handback is not a vote ($(log_last event))"; fi
+transcript "$TDIR/$SID/subagents/agent-a13.jsonl" "$JA"
+handback a13 "Checked ghp_canary_21b.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ "$(log_last event)" = vote-recorded ] && ! grep -q ghp_canary_21b "$LOG"; then
+  ok "hook log never contains a handback message"
+else bad "hook log never contains a handback message"; fi
+
+ISO=$(python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[2],'tool_input':{'prompt':sys.argv[1],'isolation':'worktree'}}))" "$JS" "$WORK")
+printf '%s' "$ISO" | bash "$H/phase-gate.sh" >/dev/null 2>&1; ISO_RC=$?
+[ "$ISO_RC" = 2 ] && ok "judge spawn with isolation worktree is blocked" || bad "judge spawn with isolation worktree is blocked (rc=$ISO_RC)"
+
+printf 'not json{' | bash "$H/judge-handback.sh" >/dev/null 2>&1; GARBAGE_RC=$?
+set_cfg state_lock_timeout_seconds 1
+transcript "$TDIR/$SID/subagents/agent-a14.jsonl" "$JA"
+hold_lock "$WORK" 3
+handback a14 "PASS" "$MAIN_T" >/dev/null 2>&1; LOCKED_RC=$?
+wait
+restore_cfg
+reset_state
+handback a14 "PASS" "$MAIN_T" >/dev/null 2>&1; NOSTATE_RC=$?
+if [ "$GARBAGE_RC" = 0 ] && [ "$LOCKED_RC" = 0 ] && [ "$NOSTATE_RC" = 0 ]; then
+  ok "handback hook never blocks"
+else bad "handback hook never blocks (garbage=$GARBAGE_RC locked=$LOCKED_RC no-state=$NOSTATE_RC)"; fi
+
+if python3 - "$WORK/.claude/settings.json" "$H" <<'PY'
+import json, os, re, sys
+hooks = json.load(open(sys.argv[1]))["hooks"]
+wired, handback = set(), False
+for event, entries in hooks.items():
+    for entry in entries:
+        for h in entry["hooks"]:
+            m = re.fullmatch(r'bash "\$CLAUDE_PROJECT_DIR/\.claude/hooks/([a-z-]+\.sh)"', h["command"])
+            assert m and isinstance(h.get("timeout"), int), h
+            wired.add(m.group(1))
+            handback |= event == "PreToolUse" and entry.get("matcher") == "SubagentHandback" and m.group(1) == "judge-handback.sh"
+scripts = {f for f in os.listdir(sys.argv[2]) if f.endswith(".sh")} - {"pipeline-advance.sh", "notify.sh"}
+sys.exit(0 if handback and wired == scripts else 1)
+PY
+then ok "settings.json wires every hook from CLAUDE_PROJECT_DIR with a timeout, including judge-handback"
+else bad "settings.json wires every hook from CLAUDE_PROJECT_DIR with a timeout, including judge-handback"; fi
 git checkout -q main
 
 echo

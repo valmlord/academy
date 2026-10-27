@@ -73,6 +73,28 @@ pl_log() {
     source="$SOURCE" forwarded="$PL_FORWARDED" "$@" || true
 }
 
+# pl_record_vote <judge> <verdict> <agent_id> <path> [log fields...]: record one judge vote through
+# pipeline-advance (run from the state root, so it resolves the same checkout) and log the outcome.
+pl_record_vote() {
+  local judge="$1" verdict="$2" agent_id="$3" path="$4" phase out rc=0 event
+  shift 4
+  phase=${STATE_STATUS##*:}
+  case "$phase" in
+    judge_*) ;;
+    *) pl_log event=vote-ignored:not-in-judge-phase judge="$judge" verdict="$verdict" round="$phase" \
+         path="$path" agent_id="$agent_id" "$@"
+       return 0 ;;
+  esac
+  out=$(cd "$STATE_ROOT" && JUDGE_HOOK_CALLER=judge-count-hook \
+    bash "$CODE_ROOT/.claude/hooks/pipeline-advance.sh" "$phase" "$judge" "$verdict" "$agent_id" "$path" 2>&1) || rc=$?
+  case "$out" in
+    "Judge recorded"*) event=vote-recorded ;;
+    "Duplicate vote"*) event=vote-dup ;;
+    *) event="vote-ignored:advance-rc-$rc" ;;
+  esac
+  pl_log event="$event" judge="$judge" verdict="$verdict" round="$phase" path="$path" agent_id="$agent_id" "$@"
+}
+
 # run_hook: run main_fn with errexit and nounset in a subshell, then map its exit code. A gate
 # that crashes (traceback, unset variable, missing file) must block instead of failing open; an
 # observer must never block; the CLI keeps its own exit codes.

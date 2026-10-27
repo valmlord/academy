@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-pipeline.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-pipeline.sh\"",
+            "timeout": 15
           }
         ]
       },
@@ -15,7 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/phase-gate.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/phase-gate.sh\"",
+            "timeout": 15
           }
         ]
       },
@@ -24,7 +26,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/bash-code-guard.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/bash-code-guard.sh\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "SubagentHandback",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/judge-handback.sh\"",
+            "timeout": 15
           }
         ]
       },
@@ -33,7 +46,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pipeline-watchdog.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pipeline-watchdog.sh\"",
+            "timeout": 15
           }
         ]
       }
@@ -44,7 +58,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/judge-count.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/judge-count.sh\"",
+            "timeout": 15
           }
         ]
       }
@@ -54,7 +69,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/phase-complete.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/phase-complete.sh\"",
+            "timeout": 15
           }
         ]
       }
@@ -64,7 +80,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/judge-vote.sh\""
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/judge-vote.sh\"",
+            "timeout": 15
           }
         ]
       }

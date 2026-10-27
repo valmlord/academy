@@ -10,7 +10,9 @@
 #   pipeline-advance.sh pr skip "reason"                no remote yet: record why, advance
 #   pipeline-advance.sh notify                          run notify hook and advance
 #   pipeline-advance.sh status                          print state
-# Judge votes are recorded ONLY by the judge-vote / judge-count hooks (JUDGE_HOOK_CALLER).
+# Judge votes and the judge spawn map are recorded ONLY by the judge hooks (JUDGE_HOOK_CALLER):
+#   pipeline-advance.sh <judge_phase> <judge> <PASS|FAIL> [agent_id] [path]
+#   pipeline-advance.sh spawn <judge_phase> <agent_id> <judge>
 #
 # State: .claude/pipeline_state.json of the checkout that contains the current directory (a
 # registered worktree, else the main checkout). Run the main checkout's copy of this script; from a
@@ -123,8 +125,25 @@ if [[ "$PHASE" == judge_* ]] && [ "$CURRENT" = "$PHASE" ] && [ $# -ge 2 ]; then
     exit 0
   fi
   case "$VERDICT" in PASS|FAIL) ;; *) echo "IGNORED: verdict '$VERDICT'" >&2; exit 0 ;; esac
-  state_op vote "$PHASE" "$AGENT" "$VERDICT" "${3:-}" "${4:-}" >/dev/null
+  if [ "$(state_op vote "$PHASE" "$AGENT" "$VERDICT" "${3:-}" "${4:-}")" = "vote-dup" ]; then
+    echo "Duplicate vote ignored ($PHASE: $AGENT, agent ${3:-?} already voted this round)."
+    exit 0
+  fi
   echo "Judge recorded ($PHASE: $AGENT=$VERDICT). Round status: $(check_judges_unanimous "$JUDGES")"
+  exit 0
+fi
+
+# ---------------------------------------------------------------- SPAWN map (judge-count hook)
+# spawn <round> <agent_id> <judge>: remember which judge an agent id is, for a handback whose
+# transcript cannot be found.
+if [ "$PHASE" = "spawn" ]; then
+  if [ "${JUDGE_HOOK_CALLER:-}" != "judge-count-hook" ]; then
+    echo "REJECTED: the spawn map is written only by the judge-count hook." >&2; exit 1
+  fi
+  if ! echo " $JUDGES " | grep -q " ${3:?Usage: pipeline-advance.sh spawn <round> <agent_id> <judge>} "; then
+    echo "IGNORED: judge '$3' is not part of tier $TIER (judges: $JUDGES)." >&2; exit 0
+  fi
+  state_op record_spawn "$1" "$2" "$3"
   exit 0
 fi
 

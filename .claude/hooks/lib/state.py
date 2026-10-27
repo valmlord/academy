@@ -177,8 +177,12 @@ def op_vote(root, rnd, judge, verdict, agent_id="", path=""):
         data = _require(load(root))
         if data.get("phase") != rnd:
             raise Conflict("not in round %s (now %s)" % (rnd, data.get("phase")))
+        votes = data.setdefault("artifacts", {}).setdefault("judge_votes", [])
+        # The handback and SubagentStop paths both report the same agent: one vote per agent and round.
+        if agent_id and any(v.get("agent_id") == agent_id and v.get("round") == rnd for v in votes):
+            return "vote-dup"
         _test_delay()
-        data.setdefault("artifacts", {}).setdefault("judge_votes", []).append({
+        votes.append({
             "agent": judge, "verdict": verdict, "round": rnd, "agent_id": agent_id, "path": path,
             "source": "hook", "ts": _stamp(),
         })

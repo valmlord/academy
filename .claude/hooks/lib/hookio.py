@@ -2,8 +2,16 @@
 """Shared parsing for hook inputs, so every hook identifies roles and verdicts the same way.
 
   hookio.py role                 stdin: PreToolUse/PostToolUse JSON -> role file of the spawned agent (e.g. coder.md) or ""
-  hookio.py judge_vote           stdin: SubagentStop JSON -> "<judge-key>|<PASS|FAIL|UNKNOWN>" or "|"
-  hookio.py judge_vote_post      stdin: PostToolUse(Agent) JSON -> same as judge_vote
+  hookio.py judge_vote           stdin: SubagentStop JSON ->
+                                 "<judge-key>|<PASS|FAIL|UNKNOWN>|<agent_id>|<transcript lines>|<true|false>"
+                                 (the last field: the transcript already holds a SubagentHandback call)
+  hookio.py judge_vote_post      stdin: PostToolUse(Agent) JSON -> "<judge-key>|<verdict>"
+  hookio.py handback_vote <state file>
+                                 stdin: PreToolUse(SubagentHandback) JSON ->
+                                 "<outcome>|<judge-key>|<verdict>|<agent_id>|<role_source>|<transcript_kind>"
+                                 outcome: vote | role-unknown | vote-ignored:not-a-judge |
+                                 vote-ignored:bad-agent-id | verdict-unknown
+  hookio.py spawn_info           stdin: PostToolUse(Agent) JSON -> "<judge-key>|<agent_id>" of a launched judge
   hookio.py field <dotted.path>  stdin: any hook JSON -> value or ""
 
 Role detection rule (deliberately strict): the role is the agent file named in the LEADING
@@ -23,6 +31,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import cfg  # noqa: E402
 import checkout  # noqa: E402
 
+# agent_id becomes part of a transcript file path and the vote dedupe key.
+AGENT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 ROLE_RE = re.compile(r"""^\s*Read\s+[`"']?\.claude/agents/(?:dev|content)/([a-z0-9-]+\.md)[`"']?\s+first""", re.I)
 VERDICT_RE = re.compile(r"^(?:VERDICT:\s*)?(PASS|FAIL)(?:\s*$|\s*[:\-]|\s+-)")
 
@@ -125,18 +135,111 @@ def last_assistant_text(path):
     return last
 
 
+def valid_agent_id(agent_id):
+    return isinstance(agent_id, str) and bool(AGENT_ID_RE.match(agent_id))
+
+
+def transcript_facts(path):
+    """(line count, whether an assistant record already holds a SubagentHandback call): logged so
+    a verdict missing because the transcript lagged behind the hook is visible."""
+    lines, handback = 0, False
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                lines += 1
+                if '"SubagentHandback"' in line:
+                    try:
+                        rec = json.loads(line)
+                    except ValueError:
+                        continue
+                    content = rec.get("message", {}).get("content") if rec.get("type") == "assistant" else None
+                    handback = handback or any(
+                        isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "SubagentHandback"
+                        for b in (content if isinstance(content, list) else []))
+    except OSError:
+        pass
+    return lines, handback
+
+
+def subagent_transcript(d, agent_id):
+    """(path, kind) of the subagent's own transcript; which transcript_path a PreToolUse inside a
+    subagent receives is unverified, so every known layout is tried in order."""
+    tpath = d.get("transcript_path") if isinstance(d.get("transcript_path"), str) else ""
+    session = d.get("session_id") if isinstance(d.get("session_id"), str) else ""
+    own = "agent-%s.jsonl" % agent_id
+    candidates = []
+    if isinstance(d.get("agent_transcript_path"), str) and d.get("agent_transcript_path"):
+        candidates.append((d["agent_transcript_path"], "explicit"))
+    if tpath and os.path.basename(tpath) == own:
+        candidates.append((tpath, "subagent"))
+    if tpath and session:
+        candidates.append((os.path.join(os.path.dirname(tpath), session, "subagents", own), "main"))
+    if tpath:
+        candidates.append((os.path.join(os.path.dirname(tpath), own), "sibling"))
+    for path, kind in candidates:
+        if os.path.isfile(path):
+            return path, kind
+    return "", "none"
+
+
+def spawn_map(state_file):
+    try:
+        with open(state_file, encoding="utf-8") as fh:
+            spawns = json.load(fh).get("artifacts", {}).get("judge_spawns", {})
+    except (OSError, ValueError, AttributeError):
+        return {}
+    return spawns if isinstance(spawns, dict) else {}
+
+
+def handback_vote(d, state_file):
+    agent_id = d.get("agent_id", "")
+    if not valid_agent_id(agent_id):
+        return ["vote-ignored:bad-agent-id", "", "", "", "none", "none"]
+    message = (d.get("tool_input") or {}).get("message", "") if isinstance(d.get("tool_input"), dict) else ""
+    verdict = verdict_from(message if isinstance(message, str) else "")
+    path, kind = subagent_transcript(d, agent_id)
+    if path:
+        role = role_from(first_user_text(path), "")
+        role_source, key, found_role = "transcript", judge_key(role), bool(role)
+    else:
+        key = spawn_map(state_file).get(agent_id, "")
+        key = key if isinstance(key, str) else ""
+        role_source, found_role = ("spawn_map", True) if key else ("none", False)
+    if not found_role:
+        outcome = "role-unknown"
+    elif not key:
+        outcome = "vote-ignored:not-a-judge"
+    elif verdict == "UNKNOWN":
+        outcome = "verdict-unknown"
+    else:
+        outcome = "vote"
+    return [outcome, key, verdict, agent_id, role_source, kind]
+
+
+def spawn_info(d):
+    ti = d.get("tool_input") if isinstance(d.get("tool_input"), dict) else {}
+    key = judge_key(role_from(ti.get("prompt", ""), ti.get("subagent_type", "")))
+    resp = d.get("tool_response") if isinstance(d.get("tool_response"), dict) else {}
+    agent_id = resp.get("agentId") or resp.get("agent_id") or ""
+    if not key or not valid_agent_id(agent_id):
+        return ["", ""]
+    return [key, agent_id]
+
+
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else ""
     try:
         d = json.load(sys.stdin)
     except ValueError:
         d = {}
+    if not isinstance(d, dict):
+        d = {}
     if cmd == "role":
         ti = d.get("tool_input", {}) or {}
         print(role_from(ti.get("prompt", ""), ti.get("subagent_type", "")))
     elif cmd == "judge_vote":
         if d.get("hook_event_name") not in (None, "", "SubagentStop"):
-            print("|")
+            print("||||false")
             return 0
         tpath = d.get("agent_transcript_path", "") or ""
         prompt = first_user_text(tpath) if tpath else ""
@@ -147,7 +250,14 @@ def main(argv):
         # SubagentHandback), so UNKNOWN there falls back to the transcript.
         if verdict == "UNKNOWN" and tpath:
             verdict = verdict_from(last_assistant_text(tpath))
-        print("%s|%s" % (key, verdict if key else ""))
+        agent_id = d.get("agent_id", "")
+        lines, handback = transcript_facts(tpath) if tpath else (0, False)
+        print("|".join([key, verdict if key else "", agent_id if valid_agent_id(agent_id) else "",
+                        str(lines), "true" if handback else "false"]))
+    elif cmd == "handback_vote":
+        print("|".join(handback_vote(d, argv[2] if len(argv) > 2 else "")))
+    elif cmd == "spawn_info":
+        print("|".join(spawn_info(d)))
     elif cmd == "judge_vote_post":
         ti = d.get("tool_input", {}) or {}
         role = role_from(ti.get("prompt", ""), ti.get("subagent_type", ""))

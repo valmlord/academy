@@ -11,14 +11,18 @@ source "$HOOK_DIR/lib/common.sh"
 
 main_fn() {
   case "$STATE_STATUS" in own:*) ;; *) return 0 ;; esac
-  local parsed judge verdict phase
+  local parsed judge verdict agent_id lines handback
   parsed=$(printf '%s' "$INPUT" | hookio judge_vote)
-  judge="${parsed%%|*}"
-  verdict="${parsed#*|}"
+  IFS='|' read -r judge verdict agent_id lines handback <<< "$parsed"
   [ -n "$judge" ] || return 0
-  case "$verdict" in PASS|FAIL) ;; *) return 0 ;; esac
-  phase=${STATE_STATUS##*:}
-  (cd "$STATE_ROOT" && JUDGE_HOOK_CALLER=judge-count-hook bash "$CODE_ROOT/.claude/hooks/pipeline-advance.sh" "$phase" "$judge" "$verdict")
+  case "$verdict" in
+    PASS|FAIL) ;;
+    *) # A transcript that lags behind the hook has no verdict yet; the handback path covers it.
+       pl_log event=verdict-unknown judge="$judge" path=subagent_stop agent_id="$agent_id" \
+         transcript_lines="$lines" handback_in_transcript="$handback"
+       return 0 ;;
+  esac
+  pl_record_vote "$judge" "$verdict" "$agent_id" subagent_stop transcript_lines="$lines" handback_in_transcript="$handback"
   return 0
 }
 

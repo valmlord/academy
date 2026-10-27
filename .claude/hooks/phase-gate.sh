@@ -24,6 +24,13 @@ main_fn() {
   case "$gated" in *" $role "*) is_gated=1 ;; esac
   case "$judge_files" in *" $role "*) is_judge=1 ;; esac
 
+  # A role agent in its own worktree would resolve that worktree's (absent) state: its votes would
+  # vanish and its writes would be blocked.
+  if { [ "$is_gated" = 1 ] || [ "$is_judge" = 1 ]; } \
+    && [ "$(printf '%s' "$INPUT" | hookio field tool_input.isolation)" = "worktree" ]; then
+    deny "$role must not be spawned with isolation: worktree; pipeline roles work in the session's checkout." "isolation:$role"
+  fi
+
   case "$STATE_STATUS" in
     own:*) tier=${STATE_STATUS#own:}; phase=${tier#*:}; tier=${tier%%:*} ;;
   esac
