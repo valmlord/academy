@@ -203,11 +203,24 @@ def read_state(root):
     return "ok", data
 
 
+def state_is_own(data, gitdir, branch):
+    """-> "" when the state belongs to this checkout, else why it is foreign. A state copied from
+    another checkout keeps its gitdir_at_init; a legacy state without one is own only on the branch
+    it was started on, so a copy that landed in a new worktree (seen in #15) unlocks nothing."""
+    recorded = data.get("gitdir_at_init")
+    if recorded:
+        return "" if recorded == gitdir else "gitdir"
+    return "" if data.get("branch_at_init") == branch else "branch"
+
+
 def state_status(root, gitdir, branch):
     """none | own:<tier>:<phase> | foreign:<why> | done | unreadable, for the checkout at root."""
     status, data = read_state(root)
     if status != "ok":
         return status
+    foreign = state_is_own(data, gitdir, branch)
+    if foreign:
+        return "foreign:" + foreign
     if data["phase"] == "done":
         return "done"
     return "own:%s:%s" % (data["tier"], data["phase"])
@@ -286,6 +299,11 @@ def _context(argv):
     common = {"hook": hook, "forwarded": forwarded, "checkout": res.state_root, "source": res.source}
     for _, why in skipped:
         log_event(event="worktree-skipped:%s" % why, **common)
+    # Gates treat both as "no own active state"; the log says why, once per call.
+    if status.startswith("foreign:"):
+        log_event(event="foreign-state", reason=status, **common)
+    elif status == "unreadable":
+        log_event(event="state-unreadable", **common)
     if res.source != "cwd":
         log_event(event="resolve-fallback", **common)
     print(SEP.join([res.state_root, res.source, res.gitdir, _clean(res.branch), res.main_root,

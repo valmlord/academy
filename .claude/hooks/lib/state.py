@@ -20,6 +20,7 @@ import contextlib
 import fcntl
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -40,6 +41,7 @@ SECONDS_PER_HOUR = 3600
 # waits on it, and this lock file is never deleted.
 LOCK_NAME = "pipeline_state.flock"
 STATE_NAME = "pipeline_state.json"
+PARKED_DIR = "pipeline_state.parked"
 
 
 class Refused(Exception):
@@ -137,21 +139,75 @@ def _require(data):
     return data
 
 
+def _branch_exists(root, branch):
+    try:
+        return subprocess.run(
+            ["git", "-C", root, "show-ref", "--verify", "--quiet", "refs/heads/" + branch],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=checkout.GIT_TIMEOUT_SECONDS,
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _park(root, data, reason, branch):
+    """Move the slot's state to parked/<issue>-<epoch>[-n].json. Nothing is ever deleted: parking
+    keeps the votes and history of a task that was set aside."""
+    parked_dir = os.path.join(_claude_dir(root), PARKED_DIR)
+    os.makedirs(parked_dir, exist_ok=True)
+    base = "%s-%d" % (data.get("issue") or "noissue", int(time.time()))
+    key, n = base, 1
+    while os.path.exists(os.path.join(parked_dir, key + ".json")):
+        n += 1
+        key = "%s-%d" % (base, n)
+    data = dict(data, parked_reason=reason, parked_branch=branch, parked_ts=time.time())
+    with open(os.path.join(parked_dir, key + ".json"), "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2, ensure_ascii=False)
+    os.remove(state_path(root))
+    checkout.log_event(event="park:" + reason, hook="state.py", checkout=root, issue=str(data.get("issue") or ""))
+    print("WARNING: parked #%s %s/%s (%s) as %s" % (data.get("issue") or "-", data.get("tier"), data.get("phase"),
+                                                   reason, key), file=sys.stderr)
+    return key
+
+
+def _init_park_reason(root, data, gitdir, branch, conf):
+    """Why init may set the slot's state aside, or None when the slot is free. Refuses when the
+    state is this branch's live task."""
+    if data is None or data.get("phase") == "done":
+        return None
+    if data.get("gitdir_at_init") and data["gitdir_at_init"] != gitdir:
+        return "foreign"
+    recorded = data.get("branch_at_init") or ""
+    if recorded != branch:
+        if _branch_exists(root, recorded):
+            return "branch-switched"
+        print("WARNING: branch %s of the parked task is gone; if it was renamed: git branch -m <new> %s, "
+              "then pipeline-advance.sh resume <key>" % (recorded, recorded), file=sys.stderr)
+        return "branch-missing:" + recorded
+    idle = int(time.time() - last_activity(data))
+    if idle >= conf["state_ttl_hours"] * SECONDS_PER_HOUR:
+        return "stale"
+    raise Refused("a pipeline is still active here (#%s %s, phase=%s, last activity %ss ago). Finish it, "
+                  "or pipeline-advance.sh pause it first." % (data.get("issue"), data.get("tier"), data.get("phase"), idle))
+
+
 def op_init(root, tier, issue, branch, gitdir, code_root):
+    conf = cfg.load()
+    # A branch is what identifies the task; branch_at_init must name a task branch.
+    if not branch:
+        raise Refused("HEAD is detached; check out a branch first")
+    if conf["tiers"].get(tier, {}).get("requires_issue") and branch in conf["protected_branches"]:
+        raise Refused("you are on protected branch '%s'. Create the task branch first: git switch -c <type>/%s-<slug>"
+                      % (branch, issue))
     with transaction(root):
         data = load(root)
-        if data is not None and data.get("phase") != "done":
-            ttl_hours = cfg.load()["state_ttl_hours"]
-            idle = int(time.time() - last_activity(data))
-            if idle < ttl_hours * SECONDS_PER_HOUR:
-                raise Refused("a pipeline is still active (phase=%s, last activity %ss ago). Finish it, or wait for TTL %sh."
-                              % (data.get("phase"), idle, ttl_hours))
-            print("WARNING: replacing a stale state (last activity %ss ago)." % idle, file=sys.stderr)
+        reason = _init_park_reason(root, data, gitdir, branch, conf)
         _test_delay()
+        if reason:
+            _park(root, data, reason, branch)
         now = time.time()
         save(root, {
             "tier": tier, "phase": "init", "issue": int(issue) if issue else None,
-            "branch_at_init": branch, "session_ts": now,
+            "branch_at_init": branch, "gitdir_at_init": gitdir, "session_ts": now,
             "phase_history": [{"phase": "init", "ts": now, "ts_str": _stamp()}],
             "artifacts": {"last_ts": _stamp()},
         })

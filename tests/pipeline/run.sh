@@ -161,6 +161,7 @@ expect_rc "plain Explore agent allowed" 0 agent "Find where lessons are loaded"
 expect_rc "stop allowed without a pipeline" 0 stop
 
 echo "== init"
+git checkout -q -b feat/12-demo
 adv_fail "TASK without issue is rejected" init TASK
 adv_fail "unknown tier is rejected" init FOO 1
 adv_ok   "TASK with issue starts (path with a space)" init TASK 12
@@ -216,8 +217,9 @@ expect_rc "coder blocked after its window" 2 agent "$CODER"
 adv_ok   "commit" commit
 
 echo "== PR gate"
+git checkout -q main
 adv_fail "pr blocked on main" pr skip "no remote"
-git checkout -qb feat/12-demo
+git checkout -q feat/12-demo
 echo y >> README.md
 adv_fail "pr blocked with dirty tree" pr skip "no remote"
 git add -A && git commit -qm "feat: demo"
@@ -234,7 +236,7 @@ expect_rc "stop passes when complete" 0 stop 0
 [ ! -f .claude/pipeline_state.json ] && ok "state cleaned up" || bad "state cleaned up"
 
 echo "== LEARN tier"
-git checkout -q main
+git checkout -q -b feat/5-learn main
 adv_ok "LEARN starts" init LEARN 5
 for p in researcher architect judge_design; do "${ADV[@]}" "$p" >/dev/null 2>&1; done
 for p in "$JS" "$JA" "$JO"; do subagent_stop "$p" "PASS"; done
@@ -252,6 +254,7 @@ expect_rc "stop allowed while waiting for the learner" 0 stop 0
 rm -f .claude/pipeline_state.json
 
 echo "== content tier"
+git checkout -q -b content/20-module main
 adv_ok "MODULE starts" init MODULE 20
 "${ADV[@]}" researcher >/dev/null 2>&1
 expect_rc "coder not part of MODULE" 2 agent "$CODER"
@@ -647,6 +650,66 @@ sys.exit(0 if handback and wired == scripts else 1)
 PY
 then ok "settings.json wires every hook from CLAUDE_PROJECT_DIR with a timeout, including judge-handback"
 else bad "settings.json wires every hook from CLAUDE_PROJECT_DIR with a timeout, including judge-handback"; fi
+git checkout -q main
+
+echo "== init table and checkout ownership"
+reset_state
+git checkout -q -B feat/90-a main
+git branch -f feat/90-b main
+PARKED="$WORK/.claude/pipeline_state.parked"
+parked_reasons() { # parked_reasons [root]: parked_reason of every parked state, sorted
+  python3 -c "import json,os,sys; d=sys.argv[1]; print(' '.join(sorted(json.load(open(os.path.join(d,f))).get('parked_reason','') for f in os.listdir(d))) if os.path.isdir(d) else '')" "${1:-$WORK}/.claude/pipeline_state.parked"; }
+slot_is() { [ "$(state_get "${2:-$WORK}" "d['tier'] + ':' + d['phase']")" = "$1" ]; } # slot_is <tier:phase> [root]
+
+put_state "$WORK" PROJECT coder
+git checkout -q --detach
+capture eval 'stop_json 0 | bash "$H/phase-complete.sh"'
+git checkout -q feat/90-a
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "Pipeline not complete. Current phase: coder" && ! printf '%s' "$ERR" | grep -q "resolver failed"; then
+  ok "context line keeps empty fields: own state on a detached HEAD still blocks Stop"
+else bad "context line keeps empty fields: own state on a detached HEAD still blocks Stop (rc=$RC)"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 90
+edit_state "$WORK" '{"gitdir_at_init": "/elsewhere/.git"}'
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = foreign ] && slot_is TASK:init && ok "init parks a state copied from another checkout" || bad "init parks a state copied from another checkout ($(parked_reasons))"
+reset_state
+
+put_state "$WORK" PROJECT coder 90
+git checkout -q feat/90-b
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = branch-switched ] && slot_is TASK:init && ok "init parks a state from a switched branch" || bad "init parks a state from a switched branch ($(parked_reasons))"
+git checkout -q feat/90-a
+reset_state
+
+put_state "$WORK" PROJECT coder 90
+edit_state "$WORK" '{"branch_at_init": "feat/gone"}'
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = branch-missing:feat/gone ] && slot_is TASK:init && ok "init parks a state whose branch ref is missing" || bad "init parks a state whose branch ref is missing ($(parked_reasons))"
+reset_state
+
+git checkout -q --detach
+adv_fail "init refuses on detached HEAD" init TASK 90
+git checkout -q main
+adv_fail "init refuses on main for an issue tier" init TASK 90
+git checkout -q feat/90-a
+reset_state
+
+put_state "$WORK" PROJECT coder 90 600
+"${ADV[@]}" init TASK 90 >/dev/null 2>&1
+[ "$(parked_reasons)" = stale ] && slot_is TASK:init && ok "init parks a stale state instead of deleting it" || bad "init parks a stale state instead of deleting it ($(parked_reasons))"
+reset_state
+
+make_wt
+put_state "$WT" PROJECT coder
+edit_state "$WT" "{\"gitdir_at_init\": \"$WORK/.git\"}"
+expect_rc "gates ignore a foreign state" 2 at "$WT" write_abs "$WT/apps/x.txt"
+reset_state
+put_state "$WORK" PROJECT coder
+edit_state "$WORK" '{"gitdir_at_init": null, "branch_at_init": "feat/other"}'
+expect_rc "legacy state on another branch is foreign" 2 write_to "apps/x.txt"
+reset_state
 git checkout -q main
 
 echo
