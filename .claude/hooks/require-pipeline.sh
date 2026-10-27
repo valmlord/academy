@@ -15,8 +15,8 @@ source "$HOOK_DIR/lib/common.sh"
 # Exit 0 = allow; exit 2 = block, stdout "<log reason>\x1f<message>"; anything else is a crash.
 IFS= read -r -d '' GATE_PY <<'PY' || true
 import fnmatch, json, os, sys
-code_root, cwd_status = sys.argv[1], sys.argv[2]
-sys.path.append(os.path.join(code_root, ".claude", "hooks", "lib"))
+lib_dir, cwd_status = sys.argv[1], sys.argv[2]
+sys.path.append(lib_dir)
 import cfg, checkout
 
 OPEN_PREFIXES = (".claude/", "pipeline/", "plans/")
@@ -145,7 +145,7 @@ deny() { # deny <message> <log reason>
 main_fn() {
   case "$TOOL_NAME" in Edit|Write|MultiEdit|NotebookEdit) ;; *) return 0 ;; esac
   local verdict rc=0
-  verdict=$(printf '%s' "$INPUT" | python3 -I -c "$GATE_PY" "$CODE_ROOT" "$STATE_STATUS") || rc=$?
+  verdict=$(printf '%s' "$INPUT" | python3 -I -c "$GATE_PY" "$LIB" "$STATE_STATUS") || rc=$?
   [ "$rc" = 0 ] && return 0
   [ "$rc" = 2 ] || return "$rc"
   deny "${verdict#*$'\x1f'}" "${verdict%%$'\x1f'*}"

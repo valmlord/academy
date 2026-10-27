@@ -15,8 +15,8 @@ source "$HOOK_DIR/lib/common.sh"
 # Exit 0 = allow; exit 2 = block, stdout "<log reason>\x1f<message>"; anything else is a crash.
 IFS= read -r -d '' GUARD_PY <<'PY' || true
 import json, os, re, sys
-code_root, state_root, main_root, cwd_status = sys.argv[1:5]
-sys.path.append(os.path.join(code_root, ".claude", "hooks", "lib"))
+lib_dir, state_root, main_root, cwd_status = sys.argv[1:5]
+sys.path.append(lib_dir)
 import cfg, checkout
 
 WRITE_VERB = (r"(?:>>?|\btee\b|\bsed\s+-i|\bperl\s+-pi|\bcp\b|\bmv\b|\brm\b|\bln\b|\bchmod\b|\btruncate\b"
@@ -107,7 +107,7 @@ main_fn() {
     deny "judge votes are recorded only by the judge hooks from spawned judge agents." "judge-caller-string"
   fi
 
-  verdict=$(printf '%s' "$INPUT" | python3 -I -c "$GUARD_PY" "$CODE_ROOT" "$STATE_ROOT" "$MAIN_ROOT" "$STATE_STATUS") || rc=$?
+  verdict=$(printf '%s' "$INPUT" | python3 -I -c "$GUARD_PY" "$LIB" "$STATE_ROOT" "$MAIN_ROOT" "$STATE_STATUS") || rc=$?
   [ "$rc" = 0 ] && return 0
   [ "$rc" = 2 ] || return "$rc"
   deny "${verdict#*$'\x1f'}" "${verdict%%$'\x1f'*}"
