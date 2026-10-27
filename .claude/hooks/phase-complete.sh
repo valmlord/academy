@@ -80,7 +80,10 @@ PY
     done
   fi
 
-  rm -f "$STATE_FILE"
+  # Removed under the state lock; a timeout leaves the done state, which never blocks the next init.
+  if ! python3 -I "$LIB/state.py" finish "$STATE_ROOT" >/dev/null; then
+    echo "WARNING: the done state was not removed; the next init replaces it." >&2
+  fi
   return 0
 }
 

@@ -86,6 +86,21 @@ log_last() { # log_last <field>: that field of the newest hook log line
 ctx_field() { # ctx_field <cwd> <index>: one field of `checkout.py context` for that cwd
   python3 -c "import json,sys; print(json.dumps({'cwd':sys.argv[1]}))" "$1" \
     | python3 -I "$H/lib/checkout.py" context | python3 -c "import sys; print(sys.stdin.read().rstrip('\n').split('\x1f')[int(sys.argv[1])])" "$2"; }
+edit_state() { # edit_state <root> <json object>: merge top-level keys into that checkout's state
+  python3 -c "import json,sys; f=sys.argv[1]+'/.claude/pipeline_state.json'; d=json.load(open(f)); d.update(json.loads(sys.argv[2])); json.dump(d, open(f,'w'))" "$1" "$2"; }
+state_get() { # state_get <root> <python expression over d>
+  python3 -c "import json,sys; d=json.load(open(sys.argv[1]+'/.claude/pipeline_state.json')); print(eval(sys.argv[2]))" "$1" "$2" 2>/dev/null; }
+CFG_SAVED="$BASE/pipeline.json.saved"
+set_cfg() { # set_cfg <key> <json value> in the test repo's pipeline.json; restore_cfg undoes it
+  [ -f "$CFG_SAVED" ] || cp "$WORK/.claude/pipeline.json" "$CFG_SAVED"
+  python3 -c "import json,sys; c=json.load(open(sys.argv[1])); c[sys.argv[2]]=json.loads(sys.argv[3]); json.dump(c, open(sys.argv[1],'w'))" "$WORK/.claude/pipeline.json" "$1" "$2"; }
+restore_cfg() { [ -f "$CFG_SAVED" ] && mv "$CFG_SAVED" "$WORK/.claude/pipeline.json"; return 0; }
+hold_lock() { # hold_lock <root> <seconds>: hold that checkout's state lock in the background
+  rm -f "$BASE/locked"
+  python3 -c "import fcntl,sys,time; f=open(sys.argv[1],'a'); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[2],'w').close(); time.sleep(float(sys.argv[3]))" \
+    "$1/.claude/pipeline_state.flock" "$BASE/locked" "$2" &
+  while [ ! -f "$BASE/locked" ]; do sleep 0.05; done; }
+ST=(python3 -I "$H/lib/state.py")
 put_state() { # put_state <root> <tier> <phase> [issue] [minutes since last activity]: a state as init writes it
   python3 - "$@" <<'PY'
 import json, os, subprocess, sys, time
@@ -312,15 +327,14 @@ if [ "$(log_last hook)" = "bash-code-guard.sh" ] && ! grep -q ghp_canary_21 "$LO
   ok "hook log never contains a bash command"
 else bad "hook log never contains a bash command"; fi
 
-cp "$WORK/.claude/pipeline.json" "$BASE/pipeline.json.saved"
-python3 -c "import json,sys; c=json.load(open(sys.argv[1])); c['hook_log_max_bytes']=2000; json.dump(c, open(sys.argv[1],'w'))" "$WORK/.claude/pipeline.json"
+set_cfg hook_log_max_bytes 2000
 rm -f "$LOG" "$LOG.1" "$LOG.2"
 for _ in $(seq 60); do python3 -I "$H/lib/checkout.py" log event=rotation-test reason=padding-padding-padding-padding-padding; done
 LOG_SIZE=$(wc -c < "$LOG" | tr -d ' ')
 if [ "$LOG_SIZE" -le 3000 ] && [ -f "$LOG.1" ] && [ ! -e "$LOG.2" ]; then
   ok "hook log rotates at hook_log_max_bytes"
 else bad "hook log rotates at hook_log_max_bytes (size=$LOG_SIZE)"; fi
-cp "$BASE/pipeline.json.saved" "$WORK/.claude/pipeline.json"
+restore_cfg
 rm -f "$LOG" "$LOG.1"
 
 printf 'canary\n' > "$BASE/canary"
@@ -469,6 +483,54 @@ if ! write_abs "$HOME/.claude/settings.json" >/dev/null 2>&1 && ! write_abs "$HO
   ok "user-level settings are never written by tools"
 else bad "user-level settings are never written by tools"; fi
 reset_state
+
+echo "== state transactions"
+reset_state
+git checkout -q -B feat/88-state
+put_state "$WORK" PROJECT judge_design
+for i in 1 2 3 4 5; do
+  PIPELINE_STATE_TEST_DELAY_MS=300 "${ST[@]}" vote "$WORK" judge_design "judge$i" PASS "agent$i" test >/dev/null 2>&1 &
+done
+wait
+[ "$(state_get "$WORK" "len(d['artifacts']['judge_votes'])")" = 5 ] && ok "concurrent votes are all recorded" || bad "concurrent votes are all recorded"
+
+put_state "$WORK" PROJECT judge_design
+PIPELINE_STATE_TEST_DELAY_MS=300 "${ST[@]}" advance "$WORK" judge_design planner >/dev/null 2>&1 &
+sleep 0.1
+SPAWN_ERR=$(PIPELINE_STATE_TEST_DELAY_MS=300 "${ST[@]}" record_spawn "$WORK" judge_design agentX security 2>&1 >/dev/null); SPAWN_RC=$?
+wait
+if [ "$(state_get "$WORK" "d['phase']")" = planner ] && { [ "$(state_get "$WORK" "'agentX' in d['artifacts'].get('judge_spawns', {})")" = True ] \
+  || { [ "$SPAWN_RC" = 3 ] && printf '%s' "$SPAWN_ERR" | grep -q "not in a judge phase"; }; }; then
+  ok "concurrent advance and spawn record lose nothing"
+else bad "concurrent advance and spawn record lose nothing (phase=$(state_get "$WORK" "d['phase']") spawn rc=$SPAWN_RC)"; fi
+
+put_state "$WORK" PROJECT coder
+set_cfg state_lock_timeout_seconds 1
+hold_lock "$WORK" 3
+capture "${ST[@]}" advance "$WORK" coder tester
+wait
+if [ "$RC" = 75 ] && printf '%s' "$ERR" | grep -q "could not lock" && [ "$(state_get "$WORK" "d['phase']")" = coder ]; then
+  ok "lock timeout writes nothing and fails"
+else bad "lock timeout writes nothing and fails (rc=$RC)"; fi
+
+restore_cfg
+# The default lock timeout (5 s) applies here: a changed pipeline.json would make the tree dirty.
+put_state "$WORK" RESEARCH done
+edit_state "$WORK" '{"artifacts": {"notify": "sent"}}'
+hold_lock "$WORK" 7
+stop 0 >/dev/null 2>&1; LOCKED_RC=$?
+[ -f "$WORK/.claude/pipeline_state.json" ] && KEPT=1 || KEPT=0
+wait
+stop 0 >/dev/null 2>&1; RELEASED_RC=$?
+if [ "$LOCKED_RC" = 0 ] && [ "$KEPT" = 1 ] && [ "$RELEASED_RC" = 0 ] && [ ! -f "$WORK/.claude/pipeline_state.json" ]; then
+  ok "stop removes a done state only under the lock"
+else bad "stop removes a done state only under the lock (locked rc=$LOCKED_RC kept=$KEPT)"; fi
+
+put_state "$WORK" PROJECT coder
+edit_state "$WORK" "{\"session_ts\": $(python3 -c 'import time; print(time.time() - 9 * 3600)')}"
+adv_fail "TTL counts from last activity, not session start" init TASK 88
+reset_state
+git checkout -q main
 
 echo
 echo "pipeline self-test: $PASS passed, $FAIL failed"

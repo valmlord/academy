@@ -3,6 +3,7 @@
   "state_ttl_hours": 8,
   "watchdog_minutes": 30,
   "hook_log_max_bytes": 262144,
+  "state_lock_timeout_seconds": 5,
   "grant_file": ".claude/settings.pipeline-grant.json",
   "protected_branches": ["main", "master"],
   "tiers": {
