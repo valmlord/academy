@@ -913,6 +913,12 @@ if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "109-1.json is unreadable" && !
   ok "resume refuses a corrupt parked file without a traceback"
 else bad "resume refuses a corrupt parked file without a traceback (rc=$RC)"; fi
 reset_state
+printf 'not json\n' > "$WORK/.claude/pipeline_state.json"
+capture "${ADV[@]}" status
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "pipeline_state.json.broken"; then
+  ok "unreadable state message names the command to move it aside"
+else bad "unreadable state message names the command to move it aside (rc=$RC)"; fi
+reset_state
 git checkout -q main
 
 echo

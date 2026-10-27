@@ -72,6 +72,12 @@ else:
 PYEOF
 }
 
+unreadable_state() {
+  echo "ERROR: state file unreadable: $STATE_FILE. Stepan inspects it, then moves it aside by hand:" >&2
+  echo "  mv \"$STATE_FILE\" \"$STATE_FILE.broken\"" >&2
+  exit 1
+}
+
 # Parked states and a foreign slot are reported on stderr, so stdout stays pure JSON for consumers.
 report_parked() {
   local line
@@ -85,7 +91,7 @@ if [ "$PHASE" = "status" ]; then
     foreign:*)
       echo "No active pipeline."
       echo "Foreign state in slot: #$(read_state issue) $(read_state tier)/$(read_state phase) (started on $(read_state branch_at_init); pause parks it)" >&2 ;;
-    unreadable) echo "ERROR: state file unreadable: $STATE_FILE; Stepan inspects it" >&2; exit 1 ;;
+    unreadable) unreadable_state ;;
     *) echo "No active pipeline." ;;
   esac
   report_parked
@@ -135,7 +141,7 @@ fi
 case "$STATE_STATUS" in
   own:*|done) ;;
   foreign:*) echo "ERROR: the state here belongs to another checkout or branch ($STATE_STATUS). pause parks it; then init or resume." >&2; exit 1 ;;
-  unreadable) echo "ERROR: state file unreadable: $STATE_FILE; Stepan inspects it" >&2; exit 1 ;;
+  unreadable) unreadable_state ;;
   *) echo "ERROR: No pipeline state. Run: pipeline-advance.sh init <TIER> <issue>" >&2; exit 1 ;;
 esac
 
