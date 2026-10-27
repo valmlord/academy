@@ -879,11 +879,15 @@ reset_state
 git checkout -q -B feat/108-review main
 put_state "$WORK" PROJECT coder
 for c in "rm -rf .claude/hooks" "cp x.sh .claude/hooks" "mv .claude/hooks .claude/hooks.bak" "ln -sf /tmp/x .claude/hooks" \
-         "rm -rf .claude" "rm -rf .claude/" "git restore .claude"; do
+         "rm -rf .claude" "rm -rf .claude/" "git restore .claude" \
+         "git checkout main -- .claude/hooks" "git checkout main -- .claude" "git checkout HEAD .claude/hooks" \
+         "rm -rf .claude/*" "rm -rf .claude/h*"; do
   expect_rc "shell write to hooks blocked outside PIPELINE: $c" 2 bashcmd "$c"
 done
 for c in "ls .claude" "cat .claude/hooks/x.sh" "echo x >> .claude/feedback/coder_mistakes.md" \
-         "cp x.md .claude/agents/dev/y.md" "echo x > plans/x.md" "rm -rf .claude/worktrees/old-one"; do
+         "cp x.md .claude/agents/dev/y.md" "echo x > plans/x.md" "rm -rf .claude/worktrees/old-one" \
+         "git checkout feat/x" "git diff .claude" "git log -- .claude/hooks" "git show HEAD:.claude/hooks/x.sh" \
+         "rm -rf .claude/agents/*" "rm -rf .claude/feedback/*" "rm -rf .claude/worktrees/*"; do
   expect_rc "shell write outside core stays allowed: $c" 0 bashcmd "$c"
 done
 

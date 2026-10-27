@@ -20,12 +20,13 @@ sys.path.append(lib_dir)
 import cfg, checkout
 
 WRITE_VERB = (r"(?:>>?|\btee\b|\bsed\s+-i|\bperl\s+-pi|\bcp\b|\bmv\b|\brm\b|\bln\b|\bchmod\b|\btruncate\b"
-              r"|\bgit\s+checkout\s+--|\bgit\s+restore\b)")
+              r"|\bgit\s+checkout\b|\bgit\s+restore\b)")
 SAME_SEGMENT = r"[^|;&\n]*"
 # A directory named whole: followed by "/" or by anything that cannot continue a file name.
 TOKEN_END_OR_SLASH = r"(?:/|(?![\w.-]))"
-# The .claude directory itself (ancestor of every core path), with or without a trailing slash.
-CLAUDE_DIR_TOKEN = r"(?<![\w.-])\.claude/?(?=[\s'\";|&)]|$)"
+# The .claude directory itself (ancestor of every core path), with or without a trailing slash, or a
+# glob in its first component (.claude/*, .claude/h*), which the shell may expand to the hooks dir.
+CLAUDE_DIR_TOKEN = r"(?<![\w.-])\.claude(?:/?(?=[\s'\";|&)]|$)|/[^\s/'\";|&)]*[*?\[])"
 HOME = re.escape(os.path.expanduser("~"))
 NEVER_WRITTEN = (
     ("git-dir", r"(?<![\w.-])\.git(?![\w.-])", "a .git path"),
