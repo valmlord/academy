@@ -1,0 +1,21 @@
+# Applied by scripts/github-bootstrap.sh
+- { name: "type:feature", color: "1d76db", description: "New capability" }
+- { name: "type:bug", color: "d73a4a", description: "Something is broken" }
+- { name: "type:chore", color: "c5def5", description: "Maintenance, tooling" }
+- { name: "type:content", color: "0e8a16", description: "Course content" }
+- { name: "type:adr", color: "5319e7", description: "Architecture decision" }
+- { name: "team:dev", color: "bfdadc", description: "Dev team pipeline" }
+- { name: "team:content", color: "c2e0c6", description: "Methodologist team pipeline" }
+- { name: "tier:hotfix", color: "fbca04", description: "Pipeline tier" }
+- { name: "tier:task", color: "fbca04", description: "Pipeline tier" }
+- { name: "tier:project", color: "fbca04", description: "Pipeline tier" }
+- { name: "tier:learn", color: "ff7619", description: "I write the code, agents design and review" }
+- { name: "tier:module", color: "fbca04", description: "Pipeline tier" }
+- { name: "tier:lesson", color: "fbca04", description: "Pipeline tier" }
+- { name: "area:web", color: "ededed", description: "apps/web" }
+- { name: "area:workspace", color: "ededed", description: "services/workspace" }
+- { name: "area:db", color: "ededed", description: "Schema, migrations" }
+- { name: "area:infra", color: "ededed", description: "Docker, CI" }
+- { name: "area:content", color: "ededed", description: "course/, lesson-schema" }
+- { name: "area:pipeline", color: "ededed", description: ".claude/ agents and hooks" }
+- { name: "status:blocked", color: "b60205", description: "Waiting on something" }

@@ -1,0 +1,7 @@
+id: subagent-orchestration
+title: Оркестрация субагентов и мультиагентные пайплайны
+summary: >
+  Read-only ревьюер и пайплайн Coder -> Reviewer -> Summarizer под оркестратором; контракт роли;
+  модель под роль; fan-out параллельных ревьюеров и synthesizer; защита от каскада галлюцинаций;
+  наблюдаемость передач и rule-based оценка на стыках.
+status: planned

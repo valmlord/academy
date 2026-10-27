@@ -1,0 +1,31 @@
+name: PR hygiene
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Title is a conventional commit
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "$TITLE" | grep -Eq '^(feat|fix|refactor|perf|test|docs|chore|ci|build|content)(\([a-z0-9-]+\))?!?: .+' \
+            || { echo "PR title must look like 'feat(web): lesson page'"; exit 1; }
+      - name: Body links an issue
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          echo "$BODY" | grep -Eiq '(closes|fixes|resolves|refs) #[0-9]+' \
+            || { echo "PR body must contain 'Closes #<issue>'"; exit 1; }
+      - name: Branch name carries the issue number
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          echo "$BRANCH" | grep -Eq '^(feat|fix|refactor|perf|test|docs|chore|ci|build|content|learn)/[0-9]+-[a-z0-9-]+$' \
+            || { echo "Branch must look like feat/12-lesson-page"; exit 1; }

@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/require-pipeline.sh" }]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/phase-gate.sh" }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/bash-code-guard.sh" }]
+      },
+      {
+        "matcher": "*",
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/pipeline-watchdog.sh" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/judge-count.sh" }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/phase-complete.sh" }]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/judge-vote.sh" }]
+      }
+    ]
+  }
+}

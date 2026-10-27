@@ -1,0 +1,22 @@
+name: Course module / lesson
+description: Content work, handled by the methodologist team pipeline
+title: "content: "
+labels: ["type:content", "team:content"]
+body:
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Pipeline tier
+      options: [MODULE, LESSON]
+    validations: { required: true }
+  - type: input
+    id: target
+    attributes:
+      label: Module / lesson
+      placeholder: course/ai-for-developers/02-agentic-patterns
+    validations: { required: true }
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope (from docs/course-reference.md) and any learner-specific focus
+    validations: { required: true }

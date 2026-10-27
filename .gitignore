@@ -1,0 +1,28 @@
+# Pipeline runtime state — mutates every phase; must not be tracked or pulled into task commits.
+.claude/pipeline_state.json
+.claude/pipeline_state.json.lock
+
+# Hook backups and Python caches.
+*.bak
+**/__pycache__/
+
+# Node / build
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

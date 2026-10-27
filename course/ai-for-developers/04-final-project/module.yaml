@@ -1,0 +1,7 @@
+id: final-project
+title: "Итоговый проект: календарь звонков"
+summary: >
+  Букинг тайм-слотов по типу Calendly с разными расписаниями и видами активностей, через Design
+  First: API-контракт на TypeSpec, backend и frontend через SDD, интеграционные и E2E тесты, CI и
+  деплой.
+status: planned

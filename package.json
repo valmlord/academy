@@ -1,0 +1,25 @@
+{
+  "name": "academy",
+  "private": true,
+  "description": "Personal learning platform: course content + web platform built by two agent teams",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
+    "build": "turbo run build",
+    "content:validate": "pnpm --filter @academy/lesson-schema run validate ../../course",
+    "test:pipeline": "bash tests/pipeline/run.sh"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.3",
+    "turbo": "^2.11.10",
+    "typescript": "^7.0.2"
+  }
+}
