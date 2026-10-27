@@ -1,43 +1,54 @@
 #!/bin/bash
 # Stop: validate the pipeline completion gates.
-# - No active pipeline -> allow.
+# - No own active pipeline in this checkout -> allow.
 # - stop_hook_active=true (we already blocked once this turn) -> allow, so the session never loops.
 # - Phase waits on a human (human_wait_phases, e.g. LEARN "learner") -> allow with a reminder.
 # - Otherwise require: phase=done, each judge round unanimous for the tier, notify run, clean
 #   tree, not on a protected branch for issue-linked work.
+HOOK_KIND=gate
+case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# shellcheck source=lib/common.sh
+source "$HOOK_DIR/lib/common.sh"
 
-DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-cfg() { python3 "$DIR/.claude/hooks/lib/cfg.py" "$@"; }
-INPUT=$(cat)
-STATE_FILE="$DIR/.claude/pipeline_state.json"
-[ ! -f "$STATE_FILE" ] && exit 0
-
-ACTIVE_FLAG=$(printf '%s' "$INPUT" | python3 "$DIR/.claude/hooks/lib/hookio.py" field stop_hook_active)
-TIER=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['tier'])" "$STATE_FILE" 2>/dev/null)
-PHASE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['phase'])" "$STATE_FILE" 2>/dev/null)
-
-for p in $(cfg get human_wait_phases); do
-  if [ "$PHASE" = "$p" ]; then
-    echo "Pipeline paused in '$PHASE' (tier $TIER): waiting for the learner." >&2
-    exit 0
-  fi
-done
-
+ACTIVE_FLAG=""
 block() {
   if [ "$ACTIVE_FLAG" = "True" ] || [ "$ACTIVE_FLAG" = "true" ]; then
     echo "WARNING (not blocking twice): $1" >&2
     exit 0
   fi
   echo "BLOCKED: $1" >&2
+  pl_log event=stop-block decision=block
   exit 2
 }
 
-[ "$PHASE" != "done" ] && block "Pipeline not complete. Current phase: $PHASE. Continue, or ask the learner if you are waiting on him."
+main_fn() {
+  local tier phase p rounds need res notify issue br
+  case "$STATE_STATUS" in
+    unreadable)
+      # Blocking on a file the session cannot repair would only loop; Stepan inspects it.
+      echo "pipeline state unreadable: $STATE_FILE; Stepan inspects it" >&2
+      pl_log event=state-unreadable decision=allow
+      return 0 ;;
+    own:*|done) ;;
+    *) return 0 ;;
+  esac
+  ACTIVE_FLAG=$(printf '%s' "$INPUT" | hookio field stop_hook_active)
+  tier=$(python3 -I -c "import json,sys; print(json.load(open(sys.argv[1]))['tier'])" "$STATE_FILE")
+  phase=$(python3 -I -c "import json,sys; print(json.load(open(sys.argv[1]))['phase'])" "$STATE_FILE")
 
-ROUNDS="$(cfg judge_phases "$TIER")"
-NEED="$(cfg judges "$TIER")"
-if [ -n "$ROUNDS" ]; then
-  RES=$(python3 - "$STATE_FILE" "$ROUNDS" "$NEED" <<'PY'
+  for p in $(cfg get human_wait_phases); do
+    if [ "$phase" = "$p" ]; then
+      echo "Pipeline paused in '$phase' (tier $tier): waiting for the learner." >&2
+      return 0
+    fi
+  done
+
+  [ "$phase" != "done" ] && block "Pipeline not complete. Current phase: $phase. Continue, or ask the learner if you are waiting on him."
+
+  rounds="$(cfg judge_phases "$tier")"
+  need="$(cfg judges "$tier")"
+  if [ -n "$rounds" ]; then
+    res=$(python3 -I - "$STATE_FILE" "$rounds" "$need" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 rounds, need = sys.argv[2].split(), sys.argv[3].split()
@@ -52,22 +63,25 @@ for r in rounds:
 print(','.join(bad) if bad else 'OK')
 PY
 )
-  [ "$RES" != "OK" ] && block "every judge round needs a unanimous PASS. Not PASS: $RES"
-fi
+    [ "$res" != "OK" ] && block "every judge round needs a unanimous PASS. Not PASS: $res"
+  fi
 
-NOTIFY=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('artifacts',{}).get('notify') or '')" "$STATE_FILE" 2>/dev/null)
-[ -z "$NOTIFY" ] && block "notify not run. Run: bash .claude/hooks/pipeline-advance.sh notify"
+  notify=$(python3 -I -c "import json,sys; print(json.load(open(sys.argv[1])).get('artifacts',{}).get('notify') or '')" "$STATE_FILE")
+  [ -z "$notify" ] && block "notify not run. Run: bash .claude/hooks/pipeline-advance.sh notify"
 
-cd "$DIR" 2>/dev/null || exit 0
-[ -n "$(git status --porcelain 2>/dev/null)" ] && block "uncommitted changes exist (including untracked files). Commit (git add -A)."
+  cd "$STATE_ROOT"
+  [ -n "$(git status --porcelain 2>/dev/null)" ] && block "uncommitted changes exist (including untracked files). Commit (git add -A)."
 
-ISSUE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('issue') or '')" "$STATE_FILE" 2>/dev/null)
-if [ -n "$ISSUE" ]; then
-  BR=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-  for pb in $(cfg get protected_branches); do
-    [ "$BR" = "$pb" ] && block "issue #$ISSUE work is on protected branch '$BR'. Move it to <type>/$ISSUE-<slug> and open a PR."
-  done
-fi
+  issue=$(python3 -I -c "import json,sys; print(json.load(open(sys.argv[1])).get('issue') or '')" "$STATE_FILE")
+  if [ -n "$issue" ]; then
+    br=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+    for p in $(cfg get protected_branches); do
+      [ "$br" = "$p" ] && block "issue #$issue work is on protected branch '$br'. Move it to <type>/$issue-<slug> and open a PR."
+    done
+  fi
 
-rm -f "$STATE_FILE"
-exit 0
+  rm -f "$STATE_FILE"
+  return 0
+}
+
+run_hook "$@"

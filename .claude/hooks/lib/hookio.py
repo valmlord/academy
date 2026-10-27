@@ -19,18 +19,19 @@ import os
 import re
 import sys
 
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+import cfg  # noqa: E402
+import checkout  # noqa: E402
+
 ROLE_RE = re.compile(r"""^\s*Read\s+[`"']?\.claude/agents/(?:dev|content)/([a-z0-9-]+\.md)[`"']?\s+first""", re.I)
 VERDICT_RE = re.compile(r"^(?:VERDICT:\s*)?(PASS|FAIL)(?:\s*$|\s*[:\-]|\s+-)")
-
-
-def project_dir():
-    return os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 
 
 def agent_names():
     """frontmatter name -> file name, for subagent_type matching."""
     out = {}
-    base = os.path.join(project_dir(), ".claude", "agents")
+    # Agents always come from the main checkout, like the hook code itself.
+    base = os.path.join(checkout.code_root(), ".claude", "agents")
     for team in ("dev", "content"):
         d = os.path.join(base, team)
         if not os.path.isdir(d):
@@ -68,10 +69,10 @@ def verdict_from(text):
 
 def judge_key(role_file):
     try:
-        cfg = json.load(open(os.path.join(project_dir(), ".claude", "pipeline.json"), encoding="utf-8"))
-    except OSError:
+        conf = cfg.load()
+    except (OSError, ValueError):
         return ""
-    for key, f in cfg.get("judge_agents", {}).items():
+    for key, f in conf.get("judge_agents", {}).items():
         if f == role_file:
             return key
     return ""

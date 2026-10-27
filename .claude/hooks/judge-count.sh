@@ -1,21 +1,24 @@
 #!/bin/bash
 # PostToolUse (Agent|Task): synchronous-harness fallback for recording a judge verdict.
 # On async harnesses tool_response holds only launch metadata -> UNKNOWN -> silently skipped;
-# judge-vote.sh (SubagentStop) records it when the agent finishes.
+# judge-handback.sh / judge-vote.sh record it when the agent finishes.
+HOOK_KIND=observer
+case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# shellcheck source=lib/common.sh
+source "$HOOK_DIR/lib/common.sh"
 
-DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-STATE_FILE="$DIR/.claude/pipeline_state.json"
-[ ! -f "$STATE_FILE" ] && exit 0
-INPUT=$(cat)
-TOOL_NAME=$(printf '%s' "$INPUT" | python3 "$DIR/.claude/hooks/lib/hookio.py" field tool_name)
-case "$TOOL_NAME" in Agent|Task) ;; *) exit 0 ;; esac
+main_fn() {
+  case "$STATE_STATUS" in own:*) ;; *) return 0 ;; esac
+  case "$TOOL_NAME" in Agent|Task) ;; *) return 0 ;; esac
+  local parsed judge verdict phase
+  parsed=$(printf '%s' "$INPUT" | hookio judge_vote_post)
+  judge="${parsed%%|*}"
+  verdict="${parsed#*|}"
+  [ -n "$judge" ] || return 0
+  case "$verdict" in PASS|FAIL) ;; *) return 0 ;; esac
+  phase=${STATE_STATUS##*:}
+  (cd "$STATE_ROOT" && JUDGE_HOOK_CALLER=judge-count-hook bash "$CODE_ROOT/.claude/hooks/pipeline-advance.sh" "$phase" "$judge" "$verdict")
+  return 0
+}
 
-PARSED=$(printf '%s' "$INPUT" | python3 "$DIR/.claude/hooks/lib/hookio.py" judge_vote_post 2>/dev/null)
-AGENT_TYPE="${PARSED%%|*}"
-VERDICT="${PARSED#*|}"
-[ -z "$AGENT_TYPE" ] && exit 0
-[ "$VERDICT" != "PASS" ] && [ "$VERDICT" != "FAIL" ] && exit 0
-
-PHASE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['phase'])" "$STATE_FILE" 2>/dev/null)
-JUDGE_HOOK_CALLER=judge-count-hook bash "$DIR/.claude/hooks/pipeline-advance.sh" "$PHASE" "$AGENT_TYPE" "$VERDICT"
-exit 0
+run_hook "$@"

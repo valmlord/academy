@@ -12,21 +12,25 @@
 #   pipeline-advance.sh status                          print state
 # Judge votes are recorded ONLY by the judge-vote / judge-count hooks (JUDGE_HOOK_CALLER).
 #
-# State: .claude/pipeline_state.json
+# State: .claude/pipeline_state.json of the checkout that contains the current directory (a
+# registered worktree, else the main checkout). Run the main checkout's copy of this script; from a
+# worktree: bash "$(git rev-parse --path-format=absolute --git-common-dir)/../.claude/hooks/pipeline-advance.sh"
+HOOK_KIND=cli
+case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# shellcheck source=lib/common.sh
+source "$HOOK_DIR/lib/common.sh"
 
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cfg() { python3 "$SCRIPT_DIR/lib/cfg.py" "$@"; }
-STATE_FILE_UNIX="$SCRIPT_DIR/../pipeline_state.json"
-STATE_FILE=$(cygpath -w "$STATE_FILE_UNIX" 2>/dev/null || echo "$STATE_FILE_UNIX")
-REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SCRIPT_DIR="$CODE_ROOT/.claude/hooks"
+STATE_FILE=$(cygpath -w "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
+REPO_DIR="$STATE_ROOT"
 PHASE="${1:?Usage: pipeline-advance.sh <phase> [args...]}"
 shift
 
 py_run() {
   local tmpf; tmpf=$(mktemp "${TMPDIR:-/tmp}/pipeline_py.XXXXXX.py")
   cat > "$tmpf"
-  python3 "$tmpf" "$@"
+  python3 -I "$tmpf" "$@"
   local rc=$?
   rm -f "$tmpf"
   return $rc
