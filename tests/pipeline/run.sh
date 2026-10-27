@@ -903,6 +903,16 @@ wait
 restore_cfg
 reset_state
 
+capture "${ADV[@]}" init RESEARCH abc
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "issue must be a GitHub issue number" && ! printf '%s' "$ERR" | grep -q Traceback; then
+  ok "init refuses a non-numeric issue without a traceback"
+else bad "init refuses a non-numeric issue without a traceback (rc=$RC)"; fi
+mkdir -p "$PARKED" && printf 'not json\n' > "$PARKED/109-1.json"
+capture "${ADV[@]}" resume 109-1
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "109-1.json is unreadable" && ! printf '%s' "$ERR" | grep -q Traceback; then
+  ok "resume refuses a corrupt parked file without a traceback"
+else bad "resume refuses a corrupt parked file without a traceback (rc=$RC)"; fi
+reset_state
 git checkout -q main
 
 echo

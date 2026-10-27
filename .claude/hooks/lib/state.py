@@ -261,6 +261,8 @@ def _init_park_reason(root, data, gitdir, branch, conf):
 def op_init(root, tier, issue, branch, gitdir, code_root):
     conf = cfg.load()
     tier_conf = conf["tiers"].get(tier, {})
+    if issue and not issue.isdigit():
+        raise Refused("issue must be a GitHub issue number, got %r" % issue)
     # A branch is what identifies the task; branch_at_init must name a task branch.
     if not branch:
         raise Refused("HEAD is detached; check out a branch first")
@@ -411,8 +413,13 @@ def op_resume(root, wanted, code_root, gitdir, branch):
                 slot_reason = "stale"
         key = _pick_parked(root, wanted)
         path = os.path.join(_parked_dir(root), key + ".json")
-        with open(path, encoding="utf-8") as fh:
-            data = json.load(fh)
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError) as exc:
+            raise Refused("parked state %s is unreadable (%s); Stepan inspects it" % (path, exc.__class__.__name__))
+        if not isinstance(data, dict):
+            raise Refused("parked state %s is not a JSON object; Stepan inspects it" % path)
         if not branch or data.get("branch_at_init") != branch:
             raise Refused("%s was started on branch %s; check it out first (now %s)"
                           % (key, data.get("branch_at_init"), branch or "detached HEAD"))
