@@ -94,6 +94,16 @@ def first_user_text(path):
     return ""
 
 
+def _block_text(block):
+    """Text of one assistant content block. A background agent delivers its final report as the
+    `message` input of a SubagentHandback tool call rather than as a text block."""
+    if block.get("type") == "text":
+        return block.get("text", "")
+    if block.get("type") == "tool_use" and block.get("name") == "SubagentHandback":
+        return (block.get("input") or {}).get("message", "")
+    return ""
+
+
 def last_assistant_text(path):
     last = ""
     try:
@@ -106,7 +116,7 @@ def last_assistant_text(path):
                 if rec.get("type") != "assistant":
                     continue
                 c = rec.get("message", {}).get("content")
-                t = c if isinstance(c, str) else " ".join(x.get("text", "") for x in (c or []) if isinstance(x, dict) and x.get("type") == "text")
+                t = c if isinstance(c, str) else " ".join(_block_text(x) for x in (c or []) if isinstance(x, dict))
                 if t.strip():
                     last = t
     except OSError:
@@ -130,9 +140,13 @@ def main(argv):
         tpath = d.get("agent_transcript_path", "") or ""
         prompt = first_user_text(tpath) if tpath else ""
         role = role_from(prompt, d.get("agent_type", ""))
-        final = d.get("last_assistant_message") or (last_assistant_text(tpath) if tpath else "")
         key = judge_key(role)
-        print("%s|%s" % (key, verdict_from(final) if key else ""))
+        verdict = verdict_from(d.get("last_assistant_message") or "")
+        # last_assistant_message can be present yet carry no verdict (the report went through
+        # SubagentHandback), so UNKNOWN there falls back to the transcript.
+        if verdict == "UNKNOWN" and tpath:
+            verdict = verdict_from(last_assistant_text(tpath))
+        print("%s|%s" % (key, verdict if key else ""))
     elif cmd == "judge_vote_post":
         ti = d.get("tool_input", {}) or {}
         role = role_from(ti.get("prompt", ""), ti.get("subagent_type", ""))

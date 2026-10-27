@@ -39,6 +39,12 @@ subagent_stop() { # subagent_stop <spawn prompt> <final message> [use_transcript
   python3 -c "import json,sys; d={'hook_event_name':'SubagentStop','agent_transcript_path':sys.argv[1]}; d.update({} if sys.argv[3]=='1' else {'last_assistant_message':sys.argv[2]}); print(json.dumps(d))" "$t" "$2" "${3:-0}" \
     | bash "$H/judge-vote.sh" >/dev/null 2>&1
   rm -f "$t"; }
+subagent_handback() { # subagent_handback <spawn prompt> <report>: report sent via SubagentHandback, not text
+  local t="$WORK/agent_$RANDOM.jsonl"
+  python3 -c "import json,sys; print(json.dumps({'type':'user','message':{'content':sys.argv[1]}})); print(json.dumps({'type':'assistant','message':{'content':[{'type':'tool_use','name':'SubagentHandback','input':{'message':sys.argv[2]}}]}}))" "$1" "$2" > "$t"
+  python3 -c "import json,sys; print(json.dumps({'hook_event_name':'SubagentStop','agent_transcript_path':sys.argv[1],'last_assistant_message':'Report delivered.'}))" "$t" \
+    | bash "$H/judge-vote.sh" >/dev/null 2>&1
+  rm -f "$t"; }
 post_agent() { # synchronous PostToolUse path
   python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','tool_input':{'prompt':sys.argv[1]},'tool_response':{'content':[{'type':'text','text':sys.argv[2]}]}}))" "$1" "$2" \
     | bash "$H/judge-count.sh" >/dev/null 2>&1; }
@@ -105,8 +111,10 @@ adv_ok   "tester" tester
 adv_ok   "judge_code" judge_code
 expect_rc "coder allowed in judge_code (fix after FAIL)" 0 agent "$CODER"
 adv_fail "earlier-round PASS does not count in new round" compound
-for p in "$JS" "$JA" "$JO"; do subagent_stop "$p" "VERDICT: PASS"; done
-adv_ok   "compound skip" compound skip "nothing new"
+for p in "$JS" "$JA"; do subagent_stop "$p" "VERDICT: PASS"; done
+subagent_handback "$JO" "Checked compose.
+PASS"
+adv_ok   "verdict read from a SubagentHandback report; compound skip" compound skip "nothing new"
 expect_rc "coder blocked after its window" 2 agent "$CODER"
 adv_ok   "commit" commit
 
