@@ -12,6 +12,7 @@
 - { name: "tier:learn", color: "ff7619", description: "I write the code, agents design and review" }
 - { name: "tier:module", color: "fbca04", description: "Pipeline tier" }
 - { name: "tier:lesson", color: "fbca04", description: "Pipeline tier" }
+- { name: "tier:pipeline", color: "fbca04", description: "Pipeline core changes, needs Stepan's grant" }
 - { name: "area:web", color: "ededed", description: "apps/web" }
 - { name: "area:workspace", color: "ededed", description: "services/workspace" }
 - { name: "area:db", color: "ededed", description: "Schema, migrations" }
