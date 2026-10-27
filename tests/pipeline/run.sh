@@ -916,6 +916,11 @@ capture "${ADV[@]}" resume 109-1
 if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "109-1.json is unreadable" && ! printf '%s' "$ERR" | grep -q Traceback; then
   ok "resume refuses a corrupt parked file without a traceback"
 else bad "resume refuses a corrupt parked file without a traceback (rc=$RC)"; fi
+printf '[]\n' > "$PARKED/110-1.json"
+capture "${ADV[@]}" resume 110-1
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "110-1.json is not a JSON object" && ! printf '%s' "$ERR" | grep -q Traceback; then
+  ok "resume refuses a parked file that is not a JSON object without a traceback"
+else bad "resume refuses a parked file that is not a JSON object without a traceback (rc=$RC)"; fi
 reset_state
 printf 'not json\n' > "$WORK/.claude/pipeline_state.json"
 capture "${ADV[@]}" status
