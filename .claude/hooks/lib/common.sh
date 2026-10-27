@@ -97,13 +97,12 @@ pl_record_vote() {
 
 # run_hook: run main_fn with errexit and nounset in a subshell, then map its exit code. A gate
 # that crashes (traceback, unset variable, missing file) must block instead of failing open; an
-# observer must never block; the CLI keeps its own exit codes.
+# observer must never block.
 run_hook() {
   local rc
   ( set -eu; main_fn "$@" )
   rc=$?
   case "$HOOK_KIND" in
-    cli) exit "$rc" ;;
     observer)
       [ "$rc" = 0 ] || pl_log event=observer-crash rc="$rc"
       exit 0 ;;
