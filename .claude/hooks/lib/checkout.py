@@ -143,7 +143,8 @@ def worktrees(root=None):
     return accepted, skipped
 
 
-def _longest(accepted, path):
+def owner_of(accepted, path):
+    """The accepted worktree whose root is the longest component prefix of path."""
     best = None
     for wt in accepted:
         if is_under(path, wt.root) and (best is None or len(wt.root) > len(best.root)):
@@ -168,7 +169,7 @@ def resolve_cwd(cwd):
     target = os.path.realpath(cwd) if cwd else ""
     if not target or not os.path.isdir(target):
         return _resolution(main, "fallback:no-cwd", main.root), skipped
-    pick = _longest(accepted, target)
+    pick = owner_of(accepted, target)
     if pick is None:
         return _resolution(main, "fallback:unregistered", main.root), skipped
     return _resolution(pick, "cwd", main.root), skipped
@@ -177,7 +178,7 @@ def resolve_cwd(cwd):
 def checkout_of(path):
     """The accepted checkout whose root is the longest component prefix of realpath(path)."""
     accepted, _ = worktrees()
-    return _longest(accepted, os.path.realpath(path))
+    return owner_of(accepted, os.path.realpath(path))
 
 
 def _clean(value):
@@ -202,13 +203,18 @@ def read_state(root):
     return "ok", data
 
 
-def state_status(res):
-    status, data = read_state(res.state_root)
+def state_status(root, gitdir, branch):
+    """none | own:<tier>:<phase> | foreign:<why> | done | unreadable, for the checkout at root."""
+    status, data = read_state(root)
     if status != "ok":
         return status
     if data["phase"] == "done":
         return "done"
     return "own:%s:%s" % (data["tier"], data["phase"])
+
+
+def status_of(wt):
+    return state_status(wt.root, wt.gitdir, wt.branch)
 
 
 def _log_path():
@@ -276,7 +282,7 @@ def _context(argv):
         except OSError:
             cwd = ""
     res, skipped = resolve_cwd(cwd)
-    status = state_status(res)
+    status = state_status(res.state_root, res.gitdir, res.branch)
     common = {"hook": hook, "forwarded": forwarded, "checkout": res.state_root, "source": res.source}
     for _, why in skipped:
         log_event(event="worktree-skipped:%s" % why, **common)

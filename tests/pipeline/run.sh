@@ -86,11 +86,12 @@ log_last() { # log_last <field>: that field of the newest hook log line
 ctx_field() { # ctx_field <cwd> <index>: one field of `checkout.py context` for that cwd
   python3 -c "import json,sys; print(json.dumps({'cwd':sys.argv[1]}))" "$1" \
     | python3 -I "$H/lib/checkout.py" context | python3 -c "import sys; print(sys.stdin.read().rstrip('\n').split('\x1f')[int(sys.argv[1])])" "$2"; }
-put_state() { # put_state <checkout root> <tier> <phase> [issue]: a state as init would write it, active now
+put_state() { # put_state <root> <tier> <phase> [issue] [minutes since last activity]: a state as init writes it
   python3 - "$@" <<'PY'
 import json, os, subprocess, sys, time
 root, tier, phase = sys.argv[1:4]
 issue = int(sys.argv[4]) if len(sys.argv) > 4 else 77
+idle_minutes = float(sys.argv[5]) if len(sys.argv) > 5 else 0
 dotgit = os.path.join(root, ".git")
 if os.path.isdir(dotgit):
     gitdir = os.path.realpath(dotgit)
@@ -99,7 +100,7 @@ else:
     gitdir = os.path.realpath(os.path.join(root, line))
 branch = subprocess.run(["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"], stdout=subprocess.PIPE,
                         stderr=subprocess.DEVNULL, universal_newlines=True).stdout.strip()
-now = time.time()
+now = time.time() - idle_minutes * 60
 state = {"tier": tier, "phase": phase, "issue": issue, "branch_at_init": branch, "gitdir_at_init": gitdir,
          "session_ts": now, "phase_history": [{"phase": phase, "ts": now, "ts_str": time.strftime("%Y-%m-%dT%H:%M:%S")}],
          "artifacts": {}}
@@ -410,6 +411,63 @@ chmod "$CK_MODE" "$H/lib/checkout.py"
 if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "pipeline resolver failed" && [ "$OBS_RC" = 0 ] && [ "$(mode_of "$H/lib/checkout.py")" = "$CK_MODE" ]; then
   ok "resolver failure blocks gates"
 else bad "resolver failure blocks gates (rc=$RC obs=$OBS_RC)"; fi
+reset_state
+
+echo "== write gate on real paths"
+reset_state
+make_wt
+put_state "$WT" PROJECT coder
+expect_rc "main checkout without state still blocks while the worktree is active" 2 at "$WT" write_to "apps/x.txt"
+reset_state
+
+put_state "$WORK" PROJECT coder
+# The message tells the owner apart: main would block it as an unregistered .claude/worktrees path.
+capture write_abs "$WT/apps/x.txt"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "no active pipeline"; then
+  ok "nested worktree file is governed by its own checkout"
+else bad "nested worktree file is governed by its own checkout (rc=$RC)"; fi
+expect_rc "nested worktree state file is protected" 2 write_abs "$WT/.claude/pipeline_state.json"
+mkdir -p "$WORK/.claude/worktrees/stray"
+reset_state
+expect_rc "unregistered directory under .claude/worktrees is never auto-allowed" 2 write_abs "$WORK/.claude/worktrees/stray/x"
+rm -rf "$WORK/.claude/worktrees/stray"
+
+put_state "$WORK" PROJECT coder 77 120
+put_state "$WT" PROJECT coder 78 120
+rm -f "$LOG"
+WJ=$(write_json "$WORK/plans/x.md")
+printf '%s' "$WJ" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+at "$WT" write_json "$WT/plans/x.md" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+if [ "$(grep -c '"watchdog-notify"' "$LOG")" = 2 ]; then
+  ok "watchdog markers are per checkout"
+else bad "watchdog markers are per checkout"; fi
+reset_state
+
+NESTED="$WORK/.claude/hooks/lib/json"
+git worktree add -q --detach "$NESTED" HEAD >/dev/null 2>&1
+put_state "$NESTED" PROJECT coder
+capture write_abs "$NESTED/x.py"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "is pipeline core"; then
+  ok "main's core stays core under a nested worktree"
+else bad "main's core stays core under a nested worktree (rc=$RC)"; fi
+git worktree remove --force "$NESTED"
+
+put_state "$WORK" PROJECT coder
+expect_rc "settings.local.json not writable by tools outside PIPELINE" 2 write_to ".claude/settings.local.json"
+mkdir -p "$WORK/apps" && ln -s ../.claude/hooks "$WORK/apps/link"
+expect_rc "symlink into hooks is core" 2 write_to "apps/link/x.sh"
+rm -f "$WORK/apps/link"
+expect_rc "transcript files are not writable, memory is (transcript)" 2 write_abs "$HOME/.claude/projects/p/s/subagents/agent-x.jsonl"
+expect_rc "transcript files are not writable, memory is (memory)" 0 write_abs "$HOME/.claude/projects/p/memory/m.md"
+if ! write_to ".git/hooks/pre-commit" >/dev/null 2>&1 && ! write_to ".git/config" >/dev/null 2>&1; then
+  ok "git dir is never written by tools"
+else bad "git dir is never written by tools"; fi
+if ! write_abs "$WT/.git" >/dev/null 2>&1 && ! write_to "apps/sub/.git/config" >/dev/null 2>&1; then
+  ok "a .git path component is never written by tools"
+else bad "a .git path component is never written by tools"; fi
+if ! write_abs "$HOME/.claude/settings.json" >/dev/null 2>&1 && ! write_abs "$HOME/.claude/settings.local.json" >/dev/null 2>&1; then
+  ok "user-level settings are never written by tools"
+else bad "user-level settings are never written by tools"; fi
 reset_state
 
 echo

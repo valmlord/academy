@@ -2,6 +2,8 @@
   "_comment": "Single source of truth for the pipeline state machine. Hooks read this file; do not hardcode tiers, phases or judges in hook scripts.",
   "state_ttl_hours": 8,
   "watchdog_minutes": 30,
+  "hook_log_max_bytes": 262144,
+  "grant_file": ".claude/settings.pipeline-grant.json",
   "protected_branches": ["main", "master"],
   "tiers": {
     "HOTFIX": {
@@ -151,6 +153,6 @@
     "**/*.spec.tsx"
   ],
   "learn_tier_code_dirs": ["apps/", "services/", "packages/", "images/"],
-  "protected_files": [".claude/pipeline_state.json", ".claude/pipeline_state.json.lock"],
-  "pipeline_core_files": [".claude/pipeline.json", ".claude/settings.json", ".claude/hooks/"]
+  "protected_files": [".claude/pipeline_state"],
+  "pipeline_core_files": [".claude/pipeline.json", ".claude/settings", ".claude/hooks/"]
 }
