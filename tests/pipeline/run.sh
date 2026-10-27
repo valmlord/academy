@@ -858,6 +858,22 @@ capture eval 'cd "$WT" && "${ADV[@]}" init PIPELINE 106'
 reset_state
 git checkout -q main
 
+echo "== stop with background tasks"
+reset_state
+git checkout -q -B feat/107-stop main
+stop_bg() { # stop_bg <background_tasks JSON, or "absent">: Stop mid-pipeline with that task list
+  python3 -c "import json,sys; d={'hook_event_name':'Stop','cwd':sys.argv[2],'stop_hook_active':False}; d.update({} if sys.argv[1]=='absent' else {'background_tasks':json.loads(sys.argv[1])}); print(json.dumps(d))" "$1" "$HCWD" \
+    | bash "$H/phase-complete.sh"; }
+put_state "$WORK" PROJECT judge_code
+expect_rc "stop allowed while a subagent runs" 0 stop_bg '[{"id":"a1","type":"subagent","status":"running","description":"judge"}]'
+expect_rc "running shell task does not allow stop" 2 stop_bg '[{"id":"s1","type":"shell","status":"running","description":"dev server"}]'
+expect_rc "completed subagent does not allow stop" 2 stop_bg '[{"id":"a1","type":"subagent","status":"completed","description":"judge"}]'
+if ! stop_bg absent >/dev/null 2>&1 && ! stop_bg '"broken"' >/dev/null 2>&1 && ! stop_bg 'null' >/dev/null 2>&1; then
+  ok "absent or malformed background_tasks does not allow stop"
+else bad "absent or malformed background_tasks does not allow stop"; fi
+reset_state
+git checkout -q main
+
 echo
 echo "pipeline self-test: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

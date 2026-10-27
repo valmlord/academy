@@ -12,6 +12,7 @@
                                  outcome: vote | role-unknown | vote-ignored:not-a-judge |
                                  vote-ignored:bad-agent-id | verdict-unknown
   hookio.py spawn_info           stdin: PostToolUse(Agent) JSON -> "<judge-key>|<agent_id>" of a launched judge
+  hookio.py bg_running           stdin: Stop JSON -> "<running subagents> <background tasks>"
   hookio.py field <dotted.path>  stdin: any hook JSON -> value or ""
 
 Role detection rule (deliberately strict): the role is the agent file named in the LEADING
@@ -226,6 +227,15 @@ def spawn_info(d):
     return [key, agent_id]
 
 
+def bg_running(d):
+    """Running subagents only: a dev server, monitor or cron must not keep Stop open forever."""
+    tasks = d.get("background_tasks")
+    if not isinstance(tasks, list):
+        return 0, 0
+    running = sum(1 for t in tasks if isinstance(t, dict) and t.get("type") == "subagent" and t.get("status") == "running")
+    return running, len(tasks)
+
+
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else ""
     try:
@@ -256,6 +266,8 @@ def main(argv):
                         str(lines), "true" if handback else "false"]))
     elif cmd == "handback_vote":
         print("|".join(handback_vote(d, argv[2] if len(argv) > 2 else "")))
+    elif cmd == "bg_running":
+        print("%d %d" % bg_running(d))
     elif cmd == "spawn_info":
         print("|".join(spawn_info(d)))
     elif cmd == "judge_vote_post":

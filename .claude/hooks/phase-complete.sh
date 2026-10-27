@@ -3,6 +3,7 @@
 # - No own active pipeline in this checkout -> allow.
 # - stop_hook_active=true (we already blocked once this turn) -> allow, so the session never loops.
 # - Phase waits on a human (human_wait_phases, e.g. LEARN "learner") -> allow with a reminder.
+# - A subagent is still running (background_tasks) -> allow; its result is still to come.
 # - Otherwise require: phase=done, each judge round unanimous for the tier, notify run, clean
 #   tree, not on a protected branch for issue-linked work.
 HOOK_KIND=gate
@@ -42,6 +43,15 @@ main_fn() {
       return 0
     fi
   done
+
+  # A judge round in flight must not be cut off: Stop waits for nothing while subagents still run.
+  local running total
+  read -r running total <<< "$(printf '%s' "$INPUT" | hookio bg_running)"
+  if [ "$running" -gt 0 ]; then
+    echo "$running subagent(s) still running; pipeline at $phase" >&2
+    pl_log event=stop-allow:subagents-running decision=allow bg_subagents_running="$running" bg_total="$total"
+    return 0
+  fi
 
   [ "$phase" != "done" ] && block "Pipeline not complete. Current phase: $phase. Continue, or ask the learner if you are waiting on him."
 
