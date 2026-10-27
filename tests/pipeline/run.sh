@@ -887,7 +887,22 @@ for c in "ls .claude" "cat .claude/hooks/x.sh" "echo x >> .claude/feedback/coder
   expect_rc "shell write outside core stays allowed: $c" 0 bashcmd "$c"
 done
 
+put_state "$WORK" PROJECT judge_design
+set_cfg state_lock_timeout_seconds 1
+hold_lock "$WORK" 3
+VOTE_OUT=$(JUDGE_HOOK_CALLER=judge-count-hook "${ADV[@]}" judge_design security PASS agentlock handback 2>&1); VOTE_RC=$?
+wait
+if [ "$VOTE_RC" = 75 ] && ! printf '%s' "$VOTE_OUT" | grep -q "Judge recorded"; then
+  ok "a vote that cannot take the lock fails with rc 75"
+else bad "a vote that cannot take the lock fails with rc 75 (rc=$VOTE_RC)"; fi
+transcript "$TDIR/$SID/subagents/agent-lk2.jsonl" "$JS"
+hold_lock "$WORK" 3
+handback lk2 "PASS" "$MAIN_T" >/dev/null 2>&1
+wait
+[ "$(log_last event)" = vote-ignored:advance-rc-75 ] && ok "judge hook logs the real rc of a failed vote" || bad "judge hook logs the real rc of a failed vote ($(log_last event))"
+restore_cfg
 reset_state
+
 git checkout -q main
 
 echo

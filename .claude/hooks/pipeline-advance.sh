@@ -161,7 +161,10 @@ if [[ "$PHASE" == judge_* ]] && [ "$CURRENT" = "$PHASE" ] && [ $# -ge 2 ]; then
     exit 0
   fi
   case "$VERDICT" in PASS|FAIL) ;; *) echo "IGNORED: verdict '$VERDICT'" >&2; exit 0 ;; esac
-  if [ "$(state_op vote "$PHASE" "$AGENT" "$VERDICT" "${3:-}" "${4:-}")" = "vote-dup" ]; then
+  # Output and rc are taken apart: inside a [ ] argument a failed write (lock timeout 75, phase
+  # race 3, unreadable state 1) would read as success.
+  VOTE_RESULT=$(state_op vote "$PHASE" "$AGENT" "$VERDICT" "${3:-}" "${4:-}") || exit $?
+  if [ "$VOTE_RESULT" = "vote-dup" ]; then
     echo "Duplicate vote ignored ($PHASE: $AGENT, agent ${3:-?} already voted this round)."
     exit 0
   fi
