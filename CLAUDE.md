@@ -179,8 +179,20 @@ agents never can (tool and shell writes are blocked). A malformed file grants no
   state of that issue: `bash .claude/hooks/pipeline-advance.sh parked` shows the key, then
   `rm .claude/pipeline_state.parked/<key>.json`.
 
-**Kill switch.** Stepan writes `{"disableAllHooks": true}` into `.claude/settings.local.json` by
-hand and starts a new session (also the escape from a lockout, e.g. a broken `python3`).
+**Kill switch.** Stepan sets `"disableAllHooks": true` in `.claude/settings.local.json` by hand and
+starts a new session (also the escape from a lockout, e.g. a broken `python3` or a broken
+`lib/common.sh`). From the main checkout, in his own terminal:
+- no file yet (`ls -l .claude/settings.local.json` finds none):
+  `printf '%s\n' '{"disableAllHooks": true}' > .claude/settings.local.json`
+- the file exists (overwriting it would lose the other local settings), add the key:
+  `/usr/bin/python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["disableAllHooks"]=True; open(p,"w").write(json.dumps(d,indent=2)+"\n")' .claude/settings.local.json`
+- check: `/usr/bin/python3 -I -m json.tool .claude/settings.local.json` shows `"disableAllHooks": true`.
+- undo: `rm .claude/settings.local.json` if it held only the key, otherwise the same command with
+  `d.pop("disableAllHooks",None)` instead of the assignment.
+
+A session started in a worktree reads `.claude/settings.local.json` at the main checkout's root
+(Claude Code docs, 2.1.211 and later; not verified live), and still reads the worktree's own
+`.claude/settings.local.json` as a legacy location. To be safe, add the key in both.
 
 **One-time migration to v2** (after #21 is merged; details in `plans/21-pipeline-v2-design.md`
 section 12):

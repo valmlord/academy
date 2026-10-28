@@ -3,6 +3,7 @@
 - Status: Proposed
 - Date: 2026-10-27
 - Issue: #21
+- Amended: #23 (items 6, 7, 8 and 9)
 
 ## Context
 Pipeline v1 assumed one checkout. With git worktrees (#15) every hook still read the main
@@ -37,13 +38,27 @@ decisions 1-7: `plans/21-pipeline-v2-research.md`; full design: `plans/21-pipeli
    trapped. All Python runs as `python3 -I`.
 6. **Hook log** in `<main git dir>/pipeline-hooks.log`, JSON lines, bounded with one rotation,
    opened with `O_NOFOLLOW`, a whitelist of fields (never commands, file contents or messages). It
-   has no authority: no gate reads it.
+   has no authority: no gate reads it. Since #23 the whitelist includes `error`: the first line of
+   the output of a vote or spawn-map CLI call that failed (stdout and stderr combined), capped at
+   200 characters. It may contain absolute paths, never a command, file content or handback
+   message.
 7. **Accepted residual risks** (deliberate bypass only; caught by review and by Stepan at merge):
    - a worktree registered inside main's tree on an orphan branch: inert for resolution, and main's
      zones are checked as absolute paths first; `git worktree add` is not treated as a write verb;
    - shell evasion of bash-code-guard: `python3 -c`, variables, and relative paths. A relative `cd`
      evades the LEARN rule **and** the core, grant-file and user-settings shell strings, which
      match path text only, e.g. `cd .claude && echo x >> hooks/x.sh`;
+   - write verbs outside bash-code-guard's list pass: `find .claude/hooks -delete`,
+     `rsync -a --delete x/ .claude/hooks/`, `git clean -fdx .claude`, `tar -C .claude -xf x.tar`. So
+     do spellings that hide a core name from a string match: `./` and `..` path segments
+     (`rm -rf .claude/./hooks`, `rm -rf .claude/agents/../hooks`, and
+     `printf x > .claude/./settings.local.json`, which reaches the kill-switch file), quotes or a
+     backslash inside a name (`.claude/h""ooks`, `.claude/h''ooks`, `.claude/h\ooks`), a brace
+     that splits the name (`.cla{ude,}/hooks`), a variable (`d=.claude; rm -rf $d/hooks`) and
+     `cd .claude && rm -rf hooks`. Since #23, `.claude//hooks`, `.claude/{hooks,}`,
+     `.claude/h{ooks,}` and `mv .claude, x` are blocked. Accepted false positive of the same rule:
+     `rm -rf .claude/{agents,feedback}/x` is blocked too. Each spelling was run through the guard
+     once (#23 test report);
    - transcript forgery through the shell;
    - `JUDGE_HOOK_CALLER` set by indirection: vote authenticity is an env flag plus a transcript
      role, not cryptographic;
@@ -53,9 +68,21 @@ decisions 1-7: `plans/21-pipeline-v2-research.md`; full design: `plans/21-pipeli
    - a pre-v2 worktree session runs v1 hooks until it merges main;
    - a harness kill at the hook timeout fails open;
    - a PIPELINE agent with an open grant could edit core beyond its issue's scope.
-8. **`transcript_path` inside a subagent.** Which `transcript_path` a PreToolUse hook inside a
-   subagent receives is unverified; the handback path tries every known layout and logs
-   `transcript_kind`. The live check L3 records the answer here.
+8. **`transcript_path` inside a subagent.** Answered by the live check L3: inside a subagent, the
+   `PreToolUse(SubagentHandback)` hook received the parent session's `transcript_path`, and the
+   subagent's own transcript was found at `<session dir>/subagents/agent-<id>.jsonl`
+   (`transcript_kind=main`, `role_source=transcript`; hook log 2026-10-27 20:23:49 and 20:23:56,
+   Claude Code 2.1.267). The handback path still tries the other layouts as fallbacks and logs
+   `transcript_kind`.
+9. **Shared library and gate scripts (#23).** The last line of `lib/common.sh` sets a sentinel that
+   every hook checks after sourcing it: a syntax error stops the source early, and the hook would
+   otherwise exit 127, which does not block. Without it the PreToolUse gates exit 2, observers 0,
+   the CLI 1. The gates' decision code lives in `lib/pl_write_gate.py` and `lib/pl_shell_guard.py`;
+   rc 2 counts as a verdict only when stdout carries the `\x1f` separator, because CPython also
+   exits 2 when it cannot open a script, so an unopenable gate script is a crash, i.e. a block. The
+   Stop gate (`phase-complete.sh`) instead warns and allows when it cannot evaluate (no
+   `common.sh`, no usable python3, a resolver failure): a Stop block that nothing can repair only
+   re-prompts the session. A crash inside its own checks still blocks every Stop (residual).
 
 ## Alternatives considered
 - Dispatch to the resolved checkout's own scripts: an old-commit worktree or a fake `.git`-file

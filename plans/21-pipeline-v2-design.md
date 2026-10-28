@@ -297,10 +297,12 @@ unchanged. Any other `HOOK_KIND` value is treated as `gate`.
 - Fields (whitelist): `ts, pid, event, hook, tool, agent_id, checkout, source, forwarded, decision, reason,
   rc`; vote paths add `judge, verdict, round, path (handback|subagent_stop|post_tool_use), role_source
   (transcript|spawn_map|none), transcript_kind, transcript_lines, handback_in_transcript`; Stop adds
-  `bg_subagents_running, bg_total`; grant checks add `grant (pipeline_init|learn_pause), issue`.
+  `bg_subagents_running, bg_total`; grant checks add `grant (pipeline_init|learn_pause), issue`. Since #23:
+  `error`, the first line of a failed vote or spawn-map CLI call (stdout and stderr combined, capped).
 - Never logged: `tool_input` contents (commands, file contents, prompts, `message`),
-  `last_assistant_message`, environment. File paths appear only as checkout-relative `REL` in
-  require-pipeline block reasons.
+  `last_assistant_message`, environment. Paths that do appear: the `checkout` field is always an absolute
+  checkout root; require-pipeline block reasons carry `REL`, which is absolute for a target outside every
+  checkout (2.6 step 4); the `error` field can carry absolute paths (a lock file, a temp file).
 - Logged: every block and its reason, every resolver fallback and `worktree-skipped:<why>`, every
   gate/observer crash, every vote-path outcome (`vote-recorded`, `vote-dup`, `vote-ignored:<why>`,
   `verdict-unknown`, `role-unknown`), every state transaction (`init`, `advance`, `pause`, `resume`,
@@ -380,6 +382,8 @@ unchanged. Any other `HOOK_KIND` value is treated as `gate`.
 
 ### 2.6 `require-pipeline.sh` (gate; Edit|Write|MultiEdit|NotebookEdit)
 
+Since #23 the code of these checks lives in `lib/pl_write_gate.py`; the `.sh` wrapper maps its exit code.
+
 Order of checks for target `F` (from `tool_input.file_path` / `notebook_path`):
 1. `P = realpath(F)` (symlinks resolved; non-existing tail kept). Every rule below uses `P`, so
    `apps/link -> ../.claude/hooks` cannot launder a core write.
@@ -417,18 +421,25 @@ Order of checks for target `F` (from `tool_input.file_path` / `notebook_path`):
 
 ### 2.7 `bash-code-guard.sh` (gate; Bash)
 
+Since #23 the code of the rules below (all but the two strings) lives in `lib/pl_shell_guard.py`.
+
 - Unchanged: block the strings `pipeline_state` and `JUDGE_HOOK_CALLER`.
 - Write verbs (existing LEARN heuristic, extended): `>`, `>>`, `tee`, `sed -i`, `perl -pi`, `cp`, `mv`, `rm`,
-  `ln`, `chmod`, `truncate`, `git checkout --`, `git restore`.
+  `ln`, `chmod`, `truncate`, `git checkout` with any arguments (a ref included), `git restore`.
 - **Always blocked, any tier:** the string `core.hooksPath`; a write verb followed (same pipeline segment) by
   a token with a `.git` path component (`.git/...`, `.../.git`), by `.claude/projects/`, by
   `settings.pipeline-grant`, or by a user-settings path (`~/.claude/settings`, `$HOME/.claude/settings`,
   `<absolute home>/.claude/settings`).
-- **Core rule:** a write verb followed (same pipeline segment) by a core path string (`.claude/hooks/`,
-  `.claude/pipeline.json`, `.claude/settings`) is blocked unless the **cwd** checkout is main
-  (`STATE_ROOT == MAIN_ROOT`) **and** its state is own, active and `edits_pipeline_core`. The explicit main
-  check is cheap and keeps a PIPELINE state that ended up in a worktree (copied, or written by v1 code) from
-  opening main's core to shell writes.
+- **Core rule:** a write verb followed (same pipeline segment) by a core path string (`.claude/hooks` with or
+  without the trailing slash, `.claude/pipeline.json`, `.claude/settings`) or by the `.claude` directory token
+  (since #23: `.claude` with or without a trailing slash, `.claude/` followed by a character that cannot
+  continue a name, or a glob or brace character in the first component after `.claude/`) is blocked unless
+  the **cwd** checkout is main (`STATE_ROOT == MAIN_ROOT`) **and** its state is own, active and
+  `edits_pipeline_core`. The explicit main check is cheap and keeps a PIPELINE state that ended up in a
+  worktree (copied, or written by v1 code) from opening main's core to shell writes. A command that names a
+  core path gets the core message; one that only names a `.claude` directory gets its own message and log
+  reason `core-shell:claude-dir`. Limits: quotes or a backslash inside a name, `./` and `..` path segments,
+  a brace that splits `.claude` and variables evade the token (ADR-0005 item 7).
 - **LEARN rule:** consulted states = the cwd state plus the state of every accepted checkout whose
   **absolute** root appears in the command. If any consulted own active state is LEARN, the existing
   product-dir write heuristic applies; a consulted `unreadable` state counts as LEARN here (fail closed: the
@@ -1123,9 +1134,15 @@ check prints `R1_OK` again, because the live checks must run against v2 in the m
   during the judges' run logs `stop-allow:subagents-running`; the PostToolUse(Agent) line shows whether
   `agentId` exists (spawn map). If the votes log `checkout=<main>` instead, subagents do not inherit the
   session's cwd: that is a finding for #21, not a pass.
-- **L4 fake checkout** (L1 session): `mkdir "/tmp/fake co" && printf 'gitdir: %s\n' "<main>/.git" > "/tmp/fake co/.git"`;
-  a Bash call `cd "/tmp/fake co" && true`; the next hook's log line shows `source=fallback:unregistered`,
-  `checkout=<main>`. Then `rm -r "/tmp/fake co"`.
+- **L4 fake checkout.** Agents cannot run the original form: the shell guard blocks any write verb aimed at
+  a `.git` path, so the fake `.git` file cannot be created from a session (#23). Either variant settles it:
+  - automated: the suite row `fake .git-file directory uses the main checkout's state`
+    (`tests/pipeline/run.sh`) builds the same directory in a temp repo and asserts main's state governs;
+  - by hand, Stepan in his own terminal, from the main checkout:
+    `mkdir "/tmp/fake co" && printf 'gitdir: %s\n' "$PWD/.git" > "/tmp/fake co/.git"`, then
+    `printf '{"hook_event_name":"PreToolUse","tool_name":"Write","cwd":"/tmp/fake co","tool_input":{"file_path":"/tmp/fake co/x"}}' | bash .claude/hooks/require-pipeline.sh`,
+    then `tail -n 3 .git/pipeline-hooks.log`: the `resolve-fallback` line shows `"source": "fallback:unregistered"`
+    and `"checkout"` the main checkout. Clean up with `rm -r "/tmp/fake co"`.
 - **L5 cleanup** (L1 session, after closing the worktree session):
   `rm "<main>/.claude/worktrees/live 21/apps/live-21.txt"`; `git -C "<main>/.claude/worktrees/live 21" status --porcelain`
   prints nothing; `git worktree remove "<main>/.claude/worktrees/live 21"`. The ignored 998 state, flock and

@@ -193,8 +193,10 @@ def transcript_facts(path: str) -> tuple[int, bool]:
 
 
 def subagent_transcript(d: dict[str, object], agent_id: str) -> tuple[str, str]:
-    """(path, kind) of the subagent's own transcript; which transcript_path a PreToolUse inside a
-    subagent receives is unverified, so every known layout is tried in order."""
+    """(path, kind) of the subagent's own transcript. Observed with Claude Code 2.1.267 (2026-10-27):
+    a PreToolUse inside a subagent receives the parent session's transcript_path, so the subagent's
+    transcript is <session dir>/subagents/agent-<id>.jsonl (kind "main"). The other layouts stay
+    as fallbacks, tried in order."""
     tpath = as_str(d.get("transcript_path"))
     session = as_str(d.get("session_id"))
     own = "agent-%s.jsonl" % agent_id

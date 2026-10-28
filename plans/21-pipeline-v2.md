@@ -34,6 +34,7 @@ From the design reviews (all rounds), still to honour in code:
 | judge_code | round 1: security FAIL (core dir without trailing slash and `.claude` ancestor pass the shell guard; deleting hooks fails every gate open), architecture FAIL (same; `pipeline-advance.sh` vote path reports success on a failed write; dead `cli` branch in run_hook), operations PASS. Fixes 6eda336..a577d25 (all 6 items), 187/187 re-run by the orchestrator, shellcheck clean. Re-test PASS (187/187, all new rows red under mutation, 14 old mutations red); tester found `rm -rf .claude/*` and `git checkout <ref> -- .claude/hooks` still pass: fixed in 0c52d28, fdd2da9; 200/200 re-run by the orchestrator. Round 2 at fdd2da9: security PASS, architecture PASS, operations PASS (3/3; CI job replayed in ubuntu:24.04, 200/200 in 38 s) |
 
 ## Follow-ups from the code review (non-blocking)
+All addressed in #23 (`plans/23-pipeline-handback-race-design.md`).
 - `op_parked` crashes on a parked file that is valid JSON but not an object; `status` then exits 1.
 - `TOKEN_END_OR_SLASH` and `CLAUDE_DIR_TOKEN` define token end differently (`.claude/{hooks,}`, `.claude,` pass); use one `(?![\w./-])` rule.
 - `issue.isdigit()` accepts Unicode digits; use `isascii() and isdigit()`.
