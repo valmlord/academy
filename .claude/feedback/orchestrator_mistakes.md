@@ -91,3 +91,22 @@ branch - it could not open a single line.
 Rule: Materialize the code where the judge's tools can read it first (check out the branch, or
 pull the diff/files into a scratch path, or grant the needed tool). A judge that cannot read
 the diff must FAIL/CANNOT-CERTIFY, never PASS on trust.
+
+### Forwarded a judge's suggested wording as the fix, unchecked (#15)
+
+judge_content on #15 took six rounds. Twice the next blocker came from the replacement text a judge had
+proposed in the previous round: "запросов нет; ... ask-правила" for bypassPermissions, and a closed
+defaultMode set that dropped the documented `manual` alias. I passed those suggestions to the author as
+the fix.
+Rule: A judge's proposed wording is a hint, not a source. When re-spawning the author, tell them to fetch
+the primary source themselves and write from its quotes, and to report the quotes. When a fix narrows a
+rule to a closed set, have the researcher or author enumerate every documented value (aliases included)
+before the set is written.
+
+### Content round budget spent on one lesson's long tail (#15)
+
+From round 3 on, every judge_content blocker was in L6 permissions text or checks, and each round surfaced
+one new edge. Asking Stepan before every extra round was right, but a single targeted "close every
+documented value and every claim about modes against the docs" pass on L6 would have saved three rounds.
+Rule: When two consecutive FAILs land in the same file and topic, the next re-spawn asks the author for a
+full sweep of that topic against the source, not only the listed item.
