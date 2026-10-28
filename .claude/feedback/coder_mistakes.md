@@ -74,3 +74,15 @@ flag in ANY tier now crashes every gate (fail closed). The fix to a lying commen
 record.
 Rule: When a fix adds an import or changes behaviour, grep the design/ADR for the module name and update
 every statement about its imports and behaviour in the same commit.
+
+### 2026-10-28: A guard placed outside the try it was meant to sit behind became the only crash path (#23)
+8aa48dd added `if not math.isfinite(parked_ts)` to `state._parked_at` BEFORE the
+`try: time.localtime(...) except (OverflowError, ValueError, OSError)`. `math.isfinite` converts an
+int to a float, so a JSON integer above ~1.8e308 (309+ digits, which `json.load` returns as an int)
+raises `OverflowError: int too large to convert to float` outside the try: `parked` prints a traceback
+and `status` (set -euo pipefail) exits non-zero. Without the isfinite line, `localtime` raises inside
+the try for inf, NaN and that int alike, so the extra guard added the only uncaught path while design
+2.3 claimed "instead of ... a traceback". The test row used 1e20, which converts to float fine, so the
+boundary that breaks the guard was never exercised.
+Rule: Every pre-check on untrusted input runs inside the same exception boundary as the call it
+protects, and the test rows include the value that breaks the pre-check itself, not only the call.

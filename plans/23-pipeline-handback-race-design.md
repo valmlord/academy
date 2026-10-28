@@ -266,7 +266,9 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
   message. The existing suite is the guard, run on 3.9.6 for every step (10.1).
 - Deliberate behaviour change (58c1152), fail closed: a wrongly typed `team` or flag in ANY tier of
   `pipeline.json`, active or not, makes `cfg.load()` raise `ConfigError`, so both PreToolUse gates crash and
-  block every write and every shell command (the CLI and the other `cfg.load()` readers fail too). Before, a
+  block every write and every shell command. The `cfg.py` CLI and the `state.py` callers crash too, while
+  `checkout._log_max_bytes` falls back to the default log size and `hookio.judge_key` returns `""`, so a judge
+  spawn or handback is not attributed to a judge. Before, a
   `"edits_pipeline_core": "false"` passed `load()`, `has_flag` read it as true, and the write gate opened
   pipeline core outside PIPELINE. Recovery: fix `pipeline.json` by hand in a terminal, or the kill switch
   (CLAUDE.md section 7, runbook 11.2).
