@@ -504,15 +504,26 @@ if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally (rc=70)" \
   && [ "$(log_prev event)" = gate-no-verdict ] && [ "$(log_prev rc)" = 2 ] && [ "$(mode_of "$H/lib/pl_write_gate.py")" = "$WG_MODE" ]; then
   ok "an unreadable pl_write_gate.py blocks as a crash, not as an empty verdict"
 else bad "an unreadable pl_write_gate.py blocks as a crash, not as an empty verdict (rc=$RC)"; fi
+SG_MODE=$(mode_of "$H/lib/pl_shell_guard.py")
+chmod 000 "$H/lib/pl_shell_guard.py"
+capture bashcmd "ls"
+chmod "$SG_MODE" "$H/lib/pl_shell_guard.py"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally (rc=70)" \
+  && [ "$(log_last event)" = gate-crash ] && [ "$(log_last rc)" = 70 ] \
+  && [ "$(log_prev event)" = gate-no-verdict ] && [ "$(log_prev rc)" = 2 ] && [ "$(mode_of "$H/lib/pl_shell_guard.py")" = "$SG_MODE" ]; then
+  ok "an unreadable pl_shell_guard.py blocks as a crash, not as an empty verdict"
+else bad "an unreadable pl_shell_guard.py blocks as a crash, not as an empty verdict (rc=$RC)"; fi
 # pl_gate is imported, and a cached pyc would still load for an unreadable source; a missing
 # source is never served from __pycache__, so it is moved aside rather than chmod-ed.
 cp -p "$H/lib/pl_gate.py" "$BASE/pl_gate.py.bak" && mv "$H/lib/pl_gate.py" "$BASE/pl_gate.py.aside"
 capture write_to "plans/x.md"; W_RC=$RC; W_ERR=$ERR; W_EVENT=$(log_last event); W_LOGRC=$(log_last rc)
+capture bashcmd "ls"; B_RC=$RC; B_ERR=$ERR; B_EVENT=$(log_last event); B_LOGRC=$(log_last rc)
 mv "$BASE/pl_gate.py.aside" "$H/lib/pl_gate.py"
 if [ "$W_RC" = 2 ] && printf '%s' "$W_ERR" | grep -q "failed internally (rc=1)" && [ "$W_EVENT" = gate-crash ] && [ "$W_LOGRC" = 1 ] \
+  && [ "$B_RC" = 2 ] && printf '%s' "$B_ERR" | grep -q "failed internally (rc=1)" && [ "$B_EVENT" = gate-crash ] && [ "$B_LOGRC" = 1 ] \
   && cmp -s "$BASE/pl_gate.py.bak" "$H/lib/pl_gate.py"; then
-  ok "a missing pl_gate.py blocks the write gate as a crash"
-else bad "a missing pl_gate.py blocks the write gate as a crash (rc=$W_RC)"; fi
+  ok "a missing pl_gate.py blocks both gates as a crash"
+else bad "a missing pl_gate.py blocks both gates as a crash (write rc=$W_RC bash rc=$B_RC)"; fi
 reset_state
 
 echo "== write gate on real paths"
