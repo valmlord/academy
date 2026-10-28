@@ -213,3 +213,87 @@ paths) also contradicted 2.6 step 4 (REL is absolute when no checkout owns the p
 Rule: A protected directory is specified for both matchers: as a path prefix for tools and as a
 directory token (with and without a trailing slash, plus its ancestors) for shell commands, with a
 test row for each spelling. Cross-check every "only"/"never" claim against the steps that produce it.
+
+### 2026-10-27: Residual-risk list written from the old regex; moved gate code got an exit-code collision (#23)
+
+Issue #23 design 2.9 has ADR-0005 item 7 say `.claude//hooks` passes the shell guard. Under the new
+2.4 rule, `.claude/` followed by `/` matches `/(?![\w.-])`, so that spelling is now blocked. Spellings
+that still pass are not listed: `.claude/./hooks`, `.claude/h{ooks,}`, `.claude/h""ooks`. The 2.4
+header also claims braces are covered, but a brace after the first character of the component is not
+(alt 3 knows only `*?[`). Separately, 2.7 moves the gate code into `lib/*.py` but keeps the contract
+"exit 2 = block, stdout `<reason>\x1f<message>`". CPython itself exits 2 when it cannot open the
+script (a missing or unreadable `lib/write_gate.py` or `lib/shell_guard.py`). The wrapper then
+denies with an empty message and an empty log reason, not as `gate-crash`. The wrapper still blocks,
+so this does not fail open. But this failure mode is new with the refactor and appears in neither
+section 7 nor section 3.
+Rule: Derive every "still passes" or "now blocked" spelling in a residual-risk list by running it
+against the NEW pattern, never the old one. When code moves out of a wrapper into a file the
+interpreter opens, check the interpreter's own exit codes against the wrapper's contract. Add a row
+that makes the new file unreadable and asserts the crash message.
+
+### 2026-10-27: Live-edit rollout claimed "one gate per step" while steps edit code both gates share (#23)
+
+Issue #23 design, F1 and section 10: the hooks are edited live in the main checkout, and the stated
+mitigation is "at most one gate changes per step, repair a broken gate through the other one". Steps
+2 and 5 edit `lib/checkout.py` (`LOG_FIELDS`, `_context`) and step 2 edits `lib/common.sh`; step 9
+re-annotates `cfg.py`, `checkout.py`, `state.py`, `hookio.py` and adds a raising validation to
+`cfg.load()`. `common.sh` runs `checkout.py context` for every hook, and both gates import `cfg` and
+`checkout`. One NameError, one 3.10-only annotation evaluated on a 3.9 Mac, or a `ConfigError` on the
+real pipeline.json makes `require-pipeline.sh` and `bash-code-guard.sh` fail closed together. No Write
+or Bash can then repair the file, and only the kill switch plus a new session gets out. The section 10
+procedure ("make the change, then run run.sh") puts every change live before any test has run.
+Rule: In a live-edit rollout, list for each step every file that more than one gate executes
+(common.sh, resolver, config loader, shared lib). For those steps, apply the change to a scratch
+export and run the suite there first. Only then copy the change into the live tree, as one write per file.
+
+### 2026-10-27: Assumed a broken shared hook file always fails closed (#23)
+
+Issue #23 design, F1: the recovery story assumes a broken gate blocks, so the other gate or the kill
+switch can repair it. Checked on a scratch export: a syntax error in `lib/checkout.py` or `lib/cfg.py`
+makes both gates exit 2 for every command, `ls` included (lockout). But a syntax error in
+`lib/common.sh` (edited live in step 2) leaves `run_hook` undefined, and both gates exit 127. Claude
+Code treats 127 as a non-blocking error, so every guard is silently off for the rest of the session.
+The same design also told the coder to build the local mypy venv with `python3 -m venv`. On this Mac
+that is 3.9.6, which cannot install the only mypy line that still targets 3.9 (1.19.x/1.20.x need >= 3.10).
+Rule: For each live-edited shared file, establish what the hooks do when that file is broken (exit 2,
+exit 127, or a traceback) by breaking a scratch copy. Do not assume "fail closed". Name the interpreter
+that each tool command actually runs on the target machine.
+
+### 2026-10-28: Generic "gates exit 2" fallback breaks the Stop hook's no-loop rule (#23)
+Design rev 2 section 2.10 gave every HOOK_KIND=gate script the same fallback when lib/common.sh
+does not load: print BLOCKED and exit 2. phase-complete.sh is a gate on the Stop event, where its
+own contract (header line 4, run.sh row "stop not blocked twice (stop_hook_active)") is to block at
+most once per turn. An unconditional exit 2 blocks every Stop, so in exactly the lockout where the
+orchestrator must stop and hand over to Stepan, the session is re-prompted again and again until a
+human interrupts it. T15 did not cover phase-complete.sh, so no row would notice.
+Rule: When one fallback is applied to all scripts of a kind, walk each script's event (PreToolUse,
+Stop, SubagentStop, PostToolUse) and check that the fallback still honours that script's own
+invariants; give each event its own test row.
+
+### 2026-10-28: "Unreadable imported module = crash" ignores the bytecode cache (#23, round 2)
+Design rev 2 T18/F16 says `chmod 000 lib/pl_gate.py` makes both gates crash with rc 1, because
+the import fails. In fact `pl_gate` is imported, not run as a script. Earlier suite rows have
+already written `lib/__pycache__/pl_gate.cpython-39.pyc` into the `$WORK` copy, and `python3 -I`
+does not stop bytecode writes. CPython's SourceLoader only stats the source (stat works on a
+mode-000 file), finds a pyc whose mtime and size match, and loads that without ever reading the
+source. So the gates keep working and T18 is red on correct code. Under its own mutation the row
+cannot distinguish anything either. The existing chmod rows (`run.sh:402`, `:424`) and T16/T17
+only work because they make a script that CPython opens directly unreadable, and directly run
+scripts are never cached.
+Rule: When a test makes an *imported* Python module unreadable or broken, account for
+`__pycache__`. Remove the cache directory first, or make it unreadable too, or change the
+source's mtime/size. Then confirm the crash on a scratch run before the row goes into the table.
+
+### 2026-10-28: Rows that contradict the design's own code path, and a typing order that cannot pass (#23, round 2, architecture)
+Design rev 2: (1) T16/T17 assert "last log line `gate-no-verdict`", but 2.7 has the wrapper log
+`gate-no-verdict` and then `return 70`, after which `run_hook` (`common.sh:111`) logs `gate-crash`.
+The last line is always `gate-crash`, so both rows are red on correct code. (2) 2.5 has the marker
+helper catch `UnicodeError` and log. T11(c) still claims that a strict `encode("utf-8")` crashes
+`_context`. If the encode sits inside that try, the mutation is absorbed and the row stays green.
+If it sits outside, the `UnicodeError` handler is dead code. The design does not say which.
+(3) Step 10b types `hookio` before 10c types `checkout`, and requires "mypy on that module clean".
+But `hookio.py:45` calls `checkout.code_root()`, and `--strict` reports `no-untyped-call` in
+hookio itself until checkout is annotated. So 10b's gate is unreachable.
+Rule: Trace every assertion through the full wrapper chain, including the trailing `run_hook`
+mapping and its log line, before writing it down. A mutation must not land inside a handler the
+same design adds. Order strict-typing steps by the import graph, callees first.
