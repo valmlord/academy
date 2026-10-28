@@ -908,6 +908,27 @@ expect_rc "grant file is never written by tools or shell, even in PIPELINE (shel
 put_state "$WORK" LEARN learner
 expect_rc "pipeline core not writable in LEARN" 2 write_to ".claude/hooks/x.sh"
 reset_state
+
+set_tier_key() { # set_tier_key <tier> <key> <json value> in the test repo's pipeline.json; restore_cfg undoes it
+  [ -f "$CFG_SAVED" ] || cp "$WORK/.claude/pipeline.json" "$CFG_SAVED"
+  python3 -c "import json,sys; c=json.load(open(sys.argv[1])); c['tiers'][sys.argv[2]][sys.argv[3]]=json.loads(sys.argv[4]); json.dump(c, open(sys.argv[1],'w'))" "$WORK/.claude/pipeline.json" "$@"; }
+put_state "$WORK" PROJECT coder
+set_tier_key PROJECT edits_pipeline_core '"false"'
+capture write_to ".claude/hooks/x.sh"
+restore_cfg
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally"; then
+  ok "a non-bool edits_pipeline_core makes the write gate block as a crash"
+else bad "a non-bool edits_pipeline_core makes the write gate block as a crash (rc=$RC)"; fi
+reset_state
+BAD_TIER_KEYS=""
+for kv in 'team=7' 'requires_issue="true"' 'edits_pipeline_core=1' 'learner_writes_code=null'; do
+  set_tier_key PROJECT "${kv%%=*}" "${kv#*=}"
+  capture python3 -I "$H/lib/cfg.py" tiers
+  restore_cfg
+  [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "tiers.PROJECT.${kv%%=*} must be" || BAD_TIER_KEYS="$BAD_TIER_KEYS ${kv%%=*}"
+done
+[ -z "$BAD_TIER_KEYS" ] && ok "pipeline.json refuses a tier team or flag of the wrong type" \
+  || bad "pipeline.json refuses a tier team or flag of the wrong type:$BAD_TIER_KEYS"
 make_wt
 put_state "$WT" PIPELINE coder
 expect_rc "shell core write refused from a worktree holding a PIPELINE state" 2 at "$WT" bashcmd "echo x >> \"$WORK/.claude/hooks/x.sh\""

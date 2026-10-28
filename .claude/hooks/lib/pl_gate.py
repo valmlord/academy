@@ -8,6 +8,7 @@ import json
 import sys
 from typing import Callable, Mapping
 
+import cfg
 from pl_jsonshape import as_object
 
 VERDICT_SEP = "\x1f"
@@ -32,10 +33,10 @@ def has_flag(conf: Mapping[str, object], tier: str, flag: str) -> bool:
         return False
     tiers = as_object(conf["tiers"])
     if tiers is None:
-        raise ValueError("pipeline.json: tiers is not an object")
+        raise cfg.ConfigError("%s: tiers is not an object" % cfg.CFG_PATH)
     tier_conf = as_object(tiers.get(tier, {}))
     if tier_conf is None:
-        raise ValueError("pipeline.json: tiers.%s is not an object" % tier)
+        raise cfg.ConfigError("%s: tiers.%s is not an object" % (cfg.CFG_PATH, tier))
     return bool(tier_conf.get(flag))
 
 

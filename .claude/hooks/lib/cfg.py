@@ -58,6 +58,7 @@ class ConfigError(ValueError):
 
 STR_LIST_KEYS = ("protected_branches", "pipeline_core_files", "protected_files", "learn_tier_editable_paths",
                  "learn_tier_test_globs", "learn_tier_code_dirs")
+TIER_FLAG_KEYS = ("requires_issue", "edits_pipeline_core", "learner_writes_code")
 
 
 def _is_str_list(value: object) -> bool:
@@ -76,6 +77,15 @@ def _validate(data: object) -> Config:
         for key in ("phases", "judges"):
             if key in tier and not _is_str_list(tier[key]):
                 raise ConfigError("%s: tiers.%s.%s must be a list of strings" % (CFG_PATH, name, key))
+        if "team" in tier and not isinstance(tier["team"], str):
+            raise ConfigError("%s: tiers.%s.team must be a string, not %s"
+                              % (CFG_PATH, name, type(tier["team"]).__name__))
+        # Exact type: a string "false" or a 0/1 would be truthy or falsy by accident, and a truthy
+        # edits_pipeline_core opens core writes.
+        for key in TIER_FLAG_KEYS:
+            if key in tier and type(tier[key]) is not bool:
+                raise ConfigError("%s: tiers.%s.%s must be true or false, not %s"
+                                  % (CFG_PATH, name, key, type(tier[key]).__name__))
     judge_agents = data.get("judge_agents")
     if not isinstance(judge_agents, dict) or not all(isinstance(v, str) for v in judge_agents.values()):
         raise ConfigError("%s: judge_agents must map judge keys to file names" % CFG_PATH)
@@ -89,7 +99,9 @@ def _validate(data: object) -> Config:
     for key in STR_LIST_KEYS:
         if not _is_str_list(data.get(key)):
             raise ConfigError("%s: %s must be a list of strings" % (CFG_PATH, key))
-    # The checks above are exactly what Config declares; mypy cannot narrow a dict to a TypedDict.
+    # mypy cannot narrow a dict to a TypedDict. Checked above: every key of _RequiredConfig and every
+    # TierConfig key that is present. Not checked: the optional Config keys, declared as object
+    # because their readers check them.
     return cast(Config, data)
 
 
