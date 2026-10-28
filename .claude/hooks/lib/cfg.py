@@ -14,17 +14,92 @@ Usage: cfg.py <command> [args]
 import json
 import os
 import sys
+from typing import Mapping, TypedDict, cast
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CFG_PATH = os.path.normpath(os.path.join(HERE, "..", "..", "pipeline.json"))
 
 
-def load():
+class TierConfig(TypedDict, total=False):
+    team: str
+    requires_issue: bool
+    phases: list[str]
+    judges: list[str]
+    edits_pipeline_core: bool
+    learner_writes_code: bool
+
+
+class _RequiredConfig(TypedDict):
+    tiers: dict[str, TierConfig]
+    judge_agents: dict[str, str]
+    agent_gates: dict[str, object]
+    grant_file: str
+    state_ttl_hours: float
+    protected_branches: list[str]
+    pipeline_core_files: list[str]
+    protected_files: list[str]
+    learn_tier_editable_paths: list[str]
+    learn_tier_test_globs: list[str]
+    learn_tier_code_dirs: list[str]
+
+
+class Config(_RequiredConfig, total=False):
+    # Read with .get() and a default; each caller checks the value's type itself.
+    hook_log_max_bytes: object
+    state_lock_timeout_seconds: object
+    watchdog_minutes: object
+    human_wait_phases: object
+
+
+class ConfigError(ValueError):
+    """pipeline.json lacks a key the hooks use, or holds it in another shape. A ValueError, so the
+    existing `except (OSError, ValueError)` handlers treat it like unreadable JSON."""
+
+
+STR_LIST_KEYS = ("protected_branches", "pipeline_core_files", "protected_files", "learn_tier_editable_paths",
+                 "learn_tier_test_globs", "learn_tier_code_dirs")
+
+
+def _is_str_list(value: object) -> bool:
+    return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+def _validate(data: object) -> Config:
+    if not isinstance(data, dict):
+        raise ConfigError("%s is not a JSON object" % CFG_PATH)
+    tiers = data.get("tiers")
+    if not isinstance(tiers, dict):
+        raise ConfigError("%s: tiers must be an object" % CFG_PATH)
+    for name, tier in tiers.items():
+        if not isinstance(tier, dict):
+            raise ConfigError("%s: tiers.%s must be an object" % (CFG_PATH, name))
+        for key in ("phases", "judges"):
+            if key in tier and not _is_str_list(tier[key]):
+                raise ConfigError("%s: tiers.%s.%s must be a list of strings" % (CFG_PATH, name, key))
+    judge_agents = data.get("judge_agents")
+    if not isinstance(judge_agents, dict) or not all(isinstance(v, str) for v in judge_agents.values()):
+        raise ConfigError("%s: judge_agents must map judge keys to file names" % CFG_PATH)
+    if not isinstance(data.get("agent_gates"), dict):
+        raise ConfigError("%s: agent_gates must be an object" % CFG_PATH)
+    if not isinstance(data.get("grant_file"), str):
+        raise ConfigError("%s: grant_file must be a string" % CFG_PATH)
+    ttl = data.get("state_ttl_hours")
+    if not isinstance(ttl, (int, float)) or isinstance(ttl, bool):
+        raise ConfigError("%s: state_ttl_hours must be a number" % CFG_PATH)
+    for key in STR_LIST_KEYS:
+        if not _is_str_list(data.get(key)):
+            raise ConfigError("%s: %s must be a list of strings" % (CFG_PATH, key))
+    # The checks above are exactly what Config declares; mypy cannot narrow a dict to a TypedDict.
+    return cast(Config, data)
+
+
+def load() -> Config:
     with open(CFG_PATH, encoding="utf-8") as fh:
-        return json.load(fh)
+        data: object = json.load(fh)
+    return _validate(data)
 
 
-def main(argv):
+def main(argv: list[str]) -> int:
     if len(argv) < 2:
         print(__doc__, file=sys.stderr)
         return 1
@@ -47,9 +122,11 @@ def main(argv):
     elif cmd == "gated_agents":
         print(" ".join(k for k in cfg["agent_gates"] if not k.startswith("_")))
     elif cmd == "tier_flag":
-        print("1" if tiers.get(args[0], {}).get(args[1]) else "0")
+        flags: Mapping[str, object] = tiers.get(args[0], {})
+        print("1" if flags.get(args[1]) else "0")
     elif cmd == "get":
-        val = cfg.get(args[0], "")
+        top: Mapping[str, object] = cfg
+        val = top.get(args[0], "")
         print(" ".join(map(str, val)) if isinstance(val, list) else val)
     else:
         print("unknown command: %s" % cmd, file=sys.stderr)
