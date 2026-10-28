@@ -1,0 +1,100 @@
+# Reserve pool for the mentor review after memory-precedence-quiz is closed (design 2.5.6).
+# Mentor-review store, never on the command-check mount; never shown before the review. Same format and authoring rules as quiz.yaml.
+version: 1
+check: memory-precedence-quiz
+passBar: "passScore 0.75: at least 5 of 6 correct (0.75 x 6 = 4.5), exact set match per question"
+questions:
+  - id: local-claude-blocks-agents
+    type: single
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию. Сессия из `/repo`. В `/repo` есть только
+      `AGENTS.md` и ваш личный `CLAUDE.local.md` (две строки про ваш редактор). Что прочитает
+      Claude Code при запуске из этих двух файлов?
+    options:
+      - { id: a, text: "Только `CLAUDE.local.md`: AGENTS.md читается лишь без него" }
+      - { id: b, text: "Оба файла: локальный файл на чтение AGENTS.md не влияет" }
+      - { id: c, text: "Только `AGENTS.md`: личные файлы читаются по требованию" }
+      - { id: d, text: "Ни один: личный файл отключает память проекта целиком" }
+    correct: [a]
+    explanation: |
+      При настройках по умолчанию AGENTS.md читается, только если в текущем каталоге и выше нет
+      `CLAUDE.md`, `.claude/CLAUDE.md` или `CLAUDE.local.md`. Здесь есть `CLAUDE.local.md`, поэтому
+      AGENTS.md не читается; решение - импорт `@AGENTS.md` в нём или в CLAUDE.md.
+
+  - id: user-claude-does-not-count
+    type: single
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию. У вас есть `~/.claude/CLAUDE.md`. В проекте
+      `/repo`, откуда идёт запуск, есть только `AGENTS.md`. Прочитает ли Claude Code AGENTS.md?
+    options:
+      - { id: a, text: "Нет: любой CLAUDE.md, даже в домашнем каталоге, отключает AGENTS.md" }
+      - { id: b, text: "Да: пользовательский CLAUDE.md не мешает чтению AGENTS.md проекта" }
+      - { id: c, text: "Нет: AGENTS.md читается, только если его импортирует пользовательский файл" }
+      - { id: d, text: "Да, но только после команды `/init`, которая подключает AGENTS.md" }
+    correct: [b]
+    explanation: |
+      Условие "нет CLAUDE.md" проверяется в текущем каталоге и выше; пользовательский и managed
+      CLAUDE.md не считаются. Поэтому AGENTS.md проекта читается, а пользовательский файл
+      загружается своим порядком.
+
+  - id: codex-project-override
+    type: single
+    prompt: |
+      Codex CLI, настройки по умолчанию. В корне проекта `/repo` лежат и `AGENTS.override.md`, и
+      `AGENTS.md`. Запуск из `/repo`. Какой файл проекта из этого каталога будет использован?
+    options:
+      - { id: a, text: "Оба, склеенные: сначала `AGENTS.md`, затем override" }
+      - { id: b, text: "`AGENTS.md`: override нужен только глобально, в `~/.codex/`" }
+      - { id: c, text: "`AGENTS.override.md`: в одном каталоге берётся один файл" }
+      - { id: d, text: "Ни один: при двух файлах Codex сообщает об ошибке" }
+    correct: [c]
+    explanation: |
+      В каждом каталоге Codex берёт не больше одного файла, и `AGENTS.override.md` идёт раньше
+      `AGENTS.md`. Поэтому из `/repo` используется override.
+
+  - id: memory-size-target
+    type: single
+    prompt: |
+      Claude Code 2.1.311. Команда спорит о размере CLAUDE.md. Что говорит документация Claude Code о
+      длине файла и почему это важно?
+    options:
+      - { id: a, text: "Размер не важен: модель читает файл, только если нужно" }
+      - { id: b, text: "Чем длиннее, тем лучше: модель получает больше правил" }
+      - { id: c, text: "Файл обязан быть короче 20 строк, иначе он не грузится" }
+      - { id: d, text: "Целиться в 200 строк и меньше: файл едет в каждый ход" }
+    correct: [d]
+    explanation: |
+      Документация Claude Code советует держать CLAUDE.md коротким (ориентир - до 200 строк):
+      он загружается в начале сессии и занимает контекст в каждом ходе, а лишние требования мешают
+      модели выделить важное.
+
+  - id: what-belongs-in-agents
+    type: multiple
+    prompt: |
+      Вы пишете AGENTS.md для сервиса. Что из этого стоит туда записать? Выберите все верные.
+    options:
+      - { id: a, text: "Тесты только через `make test`: он поднимает фикстуры, pytest - нет" }
+      - { id: b, text: "Полное дерево каталогов проекта с подробным описанием каждого модуля" }
+      - { id: c, text: "Миграции только новые через `make migration`, старые не правим" }
+      - { id: d, text: "Не запускать сброс БД против staging: это общая база команды" }
+    correct: [a, c, d]
+    explanation: |
+      В файл инструкций идёт то, что не вывести из кода: неочевидные команды, подводные камни,
+      запреты с причиной. Дерево каталогов агент видит сам, и оно только занимает контекст.
+
+  - id: codex-and-cc-differ
+    type: multiple
+    prompt: |
+      В монорепо работают и Codex CLI, и Claude Code 2.1.311, оба с настройками по умолчанию.
+      В корне есть `CLAUDE.md` и `AGENTS.md` без импортов. Какие утверждения верны? Выберите все
+      верные.
+    options:
+      - { id: a, text: "Codex прочитает `AGENTS.md`, на `CLAUDE.md` он не смотрит" }
+      - { id: b, text: "Claude Code прочитает `CLAUDE.md`, а `AGENTS.md` не прочитает" }
+      - { id: c, text: "Оба инструмента прочитают оба файла и склеят их в одинаковом порядке" }
+      - { id: d, text: "Чтобы Claude Code видел AGENTS.md, в CLAUDE.md нужен `@AGENTS.md`" }
+    correct: [a, b, d]
+    explanation: |
+      Правила загрузки у инструментов разные. Codex читает AGENTS.md. Claude Code при наличии
+      CLAUDE.md читает его и подключает AGENTS.md только через импорт (или через настройку
+      `instructionFiles` в пользовательских настройках).

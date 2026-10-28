@@ -1,0 +1,44 @@
+id: intro-agent-loop
+title: "Устройство агента: цикл, харнесс, инструменты, MCP"
+type: artifact
+outcomes:
+  - "Реализует минимальный цикл агента: модель выбирает инструмент, харнесс проверяет разрешение, исполняет инструмент и возвращает результат в контекст; подключает инструменты внешнего процесса по протоколу в стиле MCP."
+estimatedMinutes: 60
+status: ready
+prerequisites:
+  - intro-models-effort
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: How Claude Code works (цикл, харнесс, контекст, чекпоинты)"
+    url: https://code.claude.com/docs/en/how-claude-code-works
+    checkedAt: "2026-10-27"
+  - title: "Anthropic: Building effective agents (2024-12-19)"
+    url: https://www.anthropic.com/engineering/building-effective-agents
+    checkedAt: "2026-10-27"
+  - title: "MCP specification (latest)"
+    url: https://modelcontextprotocol.io/specification/latest
+    checkedAt: "2026-10-27"
+  - title: "MCP specification changelog (ревизия 2026-07-28)"
+    url: https://modelcontextprotocol.io/specification/latest/changelog
+    checkedAt: "2026-10-27"
+  - title: "MCP: Security best practices"
+    url: https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Manage costs (CLI против MCP)"
+    url: https://code.claude.com/docs/en/costs
+    checkedAt: "2026-10-27"
+checks:
+  - id: harness-behaviour
+    title: "Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/test_harness.py"'
+    timeoutSec: 120
+    weight: 3
+  - id: mcp-quiz
+    title: "Квиз: роли MCP, что делает харнесс, транспорты, риски"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

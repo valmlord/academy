@@ -1,0 +1,13 @@
+{
+  "title": "Invoice",
+  "type": "object",
+  "required": ["id", "customer", "amount_cents", "currency", "status", "issued_on"],
+  "properties": {
+    "id": {"type": "integer"},
+    "customer": {"type": "string"},
+    "amount_cents": {"type": "integer"},
+    "currency": {"type": "string", "enum": ["EUR", "USD"]},
+    "status": {"type": "string", "enum": ["draft", "sent", "paid"]},
+    "issued_on": {"type": "string", "format": "date"}
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "session_cost_usd": {
+    "a": 0.7282,
+    "b": 0.6532,
+    "c": 0.9202
+  },
+  "a_repriced_on_mid_tier_usd": 0.16135,
+  "b_cache_miss_turn": 21,
+  "largest_component": {
+    "a": "output",
+    "b": "uncached-input",
+    "c": "cache-read"
+  },
+  "cheaper_per_task": "a"
+}

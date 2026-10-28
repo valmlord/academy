@@ -1,0 +1,8 @@
+{
+  "offline-audit": {"tier": "mid", "effort": "medium", "deployment": "local", "binding_constraint": "privacy", "reason": "Код не может покинуть ноутбук: только локальная модель; время не ограничено, хватает уровня хорошего ревью."},
+  "ide-hint": {"tier": "small", "effort": "low", "deployment": "cloud", "binding_constraint": "latency", "reason": "Ответ за 2 секунды: быстрая маленькая модель с минимальным усилием; локальная слишком медленная."},
+  "ticket-triage": {"tier": "small", "effort": "low", "deployment": "cloud", "binding_constraint": "price", "reason": "10 000 запусков в день при малом бюджете, простая классификация: самый дешёвый уровень, low для массовой простой работы."},
+  "log-dump": {"tier": "mid", "effort": "medium", "deployment": "cloud", "binding_constraint": "context", "reason": "700k токенов целиком: нужно окно 1M, у всех облачных уровней оно есть; локальная модель с малым окном не подходит."},
+  "core-refactor": {"tier": "frontier", "effort": "xhigh", "deployment": "cloud", "binding_constraint": "quality", "reason": "Решает качество, бюджет и время не ограничены: самый сильный уровень, усилие выше дефолта."},
+  "bulk-rename": {"tier": "small", "effort": "low", "deployment": "cloud", "binding_constraint": "price", "reason": "Простая механическая замена тысячи раз в месяц при малом бюджете: самый дешёвый уровень, low."}
+}

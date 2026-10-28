@@ -1,0 +1,102 @@
+# Reserve item for the mentor review after context-bug-hunt is closed (design 2.5.6).
+# Mentor-review store, never on the command-check mount; never shown before the review. Same matching rules as checks/bugs.yaml (design 2.2):
+# a report matches when file, category and a line inside one of the bug's ranges agree.
+version: 1
+check: context-bug-hunt
+report: findings-reserve.json
+minFound: 3
+maxReports: 4
+maxDecoyHits: 1
+passBar: "minFound 3 of 3 planted mistakes, at most 4 reports, at most 1 report on a decoy range"
+file: transcript-2.md
+transcript: |2
+   1 | # Фрагмент транскрипта 2 (синтетический, учебный). Номер слева = физическая строка фрагмента.
+   2 |
+   3 | ## Сессия A
+   4 |
+   5 | > Ночью падал импорт счетов. Разберись, в чём дело. Лог в logs/import.log.
+   6 |
+   7 | ● Read(logs/import.log)
+   8 |   ⎿ (весь файл: 48 000 строк, около 600 000 токенов: каждая строка импорта за неделю)
+   9 | ● В логе много повторяющихся ошибок таймаута к банку.
+  10 |
+  11 | > Ладно. Важное правило на всю работу: в main не коммить, только в ветку fix/import.
+  12 |
+  13 | ● Принял.
+  14 |
+  15 | ● Bash(grep -n "ERROR" logs/import.log | tail -n 20)
+  16 |   ⎿ (20 последних ошибок: все TimeoutError к bank-api, начиная с 02:14)
+  17 | ● Ошибки начались в 02:14 и все одного вида: таймаут к bank-api.
+  18 |
+  19 | ● Edit(src/importer/client.py)
+  20 |   ⎿ timeout 5 -> 15 секунд, повтор с паузой 2 раза
+  21 |
+  22 | ● Bash(make test)
+  23 |   ⎿ 31 passed in 1.02s
+  24 | ● Таймаут и повторы готовы, 31 тест прошёл (вывод выше).
+  25 |
+  26 | > Хорошо. Теперь большой кусок: перепиши разбор выписки на новый формат банка, там
+  27 | > поменялись все поля. Затронет parser.py, mapping.py и models.py.
+  28 |
+  29 | ● Переписываю все три модуля сразу, тесты потом.
+  30 | ● Edit(src/importer/parser.py)
+  31 |   ⎿ Новый формат полей выписки
+  32 | ● Edit(src/importer/mapping.py)
+  33 |   ⎿ Новые имена полей
+  34 | ● Edit(src/importer/models.py)
+  35 |   ⎿ Поле value_date вместо date
+  36 |
+  37 | ● Готово, новый формат поддержан полностью.
+  38 |
+  39 | > Хорошо, на сегодня всё. Завтра продолжим.
+  40 |
+  41 | ## Сессия B (новая сессия на следующий день)
+  42 |
+  43 | > Продолжаем импорт. Что у нас по правилам репозитория?
+  44 |
+  45 | ● Read(CLAUDE.md)
+  46 |   ⎿ (12 строк) ... Тесты только через `make test`.
+  47 | ● По CLAUDE.md тесты запускаю через make test.
+  48 |
+  49 | ● Bash(make test)
+  50 |   ⎿ 2 failed, 29 passed
+  51 | ● Падают тесты разбора выписки. Исправляю mapping.py.
+  52 | ● Edit(src/importer/mapping.py)
+  53 |   ⎿ value_date вместо date в двух местах
+  54 | ● Bash(make test)
+  55 |   ⎿ 31 passed
+  56 |
+  57 | ● Bash(git checkout main && git commit -am "fix bank import")
+  58 |   ⎿ [main 4c1d2e9] fix bank import
+  59 |
+  60 | > Ты закоммитил в main?
+  61 | ● Да, коммит 4c1d2e9 в main.
+bugs:
+  - id: whole-log-read
+    file: transcript-2.md
+    lines: [[7, 9]]
+    category: bloat-tool-read
+    title: "Весь лог на ~600k токенов прочитан целиком вместо grep/tail."
+  - id: rewrite-without-check
+    file: transcript-2.md
+    lines: [[29, 31], [37, 37]]
+    category: no-verification
+    title: "Переписаны три модуля без проверки, 'готово' без запуска тестов."
+  - id: main-rule-lost
+    file: transcript-2.md
+    lines: [[11, 11], [57, 58]]
+    category: lost-instruction
+    title: "Правило 'не коммитить в main' было только в чате вчерашней сессии; в новой сессии агент коммитит в main."
+decoys:
+  - id: grep-log-tail
+    file: transcript-2.md
+    lines: [[15, 17]]
+    lookalike: bloat-tool-read
+  - id: fix-with-test-output
+    file: transcript-2.md
+    lines: [[22, 24]]
+    lookalike: no-verification
+  - id: memory-read-new-session
+    file: transcript-2.md
+    lines: [[45, 47]]
+    lookalike: lost-instruction

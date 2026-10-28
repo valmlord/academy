@@ -1,0 +1,6 @@
+{
+  "comment": "Randomized names for permissions-policy and hook-blocks-generated probes; chosen per run.",
+  "names": ["ledger", "payout", "refund", "tariff", "voucher", "remit", "accrual", "dunning", "credit_note", "settlement", "prorate", "invoice_line", "tax_rule", "billing_run", "statement", "receipt", "chargeback", "balance", "discount", "subscription"],
+  "tlds": ["example.org", "example.net", "example.com", "test.dev", "corp.example"],
+  "docs_domains": ["docs.python.org", "developer.mozilla.org", "docs.github.com", "code.claude.com", "learn.microsoft.com"]
+}

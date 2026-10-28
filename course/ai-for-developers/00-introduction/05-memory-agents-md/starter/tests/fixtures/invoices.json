@@ -1,0 +1,5 @@
+[
+  {"id": 1, "customer": "Acme GmbH", "amount_cents": 120000, "currency": "EUR", "status": "paid", "issued_on": "2026-09-01"},
+  {"id": 2, "customer": "Globex", "amount_cents": 45050, "currency": "USD", "status": "sent", "issued_on": "2026-09-14"},
+  {"id": 3, "customer": "Initech", "amount_cents": 9900, "currency": "EUR", "status": "draft", "issued_on": "2026-10-02"}
+]
