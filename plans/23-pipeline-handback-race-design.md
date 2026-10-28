@@ -108,8 +108,10 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
   `(unreadable)` line and `op_resume`'s check at `:421`.
   As built (code review, a693d3f and round 3): the parked time comes from `_parked_at`, which prints `?` for a
   missing, non-numeric or boolean `parked_ts`, for a non-finite one (`json.load` accepts `Infinity`, `NaN` and
-  `1e400`) and for one `time.localtime` rejects (`OverflowError`, `ValueError`, `OSError`), instead of the 1970
-  epoch or a traceback.
+  `1e400`), for an integer above the float maximum (`10**309`, which `json.load` returns as an `int`) and for any
+  other value `time.localtime` rejects (`OverflowError`, `ValueError`, `OSError`), instead of the 1970 epoch or a
+  traceback. Round 4: no numeric pre-check runs outside that `try` (`math.isfinite` on such an `int` raised
+  `OverflowError` itself); `localtime` inside the `try` rejects all of these values.
 - One helper `is_ascii_digits(text: str) -> bool` (`isascii() and isdigit()`) used at `op_init` (`:264`),
   `require_grant` (`:111`), `_pick_parked` (`:391`) and `_test_delay` (`:157`). Because a Unicode digit (`²`) passes
   `isdigit()` and then crashes `int()`; at `:287` that crash comes after `_park` (`:284`), so today it can park the

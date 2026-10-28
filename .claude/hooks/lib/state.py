@@ -22,7 +22,6 @@ Exit codes: 0 done (one result line on stdout), 1 refused, 3 the state changed u
 import contextlib
 import fcntl
 import json
-import math
 import os
 import subprocess
 import sys
@@ -480,10 +479,10 @@ def op_resume(root: str, wanted: str, code_root: str, gitdir: str, branch: str) 
 
 def _parked_at(parked_ts: object) -> str:
     """A missing, non-numeric, non-finite or out-of-range time is "?", not the 1970 epoch or a
-    traceback: json.load accepts Infinity, NaN and 1e400 (inf), and localtime rejects huge values."""
+    traceback: json.load accepts Infinity, NaN, 1e400 (inf) and ints above the float maximum, and
+    localtime raises OverflowError or ValueError for each of them inside the try. No numeric
+    pre-check sits outside it: math.isfinite on such an int raises OverflowError itself."""
     if not isinstance(parked_ts, (int, float)) or isinstance(parked_ts, bool):
-        return "?"
-    if not math.isfinite(parked_ts):
         return "?"
     try:
         return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(parked_ts))
