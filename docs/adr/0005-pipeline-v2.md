@@ -83,6 +83,10 @@ decisions 1-7: `plans/21-pipeline-v2-research.md`; full design: `plans/21-pipeli
    Stop gate (`phase-complete.sh`) instead warns and allows when it cannot evaluate (no
    `common.sh`, no usable python3, a resolver failure): a Stop block that nothing can repair only
    re-prompts the session. A crash inside its own checks still blocks every Stop (residual).
+   `lib/cfg.py` validates `pipeline.json` on every load, every tier included (active or not): a
+   tier's `team` must be a string and its three flags exactly `true`/`false`. Anything else is a
+   crash of both PreToolUse gates, i.e. every write and command blocked, rather than a string
+   `"false"` read as true; the way out is fixing the file by hand or the kill switch.
 
 ## Alternatives considered
 - Dispatch to the resolved checkout's own scripts: an old-commit worktree or a fake `.git`-file

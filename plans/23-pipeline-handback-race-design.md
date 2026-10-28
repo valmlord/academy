@@ -182,8 +182,12 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
 
 - New `lib/pl_gate.py` (shared by both gates): `Blocked` exception, `tier_of(status)`, `has_flag(conf, tier,
   flag)` with `conf: Mapping[str, object]` (so the later `Config` TypedDict of 10a is accepted without editing
-  `pl_gate.py`), `read_hook_input() -> dict[str, object]`, and `run(decide)`. It imports only the stdlib and
-  `pl_jsonshape`.
+  `pl_gate.py`), `read_hook_input() -> dict[str, object]`, and `run(decide)`. It imports the stdlib,
+  `pl_jsonshape` and `cfg`. As built (58c1152): the `cfg` import is for `cfg.ConfigError` and `cfg.CFG_PATH`,
+  which `has_flag` raises when the `tiers` section or the requested tier is not an object, so a malformed section
+  is a crash (block) and never reads as false. Rule: `cfg` must never import from `lib/`; an import of
+  `pl_gate` (or anything that imports it) into `cfg` would be a cycle, and a cycle that fails at import crashes
+  every gate.
   - `read_hook_input` reads `sys.stdin.buffer` and decodes **strict UTF-8**; a `UnicodeDecodeError` propagates
     (crash = block), because a lenient decode (`surrogateescape` under a C locale) would hand the guard a command
     text that differs from what the shell runs. Empty input -> `{}`; invalid JSON or a non-object -> `{}` (today's
@@ -218,7 +222,9 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
   parsing were duplicated. Other inline Python (`phase-complete.sh`, `pipeline-advance.sh` stdin scripts, watchdog
   remainder) stays inline: section 5.
 - `pl_gate.py` is **frozen after step 8**: step 9 reuses it unchanged. If step 9 or the 10e mypy run needs a
-  change there, that change goes through the shared-file path of 10.1 like any other shared file.
+  change there, that change goes through the shared-file path of 10.1 like any other shared file. As built: the
+  code-review fix 58c1152 changed `has_flag` (raise `cfg.ConfigError` on a malformed `tiers` section) through the
+  same path.
 
 ### 2.8 Strict typing and the mypy CI job (follow-up 13, decision 2)
 
@@ -228,13 +234,16 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
 - **Import graph (callees first, the typing order):** `cfg` imports nothing from `lib/`; `checkout` imports `cfg`
   (`checkout.py:25`); `hookio` imports `cfg` and `checkout` (`hookio.py:32-33`, calls `checkout.code_root()` at
   `:45`); `state` imports `cfg` and `checkout` (`state.py:32-33`); `pl_jsonshape` imports nothing from `lib/`;
-  `pl_gate` imports `pl_jsonshape`; `pl_write_gate` and `pl_shell_guard` import `cfg`, `checkout`, `pl_gate`,
+  `pl_gate` imports `cfg` and `pl_jsonshape`; `pl_write_gate` and `pl_shell_guard` import `cfg`, `checkout`, `pl_gate`,
   `pl_jsonshape`. Nothing in `lib/` imports `state` or `hookio` (the watchdog's inline import of `state` is outside
   mypy's scope). Under `--strict`, a typed module that calls an untyped one gets `no-untyped-call` in its own file,
   so a module can be clean only after every `lib/` module it calls is typed.
   As built (step 10): `cfg` still imports nothing from `lib/` (its validation needs no `pl_jsonshape`);
   `hookio` and `state` gained an import of `pl_jsonshape`, which imports nothing from `lib/`, so the order
-  above is unchanged.
+  above is unchanged. As built (58c1152): `pl_gate` imports `cfg` (for `cfg.ConfigError`, 2.7); `cfg` is typed
+  first, so the order is unchanged. `cfg` must never import from `lib/`: it is imported by every other module
+  except `pl_jsonshape`, so any lib import in `cfg` risks a cycle, and a cycle that fails at import crashes
+  every gate.
 - Conventions (code-style rules 2): no `Any`, no bare `# type: ignore` (an ignore needs an error code and a reason
   comment), exported functions carry return types. JSON from disk or stdin is `object`, narrowed through
   `lib/pl_jsonshape.py` (`as_object(v) -> Optional[dict[str, object]]`, `as_str(v, default) -> str`,
@@ -242,9 +251,19 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
   evaluated at definition time on the 3.9 runtime. `collections.namedtuple` becomes `typing.NamedTuple`.
   `cfg.load()` validates the top-level types of the keys the hooks use and raises `ConfigError(ValueError)` (so
   existing `except (OSError, ValueError)` handlers keep working); one `typing.cast` to a `Config` TypedDict right
-  after that validation, with a comment, because mypy cannot narrow a dict to a TypedDict.
+  after that validation, with a comment, because mypy cannot narrow a dict to a TypedDict. As built (58c1152):
+  `_validate` also checks every tier, active or not: `phases` and `judges`, when present, are lists of strings;
+  `team`, when present, is a string; `requires_issue`, `edits_pipeline_core` and `learner_writes_code`, when
+  present, are exactly `bool` (`type(v) is bool`, so a string `"false"` or a `0`/`1` is refused). The comment
+  on the cast lists what was checked and what was not (the optional `Config` keys, declared `object`).
 - Behaviour must not change, except that malformed shapes which today raise `AttributeError` are refused with a
   message. The existing suite is the guard, run on 3.9.6 for every step (10.1).
+- Deliberate behaviour change (58c1152), fail closed: a wrongly typed `team` or flag in ANY tier of
+  `pipeline.json`, active or not, makes `cfg.load()` raise `ConfigError`, so both PreToolUse gates crash and
+  block every write and every shell command (the CLI and the other `cfg.load()` readers fail too). Before, a
+  `"edits_pipeline_core": "false"` passed `load()`, `has_flag` read it as true, and the write gate opened
+  pipeline core outside PIPELINE. Recovery: fix `pipeline.json` by hand in a terminal, or the kill switch
+  (CLAUDE.md section 7, runbook 11.2).
 - mypy itself needs Python >= 3.10 (verified by the operations judge); it targets the 3.9 runtime with
   `--python-version 3.9`, which mypy 2.x rejects, so the pin is the 1.20 line.
 - `tests/pipeline/requirements-typecheck.txt`, exact pins (no-deps wheel install verified on 3.12 by the operations
@@ -512,7 +531,7 @@ path: it is the same `pl_fail` branch as T15d.
 | F8 | Markers accumulate in TMPDIR | one empty `0o600` file per session, checkout and status; OS cleans TMPDIR |
 | F9 | The stricter `.claude` rule blocks a legitimate command | accepted (decision 1); name paths without braces; T9 |
 | F10 | Annotations use 3.10+ runtime syntax and break hooks on the 3.9.6 runtime (every gate fails closed) | mypy targets 3.9 (T14b); every step's scratch suite runs on `/usr/bin/python3` 3.9.6 before install (10.1 P3-P4), so an evaluated `X \| None` fails in scratch, not live |
-| F11 | Typing changes behaviour | the suite on 3.9.6 per module (step 10a-10d); the only intended change is a message instead of a traceback on malformed shapes. `cfg.load()`'s new validation runs against the real `pipeline.json` in the scratch export before it goes live |
+| F11 | Typing changes behaviour | the suite on 3.9.6 per module (step 10a-10d); the intended changes are a message instead of a traceback on malformed shapes, and (58c1152) a wrongly typed tier `team` or flag in any tier blocking every gate (2.8). `cfg.load()`'s new validation runs against the real `pipeline.json` in the scratch export before it goes live |
 | F12 | PyPI or `setup-python` unavailable in CI | `pipeline-types` red until a re-run; no hook behaviour depends on it |
 | F13 | A pinned wheel disappears from PyPI | install fails loudly (`--no-deps`, exact pins); repin deliberately |
 | F14 | A new lib module shadows or is shadowed | `python3 -I` keeps the script directory off `sys.path`; `lib/` is appended, so stdlib wins; the `pl_` prefix keeps site-packages names (`gate`) from shadowing ours; the stdlib-shadow row (`:371`) keeps running |
