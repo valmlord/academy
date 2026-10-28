@@ -22,6 +22,7 @@ Exit codes: 0 done (one result line on stdout), 1 refused, 3 the state changed u
 import contextlib
 import fcntl
 import json
+import math
 import os
 import subprocess
 import sys
@@ -477,6 +478,19 @@ def op_resume(root: str, wanted: str, code_root: str, gitdir: str, branch: str) 
     return "resumed %s" % key
 
 
+def _parked_at(parked_ts: object) -> str:
+    """A missing, non-numeric, non-finite or out-of-range time is "?", not the 1970 epoch or a
+    traceback: json.load accepts Infinity, NaN and 1e400 (inf), and localtime rejects huge values."""
+    if not isinstance(parked_ts, (int, float)) or isinstance(parked_ts, bool):
+        return "?"
+    if not math.isfinite(parked_ts):
+        return "?"
+    try:
+        return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(parked_ts))
+    except (OverflowError, ValueError, OSError):
+        return "?"
+
+
 def op_parked(root: str) -> str:
     lines: list[str] = []
     for key in _parked_keys(root):
@@ -489,15 +503,9 @@ def op_parked(root: str) -> str:
         if not isinstance(d, dict):
             lines.append("%s (not a JSON object)" % key)
             continue
-        parked_ts = d.get("parked_ts")
-        # A missing or non-numeric time is shown as unknown, not as the 1970 epoch.
-        if isinstance(parked_ts, (int, float)) and not isinstance(parked_ts, bool):
-            parked_at = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(parked_ts))
-        else:
-            parked_at = "?"
         lines.append("#%s %s/%s (%s, key %s, parked %s, %s)" % (
             d.get("issue") or "-", d.get("tier"), d.get("phase"), d.get("branch_at_init"), key,
-            parked_at, d.get("parked_reason")))
+            _parked_at(d.get("parked_ts")), d.get("parked_reason")))
     return "\n".join(lines)
 
 

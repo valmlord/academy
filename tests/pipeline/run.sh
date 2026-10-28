@@ -1130,11 +1130,16 @@ reset_state
 mkdir -p "$PARKED"
 printf '{"issue": 112, "tier": "PROJECT", "phase": "coder", "parked_ts": "soon"}\n' > "$PARKED/112-1.json"
 printf '{"issue": 113, "tier": "PROJECT", "phase": "coder"}\n' > "$PARKED/113-1.json"
+printf '{"issue": 114, "tier": "PROJECT", "phase": "coder", "parked_ts": true}\n' > "$PARKED/114-1.json"
+printf '{"issue": 115, "tier": "PROJECT", "phase": "coder", "parked_ts": 1e400}\n' > "$PARKED/115-1.json"
+printf '{"issue": 116, "tier": "PROJECT", "phase": "coder", "parked_ts": 100000000000000000000}\n' > "$PARKED/116-1.json"
 PARKED_OUT=$("${ADV[@]}" parked 2>&1); PARKED_RC=$?
 if [ "$PARKED_RC" = 0 ] && printf '%s' "$PARKED_OUT" | grep -q "key 112-1, parked ?," \
-  && printf '%s' "$PARKED_OUT" | grep -q "key 113-1, parked ?," && ! printf '%s' "$PARKED_OUT" | grep -q "parked 19[67]"; then
-  ok "parked shows an unknown time for a missing or non-numeric parked_ts"
-else bad "parked shows an unknown time for a missing or non-numeric parked_ts (rc=$PARKED_RC: $PARKED_OUT)"; fi
+  && printf '%s' "$PARKED_OUT" | grep -q "key 113-1, parked ?," && printf '%s' "$PARKED_OUT" | grep -q "key 114-1, parked ?," \
+  && printf '%s' "$PARKED_OUT" | grep -q "key 115-1, parked ?," && printf '%s' "$PARKED_OUT" | grep -q "key 116-1, parked ?," \
+  && ! printf '%s' "$PARKED_OUT" | grep -q "parked 19[67]"; then
+  ok "parked shows an unknown time for a missing, non-numeric, boolean, infinite or out-of-range parked_ts"
+else bad "parked shows an unknown time for a missing, non-numeric, boolean, infinite or out-of-range parked_ts (rc=$PARKED_RC: $PARKED_OUT)"; fi
 reset_state
 
 put_state "$WORK" PROJECT coder
