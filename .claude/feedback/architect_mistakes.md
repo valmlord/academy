@@ -297,3 +297,15 @@ hookio itself until checkout is annotated. So 10b's gate is unreachable.
 Rule: Trace every assertion through the full wrapper chain, including the trailing `run_hook`
 mapping and its log line, before writing it down. A mutation must not land inside a handler the
 same design adds. Order strict-typing steps by the import graph, callees first.
+
+### 2026-10-28: Post-merge step relied on a GitHub feature the repo plan does not have (#23)
+The #23 design (section 12, F20, line 260) told Stepan to make `pipeline-types` a required status
+check on `main`, and the coder echoed it in the ci.yml comment ("the name the required-checks rule
+uses"). `valmlord/academy` is a private repo on the free plan: both
+`gh api repos/valmlord/academy/branches/main/protection` and `.../rulesets` return 403 "Upgrade to
+GitHub Pro or make this repository public". No required-checks rule exists or can exist, so the
+step is unexecutable and the comment describes a rule that is not there. The real merge guard is
+Stepan checking `gh pr checks` before he merges.
+Rule: Before a design relies on a platform feature (branch protection, rulesets, required checks,
+environments), call its API on the real repo and quote the answer; a 403/404 means the design
+needs another enforcement point.

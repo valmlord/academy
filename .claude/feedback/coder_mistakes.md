@@ -52,3 +52,25 @@ with the wrong rc. This broke the design's rule that the CLI passes 1/3/4/75 thr
 message misinforms. The A10 test called state.py directly, so it never ran this branch.
 Rule: Capture a command's output and its rc separately (`out=$(cmd) || rc=$?`) before comparing.
 Every error path of a CLI wrapper needs a test that goes through the wrapper, not just the library.
+
+### 2026-10-28: A TypedDict cast justified by a comment that overstates the validation (#23)
+`cfg._validate` ends with `cast(Config, data)` under the comment "The checks above are exactly what
+Config declares", but `TierConfig` declares `team: str`, `requires_issue: bool`,
+`edits_pipeline_core: bool`, `learner_writes_code: bool` and none of them is checked. A
+`"edits_pipeline_core": "false"` passes `load()`, `has_flag` returns `bool("false")` = True, and
+mypy, trusting the cast, sees a bool, so strict typing cannot flag it. The one cast in the hook
+Python carried a false justification: exactly the hole the "no Any, casts justified" rule exists
+to close, and a lying comment is a defect under the code-style rules.
+Rule: Before casting to a TypedDict, check every declared field (nested ones included) or declare
+the unchecked ones as `object`; the comment on the cast lists what was checked, and only that.
+
+### 2026-10-28: A fix added an import edge and a behaviour change; the design record still denied both (#23)
+The round-1 fix (58c1152) made `pl_gate.py` import `cfg` (for `cfg.ConfigError`) and made `cfg._validate`
+reject wrong-typed tier keys. The design doc still said `pl_gate` "imports only the stdlib and
+`pl_jsonshape`" (2.7) and listed `pl_gate imports pl_jsonshape` as its only lib edge in the 2.8 import
+graph, the record used to order typing and to rule out cycles. 2.8 also still said `cfg.load()` checks
+"the top-level types" and "Behaviour must not change" except AttributeError shapes, while a string or 0/1
+flag in ANY tier now crashes every gate (fail closed). The fix to a lying comment left a lying design
+record.
+Rule: When a fix adds an import or changes behaviour, grep the design/ADR for the module name and update
+every statement about its imports and behaviour in the same commit.
