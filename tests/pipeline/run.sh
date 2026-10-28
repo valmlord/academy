@@ -34,6 +34,32 @@ cp "$SRC/.gitignore" "$WORK/.gitignore"
 # Tests write user-level files (transcripts, settings) and temp markers; keep them out of the real home.
 export HOME="$BASE/home" TMPDIR="$BASE/tmp"
 cd "$WORK" || exit 1
+# BSD mktemp (macOS) replaces only trailing X's: a template ending in anything else is created
+# literally, and a second call fails because the file exists. GNU mktemp (CI) randomizes it, so
+# without this shim no Linux run could see the #23 race. The template reaches Python as an
+# argument, never inside its source; every other invocation goes to the real mktemp.
+mkdir -p "$BASE/bsdbin"
+{
+  echo '#!/bin/bash'
+  printf 'REAL_MKTEMP=%q\n' "$(command -v mktemp)"
+  cat <<'SH'
+if [ $# -eq 1 ] && [ "${1#-}" = "$1" ] && [ "${1%X}" = "$1" ]; then
+  exec python3 -I -c '
+import os, sys
+path = sys.argv[1]
+try:
+    os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+except FileExistsError:
+    sys.stderr.write("mktemp: mkstemp failed on %s: File exists\n" % path)
+    sys.exit(1)
+print(path)
+' "$1"
+fi
+exec "$REAL_MKTEMP" "$@"
+SH
+} > "$BASE/bsdbin/mktemp"
+chmod +x "$BASE/bsdbin/mktemp"
+export PATH="$BASE/bsdbin:$PATH"
 git init -q -b main . && git config user.email t@t && git config user.name t
 echo '.claude/worktrees/' >> .git/info/exclude
 echo x > README.md && git add -A && git commit -qm "init"
@@ -964,6 +990,64 @@ if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "pipeline_state.json.broken"; t
   ok "unreadable state message names the command to move it aside"
 else bad "unreadable state message names the command to move it aside (rc=$RC)"; fi
 reset_state
+git checkout -q main
+
+echo "== #23: temp files, concurrent votes, follow-ups"
+reset_state
+git checkout -q -B feat/112-race main
+SHIM_T="$TMPDIR/shimcheck.XXXXXX.py"
+SHIM_OUT1=$(mktemp "$SHIM_T" 2>/dev/null); SHIM_RC1=$?
+SHIM_ERR2=$(mktemp "$SHIM_T" 2>&1 >/dev/null); SHIM_RC2=$?
+SHIM_DIR=$(mktemp -d)
+if [ "$(command -v mktemp)" = "$BASE/bsdbin/mktemp" ] && [ "$SHIM_RC1" = 0 ] && [ "$SHIM_OUT1" = "$SHIM_T" ] \
+  && [ "$SHIM_RC2" = 1 ] && printf '%s' "$SHIM_ERR2" | grep -q "File exists" && [ -d "$SHIM_DIR" ]; then
+  ok "mktemp shim behaves like BSD for a template without trailing X"
+else bad "mktemp shim behaves like BSD for a template without trailing X (rc=$SHIM_RC1/$SHIM_RC2)"; fi
+rm -rf "$SHIM_T" "$SHIM_DIR"
+
+put_state "$WORK" PROJECT judge_design
+STRANDED="$TMPDIR/pipeline_py.XXXXXX.py"
+: > "$STRANDED"
+STATUS_OK=0
+"${ADV[@]}" status 2>/dev/null | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null && STATUS_OK=1
+transcript "$TDIR/$SID/subagents/agent-t1s.jsonl" "$JS"
+handback t1s "Checked.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ "$STATUS_OK" = 1 ] && [ "$(votes_by t1s)" = "security:PASS:handback" ]; then
+  ok "status and a vote work while a literal pipeline_py.XXXXXX.py exists in TMPDIR"
+else bad "status and a vote work while a literal pipeline_py.XXXXXX.py exists in TMPDIR (status=$STATUS_OK vote=$(votes_by t1s))"; fi
+rm -f "$STRANDED"
+
+RACE_BAD=""
+for r in 1 2 3; do
+  put_state "$WORK" PROJECT judge_design
+  rm -f "$LOG"
+  transcript "$TDIR/$SID/subagents/agent-c${r}s.jsonl" "$JS"
+  transcript "$TDIR/$SID/subagents/agent-c${r}a.jsonl" "$JA"
+  transcript "$TDIR/$SID/subagents/agent-c${r}o.jsonl" "$JO"
+  for j in s a o; do
+    handback "c$r$j" "Checked.
+PASS" "$MAIN_T" >/dev/null 2>&1 &
+  done
+  wait
+  RACE_GOT="$(votes_by "c${r}s") $(votes_by "c${r}a") $(votes_by "c${r}o")"
+  if [ "$RACE_GOT" != "security:PASS:handback architecture:PASS:handback operations:PASS:handback" ] \
+    || [ "$(grep -c '"vote-recorded"' "$LOG")" != 3 ]; then
+    RACE_BAD="$RACE_BAD round $r: $RACE_GOT;"
+  fi
+done
+[ -z "$RACE_BAD" ] && ok "three concurrent handbacks record three votes, three rounds in a row" \
+  || bad "three concurrent handbacks record three votes, three rounds in a row ($RACE_BAD)"
+reset_state
+
+QWT="$WORK/.claude/worktrees/it's wt"
+git -C "$WORK" worktree add -q -b feat/113-quote "$QWT" HEAD >/dev/null 2>&1
+put_state "$QWT" PROJECT coder 113
+if (cd "$QWT" && "${ADV[@]}" status 2>/dev/null) | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('issue') == 113 else 1)"; then
+  ok "status works in a checkout whose path contains a single quote"
+else bad "status works in a checkout whose path contains a single quote"; fi
+reset_state
+git branch -D feat/113-quote >/dev/null 2>&1
 git checkout -q main
 
 echo
