@@ -14,6 +14,7 @@ lists it, its .git file points into the main git dir, and it lies outside the ma
 """
 import collections
 import errno
+import hashlib
 import json
 import os
 import subprocess
@@ -287,6 +288,23 @@ def _hook_input():
     return data if isinstance(data, dict) else {}
 
 
+def _foreign_marker_is_new(session_id, state_root, status):
+    """True the first time a session sees this foreign status for this checkout: every hook call
+    resolves the state, and one line per call drowned the log. The marker is an empty file in
+    TMPDIR. Only an OSError is handled (log anyway); anything else is a defect and fails closed."""
+    # backslashreplace cannot raise for a str: it covers the lone surrogates json.loads can return.
+    key = (session_id + "\0" + state_root + "\0" + status).encode("utf-8", "backslashreplace")
+    path = os.path.join(os.environ.get("TMPDIR") or "/tmp", "pipeline_foreign_" + hashlib.sha1(key).hexdigest()[:16])
+    try:
+        # 0o600: the name derives from the session id; other users have no business with it.
+        os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+    except FileExistsError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
 def _context(argv):
     hook = argv[0] if argv else ""
     forwarded = argv[1] if len(argv) > 1 else ""
@@ -302,9 +320,13 @@ def _context(argv):
     common = {"hook": hook, "forwarded": forwarded, "checkout": res.state_root, "source": res.source}
     for _, why in skipped:
         log_event(event="worktree-skipped:%s" % why, **common)
-    # Gates treat both as "no own active state"; the log says why, once per call.
+    # Gates treat both as "no own active state"; the log says why: a foreign state once per session,
+    # checkout and status (every call when the input has no session id), an unreadable one every call.
     if status.startswith("foreign:"):
-        log_event(event="foreign-state", reason=status, **common)
+        session_id = data.get("session_id")
+        if not isinstance(session_id, str) or not session_id \
+                or _foreign_marker_is_new(session_id, res.state_root, status):
+            log_event(event="foreign-state", reason=status, **common)
     elif status == "unreadable":
         log_event(event="state-unreadable", **common)
     if res.source != "cwd":

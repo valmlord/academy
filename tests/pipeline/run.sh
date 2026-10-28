@@ -1072,6 +1072,20 @@ if [ "$PARKED_RC" = 0 ] && printf '%s' "$PARKED_OUT" | grep -q "111-1 (not a JSO
 else bad "parked and status list a parked file that is not a JSON object (parked rc=$PARKED_RC status rc=$RC)"; fi
 reset_state
 
+put_state "$WORK" PROJECT coder
+edit_state "$WORK" '{"gitdir_at_init": "/elsewhere/.git"}'
+foreign_write() { # foreign_write <session id | lone-surrogate>: Write of plans/x.md from that session
+  python3 -c "import json,sys; s=sys.argv[3]; s='\ud800' if s=='lone-surrogate' else s; print(json.dumps({'tool_name':'Write','cwd':sys.argv[2],'session_id':s,'tool_input':{'file_path':sys.argv[1]}}))" \
+    "$WORK/plans/x.md" "$HCWD" "$1" | bash "$H/require-pipeline.sh"; }
+rm -f "$LOG"
+for s in t11-s1 t11-s1 t11-s2; do foreign_write "$s" >/dev/null 2>&1; done
+FOREIGN_LINES=$(grep -c '"foreign-state"' "$LOG")
+foreign_write lone-surrogate >/dev/null 2>&1; RC=$?
+if [ "$FOREIGN_LINES" = 2 ] && [ "$RC" = 0 ] && [ "$(grep -c '"foreign-state"' "$LOG")" = 3 ]; then
+  ok "foreign-state is logged once per session and checkout"
+else bad "foreign-state is logged once per session and checkout (lines=$FOREIGN_LINES surrogate rc=$RC)"; fi
+reset_state
+
 capture "${ADV[@]}" init RESEARCH ²
 if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "issue must be a GitHub issue number" && ! printf '%s' "$ERR" | grep -q Traceback \
   && [ ! -e "$WORK/.claude/pipeline_state.json" ] && [ ! -e "$PARKED" ]; then
