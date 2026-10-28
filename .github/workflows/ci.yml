@@ -55,7 +55,6 @@ jobs:
       - run: python3 -m py_compile .claude/hooks/lib/*.py
       - run: bash tests/pipeline/run.sh
 
-  # No `name:`: the check is reported as pipeline-types, the name the required-checks rule uses.
   # Its own job, because PEP 668 refuses pip installs into the runner's system Python.
   pipeline-types:
     runs-on: ubuntu-24.04

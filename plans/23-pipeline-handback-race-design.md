@@ -35,7 +35,7 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
 | B1 residual list from the old regex | `{` added to alternative 3's terminator class; header claim narrowed (no "braces in general"); ADR item 7 residual list rewritten from spellings traced against the final pattern, each executed once by the tester; new blocked rows `.claude//hooks` and `.claude/h{ooks,}` | 2.4, 2.9, T8, T8b, 3.3 R-check |
 | B2 CPython exits 2 on an unopenable script | `pl_gate.run` catches only `Blocked`; wrappers map rc 2 without `\x1f` in stdout to a crash (`gate-no-verdict`, rc 70); chmod 000 rows for `pl_write_gate.py`, `pl_shell_guard.py`, `pl_gate.py` | 2.7, T16-T18, F16 |
 | B3 "one gate per step" false; common.sh breakage fails open | F1 rewritten; new step 1 makes every hook fail closed (gates) / quiet (observers) / exit 1 (CLI) when `common.sh` does not load (sentinel `PL_COMMON_LOADED`); live install procedure for every hook step: scratch export, `bash -n`, `py_compile` on `/usr/bin/python3` 3.9.6, full suite on 3.9.6, single cp+mv install per file, positive and negative smokes; recovery table; kill-switch runbook; `pl_gate.py` frozen after step 8 | 2.10, 7 (F1, F17-F19), 10, 11.2, T15 |
-| mypy pins and interpreter | `mypy==1.20.2`, `librt==0.16.0`, `mypy_extensions==1.1.0`, `pathspec==1.1.1`, `typing_extensions==4.16.0`; local runs on `/opt/homebrew/bin/python3.12`; `--cache-dir` outside the repo; 229 errors at HEAD, step 10 split per module; Stepan adds `pipeline-types` to required checks | 2.8, 10 (step 10a-10e), 12 |
+| mypy pins and interpreter | `mypy==1.20.2`, `librt==0.16.0`, `mypy_extensions==1.1.0`, `pathspec==1.1.1`, `typing_extensions==4.16.0`; local runs on `/opt/homebrew/bin/python3.12`; `--cache-dir` outside the repo; 229 errors at HEAD, step 10 split per module; `pipeline-types` does not block merges (no branch protection on a private free-plan repo), Stepan checks `gh pr checks <pr>` before merging | 2.8, 10 (step 10a-10e), 12 |
 | Module names | new importable modules get a `pl_` prefix (`pl_gate`, `pl_jsonshape`), entry scripts too (`pl_write_gate`, `pl_shell_guard`); `lib/` stays appended to `sys.path` | 2.7, 2.8, 8 (decision 10), F14 |
 | ubuntu:24.04 mutation runs | non-root user, `git` and `python3` installed; T7 red there too | 3.3 |
 | `error` field source | stated: first line of combined stdout+stderr, a deviation from the issue's "stderr" | 2.2 |
@@ -257,7 +257,9 @@ Inputs: `plans/23-pipeline-handback-race-research.md` (root cause reproduced), t
   trips the dirty-tree gates; no `.gitignore` change needed.
 - CI: new job `pipeline-types` in `ci.yml`: `actions/checkout@v4`, `actions/setup-python@v5` with
   `python-version: "3.12"`, the pip install, the mypy command. Timeout 5 minutes, `permissions: contents: read`.
-  The job only protects `main` once Stepan adds it to the required checks (section 12).
+  The job does not block merges: `valmlord/academy` is a private repo on the free plan, where branch protection
+  and rulesets return 403, so no required-checks rule exists. Stepan checks `gh pr checks <pr>` before merging
+  (section 12).
 - Local check: `/opt/homebrew/bin/python3.12 -m venv "$SCRATCH/venv"` (not `/usr/bin/python3`, which is 3.9.6 and
   cannot install mypy 1.20), install the same requirements file, run the same command.
 - Unverified (coder verifies in step 10e, does not guess): that `MYPYPATH` plus file arguments resolves
@@ -519,7 +521,7 @@ path: it is the same `pl_fail` branch as T15d.
 | F17 | `lib/common.sh` broken or missing; python3 unusable; resolver failure | before step 1: rc 127, guards off (detected by 10.1 P6 negative smokes, repaired at once, 10.2); from step 1 on: PreToolUse gates exit 2 with `common.sh did not load`, observers 0, CLI 1 (T15); the Stop gate warns and exits 0 whatever `stop_hook_active` says (T15c), and the same for python3 missing or a resolver failure through `pl_fail`'s `stop` branch (T15d), so the session can stop and hand over instead of looping. Residual: a crash inside `phase-complete.sh`'s `main_fn` still blocks every Stop (2.10); Stepan interrupts the session |
 | F18 | Both gates locked out during the work | no tool call can repair it; the coder stops and reports; Stepan runs 11.2. Since rev 3 the Stop hook does not keep the session busy meanwhile (F17) |
 | F19 | An install overwrites a script while a hook is executing it; a cached pyc outlives a module change | install is `cp` to `<file>.install` in the same directory, then `mv -f` (rename keeps the running process on the old inode). `cp -p` keeps the export's mtime, and CPython reuses a pyc whose recorded mtime (seconds) and size match the source, so for `.py` files P5 runs `touch` on the `.install` file before `mv`: the installed source always has a fresh mtime, and installs are separate tool calls, never two in the same second |
-| F20 | `pipeline-types` not a required check | the job reports but does not block merges; Stepan adds it (section 12) |
+| F20 | `pipeline-types` cannot block a merge | no branch protection on a private free-plan repo (the protection and rulesets APIs return 403); the job only reports, and Stepan checks `gh pr checks <pr>` before merging (section 12) |
 | F21 | `ubuntu:24.04` mutation run as root makes chmod rows fail on correct code | non-root user (3.3); the tester runs the green tree there first |
 
 ## 8. Key decisions
@@ -566,7 +568,7 @@ path: it is the same `pl_fail` branch as T15d.
 - Runtime interpreter: the hooks run on `/usr/bin/python3` 3.9.6 on Stepan's Mac (operations judge); every
   scratch suite run uses it (10.1 P4). mypy runs on 3.12 (CI `setup-python`, local `/opt/homebrew/bin/python3.12`).
 - New file `tests/pipeline/requirements-typecheck.txt`, used only by the CI job and the scratch venv.
-- New CI job `pipeline-types`; the existing `pipeline` job is unchanged. Required check: section 12.
+- New CI job `pipeline-types`; the existing `pipeline` job is unchanged. It does not block merges: section 12.
 - No `.gitignore` change: markers live in TMPDIR, the mypy cache outside the repo, the install sibling
   `<file>.install` exists only between `cp` and `mv` in one command.
 - Leave `.github/CODEOWNERS` (unrelated working-tree change) out of every commit.
@@ -709,11 +711,10 @@ syntax by eye; the file is one JSON object.
 - Before step 1: pause or quit any Claude Code session in the #15 worktree; restart it after step 11 (11.2 step 0).
   Check: no `claude` process has that worktree as its cwd (`lsof -c claude -a -d cwd` lists none under
   `.claude/worktrees/`).
-- Make `pipeline-types` a required status check on `main` after the PR's first CI run has reported it (GitHub
-  only offers checks it has seen): repository Settings -> Branches (or Rules -> Rulesets) -> the rule for `main`
-  -> Require status checks -> add `pipeline-types`. Check: `gh api repos/{owner}/{repo}/branches/main/protection/required_status_checks --jq .contexts`
-  lists it (run from the repo; `gh` fills `{owner}/{repo}`; if `main` uses a ruleset instead of classic
-  protection this endpoint returns 404 and the Rules page is the check).
+- `pipeline-types` does not block merges: `valmlord/academy` is a private repo on the free plan, so branch
+  protection and rulesets are unavailable (`gh api repos/valmlord/academy/branches/main/protection` and
+  `.../rulesets` return 403) and no required-checks rule exists. Before merging, Stepan runs
+  `gh pr checks <pr>` and merges only when every check, `pipeline-types` included, is green.
 - Lockout during the work: 11.2.
 - Grant: unchanged from the PIPELINE init (`pipeline_init` contains 23); remove 23 after the merge (CLAUDE.md
   section 7).
