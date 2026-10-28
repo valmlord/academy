@@ -26,11 +26,13 @@ import os
 import subprocess
 import sys
 import time
+from typing import Callable, Iterator, Mapping, Optional
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(HERE)
 import cfg  # noqa: E402
 import checkout  # noqa: E402
+from pl_jsonshape import as_list, as_str  # noqa: E402
 
 EXIT_REFUSED = 1
 EXIT_CONFLICT = 3
@@ -64,7 +66,7 @@ class StateLockTimeout(Exception):
     pass
 
 
-def is_ascii_digits(text):
+def is_ascii_digits(text: str) -> bool:
     """str.isdigit() also accepts Unicode digits such as "\u00b2", which int() then rejects."""
     return text.isascii() and text.isdigit()
 
@@ -73,11 +75,11 @@ GRANT_KEYS = ("version", "pipeline_init", "learn_pause")
 GRANT_VERSION = 1
 
 
-def _grant_invalid(conf, why):
+def _grant_invalid(conf: cfg.Config, why: str) -> GrantRefused:
     return GrantRefused("%s is invalid: %s; no grant applies" % (conf["grant_file"], why))
 
 
-def read_grant(conf, code_root):
+def read_grant(conf: cfg.Config, code_root: str) -> Optional[dict[str, object]]:
     """Stepan's grant file in the main checkout, read on every decision and never cached. -> dict,
     or None when absent. Anything malformed raises: a typo must be reported, never grant silently."""
     path = os.path.join(code_root, conf["grant_file"])
@@ -85,7 +87,7 @@ def read_grant(conf, code_root):
         return None
     try:
         with open(path, encoding="utf-8") as fh:
-            data = json.load(fh)
+            data: object = json.load(fh)
     except (OSError, ValueError) as exc:
         raise _grant_invalid(conf, "not readable JSON (%s)" % exc.__class__.__name__)
     if not isinstance(data, dict):
@@ -99,42 +101,44 @@ def read_grant(conf, code_root):
     for key in GRANT_KEYS[1:]:
         if key not in data:
             continue
-        if not isinstance(data[key], list):
+        value = data[key]
+        if not isinstance(value, list):
             raise _grant_invalid(conf, '"%s" must be a list' % key)
-        if any(type(x) is not int or x <= 0 for x in data[key]):
+        if any(type(x) is not int or x <= 0 for x in value):
             raise _grant_invalid(conf, '"%s" must list positive issue numbers' % key)
     return data
 
 
-def require_grant(conf, code_root, kind, issue, refusal, root):
+def require_grant(conf: cfg.Config, code_root: str, kind: str, issue: object, refusal: str, root: str) -> None:
     """Raise GrantRefused(refusal) unless the grant file lists issue under kind."""
     try:
         grant = read_grant(conf, code_root)
     except GrantRefused:
         checkout.log_event(event="grant-invalid", hook="state.py", checkout=root, grant=kind, issue=str(issue))
         raise
-    number = int(issue) if is_ascii_digits(str(issue)) else None
-    if grant is None or number not in grant.get(kind, []):
+    text = str(issue)
+    number = int(text) if is_ascii_digits(text) else None
+    if grant is None or number not in as_list(grant.get(kind, [])):
         checkout.log_event(event="grant-missing", hook="state.py", checkout=root, grant=kind, issue=str(issue))
         raise GrantRefused(refusal)
     checkout.log_event(event="grant-used", hook="state.py", checkout=root, grant=kind, issue=str(issue))
 
 
-def _claude_dir(root):
+def _claude_dir(root: str) -> str:
     return os.path.join(root, ".claude")
 
 
-def state_path(root):
+def state_path(root: str) -> str:
     return os.path.join(_claude_dir(root), STATE_NAME)
 
 
-def _lock_timeout():
+def _lock_timeout() -> float:
     value = cfg.load().get("state_lock_timeout_seconds", DEFAULT_LOCK_TIMEOUT_SECONDS)
     return value if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0 else DEFAULT_LOCK_TIMEOUT_SECONDS
 
 
 @contextlib.contextmanager
-def transaction(root):
+def transaction(root: str) -> Iterator[None]:
     """Hold the checkout's state lock. flock is released by the kernel when its holder dies, so a
     lock that is still held belongs to a live process and is never broken."""
     lock = os.path.join(_claude_dir(root), LOCK_NAME)
@@ -155,7 +159,7 @@ def transaction(root):
         os.close(fd)
 
 
-def _test_delay():
+def _test_delay() -> None:
     """PIPELINE_STATE_TEST_DELAY_MS widens the read-to-write window for the concurrency tests; it can
     only slow a write down, never change one."""
     delay_ms = os.environ.get("PIPELINE_STATE_TEST_DELAY_MS", "")
@@ -163,7 +167,7 @@ def _test_delay():
         time.sleep(int(delay_ms) / 1000.0)
 
 
-def load(root):
+def load(root: str) -> Optional[dict[str, object]]:
     """The state dict, or None when there is none. An unreadable state refuses every op, because
     no op may overwrite or move a state it cannot read."""
     status, data = checkout.read_state(root)
@@ -172,38 +176,61 @@ def load(root):
     return data
 
 
-def save(root, data):
+def save(root: str, data: Mapping[str, object]) -> None:
     tmp = os.path.join(_claude_dir(root), "pipeline_state.tmp.%d" % os.getpid())
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh, indent=2, ensure_ascii=False)
     os.replace(tmp, state_path(root))
 
 
-def _stamp():
+def _stamp() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%S")
 
 
-def append_history(data, phase):
-    data.setdefault("phase_history", []).append({"phase": phase, "ts": time.time(), "ts_str": _stamp()})
-    data.setdefault("artifacts", {})["last_ts"] = _stamp()
+def _list_field(data: dict[str, object], key: str) -> list[object]:
+    """data[key] as a list, created when absent. Any other shape is refused before anything is
+    written; it used to crash with an AttributeError."""
+    value = data.setdefault(key, [])
+    if not isinstance(value, list):
+        raise Refused("state field %s is not a list; nothing written" % key)
+    return value
 
 
-def last_activity(data):
-    """Latest phase_history timestamp: TTL and watchdog age measure inactivity, not task length."""
-    latest = data.get("session_ts", 0) or 0
-    for entry in data.get("phase_history", []):
-        if isinstance(entry, dict) and isinstance(entry.get("ts"), (int, float)) and entry["ts"] > latest:
-            latest = entry["ts"]
+def _object_field(data: dict[str, object], key: str) -> dict[str, object]:
+    """data[key] as an object, created when absent; any other shape is refused, as in _list_field."""
+    value = data.setdefault(key, {})
+    if not isinstance(value, dict):
+        raise Refused("state field %s is not an object; nothing written" % key)
+    return value
+
+
+def append_history(data: dict[str, object], phase: str) -> None:
+    _list_field(data, "phase_history").append({"phase": phase, "ts": time.time(), "ts_str": _stamp()})
+    _object_field(data, "artifacts")["last_ts"] = _stamp()
+
+
+def last_activity(data: Mapping[str, object]) -> float:
+    """Latest phase_history timestamp: TTL and watchdog age measure inactivity, not task length.
+    A non-numeric session_ts is refused (it used to crash the comparison below); a non-numeric ts
+    in the history is skipped."""
+    session_ts = data.get("session_ts", 0) or 0
+    if not isinstance(session_ts, (int, float)):
+        raise Refused("state field session_ts is not a number")
+    latest: float = session_ts
+    for entry in as_list(data.get("phase_history", [])):
+        ts = entry.get("ts") if isinstance(entry, dict) else None
+        if isinstance(ts, (int, float)) and ts > latest:
+            latest = ts
     return latest
 
 
-def _require(data):
+def _require(data: Optional[dict[str, object]]) -> dict[str, object]:
     if data is None:
         raise Refused("no pipeline state. Run: pipeline-advance.sh init <TIER> <issue>")
     return data
 
 
-def _branch_exists(root, branch):
+def _branch_exists(root: str, branch: str) -> bool:
     try:
         return subprocess.run(
             ["git", "-C", root, "show-ref", "--verify", "--quiet", "refs/heads/" + branch],
@@ -213,13 +240,13 @@ def _branch_exists(root, branch):
         return False
 
 
-def _park(root, data, reason, code_root, gitdir, branch):
+def _park(root: str, data: dict[str, object], reason: str, code_root: str, gitdir: str, branch: str) -> str:
     """Move the slot's state to parked/<issue>-<epoch>[-n].json. Nothing is ever deleted: parking
     keeps the votes and history of a task that was set aside. Parking this checkout's own LEARN
     task would lift its rules, so it needs Stepan's learn_pause grant; pause, init and resume all
     pass through here."""
     conf = cfg.load()
-    if conf["tiers"].get(data.get("tier"), {}).get("learner_writes_code") \
+    if conf["tiers"].get(as_str(data.get("tier")), {}).get("learner_writes_code") \
             and checkout.foreign_reason(data, gitdir, branch) == "":
         issue = data.get("issue") or ""
         require_grant(conf, code_root, "learn_pause", issue,
@@ -242,14 +269,15 @@ def _park(root, data, reason, code_root, gitdir, branch):
     return key
 
 
-def _init_park_reason(root, data, gitdir, branch, conf):
+def _init_park_reason(root: str, data: Optional[dict[str, object]], gitdir: str, branch: str,
+                      conf: cfg.Config) -> Optional[str]:
     """Why init may set the slot's state aside, or None when the slot is free. Refuses when the
     state is this branch's live task."""
     if data is None or data.get("phase") == "done":
         return None
     if data.get("gitdir_at_init") and data["gitdir_at_init"] != gitdir:
         return "foreign"
-    recorded = data.get("branch_at_init") or ""
+    recorded = as_str(data.get("branch_at_init"))
     if recorded != branch:
         if _branch_exists(root, recorded):
             return "branch-switched"
@@ -263,7 +291,7 @@ def _init_park_reason(root, data, gitdir, branch, conf):
                   "or pipeline-advance.sh pause it first." % (data.get("issue"), data.get("tier"), data.get("phase"), idle))
 
 
-def op_init(root, tier, issue, branch, gitdir, code_root):
+def op_init(root: str, tier: str, issue: str, branch: str, gitdir: str, code_root: str) -> str:
     conf = cfg.load()
     tier_conf = conf["tiers"].get(tier, {})
     if issue and not is_ascii_digits(issue):
@@ -285,10 +313,10 @@ def op_init(root, tier, issue, branch, gitdir, code_root):
         data = load(root)
         reason = _init_park_reason(root, data, gitdir, branch, conf)
         _test_delay()
-        if reason:
+        if reason and data is not None:
             _park(root, data, reason, code_root, gitdir, branch)
         now = time.time()
-        state = {
+        state: dict[str, object] = {
             "tier": tier, "phase": "init", "issue": int(issue) if issue else None,
             "branch_at_init": branch, "gitdir_at_init": gitdir, "session_ts": now,
             "phase_history": [{"phase": "init", "ts": now, "ts_str": _stamp()}],
@@ -301,7 +329,7 @@ def op_init(root, tier, issue, branch, gitdir, code_root):
     return "initialized"
 
 
-def op_advance(root, expected, nxt):
+def op_advance(root: str, expected: str, nxt: str) -> str:
     with transaction(root):
         data = _require(load(root))
         if data.get("phase") != expected:
@@ -314,14 +342,15 @@ def op_advance(root, expected, nxt):
     return "advanced to %s" % nxt
 
 
-def op_vote(root, rnd, judge, verdict, agent_id="", path=""):
+def op_vote(root: str, rnd: str, judge: str, verdict: str, agent_id: str = "", path: str = "") -> str:
     with transaction(root):
         data = _require(load(root))
         if data.get("phase") != rnd:
             raise Conflict("not in round %s (now %s)" % (rnd, data.get("phase")))
-        votes = data.setdefault("artifacts", {}).setdefault("judge_votes", [])
+        votes = _list_field(_object_field(data, "artifacts"), "judge_votes")
         # The handback and SubagentStop paths both report the same agent: one vote per agent and round.
-        if agent_id and any(v.get("agent_id") == agent_id and v.get("round") == rnd for v in votes):
+        if agent_id and any(isinstance(v, dict) and v.get("agent_id") == agent_id and v.get("round") == rnd
+                            for v in votes):
             return "vote-dup"
         _test_delay()
         votes.append({
@@ -333,28 +362,28 @@ def op_vote(root, rnd, judge, verdict, agent_id="", path=""):
     return "vote-recorded"
 
 
-def op_record_spawn(root, rnd, agent_id, judge):
+def op_record_spawn(root: str, rnd: str, agent_id: str, judge: str) -> str:
     with transaction(root):
         data = _require(load(root))
-        phase = data.get("phase", "")
+        phase = as_str(data.get("phase", ""))
         if phase != rnd or not phase.startswith("judge_"):
             raise Conflict("not in a judge phase (now %s)" % phase)
         _test_delay()
-        data.setdefault("artifacts", {}).setdefault("judge_spawns", {})[agent_id] = judge
+        _object_field(_object_field(data, "artifacts"), "judge_spawns")[agent_id] = judge
         save(root, data)
     return "spawn-recorded"
 
 
-def op_set_artifact(root, key, value):
+def op_set_artifact(root: str, key: str, value: str) -> str:
     with transaction(root):
         data = _require(load(root))
         _test_delay()
-        data.setdefault("artifacts", {})[key] = value
+        _object_field(data, "artifacts")[key] = value
         save(root, data)
     return "artifact %s set" % key
 
 
-def op_finish(root):
+def op_finish(root: str) -> str:
     with transaction(root):
         data = load(root)
         if data is None:
@@ -366,7 +395,7 @@ def op_finish(root):
     return "finished"
 
 
-def op_park(root, reason, code_root, gitdir, branch):
+def op_park(root: str, reason: str, code_root: str, gitdir: str, branch: str) -> str:
     """pause: set the active state aside, own or foreign (a foreign one is what a repository move or
     the v2 migration leaves behind), and free the checkout."""
     with transaction(root):
@@ -380,16 +409,16 @@ def op_park(root, reason, code_root, gitdir, branch):
     return "parked as %s" % key
 
 
-def _parked_dir(root):
+def _parked_dir(root: str) -> str:
     return os.path.join(_claude_dir(root), PARKED_DIR)
 
 
-def _parked_keys(root):
+def _parked_keys(root: str) -> list[str]:
     d = _parked_dir(root)
     return sorted(f[:-len(".json")] for f in os.listdir(d) if f.endswith(".json")) if os.path.isdir(d) else []
 
 
-def _pick_parked(root, wanted):
+def _pick_parked(root: str, wanted: str) -> str:
     keys = _parked_keys(root)
     if wanted in keys:
         return wanted
@@ -401,7 +430,7 @@ def _pick_parked(root, wanted):
     return matches[0]
 
 
-def op_resume(root, wanted, code_root, gitdir, branch):
+def op_resume(root: str, wanted: str, code_root: str, gitdir: str, branch: str) -> str:
     """Restore a parked state in one transaction. Every refusal comes before anything moves, so a
     refused resume leaves the slot and the parked directory as they were."""
     conf = cfg.load()
@@ -420,16 +449,17 @@ def op_resume(root, wanted, code_root, gitdir, branch):
         path = os.path.join(_parked_dir(root), key + ".json")
         try:
             with open(path, encoding="utf-8") as fh:
-                data = json.load(fh)
+                loaded: object = json.load(fh)
         except (OSError, ValueError) as exc:
             raise Refused("parked state %s is unreadable (%s); Stepan inspects it" % (path, exc.__class__.__name__))
-        if not isinstance(data, dict):
+        if not isinstance(loaded, dict):
             raise Refused("parked state %s is not a JSON object; Stepan inspects it" % path)
+        data: dict[str, object] = loaded
         if not branch or data.get("branch_at_init") != branch:
             raise Refused("%s was started on branch %s; check it out first (now %s)"
                           % (key, data.get("branch_at_init"), branch or "detached HEAD"))
         _test_delay()
-        if slot_reason:
+        if slot_reason and current is not None:
             _park(root, current, slot_reason, code_root, gitdir, branch)
         # Found in this checkout's own parked directory, so location proves ownership; a different
         # gitdir means the repository moved.
@@ -445,25 +475,27 @@ def op_resume(root, wanted, code_root, gitdir, branch):
     return "resumed %s" % key
 
 
-def op_parked(root):
-    lines = []
+def op_parked(root: str) -> str:
+    lines: list[str] = []
     for key in _parked_keys(root):
         try:
             with open(os.path.join(_parked_dir(root), key + ".json"), encoding="utf-8") as fh:
-                d = json.load(fh)
+                d: object = json.load(fh)
         except (OSError, ValueError):
             lines.append("%s (unreadable)" % key)
             continue
         if not isinstance(d, dict):
             lines.append("%s (not a JSON object)" % key)
             continue
+        parked_ts = d.get("parked_ts") or 0
         lines.append("#%s %s/%s (%s, key %s, parked %s, %s)" % (
             d.get("issue") or "-", d.get("tier"), d.get("phase"), d.get("branch_at_init"), key,
-            time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(d.get("parked_ts") or 0)), d.get("parked_reason")))
+            time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(parked_ts if isinstance(parked_ts, (int, float)) else 0)),
+            d.get("parked_reason")))
     return "\n".join(lines)
 
 
-OPS = {
+OPS: dict[str, tuple[Callable[..., str], int, int]] = {
     "init": (op_init, 6, 6),
     "advance": (op_advance, 3, 3),
     "vote": (op_vote, 4, 6),
@@ -476,7 +508,7 @@ OPS = {
 }
 
 
-def main(argv):
+def main(argv: list[str]) -> int:
     if len(argv) < 2 or argv[1] not in OPS:
         print(__doc__, file=sys.stderr)
         return EXIT_REFUSED
