@@ -1086,6 +1086,15 @@ if [ "$FOREIGN_LINES" = 2 ] && [ "$RC" = 0 ] && [ "$(grep -c '"foreign-state"' "
 else bad "foreign-state is logged once per session and checkout (lines=$FOREIGN_LINES surrogate rc=$RC)"; fi
 reset_state
 
+put_state "$WORK" PROJECT coder 77 120
+edit_state "$WORK" '{"phase_history": [{"phase": "coder", "ts": "x"}]}'
+rm -f "$LOG" "$TMPDIR"/pipeline_watchdog_*
+write_json "$WORK/plans/x.md" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+if grep -q '"watchdog-notify"' "$LOG" 2>/dev/null && ! grep -q '"observer-crash"' "$LOG"; then
+  ok "watchdog survives a non-numeric ts and still warns"
+else bad "watchdog survives a non-numeric ts and still warns"; fi
+reset_state
+
 capture "${ADV[@]}" init RESEARCH ²
 if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "issue must be a GitHub issue number" && ! printf '%s' "$ERR" | grep -q Traceback \
   && [ ! -e "$WORK/.claude/pipeline_state.json" ] && [ ! -e "$PARKED" ]; then

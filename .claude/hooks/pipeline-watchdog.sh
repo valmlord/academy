@@ -14,15 +14,13 @@ main_fn() {
   local state_path result phase tier age_min marker limit should age
   state_path=$(cygpath -w "$STATE_FILE" 2>/dev/null || echo "$STATE_FILE")
   # The marker is per checkout (hash of its root), so a stuck worktree does not silence main.
-  result=$(python3 -I - "$state_path" "$STATE_ROOT" "${TMPDIR:-/tmp}" <<'PY'
+  # Inactivity comes from state.last_activity, the same rule as the TTL in init.
+  result=$(python3 -I - "$state_path" "$STATE_ROOT" "${TMPDIR:-/tmp}" "$LIB" <<'PY'
 import hashlib, json, os, time, sys
+sys.path.append(sys.argv[4])
+import state
 d = json.load(open(sys.argv[1]))
-last_ts = d.get('session_ts', 0)
-for entry in d.get('phase_history', []):
-    if isinstance(entry, dict):
-        t = entry.get('ts', 0)
-        if t > last_ts:
-            last_ts = t
+last_ts = state.last_activity(d)
 age_min = (time.time() - last_ts) / 60 if last_ts else 999
 marker = os.path.join(sys.argv[3], 'pipeline_watchdog_' + hashlib.sha1(sys.argv[2].encode('utf-8')).hexdigest()[:12])
 print('%s|%s|%.0f|%s' % (d.get('phase', ''), d.get('tier', '?'), age_min, marker))
