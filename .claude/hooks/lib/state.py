@@ -313,6 +313,7 @@ def op_init(root: str, tier: str, issue: str, branch: str, gitdir: str, code_roo
         data = load(root)
         reason = _init_park_reason(root, data, gitdir, branch, conf)
         _test_delay()
+        # _init_park_reason returns a reason only for a loaded state; the None check is for mypy.
         if reason and data is not None:
             _park(root, data, reason, code_root, gitdir, branch)
         now = time.time()
@@ -459,6 +460,7 @@ def op_resume(root: str, wanted: str, code_root: str, gitdir: str, branch: str) 
             raise Refused("%s was started on branch %s; check it out first (now %s)"
                           % (key, data.get("branch_at_init"), branch or "detached HEAD"))
         _test_delay()
+        # slot_reason is set only when current was loaded; the None check is for mypy.
         if slot_reason and current is not None:
             _park(root, current, slot_reason, code_root, gitdir, branch)
         # Found in this checkout's own parked directory, so location proves ownership; a different
@@ -487,11 +489,15 @@ def op_parked(root: str) -> str:
         if not isinstance(d, dict):
             lines.append("%s (not a JSON object)" % key)
             continue
-        parked_ts = d.get("parked_ts") or 0
+        parked_ts = d.get("parked_ts")
+        # A missing or non-numeric time is shown as unknown, not as the 1970 epoch.
+        if isinstance(parked_ts, (int, float)) and not isinstance(parked_ts, bool):
+            parked_at = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(parked_ts))
+        else:
+            parked_at = "?"
         lines.append("#%s %s/%s (%s, key %s, parked %s, %s)" % (
             d.get("issue") or "-", d.get("tier"), d.get("phase"), d.get("branch_at_init"), key,
-            time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(parked_ts if isinstance(parked_ts, (int, float)) else 0)),
-            d.get("parked_reason")))
+            parked_at, d.get("parked_reason")))
     return "\n".join(lines)
 
 

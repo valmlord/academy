@@ -231,6 +231,7 @@ def foreign_reason(data: Mapping[str, object], gitdir: str, branch: str) -> str:
 def state_status(root: str, gitdir: str, branch: str) -> str:
     """none | own:<tier>:<phase> | foreign:<why> | done | unreadable, for the checkout at root."""
     status, data = read_state(root)
+    # read_state returns a dict exactly when status is "ok"; the None check is for mypy.
     if status != "ok" or data is None:
         return status
     foreign = foreign_reason(data, gitdir, branch)
