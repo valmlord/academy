@@ -4,8 +4,14 @@
 #  1. Pipeline integrity: no tool-issued command may name the state file or forge a judge vote.
 #  2. Never, in any tier: core.hooksPath, and a write verb aimed at a .git path, session
 #     transcripts, the grant file or user-level settings.
-#  3. Pipeline core (.claude/hooks/, .claude/pipeline.json, .claude/settings*): shell writes only
-#     from the main checkout in an own PIPELINE task.
+#  3. Pipeline core: shell writes only from the main checkout in an own PIPELINE task. Core is
+#     named by the core path strings (.claude/hooks with or without a trailing slash,
+#     .claude/pipeline.json, .claude/settings*) or by the .claude directory token: .claude with or
+#     without a trailing slash, .claude/ followed by a character that cannot continue a name, or a
+#     glob or brace character in the first component after .claude/. `git checkout` with any
+#     arguments (a ref included) counts as a write verb. Quoting or backslashes inside a name, ./
+#     and .. path segments (.claude/./hooks, .claude/agents/../hooks) and variables evade it
+#     (ADR-0005 item 7).
 #  4. LEARN tier: no shell writes into product code dirs, for every consulted checkout's state.
 HOOK_KIND=gate
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
@@ -27,11 +33,14 @@ import cfg, checkout
 WRITE_VERB = (r"(?:>>?|\btee\b|\bsed\s+-i|\bperl\s+-pi|\bcp\b|\bmv\b|\brm\b|\bln\b|\bchmod\b|\btruncate\b"
               r"|\bgit\s+checkout\b|\bgit\s+restore\b)")
 SAME_SEGMENT = r"[^|;&\n]*"
-# A directory named whole: followed by "/" or by anything that cannot continue a file name.
-TOKEN_END_OR_SLASH = r"(?:/|(?![\w.-]))"
-# The .claude directory itself (ancestor of every core path), with or without a trailing slash, or a
-# glob in its first component (.claude/*, .claude/h*), which the shell may expand to the hooks dir.
-CLAUDE_DIR_TOKEN = r"(?<![\w.-])\.claude(?:/?(?=[\s'\";|&)]|$)|/[^\s/'\";|&)]*[*?\[])"
+# One rule for "the name ends here": the next character cannot continue a file name.
+TOKEN_END = r"(?![\w.-])"
+# The .claude directory (ancestor of every core path): removing or renaming it disables every hook.
+#  1. ".claude/" followed by anything that cannot continue a name (end, space, "/", "{", "*", quote);
+#  2. a bare ".claude" not followed by a name character or "/" (`.claude`, `.claude,`, `".claude"/x`);
+#  3. a glob or brace character in the first component after ".claude/" (.claude/h*, .claude/h{ooks,}),
+#     which the shell may expand to the hooks directory.
+CLAUDE_DIR_TOKEN = r"(?<![\w.-])\.claude(?:/" + TOKEN_END + r"|(?![\w./-])|/[^\s/'\";|&)]*[*?\[{])"
 HOME = re.escape(os.path.expanduser("~"))
 NEVER_WRITTEN = (
     ("git-dir", r"(?<![\w.-])\.git(?![\w.-])", "a .git path"),
@@ -51,15 +60,14 @@ def writes_to(cmd, target):
 
 def core_pattern(core_files):
     """pipeline_core_files are path prefixes for the write gate. In shell text a directory entry
-    (trailing slash) is usually named without the slash, and removing or renaming the directory or
-    an ancestor (.claude) turns every hook into a non-blocking exit 127, so all of these count."""
+    (trailing slash) is usually named without the slash, and removing or renaming the directory
+    turns every hook into a non-blocking exit 127, so both spellings count."""
     parts = []
     for prefix in core_files:
         if prefix.endswith("/"):
-            parts.append(re.escape(prefix.rstrip("/")) + TOKEN_END_OR_SLASH)
+            parts.append(re.escape(prefix.rstrip("/")) + "(?:/|" + TOKEN_END + ")")
         else:
             parts.append(re.escape(prefix))
-    parts.append(CLAUDE_DIR_TOKEN)
     return "(?:" + "|".join(parts) + ")"
 
 
@@ -77,12 +85,17 @@ def decide(cmd, conf):
     for reason, target, what in NEVER_WRITTEN:
         if writes_to(cmd, target):
             raise Blocked(reason, "shell writes to %s are never allowed" % what)
-    core = core_pattern(conf["pipeline_core_files"])
     # The main-checkout check keeps a PIPELINE state that ended up in a worktree from opening
     # main's core to shell writes.
-    if writes_to(cmd, core) and not (state_root == main_root and has_flag(conf, tier_of(cwd_status), "edits_pipeline_core")):
+    core_allowed = state_root == main_root and has_flag(conf, tier_of(cwd_status), "edits_pipeline_core")
+    if writes_to(cmd, core_pattern(conf["pipeline_core_files"])) and not core_allowed:
         raise Blocked("core-shell", "shell writes to pipeline core (%s) are allowed only in a PIPELINE task in the "
                       "main checkout" % ", ".join(conf["pipeline_core_files"]))
+    # Tested after the core files so a command that names one keeps that message; a stray .claude
+    # token (node_modules/.claude) names no core file, and the message must not claim it does.
+    if writes_to(cmd, CLAUDE_DIR_TOKEN) and not core_allowed:
+        raise Blocked("core-shell:claude-dir", "shell writes that name a .claude directory are allowed only in a "
+                      "PIPELINE task in the main checkout (removing or renaming .claude disables every hook)")
     # The write gate cannot see shell targets, so every checkout the command names by absolute path
     # is consulted too: cd-ing to a non-LEARN worktree must not lift main's LEARN rule.
     consulted = [cwd_status]

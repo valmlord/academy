@@ -943,9 +943,17 @@ put_state "$WORK" PROJECT coder
 for c in "rm -rf .claude/hooks" "cp x.sh .claude/hooks" "mv .claude/hooks .claude/hooks.bak" "ln -sf /tmp/x .claude/hooks" \
          "rm -rf .claude" "rm -rf .claude/" "git restore .claude" \
          "git checkout main -- .claude/hooks" "git checkout main -- .claude" "git checkout HEAD .claude/hooks" \
-         "rm -rf .claude/*" "rm -rf .claude/h*"; do
+         "rm -rf .claude/*" "rm -rf .claude/h*" \
+         "rm -rf .claude/{hooks,}" "mv .claude, x" "rm -rf .claude/{pipeline.json,x}" "rm -rf .claude//hooks"; do
   expect_rc "shell write to hooks blocked outside PIPELINE: $c" 2 bashcmd "$c"
 done
+expect_rc "a brace inside the first component after .claude/ is blocked" 2 bashcmd "rm -rf .claude/h{ooks,}"
+# Stepan's decision 1 (#23): the one token-end rule blocks this harmless spelling too; accepted.
+expect_rc "accepted false positive: brace list under .claude is blocked" 2 bashcmd "rm -rf .claude/{agents,feedback}/x"
+capture bashcmd "rm -rf node_modules/.claude"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q ".claude directory" && ! printf '%s' "$ERR" | grep -q "pipeline.json"; then
+  ok "stray .claude token gets the .claude directory message"
+else bad "stray .claude token gets the .claude directory message (rc=$RC)"; fi
 for c in "ls .claude" "cat .claude/hooks/x.sh" "echo x >> .claude/feedback/coder_mistakes.md" \
          "cp x.md .claude/agents/dev/y.md" "echo x > plans/x.md" "rm -rf .claude/worktrees/old-one" \
          "git checkout feat/x" "git diff .claude" "git log -- .claude/hooks" "git show HEAD:.claude/hooks/x.sh" \
