@@ -2,8 +2,12 @@
 # PreToolUse (any): warn if the pipeline has been stuck at a non-done phase for too long.
 HOOK_KIND=observer
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# An inherited value must not fake a load.
+unset PL_COMMON_LOADED
 # shellcheck source=lib/common.sh
 source "$HOOK_DIR/lib/common.sh"
+# Set by the last line of common.sh; an observer never blocks, even when it did not load.
+[ "${PL_COMMON_LOADED:-}" = 1 ] || exit 0
 
 main_fn() {
   case "$STATE_STATUS" in own:*) ;; *) return 0 ;; esac

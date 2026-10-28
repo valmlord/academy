@@ -1,13 +1,16 @@
 # shellcheck shell=bash
 # Sourced first by every hook script and by pipeline-advance.sh:
-#   HOOK_KIND=gate|observer|cli
+#   HOOK_KIND=gate|observer|cli|stop
 #   case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+#   unset PL_COMMON_LOADED
 #   source "$HOOK_DIR/lib/common.sh"
-# Gates fail closed (exit 2), observers fail quiet (exit 0), the CLI fails with exit 1.
+#   [ "${PL_COMMON_LOADED:-}" = 1 ] || { <fail closed, quiet or with exit 1, as below>; }
+# Gates fail closed (exit 2), observers fail quiet (exit 0), the CLI fails with exit 1. The Stop
+# gate (stop) warns and allows when it cannot evaluate: a Stop block nothing can repair only loops.
 # Everything up to the python3 probe uses bash builtins only, so an empty PATH or a missing
 # python3 still ends in a clear message instead of a silent non-blocking error.
 
-case "${HOOK_KIND:-}" in observer|cli) ;; *) HOOK_KIND=gate ;; esac
+case "${HOOK_KIND:-}" in observer|cli|stop) ;; *) HOOK_KIND=gate ;; esac
 HOOK_NAME=${0##*/}
 PL_FORWARDED=false
 [ -n "${PIPELINE_HOOK_FORWARDED:-}" ] && PL_FORWARDED=true
@@ -16,6 +19,7 @@ pl_fail() {
   case "$HOOK_KIND" in
     gate) echo "BLOCKED: $1" >&2; exit 2 ;;
     cli) echo "ERROR: $1" >&2; exit 1 ;;
+    stop) echo "WARNING (not blocking): $1" >&2; exit 0 ;;
     *) exit 0 ;;
   esac
 }
@@ -112,3 +116,7 @@ run_hook() {
   echo "BLOCKED: $HOOK_NAME failed internally (rc=$rc); see .git/pipeline-hooks.log" >&2
   exit 2
 }
+
+# Must stay the last line: the hooks check it to prove this whole file was executed, because a
+# syntax error stops the source early and the hook would then exit 127, which does not block.
+PL_COMMON_LOADED=1

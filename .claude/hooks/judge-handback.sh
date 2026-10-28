@@ -5,8 +5,12 @@
 # Observer: it never blocks, because a blocked handback would trap the judge.
 HOOK_KIND=observer
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# An inherited value must not fake a load.
+unset PL_COMMON_LOADED
 # shellcheck source=lib/common.sh
 source "$HOOK_DIR/lib/common.sh"
+# Set by the last line of common.sh; an observer never blocks, even when it did not load.
+[ "${PL_COMMON_LOADED:-}" = 1 ] || exit 0
 
 main_fn() {
   [ "$TOOL_NAME" = "SubagentHandback" ] || return 0

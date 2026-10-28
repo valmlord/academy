@@ -22,8 +22,12 @@
 # worktree: bash "$(git rev-parse --path-format=absolute --git-common-dir)/../.claude/hooks/pipeline-advance.sh"
 HOOK_KIND=cli
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# An inherited value must not fake a load.
+unset PL_COMMON_LOADED
 # shellcheck source=lib/common.sh
 source "$HOOK_DIR/lib/common.sh"
+# Set by the last line of common.sh; a source that stopped early must not run half-defined.
+[ "${PL_COMMON_LOADED:-}" = 1 ] || { echo "ERROR: lib/common.sh did not load" >&2; exit 1; }
 
 set -euo pipefail
 SCRIPT_DIR="$CODE_ROOT/.claude/hooks"

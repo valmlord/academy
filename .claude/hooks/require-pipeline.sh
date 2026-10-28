@@ -9,8 +9,13 @@
 #  4. LEARN tier: product code is written by the learner; only meta paths and test files are writable.
 HOOK_KIND=gate
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# An inherited value must not fake a load.
+unset PL_COMMON_LOADED
 # shellcheck source=lib/common.sh
 source "$HOOK_DIR/lib/common.sh"
+# Set by the last line of common.sh; a source that stopped early would make this hook exit 127,
+# which does not block.
+[ "${PL_COMMON_LOADED:-}" = 1 ] || { echo "BLOCKED: $0: lib/common.sh did not load; pipeline gates cannot run. Stepan: kill switch, CLAUDE.md section 7" >&2; exit 2; }
 
 # Exit 0 = allow; exit 2 = block, stdout "<log reason>\x1f<message>"; anything else is a crash.
 IFS= read -r -d '' GATE_PY <<'PY' || true

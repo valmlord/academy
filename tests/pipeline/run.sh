@@ -428,6 +428,42 @@ chmod "$CK_MODE" "$H/lib/checkout.py"
 if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "pipeline resolver failed" && [ "$OBS_RC" = 0 ] && [ "$(mode_of "$H/lib/checkout.py")" = "$CK_MODE" ]; then
   ok "resolver failure blocks gates"
 else bad "resolver failure blocks gates (rc=$RC obs=$OBS_RC)"; fi
+
+# A syntax error stops `source` early; before the sentinel every hook then exited 127 (non-blocking).
+cp -p "$H/lib/common.sh" "$BASE/common.sh.bak"
+{ printf 'fi\n'; cat "$BASE/common.sh.bak"; } > "$H/lib/common.sh"
+capture write_to "plans/x.md"; W_RC=$RC; W_ERR=$ERR
+capture bashcmd "ls"; B_RC=$RC; B_ERR=$ERR
+agent "$CODER" >/dev/null 2>&1; G_RC=$?
+printf '%s' "$WJ" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1; OBS_RC=$?
+capture "${ADV[@]}" status
+if [ "$W_RC" = 2 ] && printf '%s' "$W_ERR" | grep -q "common.sh did not load" \
+  && [ "$B_RC" = 2 ] && printf '%s' "$B_ERR" | grep -q "common.sh did not load" \
+  && [ "$G_RC" = 2 ] && [ "$OBS_RC" = 0 ] && [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "ERROR: lib/common.sh did not load"; then
+  ok "hooks fail safe when lib/common.sh does not load"
+else bad "hooks fail safe when lib/common.sh does not load (write=$W_RC bash=$B_RC agent=$G_RC obs=$OBS_RC cli=$RC)"; fi
+ERR=$(export PL_COMMON_LOADED=1; write_to "plans/x.md" 2>&1 >/dev/null); RC=$?
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "common.sh did not load"; then
+  ok "an inherited PL_COMMON_LOADED does not fake a load"
+else bad "an inherited PL_COMMON_LOADED does not fake a load (rc=$RC)"; fi
+# A working hook would block this Stop (phase coder); without common.sh it must not, either way.
+# The input comes from a file: the fallback exits before reading stdin, and under pipefail a writer
+# that hits the closed pipe (Python exits 120) would hide the hook's own exit code.
+stop_from_file() { stop_json "$1" > "$BASE/stop.json"; bash "$H/phase-complete.sh" < "$BASE/stop.json"; }
+put_state "$WORK" PROJECT coder
+for active in 0 1; do
+  capture stop_from_file "$active"
+  if [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "not blocking" && printf '%s' "$ERR" | grep -q "common.sh did not load"; then
+    ok "stop is never blocked when lib/common.sh does not load (stop_hook_active=$active)"
+  else bad "stop is never blocked when lib/common.sh does not load (stop_hook_active=$active, rc=$RC)"; fi
+done
+cp -p "$BASE/common.sh.bak" "$H/lib/common.sh"
+cmp -s "$BASE/common.sh.bak" "$H/lib/common.sh" || bad "common.sh restored after the load-failure rows"
+stop_json 0 > "$BASE/stop.json"
+ERR=$(PATH="$BASE/badpy:$PATH" bash "$H/phase-complete.sh" < "$BASE/stop.json" 2>&1 >/dev/null); RC=$?
+if [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "not blocking" && printf '%s' "$ERR" | grep -q "python3 not found or unusable"; then
+  ok "stop is never blocked when python3 is unusable"
+else bad "stop is never blocked when python3 is unusable (rc=$RC)"; fi
 reset_state
 
 echo "== write gate on real paths"
