@@ -490,6 +490,29 @@ ERR=$(PATH="$BASE/badpy:$PATH" bash "$H/phase-complete.sh" < "$BASE/stop.json" 2
 if [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "not blocking" && printf '%s' "$ERR" | grep -q "python3 not found or unusable"; then
   ok "stop is never blocked when python3 is unusable"
 else bad "stop is never blocked when python3 is unusable (rc=$RC)"; fi
+
+log_prev() { # log_prev <field>: that field of the second newest hook log line
+  tail -n 2 "$LOG" 2>/dev/null | head -n 1 | python3 -c "import json,sys; v=json.loads(sys.stdin.read() or '{}').get(sys.argv[1], ''); print(v)" "$1"; }
+# CPython exits 2 with empty stdout when it cannot open a script; that is a crash, not a verdict.
+# The entry script is run directly and never cached, so chmod 000 really makes it unreadable.
+WG_MODE=$(mode_of "$H/lib/pl_write_gate.py")
+chmod 000 "$H/lib/pl_write_gate.py"
+capture write_to "plans/x.md"
+chmod "$WG_MODE" "$H/lib/pl_write_gate.py"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally (rc=70)" \
+  && [ "$(log_last event)" = gate-crash ] && [ "$(log_last rc)" = 70 ] \
+  && [ "$(log_prev event)" = gate-no-verdict ] && [ "$(log_prev rc)" = 2 ] && [ "$(mode_of "$H/lib/pl_write_gate.py")" = "$WG_MODE" ]; then
+  ok "an unreadable pl_write_gate.py blocks as a crash, not as an empty verdict"
+else bad "an unreadable pl_write_gate.py blocks as a crash, not as an empty verdict (rc=$RC)"; fi
+# pl_gate is imported, and a cached pyc would still load for an unreadable source; a missing
+# source is never served from __pycache__, so it is moved aside rather than chmod-ed.
+cp -p "$H/lib/pl_gate.py" "$BASE/pl_gate.py.bak" && mv "$H/lib/pl_gate.py" "$BASE/pl_gate.py.aside"
+capture write_to "plans/x.md"; W_RC=$RC; W_ERR=$ERR; W_EVENT=$(log_last event); W_LOGRC=$(log_last rc)
+mv "$BASE/pl_gate.py.aside" "$H/lib/pl_gate.py"
+if [ "$W_RC" = 2 ] && printf '%s' "$W_ERR" | grep -q "failed internally (rc=1)" && [ "$W_EVENT" = gate-crash ] && [ "$W_LOGRC" = 1 ] \
+  && cmp -s "$BASE/pl_gate.py.bak" "$H/lib/pl_gate.py"; then
+  ok "a missing pl_gate.py blocks the write gate as a crash"
+else bad "a missing pl_gate.py blocks the write gate as a crash (rc=$W_RC)"; fi
 reset_state
 
 echo "== write gate on real paths"
