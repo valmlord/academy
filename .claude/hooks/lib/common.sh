@@ -80,7 +80,7 @@ pl_log() {
 # pl_record_vote <judge> <verdict> <agent_id> <path> [log fields...]: record one judge vote through
 # pipeline-advance (run from the state root, so it resolves the same checkout) and log the outcome.
 pl_record_vote() {
-  local judge="$1" verdict="$2" agent_id="$3" path="$4" phase out rc=0 event
+  local judge="$1" verdict="$2" agent_id="$3" path="$4" phase out rc=0 event error=""
   shift 4
   phase=${STATE_STATUS##*:}
   case "$phase" in
@@ -94,9 +94,10 @@ pl_record_vote() {
   case "$out" in
     "Judge recorded"*) event=vote-recorded ;;
     "Duplicate vote"*) event=vote-dup ;;
-    *) event="vote-ignored:advance-rc-$rc" ;;
+    # Combined stdout and stderr: the CLI prints nothing before its error line on a failing path.
+    *) event="vote-ignored:advance-rc-$rc"; error=${out%%$'\n'*} ;;
   esac
-  pl_log event="$event" judge="$judge" verdict="$verdict" round="$phase" path="$path" agent_id="$agent_id" "$@"
+  pl_log event="$event" error="$error" judge="$judge" verdict="$verdict" round="$phase" path="$path" agent_id="$agent_id" "$@"
 }
 
 # run_hook: run main_fn with errexit and nounset in a subshell, then map its exit code. A gate

@@ -966,6 +966,8 @@ hold_lock "$WORK" 3
 handback lk2 "PASS" "$MAIN_T" >/dev/null 2>&1
 wait
 [ "$(log_last event)" = vote-ignored:advance-rc-75 ] && ok "judge hook logs the real rc of a failed vote" || bad "judge hook logs the real rc of a failed vote ($(log_last event))"
+log_last error | grep -q "could not lock" && ok "judge hook logs the first output line of a failed vote" \
+  || bad "judge hook logs the first output line of a failed vote ($(log_last error))"
 restore_cfg
 reset_state
 
@@ -1038,6 +1040,19 @@ PASS" "$MAIN_T" >/dev/null 2>&1 &
 done
 [ -z "$RACE_BAD" ] && ok "three concurrent handbacks record three votes, three rounds in a row" \
   || bad "three concurrent handbacks record three votes, three rounds in a row ($RACE_BAD)"
+reset_state
+
+put_state "$WORK" PROJECT judge_design
+set_cfg state_lock_timeout_seconds 1
+hold_lock "$WORK" 3
+python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[2],'tool_input':{'prompt':sys.argv[1]},'tool_response':{'agentId':'sp1'}}))" "$JS" "$WORK" \
+  > "$BASE/spawn.json"
+bash "$H/judge-count.sh" < "$BASE/spawn.json" >/dev/null 2>&1; RC=$?
+wait
+restore_cfg
+if [ "$RC" = 0 ] && [ "$(log_last event)" = spawn-failed ] && [ "$(log_last rc)" = 75 ] && log_last error | grep -q "could not lock"; then
+  ok "a spawn that cannot take the lock is logged as spawn-failed"
+else bad "a spawn that cannot take the lock is logged as spawn-failed (rc=$RC event=$(log_last event))"; fi
 reset_state
 
 QWT="$WORK/.claude/worktrees/it's wt"

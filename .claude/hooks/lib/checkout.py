@@ -42,6 +42,8 @@ LOG_FIELDS = (
     "event", "hook", "tool", "agent_id", "checkout", "source", "forwarded", "decision", "reason", "rc",
     "judge", "verdict", "round", "path", "role_source", "transcript_kind", "transcript_lines",
     "handback_in_transcript", "bg_subagents_running", "bg_total", "grant", "issue",
+    # First line of a failed vote or spawn CLI output; may hold absolute paths, never a message.
+    "error",
 )
 
 Worktree = collections.namedtuple("Worktree", "root gitdir branch")

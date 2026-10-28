@@ -14,14 +14,19 @@ source "$HOOK_DIR/lib/common.sh"
 main_fn() {
   case "$STATE_STATUS" in own:*) ;; *) return 0 ;; esac
   case "$TOOL_NAME" in Agent|Task) ;; *) return 0 ;; esac
-  local parsed judge verdict agent_id phase
+  local parsed judge verdict agent_id phase spawn_out spawn_rc=0
   # An async launch response carries the new agent's id: remember which judge it is, so its
   # handback can be attributed even when no transcript is found.
   IFS='|' read -r judge agent_id <<< "$(printf '%s' "$INPUT" | hookio spawn_info)"
   phase=${STATE_STATUS##*:}
   if [ -n "$judge" ] && [ -n "$agent_id" ]; then
-    (cd "$STATE_ROOT" && JUDGE_HOOK_CALLER=judge-count-hook \
-      bash "$CODE_ROOT/.claude/hooks/pipeline-advance.sh" spawn "$phase" "$agent_id" "$judge") >/dev/null 2>&1 || true
+    spawn_out=$(cd "$STATE_ROOT" && JUDGE_HOOK_CALLER=judge-count-hook \
+      bash "$CODE_ROOT/.claude/hooks/pipeline-advance.sh" spawn "$phase" "$agent_id" "$judge" 2>&1) || spawn_rc=$?
+    # A lost spawn entry leaves a handback without a transcript unattributed, so it is logged.
+    if [ "$spawn_rc" != 0 ]; then
+      pl_log event=spawn-failed rc="$spawn_rc" error="${spawn_out%%$'\n'*}" judge="$judge" \
+        agent_id="$agent_id" round="$phase"
+    fi
   fi
   parsed=$(printf '%s' "$INPUT" | hookio judge_vote_post)
   judge="${parsed%%|*}"
