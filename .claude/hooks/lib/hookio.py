@@ -27,10 +27,12 @@ import json
 import os
 import re
 import sys
+from typing import Callable, Iterator
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import cfg  # noqa: E402
 import checkout  # noqa: E402
+from pl_jsonshape import as_list, as_object, as_str  # noqa: E402
 
 # agent_id becomes part of a transcript file path and the vote dedupe key.
 AGENT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -38,9 +40,28 @@ ROLE_RE = re.compile(r"""^\s*Read\s+[`"']?\.claude/agents/(?:dev|content)/([a-z0
 VERDICT_RE = re.compile(r"^(?:VERDICT:\s*)?(PASS|FAIL)(?:\s*$|\s*[:\-]|\s+-)")
 
 
-def agent_names():
+def _obj(value: object, what: str) -> dict[str, object]:
+    """A JSON object; a missing or empty value reads as {}. Any other value is refused with a message,
+    because the parsing code always crashed on it and the phase gate must keep blocking then."""
+    if isinstance(value, dict):
+        return value
+    if not value:
+        return {}
+    raise ValueError("%s is not a JSON object" % what)
+
+
+def _text(value: object, what: str) -> str:
+    """A string; a missing or empty value reads as "". Any other value is refused, as in _obj."""
+    if isinstance(value, str):
+        return value
+    if not value:
+        return ""
+    raise ValueError("%s is not a string" % what)
+
+
+def agent_names() -> dict[str, str]:
     """frontmatter name -> file name, for subagent_type matching."""
-    out = {}
+    out: dict[str, str] = {}
     # Agents always come from the main checkout, like the hook code itself.
     base = os.path.join(checkout.code_root(), ".claude", "agents")
     for team in ("dev", "content"):
@@ -60,17 +81,18 @@ def agent_names():
     return out
 
 
-def role_from(prompt, subtype):
-    m = ROLE_RE.search(prompt or "")
+def role_from(prompt: object, subtype: object) -> str:
+    m = ROLE_RE.search(_text(prompt, "prompt"))
     if m:
         return m.group(1)
-    if subtype:
-        return agent_names().get(subtype, "")
+    sub = _text(subtype, "subagent_type")
+    if sub:
+        return agent_names().get(sub, "")
     return ""
 
 
-def verdict_from(text):
-    for line in reversed((text or "").splitlines()):
+def verdict_from(text: object) -> str:
+    for line in reversed(_text(text, "report").splitlines()):
         s = line.strip().strip("#").strip().strip("*").strip().strip("`").strip()
         m = VERDICT_RE.match(s)
         if m:
@@ -78,7 +100,7 @@ def verdict_from(text):
     return "UNKNOWN"
 
 
-def judge_key(role_file):
+def judge_key(role_file: str) -> str:
     try:
         conf = cfg.load()
     except (OSError, ValueError):
@@ -89,58 +111,65 @@ def judge_key(role_file):
     return ""
 
 
-def first_user_text(path):
+def _records(path: str) -> Iterator[dict[str, object]]:
+    """The JSON records of a transcript, read lazily; lines that are not JSON are skipped."""
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                rec: object = json.loads(line)
+            except ValueError:
+                continue
+            yield _obj(rec, "transcript record")
+
+
+def _content_text(content: object, block_text: Callable[[dict[str, object]], str]) -> str:
+    """A message content: a string, or the text of each object block joined by spaces."""
+    if isinstance(content, str):
+        return content
+    return " ".join(block_text(b) for b in map(as_object, as_list(content)) if b is not None)
+
+
+def first_user_text(path: str) -> str:
     try:
-        with open(path, encoding="utf-8") as fh:
-            for line in fh:
-                try:
-                    rec = json.loads(line)
-                except ValueError:
-                    continue
-                if rec.get("type") != "user":
-                    continue
-                c = rec.get("message", {}).get("content")
-                return c if isinstance(c, str) else " ".join(x.get("text", "") for x in (c or []) if isinstance(x, dict))
+        for rec in _records(path):
+            if rec.get("type") != "user":
+                continue
+            content = _obj(rec.get("message", {}), "message").get("content")
+            return _content_text(content, lambda b: as_str(b.get("text")))
     except OSError:
         pass
     return ""
 
 
-def _block_text(block):
+def _block_text(block: dict[str, object]) -> str:
     """Text of one assistant content block. A background agent delivers its final report as the
     `message` input of a SubagentHandback tool call rather than as a text block."""
     if block.get("type") == "text":
-        return block.get("text", "")
+        return as_str(block.get("text"))
     if block.get("type") == "tool_use" and block.get("name") == "SubagentHandback":
-        return (block.get("input") or {}).get("message", "")
+        return as_str(_obj(block.get("input"), "tool_use input").get("message"))
     return ""
 
 
-def last_assistant_text(path):
+def last_assistant_text(path: str) -> str:
     last = ""
     try:
-        with open(path, encoding="utf-8") as fh:
-            for line in fh:
-                try:
-                    rec = json.loads(line)
-                except ValueError:
-                    continue
-                if rec.get("type") != "assistant":
-                    continue
-                c = rec.get("message", {}).get("content")
-                t = c if isinstance(c, str) else " ".join(_block_text(x) for x in (c or []) if isinstance(x, dict))
-                if t.strip():
-                    last = t
+        for rec in _records(path):
+            if rec.get("type") != "assistant":
+                continue
+            t = _content_text(_obj(rec.get("message", {}), "message").get("content"), _block_text)
+            if t.strip():
+                last = t
     except OSError:
         pass
     return last
 
 
-def valid_agent_id(agent_id):
-    return isinstance(agent_id, str) and bool(AGENT_ID_RE.match(agent_id))
+def valid_agent_id(agent_id: str) -> bool:
+    return bool(AGENT_ID_RE.match(agent_id))
 
 
-def transcript_facts(path):
+def transcript_facts(path: str) -> tuple[int, bool]:
     """(line count, whether an assistant record already holds a SubagentHandback call): logged so
     a verdict missing because the transcript lagged behind the hook is visible."""
     lines, handback = 0, False
@@ -150,27 +179,29 @@ def transcript_facts(path):
                 lines += 1
                 if '"SubagentHandback"' in line:
                     try:
-                        rec = json.loads(line)
+                        loaded: object = json.loads(line)
                     except ValueError:
                         continue
-                    content = rec.get("message", {}).get("content") if rec.get("type") == "assistant" else None
+                    rec = _obj(loaded, "transcript record")
+                    content = _obj(rec.get("message", {}), "message").get("content") if rec.get("type") == "assistant" else None
                     handback = handback or any(
-                        isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "SubagentHandback"
-                        for b in (content if isinstance(content, list) else []))
+                        b is not None and b.get("type") == "tool_use" and b.get("name") == "SubagentHandback"
+                        for b in map(as_object, as_list(content)))
     except OSError:
         pass
     return lines, handback
 
 
-def subagent_transcript(d, agent_id):
+def subagent_transcript(d: dict[str, object], agent_id: str) -> tuple[str, str]:
     """(path, kind) of the subagent's own transcript; which transcript_path a PreToolUse inside a
     subagent receives is unverified, so every known layout is tried in order."""
-    tpath = d.get("transcript_path") if isinstance(d.get("transcript_path"), str) else ""
-    session = d.get("session_id") if isinstance(d.get("session_id"), str) else ""
+    tpath = as_str(d.get("transcript_path"))
+    session = as_str(d.get("session_id"))
     own = "agent-%s.jsonl" % agent_id
-    candidates = []
-    if isinstance(d.get("agent_transcript_path"), str) and d.get("agent_transcript_path"):
-        candidates.append((d["agent_transcript_path"], "explicit"))
+    candidates: list[tuple[str, str]] = []
+    explicit = as_str(d.get("agent_transcript_path"))
+    if explicit:
+        candidates.append((explicit, "explicit"))
     if tpath and os.path.basename(tpath) == own:
         candidates.append((tpath, "subagent"))
     if tpath and session:
@@ -183,28 +214,28 @@ def subagent_transcript(d, agent_id):
     return "", "none"
 
 
-def spawn_map(state_file):
+def spawn_map(state_file: str) -> dict[str, object]:
     try:
         with open(state_file, encoding="utf-8") as fh:
-            spawns = json.load(fh).get("artifacts", {}).get("judge_spawns", {})
-    except (OSError, ValueError, AttributeError):
+            data: object = json.load(fh)
+    except (OSError, ValueError):
         return {}
-    return spawns if isinstance(spawns, dict) else {}
+    artifacts = as_object((as_object(data) or {}).get("artifacts", {})) or {}
+    return as_object(artifacts.get("judge_spawns", {})) or {}
 
 
-def handback_vote(d, state_file):
-    agent_id = d.get("agent_id", "")
+def handback_vote(d: dict[str, object], state_file: str) -> list[str]:
+    agent_id = as_str(d.get("agent_id"))
     if not valid_agent_id(agent_id):
         return ["vote-ignored:bad-agent-id", "", "", "", "none", "none"]
-    message = (d.get("tool_input") or {}).get("message", "") if isinstance(d.get("tool_input"), dict) else ""
-    verdict = verdict_from(message if isinstance(message, str) else "")
+    message = (as_object(d.get("tool_input")) or {}).get("message", "")
+    verdict = verdict_from(as_str(message))
     path, kind = subagent_transcript(d, agent_id)
     if path:
         role = role_from(first_user_text(path), "")
         role_source, key, found_role = "transcript", judge_key(role), bool(role)
     else:
-        key = spawn_map(state_file).get(agent_id, "")
-        key = key if isinstance(key, str) else ""
+        key = as_str(spawn_map(state_file).get(agent_id, ""))
         role_source, found_role = ("spawn_map", True) if key else ("none", False)
     if not found_role:
         outcome = "role-unknown"
@@ -217,17 +248,17 @@ def handback_vote(d, state_file):
     return [outcome, key, verdict, agent_id, role_source, kind]
 
 
-def spawn_info(d):
-    ti = d.get("tool_input") if isinstance(d.get("tool_input"), dict) else {}
+def spawn_info(d: dict[str, object]) -> list[str]:
+    ti = as_object(d.get("tool_input")) or {}
     key = judge_key(role_from(ti.get("prompt", ""), ti.get("subagent_type", "")))
-    resp = d.get("tool_response") if isinstance(d.get("tool_response"), dict) else {}
+    resp = as_object(d.get("tool_response")) or {}
     agent_id = resp.get("agentId") or resp.get("agent_id") or ""
-    if not key or not valid_agent_id(agent_id):
+    if not key or not isinstance(agent_id, str) or not valid_agent_id(agent_id):
         return ["", ""]
     return [key, agent_id]
 
 
-def bg_running(d):
+def bg_running(d: dict[str, object]) -> tuple[int, int]:
     """Running subagents only: a dev server, monitor or cron must not keep Stop open forever."""
     tasks = d.get("background_tasks")
     if not isinstance(tasks, list):
@@ -236,31 +267,30 @@ def bg_running(d):
     return running, len(tasks)
 
 
-def main(argv):
+def main(argv: list[str]) -> int:
     cmd = argv[1] if len(argv) > 1 else ""
     try:
-        d = json.load(sys.stdin)
+        raw: object = json.load(sys.stdin)
     except ValueError:
-        d = {}
-    if not isinstance(d, dict):
-        d = {}
+        raw = {}
+    d = as_object(raw) or {}
     if cmd == "role":
-        ti = d.get("tool_input", {}) or {}
+        ti = _obj(d.get("tool_input", {}), "tool_input")
         print(role_from(ti.get("prompt", ""), ti.get("subagent_type", "")))
     elif cmd == "judge_vote":
         if d.get("hook_event_name") not in (None, "", "SubagentStop"):
             print("||||false")
             return 0
-        tpath = d.get("agent_transcript_path", "") or ""
+        tpath = _text(d.get("agent_transcript_path", ""), "agent_transcript_path")
         prompt = first_user_text(tpath) if tpath else ""
         role = role_from(prompt, d.get("agent_type", ""))
         key = judge_key(role)
-        verdict = verdict_from(d.get("last_assistant_message") or "")
+        verdict = verdict_from(d.get("last_assistant_message"))
         # last_assistant_message can be present yet carry no verdict (the report went through
         # SubagentHandback), so UNKNOWN there falls back to the transcript.
         if verdict == "UNKNOWN" and tpath:
             verdict = verdict_from(last_assistant_text(tpath))
-        agent_id = d.get("agent_id", "")
+        agent_id = as_str(d.get("agent_id"))
         lines, handback = transcript_facts(tpath) if tpath else (0, False)
         print("|".join([key, verdict if key else "", agent_id if valid_agent_id(agent_id) else "",
                         str(lines), "true" if handback else "false"]))
@@ -271,15 +301,18 @@ def main(argv):
     elif cmd == "spawn_info":
         print("|".join(spawn_info(d)))
     elif cmd == "judge_vote_post":
-        ti = d.get("tool_input", {}) or {}
+        ti = _obj(d.get("tool_input", {}), "tool_input")
         role = role_from(ti.get("prompt", ""), ti.get("subagent_type", ""))
         key = judge_key(role)
         resp = d.get("tool_response", {})
         content = resp.get("content", []) if isinstance(resp, dict) else []
-        txt = "\n".join(x.get("text", "") for x in content if isinstance(x, dict)) if isinstance(content, list) else str(content)
+        if isinstance(content, list):
+            txt = "\n".join(as_str(b.get("text")) for b in map(as_object, content) if b is not None)
+        else:
+            txt = str(content)
         print("%s|%s" % (key, verdict_from(txt) if key else ""))
     elif cmd == "field":
-        cur = d
+        cur: object = d
         for part in (argv[2] if len(argv) > 2 else "").split("."):
             cur = cur.get(part, "") if isinstance(cur, dict) else ""
         print(cur if not isinstance(cur, (dict, list)) else json.dumps(cur))
