@@ -1,0 +1,163 @@
+version: 1
+questions:
+  - id: cc-launch-agents-files
+    type: multiple
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию. Ни в одном каталоге дерева нет `CLAUDE.md`,
+      `.claude/CLAUDE.md` или `CLAUDE.local.md`. Сессию запускают из `/work/mono/packages/api`.
+
+      ```text
+      /work/mono/
+      ├── AGENTS.md
+      └── packages/
+          ├── api/
+          │   ├── AGENTS.md
+          │   └── .claude/
+          │       └── AGENTS.md
+          └── web/
+              └── AGENTS.md
+      ```
+
+      Какие файлы Claude Code загрузит при запуске? Выберите все верные.
+    options:
+      - { id: a, text: "`/work/mono/AGENTS.md`" }
+      - { id: b, text: "`/work/mono/packages/api/AGENTS.md`" }
+      - { id: c, text: "`/work/mono/packages/api/.claude/AGENTS.md`" }
+      - { id: d, text: "`/work/mono/packages/web/AGENTS.md`" }
+    correct: [a, b, c]
+    explanation: |
+      CLAUDE.md-файлов нет, поэтому при настройках по умолчанию Claude Code 2.1.311 читает
+      AGENTS.md. При запуске он загружает `AGENTS.md` и `.claude/AGENTS.md` из текущего каталога и
+      всех каталогов выше. `packages/web` - соседний каталог, не предок текущего, поэтому его файл
+      при запуске не загружается.
+
+  - id: cc-claude-imports-agents
+    type: single
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию. Сессию запускают из `/srv/app`.
+
+      ```text
+      /srv/app/
+      ├── CLAUDE.md      (одна строка: @AGENTS.md)
+      └── AGENTS.md
+      ```
+
+      Что окажется в контексте при запуске?
+    options:
+      - { id: a, text: "CLAUDE.md и через импорт содержимое AGENTS.md, один раз" }
+      - { id: b, text: "Только CLAUDE.md: при наличии CLAUDE.md файл AGENTS.md игнорируется" }
+      - { id: c, text: "AGENTS.md дважды: сам по себе и ещё раз через импорт в CLAUDE.md" }
+      - { id: d, text: "Только AGENTS.md: строка импорта заменяет собой файл CLAUDE.md" }
+    correct: [a]
+    explanation: |
+      Раз есть CLAUDE.md, по умолчанию Claude Code читает его, а AGENTS.md отдельно не читает.
+      Строка `@AGENTS.md` импортирует содержимое AGENTS.md, поэтому оно попадает в контекст через
+      CLAUDE.md, один раз.
+
+  - id: cc-import-context-cost
+    type: single
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию, сессия из корня репозитория. Коллега разбил
+      300-строчный CLAUDE.md на пять файлов в `docs/agent/` и оставил в CLAUDE.md пять строк
+      `@docs/agent/...md`: "так контекст будет меньше". Прав ли он?
+    options:
+      - { id: a, text: "Да: импорты читаются только тогда, когда агент сам решит их открыть" }
+      - { id: b, text: "Нет: импортированные файлы загружаются при запуске вместе с CLAUDE.md" }
+      - { id: c, text: "Да: при импорте Claude Code автоматически сжимает импортируемые файлы" }
+      - { id: d, text: "Нет: импорты вообще не работают, если файлы лежат не в корне проекта" }
+    correct: [b]
+    explanation: |
+      Импорт раскрывается при загрузке файла, который его содержит: все пять файлов попадут в
+      контекст при запуске, как и раньше. Импорт помогает организовать текст, но не экономит
+      контекст. Чтобы правила грузились по требованию, есть подкаталожные CLAUDE.md и правила с
+      `paths:`.
+
+  - id: cc-subdirectory-claude
+    type: single
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию. Сессия запущена из `/repo`.
+
+      ```text
+      /repo/
+      ├── CLAUDE.md
+      └── services/
+          └── billing/
+              ├── CLAUDE.md
+              └── invoice.py
+      ```
+
+      Когда в контекст попадёт `/repo/services/billing/CLAUDE.md`?
+    options:
+      - { id: a, text: "Сразу при запуске, вместе с корневым CLAUDE.md из `/repo`" }
+      - { id: b, text: "Никогда: учитывается только CLAUDE.md в каталоге запуска" }
+      - { id: c, text: "Когда агент читает файлы в `services/billing`, по требованию" }
+      - { id: d, text: "Только после команды `/memory`, вручную выбранный пользователем" }
+    correct: [c]
+    explanation: |
+      При запуске Claude Code загружает файлы памяти из текущего каталога и выше. Файлы в
+      подкаталогах загружаются по требованию, когда агент работает с файлами в этом подкаталоге.
+
+  - id: cc-path-scoped-rules
+    type: single
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию, сессия из корня `/repo`. Есть файл
+      `/repo/.claude/rules/api.md` с фронтматтером `paths: ["src/api/**"]`. Когда это правило
+      попадёт в контекст?
+    options:
+      - { id: a, text: "При запуске: все файлы из `.claude/rules/` грузятся сразу" }
+      - { id: b, text: "Никогда: правила с `paths:` читает только линтер, не агент" }
+      - { id: c, text: "При каждом ходе модели заново, независимо от того, что она делает" }
+      - { id: d, text: "Когда агент работает с файлами, которые подходят под `src/api/**`" }
+    correct: [d]
+    explanation: |
+      Правило с `paths:` в `.claude/rules/` загружается, когда агент работает с файлами,
+      подходящими под шаблон. Правила без `paths:` загружаются при запуске, как CLAUDE.md.
+
+  - id: codex-nested-order
+    type: single
+    prompt: |
+      Codex CLI, настройки по умолчанию. Запуск из `/repo/services/billing` (корень git -
+      `/repo`). В `/repo/AGENTS.md` написано "тесты через `make test`", в
+      `/repo/services/billing/AGENTS.md` написано "тесты через `make test-billing`". Что получит агент?
+    options:
+      - { id: a, text: "Оба файла, от корня к листу; при конфликте побеждает billing" }
+      - { id: b, text: "Только корневой файл: он ближе к корню git и главнее вложенного" }
+      - { id: c, text: "Только ближайший файл из billing, корневой не читается вовсе" }
+      - { id: d, text: "Оба файла, от листа к корню; при конфликте побеждает корневой" }
+    correct: [a]
+    explanation: |
+      Codex собирает файлы проекта от корня git до текущего каталога и склеивает их от корня к
+      листу. Более глубокий файл идёт позже, поэтому при конфликте его указания побеждают.
+
+  - id: codex-global-override
+    type: single
+    prompt: |
+      Codex CLI, настройки по умолчанию. В `~/.codex/` лежат непустые `AGENTS.override.md` и
+      `AGENTS.md`. В корне проекта, откуда запускают сессию, есть `AGENTS.md`. Что загрузится?
+    options:
+      - { id: a, text: "Только глобальный `AGENTS.md`, остальные файлы пропускаются" }
+      - { id: b, text: "Глобальный `AGENTS.override.md` и `AGENTS.md` проекта" }
+      - { id: c, text: "Все три файла: глобальные оба и файл проекта следом" }
+      - { id: d, text: "Только `AGENTS.override.md`: он отключает файлы проекта" }
+    correct: [b]
+    explanation: |
+      Для глобального уровня Codex берёт первый непустой файл в порядке `AGENTS.override.md`,
+      затем `AGENTS.md`; здесь это override, глобальный `AGENTS.md` пропускается. Файлы проекта
+      добавляются после глобального указания.
+
+  - id: never-in-memory-is-context
+    type: multiple
+    prompt: |
+      Claude Code 2.1.311, настройки по умолчанию. В CLAUDE.md проекта есть строка
+      "NEVER edit generated/". Других правил и хуков нет. Какие утверждения верны? Выберите все
+      верные.
+    options:
+      - { id: a, text: "Это контекст: модель обычно следует ему, но может и не последовать" }
+      - { id: b, text: "Харнесс откажет инструменту Edit на файл в generated/ из-за этой строки" }
+      - { id: c, text: "Чтобы правка реально блокировалась, нужно правило разрешений или хук" }
+      - { id: d, text: "Капс в слове NEVER превращает строку в правило, которое исполняет харнесс" }
+    correct: [a, c]
+    explanation: |
+      Память - это контекст, а не исполняемая конфигурация. Харнесс не читает CLAUDE.md как
+      правила разрешений, и капс ничего не меняет. Блокирует правило deny в настройках или хук
+      (урок про безопасность).

@@ -1,0 +1,8 @@
+{
+  "offline-audit": {"tier": null, "effort": null, "deployment": null, "binding_constraint": null, "reason": null},
+  "ide-hint": {"tier": null, "effort": null, "deployment": null, "binding_constraint": null, "reason": null},
+  "ticket-triage": {"tier": null, "effort": null, "deployment": null, "binding_constraint": null, "reason": null},
+  "log-dump": {"tier": null, "effort": null, "deployment": null, "binding_constraint": null, "reason": null},
+  "core-refactor": {"tier": null, "effort": null, "deployment": null, "binding_constraint": null, "reason": null},
+  "bulk-rename": {"tier": null, "effort": null, "deployment": null, "binding_constraint": null, "reason": null}
+}

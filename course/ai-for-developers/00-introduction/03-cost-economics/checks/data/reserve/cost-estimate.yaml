@@ -1,0 +1,30 @@
+# Reserve item for the mentor review after cost-estimate is closed (design 2.5.6).
+# Mentor-review store, never on the command-check mount; never shown before the review. Prices: the same snapshot as data/prices.json.
+version: 1
+check: cost-estimate
+passBar: "same tolerance as cost-estimate: numbers within max(1% of expected, $0.001); cache-miss turn and largest component exact"
+task: >-
+  Сессия d (уровень large, цены из того же снимка). Посчитайте стоимость сессии, стоимость тех же
+  токенов на уровне mid, номер хода с промахом кэша после долгой паузы, главную составляющую
+  стоимости.
+session:
+  - {"turn": 1, "tier": "large", "input_tokens": 9000, "cache_read_input_tokens": 0, "output_tokens": 470, "idle_seconds_before": 12}
+  - {"turn": 2, "tier": "large", "input_tokens": 1840, "cache_read_input_tokens": 9470, "output_tokens": 497, "idle_seconds_before": 3}
+  - {"turn": 3, "tier": "large", "input_tokens": 2632, "cache_read_input_tokens": 11807, "output_tokens": 441, "idle_seconds_before": 5}
+  - {"turn": 4, "tier": "large", "input_tokens": 2998, "cache_read_input_tokens": 14880, "output_tokens": 595, "idle_seconds_before": 12}
+  - {"turn": 5, "tier": "large", "input_tokens": 2010, "cache_read_input_tokens": 18473, "output_tokens": 309, "idle_seconds_before": 200}
+  - {"turn": 6, "tier": "large", "input_tokens": 1817, "cache_read_input_tokens": 20792, "output_tokens": 376, "idle_seconds_before": 20}
+  - {"turn": 7, "tier": "large", "input_tokens": 1843, "cache_read_input_tokens": 22985, "output_tokens": 431, "idle_seconds_before": 8}
+  - {"turn": 8, "tier": "large", "input_tokens": 1745, "cache_read_input_tokens": 25259, "output_tokens": 600, "idle_seconds_before": 0}
+  - {"turn": 9, "tier": "large", "input_tokens": 29989, "cache_read_input_tokens": 0, "output_tokens": 444, "idle_seconds_before": 1800}
+  - {"turn": 10, "tier": "large", "input_tokens": 1648, "cache_read_input_tokens": 30433, "output_tokens": 484, "idle_seconds_before": 3}
+  - {"turn": 11, "tier": "large", "input_tokens": 1756, "cache_read_input_tokens": 32565, "output_tokens": 584, "idle_seconds_before": 20}
+  - {"turn": 12, "tier": "large", "input_tokens": 1753, "cache_read_input_tokens": 34905, "output_tokens": 350, "idle_seconds_before": 0}
+  - {"turn": 13, "tier": "large", "input_tokens": 2910, "cache_read_input_tokens": 37008, "output_tokens": 391, "idle_seconds_before": 2}
+  - {"turn": 14, "tier": "large", "input_tokens": 2045, "cache_read_input_tokens": 40309, "output_tokens": 462, "idle_seconds_before": 0}
+expected:
+  session_cost_usd: 0.444401
+  repriced_on_mid_tier_usd: 0.222201
+  cache_miss_turn: 9
+  largest_component: uncached-input
+  components_usd: {"uncached-input": 0.255944, "cache-read": 0.059777, "output": 0.12868}

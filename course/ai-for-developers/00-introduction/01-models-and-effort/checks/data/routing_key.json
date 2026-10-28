@@ -1,0 +1,134 @@
+{
+  "comment": "Accepted answers per card. A card is correct when (tier, effort, deployment) matches at least one entry of `accept` (each entry is a product of its value lists), binding_constraint equals the key and reason is a non-empty string of at most 200 characters. Effort guidance: platform.claude.com/docs/en/build-with-claude/effort, checked 2026-10-27.",
+  "cards": {
+    "offline-audit": {
+      "accept": [
+        {
+          "tier": [
+            "large",
+            "mid",
+            "small"
+          ],
+          "effort": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "deployment": [
+            "local"
+          ]
+        }
+      ],
+      "binding_constraint": "privacy",
+      "why": "Code may not leave the laptop, so local is the only option; the card offers 64 GB and a GPU, so a large local model is a reasonable reading too; effort is relaxed (time unlimited) but xhigh/max are not justified for a good-review bar."
+    },
+    "ide-hint": {
+      "accept": [
+        {
+          "tier": [
+            "small",
+            "mid"
+          ],
+          "effort": [
+            "low"
+          ],
+          "deployment": [
+            "cloud"
+          ]
+        }
+      ],
+      "binding_constraint": "latency",
+      "why": "Under 2 s for a one-line answer: a fast tier at low effort; local is ruled out by the card (10+ s)."
+    },
+    "ticket-triage": {
+      "accept": [
+        {
+          "tier": [
+            "small"
+          ],
+          "effort": [
+            "low",
+            "medium"
+          ],
+          "deployment": [
+            "cloud"
+          ]
+        }
+      ],
+      "binding_constraint": "price",
+      "why": "10k runs/day under a small fixed budget, simple classification: Haiku-class; effort page: Haiku medium by default, low for simple high-volume work. No own hardware, so not local."
+    },
+    "log-dump": {
+      "accept": [
+        {
+          "tier": [
+            "large",
+            "mid",
+            "small"
+          ],
+          "effort": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "deployment": [
+            "cloud"
+          ]
+        }
+      ],
+      "binding_constraint": "context",
+      "why": "700k tokens cannot be split; every tier in the snapshot has a 1M window, so context rules out local (small windows) but does not require a larger tier; the task is mechanical."
+    },
+    "core-refactor": {
+      "accept": [
+        {
+          "tier": [
+            "frontier"
+          ],
+          "effort": [
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "deployment": [
+            "cloud"
+          ]
+        },
+        {
+          "tier": [
+            "large"
+          ],
+          "effort": [
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "deployment": [
+            "cloud"
+          ]
+        }
+      ],
+      "binding_constraint": "quality",
+      "why": "Quality decides, budget and time relaxed. Fable 5.1 starts at high and steps up to xhigh/max for the most capability-sensitive coding work. Opus 5.5 defaults to medium and the docs ask for an effort sweep, so every level from its default up is defensible. frontier+medium is not accepted: below Fable's own starting level."
+    },
+    "bulk-rename": {
+      "accept": [
+        {
+          "tier": [
+            "small"
+          ],
+          "effort": [
+            "low",
+            "medium"
+          ],
+          "deployment": [
+            "cloud"
+          ]
+        }
+      ],
+      "binding_constraint": "price",
+      "why": "Simple mechanical step run thousands of times under a small budget: Haiku-class at low or its default medium; CI runners, so cloud."
+    }
+  }
+}

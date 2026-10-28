@@ -1,0 +1,170 @@
+# Answer key for context-bug-hunt (design 2.2). Hidden: grader mount only.
+# Line numbers are 1-based physical lines of transcript.md and equal the printed numbers.
+# Generated together with the transcript; ranges are pairwise non-overlapping.
+# The auto-compaction event is on line 170 and lies in no bug or decoy range.
+# Line 57 (the format example in task.md) lies in no range.
+version: 1
+report: findings.json
+maxReports: 7
+maxDecoyHits: 1
+categories: [bloat-tool-read, bloat-subagent-return, bloat-user-paste, lost-instruction, polluted-session, no-verification]
+bugs:
+  # Walk (whole-lockfile-read):
+  #   Rule 1: yes, ~20k tokens of lockfile entered the context to answer a one-line question.
+  #   Who put it there: the agent's own Read call -> bloat-tool-read.
+  #   Anchor: the Read call (its result line is adjacent, same range).
+  - id: whole-lockfile-read
+    file: transcript.md
+    lines: [[77, 79]]
+    category: bloat-tool-read
+    title: "Агент целиком прочитал lock-файл (~20k токенов), чтобы ответить на вопрос о версии одного пакета."
+    explanation: "Достаточно Grep по имени пакета или чтения нескольких строк: целый файл занял контекст до конца сессии."
+  # Walk (lost-migration-rule):
+  #   Rule 1: no oversized text. Rule 2: the instruction was given only in chat, auto-compaction
+  #   followed, and afterwards the agent edited a migration -> lost-instruction.
+  #   Two ranges, cause and consequence far apart: this range is the chat instruction (cause).
+  #   The auto-compaction line between them is an event, never an anchor, and is in no range.
+  #   Second range of the same bug: the migration edit (visible consequence).
+  - id: lost-migration-rule
+    file: transcript.md
+    lines: [[125, 126], [180, 182]]
+    category: lost-instruction
+    title: "Запрет трогать миграции был дан только в чате; после автокомпакции агент правит существующую миграцию."
+    explanation: "Правило, которое должно жить всю сессию, кладут в файл инструкций до компакции (как сделали с generated/)."
+  # Walk (third-correction):
+  #   Rule 1-2: no. Rule 3: two corrections (month order, currency case) already failed in this
+  #   session and the user corrects a third time instead of /clear -> polluted-session.
+  #   Anchor: the third correction message.
+  - id: third-correction
+    file: transcript.md
+    lines: [[214, 215]]
+    category: polluted-session
+    title: "Третья поправка в той же сессии после двух неудачных вместо /clear и переформулировки."
+    explanation: "После двух неудачных поправок контекст засорён неверными попытками; лучше начать заново с точной формулировкой."
+  # Walk (refactor-without-check):
+  #   Rule 1-3: no. Rule 4: a four-file refactor is started with no check defined and later
+  #   declared done without running one -> no-verification.
+  #   Two ranges, far apart: this one is the start of the implementation (the decision).
+  #   Second range of the same bug: the 'done, can merge' message with no test run.
+  - id: refactor-without-check
+    file: transcript.md
+    lines: [[229, 232], [250, 250]]
+    category: no-verification
+    title: "Рефакторинг в четырёх файлах начат без проверки и объявлен готовым без запуска тестов."
+    explanation: "До начала нужен критерий проверки (make test, новый тест на общую выборку), и 'готово' только после его запуска."
+  # Walk (raw-subagent-dump):
+  #   Rule 1: yes, ~15k tokens of raw file texts entered the parent context.
+  #   Who put it there: the subagent's returned result (the dispatch asked for no summary)
+  #   -> bloat-subagent-return. Dispatch and result are adjacent: one range spans both.
+  - id: raw-subagent-dump
+    file: transcript.md
+    lines: [[105, 113]]
+    category: bloat-subagent-return
+    title: "Субагенту велели вернуть всё целиком; ~15k токенов сырых текстов легли в контекст родителя."
+    explanation: "Субагент полезен тем, что возвращает короткую сводку (~1-2k токенов), а сырые тексты остаются в его контексте."
+  # Walk (three-files-pasted):
+  #   Rule 1: yes, ~600 lines of three whole files entered the context.
+  #   Who put it there: the user pasted them into a message -> bloat-user-paste.
+  #   Anchor: the paste message.
+  - id: three-files-pasted
+    file: transcript.md
+    lines: [[219, 227]]
+    category: bloat-user-paste
+    title: "Пользователь вставил три файла целиком вместо того, чтобы назвать пути."
+    explanation: "Агент сам прочитает нужное по путям и только нужные части; вставка кладёт ~600 строк в каждый следующий ход."
+decoys:
+  - id: grep-then-short-read
+    file: transcript.md
+    lines: [[19, 23]]
+    lookalike: bloat-tool-read
+    note: "agent narrowed with grep and read 40 lines: no bloat"
+  - id: chat-rule-kept-no-compaction
+    file: transcript.md
+    lines: [[25, 29]]
+    lookalike: lost-instruction
+    note: "chat-only rule, but no compaction before it was followed"
+  - id: impl-then-make-test
+    file: transcript.md
+    lines: [[51, 55]]
+    lookalike: no-verification
+    note: "implementation followed by make test"
+  - id: short-error-paste
+    file: transcript.md
+    lines: [[81, 87]]
+    lookalike: bloat-user-paste
+    note: "user pasted a 5-line traceback: small and needed"
+  - id: subagent-failing-names-only
+    file: transcript.md
+    lines: [[95, 98]]
+    lookalike: bloat-subagent-return
+    note: "subagent asked for failing names only, returned one word"
+  - id: rule-written-to-memory
+    file: transcript.md
+    lines: [[117, 121]]
+    lookalike: lost-instruction
+    note: "rule moved into CLAUDE.md before compaction"
+  - id: test-output-through-tail
+    file: transcript.md
+    lines: [[136, 141]]
+    lookalike: bloat-tool-read
+    note: "long test output cut with tail by the agent: no bloat"
+  - id: single-correction-works
+    file: transcript.md
+    lines: [[188, 190]]
+    lookalike: polluted-session
+    note: "one correction, and it worked"
+  - id: typo-fix-no-tests
+    file: transcript.md
+    lines: [[194, 196]]
+    lookalike: no-verification
+    note: "one-line typo fix: not a multi-step change"
+  - id: subagent-short-summary
+    file: transcript.md
+    lines: [[243, 248]]
+    lookalike: bloat-subagent-return
+    note: "subagent returned a 1.4k-token summary as asked"
+  - id: plan-mode-with-check
+    file: transcript.md
+    lines: [[254, 258]]
+    lookalike: no-verification
+    note: "plan mode before a risky change, with a verification step"
+  - id: user-names-paths
+    file: transcript.md
+    lines: [[266, 271]]
+    lookalike: bloat-user-paste
+    note: "user named paths instead of pasting"
+  - id: done-with-test-output
+    file: transcript.md
+    lines: [[275, 278]]
+    lookalike: no-verification
+    note: "'done' quotes the passing test output"
+  - id: reread-memory-after-clear
+    file: transcript.md
+    lines: [[292, 295]]
+    lookalike: lost-instruction
+    note: "after /clear the agent re-reads CLAUDE.md and follows it"
+  - id: makefile-read-fully
+    file: transcript.md
+    lines: [[297, 299]]
+    lookalike: bloat-tool-read
+    note: "whole 22-line file read because every target is needed: no bloat"
+  - id: subagent-file-list
+    file: transcript.md
+    lines: [[304, 309]]
+    lookalike: bloat-subagent-return
+    note: "subagent returned a short path list as asked"
+  - id: short-trace-paste
+    file: transcript.md
+    lines: [[324, 328]]
+    lookalike: bloat-user-paste
+    note: "user pasted a 4-line trace: small and needed"
+  - id: clear-after-two-failed
+    file: transcript.md
+    lines: [[341, 344]]
+    lookalike: polluted-session
+    note: "after two failed corrections the user runs /clear and restates the task"
+  - id: compact-with-focus
+    file: transcript.md
+    lines: [[356, 360]]
+    lookalike: lost-instruction
+    note: "/compact with a focus that keeps the rule; rule followed after"
