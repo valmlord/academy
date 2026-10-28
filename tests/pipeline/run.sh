@@ -1055,6 +1055,22 @@ if [ "$RC" = 0 ] && [ "$(log_last event)" = spawn-failed ] && [ "$(log_last rc)"
 else bad "a spawn that cannot take the lock is logged as spawn-failed (rc=$RC event=$(log_last event))"; fi
 reset_state
 
+mkdir -p "$PARKED" && printf '[]\n' > "$PARKED/111-1.json"
+PARKED_OUT=$("${ADV[@]}" parked 2>&1); PARKED_RC=$?
+capture "${ADV[@]}" status
+if [ "$PARKED_RC" = 0 ] && printf '%s' "$PARKED_OUT" | grep -q "111-1 (not a JSON object)" \
+  && [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "111-1 (not a JSON object)"; then
+  ok "parked and status list a parked file that is not a JSON object"
+else bad "parked and status list a parked file that is not a JSON object (parked rc=$PARKED_RC status rc=$RC)"; fi
+reset_state
+
+capture "${ADV[@]}" init RESEARCH ²
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "issue must be a GitHub issue number" && ! printf '%s' "$ERR" | grep -q Traceback \
+  && [ ! -e "$WORK/.claude/pipeline_state.json" ] && [ ! -e "$PARKED" ]; then
+  ok "init refuses a Unicode digit issue without a traceback and changes nothing"
+else bad "init refuses a Unicode digit issue without a traceback and changes nothing (rc=$RC)"; fi
+reset_state
+
 QWT="$WORK/.claude/worktrees/it's wt"
 git -C "$WORK" worktree add -q -b feat/113-quote "$QWT" HEAD >/dev/null 2>&1
 put_state "$QWT" PROJECT coder 113

@@ -64,6 +64,11 @@ class StateLockTimeout(Exception):
     pass
 
 
+def is_ascii_digits(text):
+    """str.isdigit() also accepts Unicode digits such as "\u00b2", which int() then rejects."""
+    return text.isascii() and text.isdigit()
+
+
 GRANT_KEYS = ("version", "pipeline_init", "learn_pause")
 GRANT_VERSION = 1
 
@@ -108,7 +113,7 @@ def require_grant(conf, code_root, kind, issue, refusal, root):
     except GrantRefused:
         checkout.log_event(event="grant-invalid", hook="state.py", checkout=root, grant=kind, issue=str(issue))
         raise
-    number = int(issue) if str(issue).isdigit() else None
+    number = int(issue) if is_ascii_digits(str(issue)) else None
     if grant is None or number not in grant.get(kind, []):
         checkout.log_event(event="grant-missing", hook="state.py", checkout=root, grant=kind, issue=str(issue))
         raise GrantRefused(refusal)
@@ -154,7 +159,7 @@ def _test_delay():
     """PIPELINE_STATE_TEST_DELAY_MS widens the read-to-write window for the concurrency tests; it can
     only slow a write down, never change one."""
     delay_ms = os.environ.get("PIPELINE_STATE_TEST_DELAY_MS", "")
-    if delay_ms.isdigit():
+    if is_ascii_digits(delay_ms):
         time.sleep(int(delay_ms) / 1000.0)
 
 
@@ -261,7 +266,7 @@ def _init_park_reason(root, data, gitdir, branch, conf):
 def op_init(root, tier, issue, branch, gitdir, code_root):
     conf = cfg.load()
     tier_conf = conf["tiers"].get(tier, {})
-    if issue and not issue.isdigit():
+    if issue and not is_ascii_digits(issue):
         raise Refused("issue must be a GitHub issue number, got %r" % issue)
     # A branch is what identifies the task; branch_at_init must name a task branch.
     if not branch:
@@ -388,7 +393,7 @@ def _pick_parked(root, wanted):
     keys = _parked_keys(root)
     if wanted in keys:
         return wanted
-    matches = [k for k in keys if wanted.isdigit() and k.startswith(wanted + "-")]
+    matches = [k for k in keys if is_ascii_digits(wanted) and k.startswith(wanted + "-")]
     if len(matches) > 1:
         raise Refused("#%s is parked more than once (%s); resume by key" % (wanted, ", ".join(matches)))
     if not matches:
@@ -448,6 +453,9 @@ def op_parked(root):
                 d = json.load(fh)
         except (OSError, ValueError):
             lines.append("%s (unreadable)" % key)
+            continue
+        if not isinstance(d, dict):
+            lines.append("%s (not a JSON object)" % key)
             continue
         lines.append("#%s %s/%s (%s, key %s, parked %s, %s)" % (
             d.get("issue") or "-", d.get("tier"), d.get("phase"), d.get("branch_at_init"), key,
