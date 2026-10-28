@@ -40,3 +40,12 @@ does not miss them.
 | architect | revision 1 -> 3 |
 | judge_design | round 1: 0/3; round 2: 0/3; round 3 (approved by Stepan): security PASS, architecture PASS, operations PASS |
 | planner | this file |
+| coder | done, c58fa35..33b1df5 (16 commits, 11 design steps via 10.1 P1-P7, no smoke failures, no lockouts); suite 200 -> 225, re-run by the orchestrator |
+| tester | PASS: 225/225 macOS 3.9.6 and ubuntu:24.04 non-root, shellcheck clean, mypy CI job replayed, 23 mutations red; original race with BSD mktemp: old 80/90 calls failed, HEAD 0/270 |
+| judge_code | round 1: security PASS, architecture FAIL (cast comment in cfg claimed unchecked tier types; `"edits_pipeline_core": "false"` opened core writes), operations FAIL (no required check possible on a private free-plan repo); fixes 58c1152..a693d3f. Round 2: security PASS, operations PASS, architecture FAIL (design doc not updated for pl_gate -> cfg and fail-closed tier validation); fixes ae2d314..8f5ace3. Round 3 (approved by Stepan): security PASS, operations PASS, architecture FAIL (`math.isfinite` before the try crashed `parked` on a parked_ts >= 10**309); fixes b6ea8de..33802a1. Round 4 (approved by Stepan): security PASS, architecture PASS, operations PASS. Each round re-tested: 228/228 |
+
+## After merge (Stepan)
+- `pipeline-types` cannot be a required check (private free-plan repo); run `gh pr checks <pr>` before every merge.
+- Remove 23 from `pipeline_init` in the grant file; delete any parked #23 state.
+- Optional: delete stale `$TMPDIR/pipeline_py.XXXXXX.py` files left by the old `py_run`.
+- Restore the stashed `.github/CODEOWNERS` change (`git stash list`) and land it separately.

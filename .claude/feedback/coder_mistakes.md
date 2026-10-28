@@ -78,7 +78,7 @@ every statement about its imports and behaviour in the same commit.
 ### 2026-10-28: A guard placed outside the try it was meant to sit behind became the only crash path (#23)
 8aa48dd added `if not math.isfinite(parked_ts)` to `state._parked_at` BEFORE the
 `try: time.localtime(...) except (OverflowError, ValueError, OSError)`. `math.isfinite` converts an
-int to a float, so a JSON integer above ~1.8e308 (309+ digits, which `json.load` returns as an int)
+int to a float, so a JSON integer above ~1.8e308 (e.g. 10**309; 10**308 still converts; `json.load` returns it as an int)
 raises `OverflowError: int too large to convert to float` outside the try: `parked` prints a traceback
 and `status` (set -euo pipefail) exits non-zero. Without the isfinite line, `localtime` raises inside
 the try for inf, NaN and that int alike, so the extra guard added the only uncaught path while design

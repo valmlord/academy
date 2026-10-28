@@ -91,3 +91,13 @@ branch - it could not open a single line.
 Rule: Materialize the code where the judge's tools can read it first (check out the branch, or
 pull the diff/files into a scratch path, or grant the needed tool). A judge that cannot read
 the diff must FAIL/CANNOT-CERTIFY, never PASS on trust.
+
+### 2026-10-28: Every code-review fix round produced the next round's finding (#23)
+
+Code review of #23 took four rounds; rounds 2-4 each failed on something the previous fix round
+introduced: a design doc left behind the code change (pl_gate -> cfg), then a new guard placed
+outside the try it was meant to sit behind, tested only with a value that does not reach it.
+Rule: When re-spawning the coder after a judge FAIL, the brief always says (1) update every design
+and ADR statement the fix contradicts, in the same pass; (2) add a test at the exact boundary that
+breaks the old code and watch it go red before the fix; (3) no new guard outside an existing
+exception boundary.
