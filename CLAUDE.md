@@ -148,11 +148,30 @@ worktree: `bash "$(git rev-parse --path-format=absolute --git-common-dir)/../.cl
 
 **Worktrees.**
 - Create them only under `.claude/worktrees/` (others inside the repo are ignored by the resolver).
-- The main checkout must always be on a branch that contains pipeline v2
-  (`git merge-base --is-ancestor <v2 commit> HEAD`); bring an older branch up with `git merge main`
-  (or the `rebase --onto` below) **before** checking it out in the main checkout.
-- A worktree on an older branch runs `git merge main` before its pipeline continues: its hook
-  wiring comes from its own `settings.json`.
+- The main checkout is only ever on a branch that contains main: `git merge-base --is-ancestor main HEAD`
+  exits 0. Main contains v2, so such a branch runs current hooks; a branch cut before v2 fails the check
+  both before and after the squash. An older post-v2 branch merges main first, which also brings in the
+  latest hook fixes. Stepan switches the main checkout's branch from his own terminal with no Claude
+  session open there (hooks run only inside a session): `git switch <branch>`, the bring-up procedure,
+  the check, then the session.
+- Bring-up procedure. The main checkout runs it as above; a worktree runs it in its own directory before
+  its pipeline continues (its hook wiring comes from its own `settings.json`):
+  1. `git merge-base --is-ancestor main HEAD` exits 0: nothing to do.
+  2. Else, if `git merge-base main HEAD` prints a commit (shared history) and `git cherry main HEAD`
+     prints no line starting with `-`: `git merge main`. If it stops with a conflict: `git merge --abort`,
+     do not resolve, ask.
+  3. Else, if `git merge-base main HEAD` exits 1 (unrelated history: the branch was cut before the squash
+     of main): "Branches cut before the squash" below. Any other exit code is a git error: stop.
+  4. Else (shared history, and `git cherry main HEAD` prints a `-` line: the branch carries a copy of a
+     commit main already has): do not merge. In the main checkout, `git switch main` first (the next
+     session there would run that branch's hooks), then ask. In a worktree: ask.
+
+  Afterwards step 1 exits 0. `feat/1-web-bootstrap` is not brought up with `git merge main` until its
+  rebase in "Branches cut before the squash". Before the squash it reaches step 4 (its v2 cherry-pick has
+  a patch-id twin in main), stays parked and is not checked out in the main checkout; after the squash it
+  reaches step 3; after its rebase it no longer carries the copy, so step 2 applies when main moves on. A
+  merge before the rebase is expected to conflict in `.claude/hooks/` (main has rewritten those files
+  since) and its merge commit would break the rebase pre-check.
 - Run `pipeline-advance.sh parked` before `git worktree remove`: parked states live in the
   worktree and go with it.
 
@@ -194,15 +213,52 @@ A session started in a worktree reads `.claude/settings.local.json` at the main 
 (Claude Code docs, 2.1.211 and later; not verified live), and still reads the worktree's own
 `.claude/settings.local.json` as a legacy location. To be safe, add the key in both.
 
-**One-time migration to v2** (after #21 is merged; details in `plans/21-pipeline-v2-design.md`
-section 12):
-- #1 (`feat/1-web-bootstrap`, pre-v2): Stepan runs `git rebase --onto main 5ad27f4 feat/1-web-bootstrap`
-  (not a plain rebase: 5ad27f4 is already in main via the squash and would conflict), checks
-  `git diff --name-only main feat/1-web-bootstrap` lists only `plans/1-*`, checks the branch out in
-  the main checkout, then `pipeline-advance.sh resume 1`.
-- #15 worktree (`content/15-module-introduction`, pre-v2): before any session starts in it again,
-  `git -C <worktree> merge --ff-only main`; then its orchestrator runs `init MODULE 15` from the
-  worktree with the canonical invocation above.
+**Branches cut before the squash.** After #26 merges, Stepan squashes main into a fresh root commit
+and force-pushes. A branch cut before that shares no history with the new main.
+- Tag the old tip, once, Stepan. After the last merge before the squash and before any command that
+  moves local `main` (pull, reset, the squash itself): `git fetch origin`, then
+  `git tag pre-squash origin/main`. Checks: `git rev-parse pre-squash origin/main` prints the same SHA
+  twice; after the squash `git diff pre-squash main` is empty (the tag is the squashed tree, not an
+  older commit). The tag stays local: never push it (no `--tags`, no `--follow-tags`);
+  `git ls-remote --tags origin pre-squash` prints nothing.
+- Branches with own work (no Claude session open in that checkout; today only `feat/1-web-bootstrap`).
+  Every stop in this recipe, in the main checkout, ends with `git switch main`, then ask (as in step 4).
+  - Entry check: `git merge-base main <branch>` exits 1. If it prints a commit, stop: the branch is
+    already on the new history (rebased earlier, or cut after the squash) and is brought up with the
+    bring-up procedure. On such a branch `pre-squash..<branch>` lists the new root plus the branch's own
+    commit, which passes the pre-check by count, and the rebase would replay the root.
+  - Pre-check: `git log --oneline pre-squash..<branch>` lists only the branch's own commits (#1: two, the
+    v2 cherry-pick and the plans commit). Many more lines, or a line that is not the branch's own work,
+    mean the tag is wrong: stop.
+  - `git rebase --onto main pre-squash <branch>`. Commits main already has by patch-id are dropped. If it
+    stops: `git rebase --abort`, do not resolve, stop.
+  - Post-check: `git diff --name-only main <branch>` lists only the branch's own files (#1: `plans/1-*`),
+    and `git merge-base --is-ancestor main <branch>` exits 0.
+  - #1: the rebase leaves the branch checked out in the main checkout; start a session and run
+    `bash .claude/hooks/pipeline-advance.sh resume 1` (parked states are keyed by issue and branch name,
+    not by commit, and the rebase does not touch ignored files).
+- Stale branches (work already in main; deleted, not rebased; no session open on them). After the tag
+  exists and before the tag cleanup. First one local proof that the branch holds nothing that exists
+  only here:
+  - (a) `git merge-base --is-ancestor <branch> pre-squash` exits 0: every commit of the branch is in the
+    old main; or
+  - (b) `git rev-parse <branch>` equals a line printed by
+    `gh pr list --repo valmlord/academy --head <branch> --state merged --json headRefOid --jq '.[].headRefOid'`:
+    a merged PR was built from exactly this tip (the squash-merge case, where (a) cannot hold).
+
+  Neither proof holds: stop, ask, and leave the branch and its worktree as they are. Only after a proof:
+  if the branch has a worktree, run `pipeline-advance.sh parked` there with the worktree invocation, then
+  `git worktree remove` it (`git branch -D <branch>` refuses a branch checked out in a worktree); then
+  `git branch -D <branch>`. The proof comes first because removing the worktree takes its parked states
+  and untracked files with it. The lower-case `-d` is not used: it judges against HEAD or the upstream,
+  not against main. Today `fix/21-pipeline-v2` and `chore/998-live-wt` pass (a); after #26 merges,
+  `docs/26-english-docs` with `.claude/worktrees/docs-26-english` passes (b) if no commit was added after
+  its last push.
+- Tag cleanup, last. Delete the tag only when this prints nothing (no local branch shares history with
+  it):
+  `git for-each-ref --format='%(refname:short)' refs/heads | while read -r b; do git merge-base pre-squash "$b" >/dev/null && echo "$b"; done`,
+  then `git tag -d pre-squash`. It lists every branch not yet rebased or deleted; right after the squash
+  it prints at least `feat/1-web-bootstrap`, so the tag cannot go before #1 is rebased.
 
 ## Completion block
 ```
