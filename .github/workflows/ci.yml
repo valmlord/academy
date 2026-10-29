@@ -73,9 +73,10 @@ jobs:
       - run: >-
           MYPYPATH=.claude/hooks/lib python -m mypy --strict --python-version 3.9
           --cache-dir "$RUNNER_TEMP/mypy-cache" .claude/hooks/lib/*.py
-      # A separate invocation: the validator and its test resolve imports from scripts/, not the hook lib.
+      # A separate invocation: the validator resolves from scripts/; the hook lib is there for the test's
+      # import of hookio, whose verdict parser the validator output must never trigger.
       - run: >-
-          MYPYPATH=scripts python -m mypy --strict --python-version 3.9
+          MYPYPATH=scripts:.claude/hooks/lib python -m mypy --strict --python-version 3.9
           --cache-dir "$RUNNER_TEMP/mypy-cache-design" scripts/design_tokens.py tests/design/test_design_tokens.py
 
   design:

@@ -7,12 +7,14 @@
 Exit codes: 0 clean; 1 findings (a missing tokens.css included); 2 usage error, an unparsable colour in
 `pair`, or a tokens.css that cannot be parsed (unterminated comment, unbalanced braces).
 
-Output lines: "PASS|FAIL <theme> <fg> on <bg>: <ratio>:1 (min <m>:1)", "INFO ...",
-"ERROR <path>:<line>: <message>".
+Output lines: "contrast ok|contrast low <theme> <fg> on <bg>: <ratio>:1 (min <m>:1)", "INFO ...",
+"ERROR <path>:<line>: <message>". No line starts with a bare PASS or FAIL: judges paste this output into
+reports whose vote is the last verdict-shaped line (hookio.VERDICT_RE).
 
 Known limits: named colour keywords (red, white) are not scanned, the judge-consistency agent reads for
 them; a "--x:" declared in any .css file under the design dir counts as visible on every page, while
-one declared in a page's <style> block or style="" attribute counts only for that page.
+one declared in a page's <style> block or style="" attribute counts only for that page; outside srcset, a URL
+starting with two backslashes is not flagged, because JavaScript strings hold "\\d" regex escapes.
 """
 import math
 import os
@@ -58,15 +60,18 @@ STYLE_BLOCK_RE = re.compile(r"(<style\b[^>]*>)(.*?)</style\s*>", re.I | re.S)
 ATTR_VALUE = r"""\s*=\s*(?:"([^"]*)"|'([^']*)')"""
 STYLE_ATTR_RE = re.compile(r"\bstyle" + ATTR_VALUE, re.I)
 COLOUR_ATTR_RE = re.compile(r"\b(?:fill|stroke|color|stop-color)" + ATTR_VALUE, re.I)
-SRCSET_RE = re.compile(r"\b(?:srcset|imagesrcset)" + ATTR_VALUE, re.I)
+# srcset is also matched unquoted: candidates then carry no descriptors and only commas separate them.
+SRCSET_RE = re.compile(r"""\b(?:srcset|imagesrcset)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))""", re.I)
 ANCHOR_TAG_RE = re.compile(r"<a\b[^>]*>", re.I | re.S)
 HREF_RE = re.compile(r"\bhref" + ATTR_VALUE, re.I)
 XMLNS_RE = re.compile(r"\bxmlns(?::[A-Za-z0-9_-]+)?" + ATTR_VALUE)
 XML_NAMESPACE_PREFIX = "http://www.w3.org/"
 ABSOLUTE_URL_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*://")
+URL_TAIL_RE = re.compile(r"""[^\s"'`()<>,;]*""")
+# Browsers read a backslash as a slash in http(s) URLs, so "/\host" and "\/host" are protocol-relative too.
 # A JavaScript "// comment" follows neither a quote, a backtick, a parenthesis nor "=".
-PROTOCOL_RELATIVE_RE = re.compile(r"""["'`(=]\s*//[A-Za-z0-9]""")
-CANDIDATE_URL_RE = re.compile(r"//|[A-Za-z][A-Za-z0-9+.-]*://")
+PROTOCOL_RELATIVE_RE = re.compile(r"""["'`(=]\s*(?:/[/\\]|\\/)[A-Za-z0-9]""")
+CANDIDATE_URL_RE = re.compile(r"/[/\\]|\\[/\\]|[A-Za-z][A-Za-z0-9+.-]*://")
 FLOW_HEADING_RE = re.compile(r"^#{2,3}\s+F(\d+)\b", re.M)
 FLOW_STEP_RE = re.compile(r"^\s*(?:[-*]|\d+\.)\s+\**F(\d+)\.(\d+)\b", re.M)
 DATA_STEP_RE = re.compile(r"""\bdata-step\s*=\s*["']F(\d+)\.(\d+)["']""")
@@ -362,7 +367,7 @@ def check_tokens(path: str, tokens: Tokens, report: Report) -> dict[str, dict[st
     return colours
 
 
-def check_pairs(colours: dict[str, dict[str, Colour]], report: Report) -> None:
+def check_pairs(path: str, tokens: Tokens, colours: dict[str, dict[str, Colour]], report: Report) -> None:
     for theme in (ROOT, DARK):
         theme_colours = colours[theme]
         text_pairs = [(name, name[:-len("-foreground")]) for name in sorted(theme_colours)
@@ -374,16 +379,17 @@ def check_pairs(colours: dict[str, dict[str, Colour]], report: Report) -> None:
             if fg not in theme_colours or bg not in theme_colours:
                 continue
             if theme_colours[bg].alpha < 1:
-                report.error(TOKENS_REL, 1, "%s --%s is a translucent surface; --%s on it has no defined contrast"
-                             % (theme, bg, fg))
+                report.error(path, tokens.themes[theme][bg].line,
+                             "%s --%s is a translucent surface; --%s on it has no defined contrast" % (theme, bg, fg))
                 continue
             ratio = contrast_ratio(theme_colours[fg], theme_colours[bg])
             if minimum == 0.0:
                 report.emit("INFO %s --%s on --%s: %.3f:1" % (theme, fg, bg, ratio))
             else:
                 passed = ratio >= minimum
-                report.emit("%s %s --%s on --%s: %.3f:1 (min %.1f:1)" % ("PASS" if passed else "FAIL", theme, fg, bg,
-                                                                        ratio, minimum), failing=not passed)
+                verdict = "contrast ok" if passed else "contrast low"
+                report.emit("%s %s --%s on --%s: %.3f:1 (min %.1f:1)" % (verdict, theme, fg, bg, ratio, minimum),
+                            failing=not passed)
 
 
 class CssValue(NamedTuple):
@@ -411,7 +417,8 @@ def css_declarations(css: str, base_offset: int, in_block: bool = False) -> Iter
 
 
 def _attr(m: "re.Match[str]") -> tuple[str, int]:
-    group = 1 if m.group(1) is not None else 2
+    """The value of a matched attribute: the first alternative (quoted or unquoted) that took part."""
+    group = next((g for g in range(1, (m.lastindex or 1) + 1) if m.group(g) is not None), 1)
     return m.group(group) or "", m.start(group)
 
 
@@ -448,8 +455,10 @@ def check_urls(rel: str, text: str, report: Report) -> None:
         if value.startswith(XML_NAMESPACE_PREFIX):
             masked = _mask(masked, offset, offset + len(value))
     for m in ABSOLUTE_URL_RE.finditer(masked):
-        report.error(rel, _line_of(text, m.start()), "absolute URL %r: design files load nothing from the network"
-                     % text[m.start():m.end() + 20].split()[0])
+        tail = URL_TAIL_RE.match(text, m.end())
+        url = text[m.start():tail.end() if tail else m.end()]
+        report.error(rel, _line_of(text, m.start()),
+                     "absolute URL %r: design files load nothing from the network" % url)
     for m in PROTOCOL_RELATIVE_RE.finditer(masked):
         report.error(rel, _line_of(text, m.start()), "protocol-relative URL: design files load nothing from the network")
     for m in SRCSET_RE.finditer(text):
@@ -483,42 +492,43 @@ def check_prototypes(design_dir: str, tokens: Optional[Tokens], report: Report) 
     tokens_path = os.path.join(design_dir, TOKENS_REL)
     token_names = set(tokens.themes[ROOT]) | set(tokens.themes[DARK]) if tokens else set()
     global_names = set(token_names)
-    for f in files:
-        if f.rel.endswith(".css") and f.rel != tokens_path:
-            global_names.update(v.prop[2:] for v in f.values if v.prop.startswith("--"))
-    for f in files:
-        check_urls(f.rel, f.text, report)
-        if f.rel == tokens_path:
+    for scanned in files:
+        if scanned.rel.endswith(".css") and scanned.rel != tokens_path:
+            global_names.update(value.prop[2:] for value in scanned.values if value.prop.startswith("--"))
+    for scanned in files:
+        check_urls(scanned.rel, scanned.text, report)
+        if scanned.rel == tokens_path:
             continue
-        for v in f.values:
-            for m in RAW_COLOUR_RE.finditer(v.value):
-                report.error(f.rel, _line_of(f.text, v.offset + m.start()),
+        for value in scanned.values:
+            for m in RAW_COLOUR_RE.finditer(value.value):
+                report.error(scanned.rel, _line_of(scanned.text, value.offset + m.start()),
                              "raw colour %r; use var(--token) from tokens.css" % m.group(0))
         if tokens is None:
             continue
-        visible = global_names | {v.prop[2:] for v in f.values if v.prop.startswith("--")}
-        for v in f.values:
-            if v.prop.startswith("--"):
-                _check_alias(f, v, token_names, tokens, report)
-            for name in VAR_RE.findall(v.value):
+        visible = global_names | {value.prop[2:] for value in scanned.values if value.prop.startswith("--")}
+        for value in scanned.values:
+            if value.prop.startswith("--"):
+                _check_alias(scanned, value, token_names, tokens, report)
+            for name in VAR_RE.findall(value.value):
                 if name in visible:
                     continue
-                line = _line_of(f.text, v.offset)
+                line = _line_of(scanned.text, value.offset)
                 if name in tokens.theme_inline:
-                    report.error(f.rel, line, "--%s is defined only in @theme inline, which browsers ignore; declare it "
-                                 "in proto.css :root with the same value" % name)
+                    report.error(scanned.rel, line, "--%s is defined only in @theme inline, which browsers ignore; "
+                                 "declare it in proto.css :root with the same value" % name)
                 else:
-                    report.error(f.rel, line, "undefined variable --%s" % name)
+                    report.error(scanned.rel, line, "undefined variable --%s" % name)
     return files
 
 
-def _check_alias(f: Scanned, v: CssValue, token_names: set[str], tokens: Tokens, report: Report) -> None:
-    name, line = v.prop[2:], _line_of(f.text, v.offset)
+def _check_alias(scanned: Scanned, value: CssValue, token_names: set[str], tokens: Tokens, report: Report) -> None:
+    name, line = value.prop[2:], _line_of(scanned.text, value.offset)
     if name in token_names:
-        report.error(f.rel, line, "prototype redeclares the tokens.css token --%s" % name)
+        report.error(scanned.rel, line, "prototype redeclares the tokens.css token --%s" % name)
     theme_decl = tokens.theme_inline.get(name)
-    if theme_decl is not None and " ".join(v.value.split()) != theme_decl.value:
-        report.error(f.rel, line, "prototype alias --%s differs from @theme inline (%s)" % (name, theme_decl.value))
+    if theme_decl is not None and " ".join(value.value.split()) != theme_decl.value:
+        report.error(scanned.rel, line,
+                     "prototype alias --%s differs from @theme inline (%s)" % (name, theme_decl.value))
 
 
 def check_flows(design_dir: str, files: Sequence[Scanned], report: Report) -> None:
@@ -549,12 +559,13 @@ def check_flows(design_dir: str, files: Sequence[Scanned], report: Report) -> No
             steps.setdefault(step, path)
             if step[0] not in local_flows:
                 report.error(path, line, "step F%d.%d has no flow heading F%d in this file" % (step + (step[0],)))
-    for f in files:
-        if f.rel.endswith(".html"):
-            for m in DATA_STEP_RE.finditer(f.text):
+    for scanned in files:
+        if scanned.rel.endswith(".html"):
+            for m in DATA_STEP_RE.finditer(scanned.text):
                 step = (int(m.group(1)), int(m.group(2)))
                 if step not in steps:
-                    report.error(f.rel, _line_of(f.text, m.start()), "data-step F%d.%d names no declared flow step" % step)
+                    report.error(scanned.rel, _line_of(scanned.text, m.start()),
+                                 "data-step F%d.%d names no declared flow step" % step)
 
 
 def check(design_dir: str) -> int:
@@ -567,7 +578,7 @@ def check(design_dir: str) -> int:
         except TokensParseError as err:
             print("ERROR %s: cannot parse: %s" % (tokens_path, err))
             return 2
-        check_pairs(check_tokens(tokens_path, tokens, report), report)
+        check_pairs(tokens_path, tokens, check_tokens(tokens_path, tokens, report), report)
     else:
         report.error(tokens_path, 0, "missing; the design system's token file is required")
     files = check_prototypes(design_dir, tokens, report)

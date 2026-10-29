@@ -7,9 +7,13 @@ import tempfile
 import unittest
 from typing import Optional
 
-SCRIPTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts")
+REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+SCRIPTS = os.path.join(REPO, "scripts")
 sys.path.insert(0, SCRIPTS)
+# The vote parser the judges' reports go through; the validator output is pasted into those reports.
+sys.path.insert(1, os.path.join(REPO, ".claude", "hooks", "lib"))
 import design_tokens  # noqa: E402
+import hookio  # noqa: E402
 
 SCRIPT = os.path.join(SCRIPTS, "design_tokens.py")
 
@@ -128,6 +132,10 @@ class CheckTestCase(unittest.TestCase):
         design = DesignDir(self.tmp, light, dark, tokens, files)
         return run_cli("check", design.path)
 
+    def light_line(self, name: str) -> int:
+        """The tokens.css line of a :root declaration: --radius is line 4, LIGHT follows in order."""
+        return 5 + list(LIGHT).index(name)
+
     def errors(self, output: str) -> list[str]:
         return [line for line in output.splitlines() if line.startswith("ERROR")]
 
@@ -176,7 +184,7 @@ class TokenCheckTest(CheckTestCase):
         rc, out = self.check()
         self.assertEqual(rc, 0, out)
         self.assertEqual(self.errors(out), [])
-        self.assertNotIn("FAIL", out)
+        self.assertNotIn("contrast low", out)
 
     def test_missing_tokens_file_exits_one(self) -> None:
         rc, out = self.check(files={"system/tokens.css": None})
@@ -186,22 +194,22 @@ class TokenCheckTest(CheckTestCase):
     def test_muted_foreground_below_text_minimum_fails(self) -> None:
         rc, out = self.check(light=dict(LIGHT, **{"muted-foreground": "oklch(0.556 0 0)"}))
         self.assertEqual(rc, 1, out)
-        self.assertIn("FAIL :root --muted-foreground on --muted: 4.349:1 (min 4.5:1)", out)
+        self.assertIn("contrast low :root --muted-foreground on --muted: 4.349:1 (min 4.5:1)", out)
 
     def test_text_pair_just_above_minimum_passes(self) -> None:
         rc, out = self.check(light=dict(LIGHT, **{"muted-foreground": "oklch(0.545 0 0)"}))
         self.assertEqual(rc, 0, out)
-        self.assertIn("PASS :root --muted-foreground on --muted: 4.542:1 (min 4.5:1)", out)
+        self.assertIn("contrast ok :root --muted-foreground on --muted: 4.542:1 (min 4.5:1)", out)
 
     def test_light_ring_default_fails_non_text_minimum(self) -> None:
         rc, out = self.check(light=dict(LIGHT, ring="oklch(0.708 0 0)"))
         self.assertEqual(rc, 1, out)
-        self.assertIn("FAIL :root --ring on --background: 2.584:1 (min 3.0:1)", out)
+        self.assertIn("contrast low :root --ring on --background: 2.584:1 (min 3.0:1)", out)
 
     def test_ring_just_above_non_text_minimum_passes(self) -> None:
         rc, out = self.check(light=dict(LIGHT, ring="oklch(0.65 0 0)"))
         self.assertEqual(rc, 0, out)
-        self.assertIn("PASS :root --ring on --background: 3.234:1 (min 3.0:1)", out)
+        self.assertIn("contrast ok :root --ring on --background: 3.234:1 (min 3.0:1)", out)
 
     def test_out_of_gamut_token_is_an_error_naming_token_and_theme(self) -> None:
         rc, out = self.check(dark=dict(DARK, primary="oklch(0.7 0.4 150)"))
@@ -211,7 +219,8 @@ class TokenCheckTest(CheckTestCase):
     def test_translucent_surface_is_an_error(self) -> None:
         rc, out = self.check(light=dict(LIGHT, muted="oklch(0.97 0 0 / 50%)"))
         self.assertEqual(rc, 1, out)
-        self.assert_one_error(out, ":root --muted is a translucent surface", "--muted-foreground")
+        self.assert_one_error(out, "system/tokens.css:%d:" % self.light_line("muted"),
+                              ":root --muted is a translucent surface", "--muted-foreground")
 
     def test_required_token_absent_from_both_themes_is_an_error(self) -> None:
         light = {k: v for k, v in LIGHT.items() if k != "ring"}
@@ -221,11 +230,13 @@ class TokenCheckTest(CheckTestCase):
         self.assert_one_error(out, "required token --ring missing in :root and .dark")
         self.assertEqual(len(self.errors(out)), 1, out)
 
-    def test_color_token_missing_in_dark_is_an_error(self) -> None:
-        dark = {k: v for k, v in DARK.items() if k != "accent"}
-        rc, out = self.check(dark=dark)
+    def test_custom_color_token_missing_in_dark_is_an_error(self) -> None:
+        # A custom token, mapped in @theme inline by the fixture builder: the required-token check cannot see it,
+        # so only the theme-symmetry check reports it.
+        rc, out = self.check(light=dict(LIGHT, brand="oklch(0.5 0.1 250)"))
         self.assertEqual(rc, 1, out)
-        self.assert_one_error(out, "required token --accent missing in .dark")
+        self.assert_one_error(out, "colour token --brand has no colour value in .dark")
+        self.assertEqual(len(self.errors(out)), 1, out)
 
     def test_theme_mapping_to_undefined_token_is_an_error(self) -> None:
         theme = {"color-" + n: "var(--%s)" % n for n in LIGHT}
@@ -291,12 +302,24 @@ class PrototypeScanTest(CheckTestCase):
         self.assertEqual(rc, 1, out)
         self.assert_one_error(out, "prototype.html", "srcset candidate '//cdn.example/b.png 2x'")
 
+    def test_unquoted_srcset_later_candidate_is_an_error(self) -> None:
+        page = PAGE.replace("</main>", '<img alt="" srcset=a.png,//cdn.example/e.png></main>')
+        rc, out = self.check(files={"pages/catalog/prototype.html": page})
+        self.assertEqual(rc, 1, out)
+        self.assert_one_error(out, "prototype.html", "srcset candidate '//cdn.example/e.png'")
+
+    def test_backslash_protocol_relative_src_is_an_error(self) -> None:
+        page = PAGE.replace("</main>", '<img alt="" src="/\\cdn.example/f.png"></main>')
+        rc, out = self.check(files={"pages/catalog/prototype.html": page})
+        self.assertEqual(rc, 1, out)
+        self.assert_one_error(out, "prototype.html", "protocol-relative URL")
+
     def test_fetch_and_websocket_urls_in_script_are_errors(self) -> None:
         page = PAGE.replace("</body>", '<script>new WebSocket("wss://x.example");</script></body>')
         rc, out = self.check(files={"system/proto.js": PROTO_JS + 'fetch("https://api.example/x");\n',
                                     "pages/catalog/prototype.html": page})
         self.assertEqual(rc, 1, out)
-        self.assert_one_error(out, "proto.js", "https://api.example/x")
+        self.assert_one_error(out, "proto.js", "absolute URL 'https://api.example/x':")
         self.assert_one_error(out, "prototype.html", "wss://x.example")
 
     def test_anchor_href_and_svg_xmlns_are_allowed(self) -> None:
@@ -398,6 +421,34 @@ class FlowCheckTest(CheckTestCase):
         rc, out = self.check(files={"system/tokens.css": None, "flows/second.md": "## F1: Again\n"})
         self.assertEqual(rc, 1, out)
         self.assert_one_error(out, "flow F1 is declared in")
+
+
+class VerdictCollisionTest(CheckTestCase):
+    """Judges paste validator output into reports whose vote is the last verdict-shaped line."""
+
+    def outputs(self) -> list[str]:
+        failing = dict(LIGHT, **{"muted-foreground": "oklch(0.556 0 0)", "ring": "oklch(0.708 0 0)"})
+        failing_page = PAGE.replace("</main>", '<img alt="" src="//cdn.example/x.png"></main>')
+        _, passing = self.check()
+        _, failed = self.check(light=failing, files={"pages/catalog/prototype.html": failing_page})
+        _, paired = run_cli("pair", "oklch(0.556 0 0)", "#ffffff")
+        _, usage = run_cli("nonsense")
+        self.assertIn("contrast ok", passing)
+        self.assertIn("contrast low", failed)
+        return [passing, failed, paired, usage]
+
+    def test_no_validator_output_line_parses_as_a_verdict(self) -> None:
+        lines = [line for output in self.outputs() for line in output.splitlines()]
+        votes = [(line, hookio.verdict_from(line)) for line in lines if hookio.verdict_from(line) != "UNKNOWN"]
+        self.assertEqual(votes, [])
+
+    def test_fail_report_with_pasted_output_stays_a_fail(self) -> None:
+        pasted = "\n".join(self.outputs())
+        report = ("1. [design/system/tokens.css:9] contrast below 4.5:1\n\nValidator output:\n%s\n\n"
+                  "FAIL - 1 issues found" % pasted)
+        self.assertEqual(hookio.verdict_from(report), "FAIL")
+        legacy = "FAIL - 1 issues found:\n1. [design/system/tokens.css:9] contrast\n\nValidator output:\n%s" % pasted
+        self.assertEqual(hookio.verdict_from(legacy), "FAIL")
 
 
 class PairCliTest(unittest.TestCase):
