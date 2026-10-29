@@ -40,6 +40,11 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
 
 1. Find or create the issue (`gh issue view <n>` / `gh issue create` with a template).
    Backlog drafts live in `backlog/`; `scripts/github_bootstrap.py` imports them.
+   A new issue gets a milestone (epics, and process work under the process epic, may have none),
+   `blocked by` links to the issues it waits for, and a parent epic when it belongs to a cross-milestone
+   feature or to process work: `gh issue create --milestone "<name>" --blocked-by <n,...> --parent <epic>`
+   (gh 2.94+). Parent epics are the open issues titled `epic: ...` (`gh issue list --search "epic in:title"`).
+   Before a task starts, its blockers (`gh issue view <n> --json blockedBy`) are closed, or Stepan agreed.
 2. Choose the tier from the issue labels/size (table below) and announce:
    ```
    [TASK #12] pipeline: lesson page reads course/ via lesson-schema
