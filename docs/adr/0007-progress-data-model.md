@@ -1,6 +1,6 @@
 # ADR-0007: Database schema and progress data model
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-29
 - Issue: #28
 
