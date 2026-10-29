@@ -5,6 +5,7 @@ Usage: cfg.py <command> [args]
   tiers                         space-separated tier names
   phases <TIER>                 space-separated phases
   judges <TIER>                 space-separated judge keys
+  team <TIER>                   the tier's team, or an empty line when the tier or the key is missing
   judge_phases <TIER>           judge phases (phase names starting with judge_)
   all_judges                    "key=file" pairs for every judge
   gate <agent_file>             "<first> <last>" phase window for an agent file, or empty
@@ -124,6 +125,8 @@ def main(argv: list[str]) -> int:
         print(" ".join(tiers.get(args[0], {}).get("phases", [])))
     elif cmd == "judges":
         print(" ".join(tiers.get(args[0], {}).get("judges", [])))
+    elif cmd == "team":
+        print(tiers.get(args[0], {}).get("team", ""))
     elif cmd == "judge_phases":
         print(" ".join(p for p in tiers.get(args[0], {}).get("phases", []) if p.startswith("judge_")))
     elif cmd == "all_judges":
