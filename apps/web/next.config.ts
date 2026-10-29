@@ -6,7 +6,9 @@ const repositoryRoot = path.join(import.meta.dirname, "../../");
 
 // Next reads env files from apps/web only, while the repository keeps one root .env (DATABASE_URL for
 // pnpm dev). The Docker build context excludes it, so the image never sees it; a variable already set
-// in the shell wins over the file.
+// in the shell wins over the file. Root pnpm dev runs through turbo, whose strict env mode drops shell
+// variables not listed in turbo.json, so every variable this rule must cover is in the dev task's
+// passThroughEnv.
 // Any NEXT_PUBLIC_* variable in the root .env is inlined into the client bundle of a local next dev or
 // next build, so the root .env never holds a secret under that prefix.
 const rootEnvFile = path.join(repositoryRoot, ".env");
