@@ -309,3 +309,147 @@ Stepan checking `gh pr checks` before he merges.
 Rule: Before a design relies on a platform feature (branch protection, rulesets, required checks,
 environments), call its API on the real repo and quote the answer; a 403/404 means the design
 needs another enforcement point.
+
+### 2026-10-29: SHA-free git rule checked only after the squash; deviations executed before the owner saw them (#26)
+Issue #26 design section 6 replaces "branch contains v2" (`merge-base --is-ancestor <v2 commit> HEAD`)
+with "`git merge-base main HEAD` prints a commit". That is only equivalent after Stepan squashes main.
+Between this PR's merge and the squash, pre-v2 `feat/1-web-bootstrap` (still at 4cda2ba, carrying
+5ad27f4) shares history with main, passes the check, and may be checked out in the main checkout,
+which runs its v1 hooks: the exact hazard #21 R5 existed to prevent. The `git tag pre-squash main`
+step is timed "before force-pushing", but a local squash moves `main` earlier; a tag on the new root
+makes `rebase --onto main pre-squash <branch>` replay the whole old history. Separately, the GitHub
+runbook (G2) edits #1/#15/#21 in place, against the owner's explicit "recreate, never edit", before
+Stepan has seen the deviation, and G7 emits irreversible `gh issue delete` commands from a snapshot
+that omits comments and is not tied to the verified mapping.
+Rule: Walk every replacement rule through each state window it will live in (before and after the
+owner's planned history rewrite) and prefer a check that is correct in all of them (here
+`git merge-base --is-ancestor main HEAD`). Time a "mark the old tip" step relative to the first
+command that moves the ref, with a check. Any deviation from an explicit owner instruction that
+acts on GitHub needs the owner's yes before it runs, and every irreversible delete is generated only
+from verified mapping rows, after snapshotting everything it destroys (comments included).
+
+### 2026-10-29: Runbook asserted exact live counts it never measured, and its recovery path contradicted its own stop rules (#26)
+The #26 GitHub runbook required the bootstrap dry-run to show "0 label creates" and stopped on any
+other count, but the live repo lacks `tier:pipeline` (in `.github/labels.yml`), so the real dry-run
+prints `label + tier:pipeline` and the runbook halts at G4. Its F2 recovery ("rerun G4+G5") also
+contradicts G4 (exactly 18 creates) and G0 (stop if an English title exists or milestones are not
+Russian, and re-snapshotting overwrites the rollback source), so any partial failure after G1 leaves
+the orchestrator improvising.
+Rule: Every exact expected output in a runbook is taken from a real read-only run against the live
+host, and every step states its resume condition (already done -> skip, how to verify), with the
+rollback snapshot written once and never overwritten.
+
+### 2026-10-29: Narrowed an upstream decision's list silently; rewrote one bullet of a section whose neighbours break under the same change (#26, architecture)
+Issue #26 design 2.2 keeps only "скажи прямо" as a Russian quote and calls that "decision 3", but
+research decision 3 lists three learner-typed hint words ("скажи прямо", "подсказка", "скелет"). All
+six lessons say "уровни \"скелет\" и \"скажи прямо\"", and mentor.md:35 says the learner types
+"подсказка", so translating them in docs/learning-process.md breaks the link between the docs and the
+course. The coders receive both files, so they get two contradictory rules, and V1 then flags the
+coder who follows the research. Separately, section 6 rewrites only the first Worktrees bullet. The
+same bullet's "bring an older branch up with `git merge main`" and the next bullet ("a worktree on an
+older branch runs `git merge main`") stay. After the squash, those commands fail with "refusing to
+merge unrelated histories". The new `rebase --onto main pre-squash` recipe was not rehearsed on a
+scratch clone either, although the only real branch (feat/1-web-bootstrap) carries 5ad27f4. That
+commit is a cherry-pick twin of a58679d in old main. The recipe works only if rebase drops it by
+patch-id, and that was never checked.
+Rule: When a design restates an upstream enumeration, copy it whole or state each dropped item as a
+deviation with its reason. When a history rewrite changes one git instruction, re-read every git
+command in the same section against the new history. Rehearse each new recipe on a scratch clone
+with the real branch before it goes into CLAUDE.md.
+
+### 2026-10-29: Tag cleanup condition true from the moment of the squash; window-B merge claimed without a run (#26, round 2, architecture)
+Issue #26 design rev 2, 6.2: "when `git branch --contains pre-squash` prints nothing, `git tag -d
+pre-squash`". `--contains` lists descendants of the tag. After the squash, local `main` is the new root,
+the squash-merged branches are ancestors of old main, and `feat/1-web-bootstrap` (4cda2ba on 5c4d853)
+never contained main. So the command prints nothing right after the squash, before #1 is rebased, and
+following the rule deletes the tag that `git rebase --onto main pre-squash feat/1-web-bootstrap` needs.
+V7 never exercises the cleanup, so nothing would notice. Separately, 6.3 window B says bring-up step 2
+`git merge main` "works" for pre-v2 `feat/1-web-bootstrap`, with no run behind it. That branch carries
+5ad27f4 (v2 cherry-pick) on a pre-v2 base, while main has since rewritten the same hook files (#23, #25).
+Both sides changed the same regions relative to 5c4d853, so a conflict in `.claude/hooks/` is expected,
+the same reason the old section 7 said a plain rebase "would conflict".
+Rule: For every "when X prints nothing, delete Y" rule, check what X prints in the state right after
+the event that creates Y. Put every "this command works" cell of a window table into the rehearsal
+script, or say that the window is not supported.
+
+### 2026-10-29: Tag cleanup condition that is already true when the tag is still needed (#26, round 2, security)
+Design revision 2, 6.2 "Cleanup": delete `pre-squash` "when `git branch --contains pre-squash` prints
+nothing". `--contains` lists branches whose tip descends from the tag. After the squash, main is a new
+root, and a branch cut before the squash (feat/1-web-bootstrap at 4cda2ba on 5c4d853) is older than the
+tag tip, so it does not contain it either: the command prints nothing right after the squash, before the
+one branch that needs the tag has been rebased. Following the rule deletes the anchor of
+`rebase --onto main pre-squash <branch>`, and the obvious improvisation (`git rebase main`) replays the
+whole pre-squash history onto the new root, the failure round 1 flagged. V5 blesses the command (it is in
+6.4) and V7 never runs the cleanup, so nothing would catch it.
+Rule: A "safe to delete the anchor" condition must test the property the anchor serves (here: no local
+branch shares history with it, `git merge-base pre-squash <b>` fails for every `refs/heads` branch), and
+the rehearsal must show the condition is false before the last dependent step and true after it.
+
+### 2026-10-29: Prescribed commands that the harness refuses, and a file-set check that is red on day one (#26, round 2, operations)
+Design revision 2, V7 starts with `rm -rf "$V"` inside `bash -uo pipefail -c '...'`, and G0 starts with
+`rm -rf "$D"`. Claude Code's built-in removal check refuses `rm -rf` of a shell variable inside a `-c`
+script without a human approval; run live by the operations judge, the V7 call was denied before
+anything ran. With `V=$(mktemp -d "$S/v7.XXXXXX")` and no rm, the same script printed `V7 OK`. Separately,
+V3 requires `git diff --name-only main` plus `git status` to list only scope files and `plans/26-*`, but
+the worktree already carries `.claude/feedback/architect_mistakes.md` (design-review lessons), and
+judge_code and compound append more, so V3 is red for a legitimate file.
+Rule: Every command a design prescribes for an agent is run once in the same harness before the design
+is handed over (the architect asks the orchestrator if it has no shell); scratch paths come from
+`mktemp -d`, never `rm -rf $VAR`. A "changed files are only X" check enumerates every file the pipeline
+itself writes on the branch (`.claude/feedback/*_mistakes.md`, `plans/`).
+
+### 2026-10-29: A literal with an apostrophe inside a mandated single-quoted `bash -c`; `branch -D` gated on "PR merged" only (#26, round 3, security)
+Design revision 3, 5.3 mandates every runbook step as `bash -uo pipefail -c '...'`, and G1b prescribes
+`--description "Pipeline core changes, needs Stepan's grant"` (copied from `labels.yml:15`). The `'` in
+`Stepan's` closes the outer single quote: bash gets a truncated script with an unterminated `"`, and
+the rest of the step is parsed by the calling zsh, outside the `umask 077` / `: "${D:?}"` guards that
+5.3 relies on. Separately, 6.2 lets Stepan `git branch -D` any stale branch after confirming "its PR is
+merged" on GitHub; that does not prove the local tip has no unpushed commits, and `-D` also drops the
+branch reflog.
+Rule: Every literal placed inside a single-quoted `-c` script is scanned for `'` (or values are read from
+their source file inside the script, never retyped). A force-delete gets a local, verifiable precondition
+(tip equals the merged PR's `headRefOid`, or `git merge-base --is-ancestor <b> pre-squash`), not a
+human "it was merged" check.
+
+### 2026-10-29: A rehearsal edit added in review broke an assertion it was never re-run against (#26, round 3, operations)
+Design revision 3 added `g checkout -q --detach origin/main` to V7 (so `update-ref refs/heads/main` never
+moves a checked-out branch) and, in the same revision, the regression line
+`[ -z "$(g branch --contains pre-squash)" ]`. `git branch --contains` also lists a detached HEAD, which
+sits exactly on the tag, so it prints `* (HEAD detached at origin/main)` and V7 stops with
+`V7 FAIL: B: regression premise` although no `refs/heads` branch contains the tag. The design said the
+revision 3 additions "have not been run yet". With `g checkout -q main` right after the squash the rest
+of V7 passed. Same revision: G8 runs `bash .claude/hooks/pipeline-advance.sh pr <url>` from the
+worktree, which `lib/common.sh` refuses for a worktree copy (CLI kind), and `gh pr create --head
+docs/26-english-docs` with no `git push` step, while the branch is not on the remote.
+Rule: An unrun check is not a deliverable: when a revision touches a rehearsal script, the whole script is
+re-run (via the orchestrator if the architect has no shell) before handover. Assertions about "no branch
+contains X" use `git for-each-ref refs/heads --contains X`, never `git branch` output, which includes a
+detached HEAD. Every pipeline command in a runbook uses the invocation CLAUDE.md prescribes for the
+checkout it runs in, and a PR-creation step pushes and checks the remote head first.
+
+### 2026-10-29: A by-name exclusion written "in any window" outlives the state it guards (#26, round 3, architecture)
+Design revision 3, 6.1: bring-up step 2 skips `feat/1-web-bootstrap` by name, and the section text says it
+"is never brought up with `git merge main`, in any window". The exclusion is only needed before the squash
+(pre-v2 base, expected hook conflict). After its 6.2 rebase, #1 sits on the new root like any other branch.
+Once anything else merges to main (likely while #1 is active), step 1 fails, step 2 skips #1 by name, and
+step 3 sends it back to 6.2. There the pre-check `git log pre-squash..feat/1-web-bootstrap` lists the whole
+new history ("tag is wrong: stop"), or fails outright because the cleanup rule has already deleted the tag.
+#1 has no valid path, and the obvious improvisation is a rebase. The 6.3 window table stops at "after the
+recipe", so it never looked at a fourth state: rebased, then main moves on. Step 3's wording ("cut before
+the squash") is also wrong for that state.
+Rule: Every special case keyed on a name or a window gets an end condition that the procedure itself
+checks, and the window walk includes the state after the special handling, with main moving on.
+
+### 2026-10-29: A write-once marker set after unchecked writes freezes a broken snapshot (#26, round 4, operations)
+Design revision 4, 5.3 G0: the mandated preamble is `bash -uo pipefail -c` (no `-e`), G0 is composed from
+prose that says "write each file with `>`" and "`touch "$D/complete"` as the last command", and later runs
+skip G0 whenever `complete` exists. The stop conditions validate only `issues.json` and the milestones; they
+never check that `pr-22/24/25.json`, `labels.json`, `head`, the backlog archive and `main-backlog.list` were
+written. Run live: a failing `gh pr view ... > "$D/pr-24.json"` followed by `touch "$D/complete"` left a
+0-byte file and the marker. Every rerun then skips G0, G3 dies on `json.load` of the empty file, the F14
+rollback of PR #24 has no source, and no agent can repair it (no `rm` in any step). An empty
+`main-backlog.list` would also make the "#1-#20 title equals main's backlog" stop condition pass vacuously.
+The literals (G1b, G2, G3, G8a) all check exit codes; only the one irreversible step does not.
+Rule: Before a write-once or commit marker, the design names a check for every artifact the marker vouches
+for (exit status of each write, and a content check: parses, expected shape, expected count), and the step
+that sets the marker is either a prescribed literal or names those checks explicitly.

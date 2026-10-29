@@ -120,3 +120,13 @@ one new edge. Asking Stepan before every extra round was right, but a single tar
 documented value and every claim about modes against the docs" pass on L6 would have saved three rounds.
 Rule: When two consecutive FAILs land in the same file and topic, the next re-spawn asks the author for a
 full sweep of that topic against the source, not only the listed item.
+
+### Design review rounds spent on unrun runbook scripts (#26)
+
+A translation task grew a GitHub runbook and a git squash recipe as prose and shell literals that nobody had
+run. Five design rounds followed; every FAIL from round 2 on was a script defect (quotes, rm, detached HEAD,
+missing push, unchecked writes) that a single run would have shown. Round 5 passed once the operations judge
+ran every check live.
+Rule: when a design prescribes scripts or git procedures, have them executed (scratch clone, scratch
+directory, dry run) before the judge round, and give the operations judge the explicit job of running them.
+Put the infra procedure in its own issue when it dominates the design of a docs task.

@@ -86,3 +86,11 @@ the try for inf, NaN and that int alike, so the extra guard added the only uncau
 boundary that breaks the guard was never exercised.
 Rule: Every pre-check on untrusted input runs inside the same exception boundary as the call it
 protects, and the test rows include the value that breaks the pre-check itself, not only the call.
+
+### 2026-10-29: Added a code span in translation; V3 requires span multisets to be unchanged (#26)
+Translating the last criterion of `backlog/20`-`25` ("отчёт агента-ученика приложен к PR, ...") as
+"the report of the `student` agent ..." introduced a new inline code span that the original never had.
+Design section 4, V3, requires the multiset of inline code spans of every translated file to equal
+`main`'s, so the tester's span diff went red on all six files.
+Rule: A translation neither adds nor removes code spans. Name a role in plain prose unless the original
+already backticks it, and diff the span multiset against `git show main:<file>` before handing back.
