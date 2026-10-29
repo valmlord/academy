@@ -78,6 +78,15 @@ an unknown key, a non-integer or a non-list grants nothing and the refusal names
   (`pnpm content:validate`) -> judge_content -> compound -> commit -> pr.
 - **LESSON**: researcher -> author -> student -> validate -> judge_content -> commit -> pr.
 
+## Design tier
+- **DESIGN**: ux-researcher (research) -> ux-researcher (flows, IA, scope) -> judge_design
+  (usability, accessibility, consistency on the flows; the orchestrator passes the validator output)
+  -> planner (per-page work items) -> author (ui-designer first when tokens or components change, then
+  product-designer; sequential, because prototypes build on the tokens) -> judge_ux (the same three
+  judges on prototypes, tokens, acceptance notes and `scripts/design_tokens.py check design`) ->
+  compound -> commit -> pr. A design role is spawnable only in DESIGN (team check), and content or dev
+  gated roles never in DESIGN.
+
 ## Other
 - **RESEARCH**: researcher -> notify. No code change, no issue required.
 - **RELEASE**: bump version, update CHANGELOG, tag, `docker compose up -d --build --wait`, smoke test.

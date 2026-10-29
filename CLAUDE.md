@@ -1,6 +1,6 @@
 # Academy: orchestrator instructions
 
-This repo is a personal learning platform built by two agent teams, run like a real product team:
+This repo is a personal learning platform built by three agent teams, run like a real product team:
 GitHub issues, branches, PRs, CI, ADRs. You are the **orchestrator**. You route work, spawn role
 agents, drive the pipeline state machine and keep the process honest. You do not write product
 code or lesson content yourself.
@@ -10,16 +10,21 @@ Talk to him in Russian, short and direct. No em dashes; straight double quotes.
 
 ---
 
-## 1. Two teams
+## 1. Three teams
 
 | Team | Works on | Agents | Judges |
 |------|----------|--------|--------|
 | dev | `apps/`, `services/`, `packages/`, `images/`, infra, CI | `.claude/agents/dev/`: researcher, architect, coder, tester, mentor | security, architecture, operations |
 | content (methodologists) | `course/`, `docs/course-reference.md`, `learner/` notes | `.claude/agents/content/`: content-researcher, curriculum-architect, lesson-author, practice-designer, student | accuracy, pedagogy, assessment |
+| design (UX/UI) | `design/` | `.claude/agents/design/`: ux-researcher, product-designer, ui-designer | usability, accessibility, visual consistency |
 
 **The contract between the teams** is the lesson format: `packages/lesson-schema` + ADR-0001.
 CI (`pnpm content:validate`) enforces it. Neither team changes it alone: a contract change is a
 dev task with an ADR update, approved by Stepan, and it migrates every lesson.
+
+**The contract between design and dev** is ADR-0006: `design/system/tokens.css`, one prototype and
+acceptance notes per page, dev implements only pages marked `Status: ready` on `main`.
+`scripts/design_tokens.py` checks it (CI job `design`). Neither team changes it alone.
 
 ### Spawning agents
 Always load the role file, never a bare subagent type:
@@ -40,7 +45,8 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
    [TASK #12] pipeline: lesson page reads course/ via lesson-schema
    ```
 3. Branch: `git switch -c feat/12-lesson-page` (types: feat, fix, refactor, perf, test, docs,
-   chore, ci, build, content, learn). Never work on `main`. The branch comes first: `init`
+   chore, ci, build, content, learn; DESIGN tasks use the `docs` type, e.g. `docs/31-learner-flows`).
+   Never work on `main`. The branch comes first: `init`
    refuses on a detached HEAD and, for issue tiers, on `main`.
 4. `bash .claude/hooks/pipeline-advance.sh init TASK 12`
 5. Run the phases. Plans go to `plans/<issue>-<slug>.md`.
@@ -59,24 +65,25 @@ role can verify the previous one. Don't set `model=` unless deliberately needed.
 | LEARN | issue labeled `tier:learn` | same as TASK but `learner` instead of `coder`: **Stepan writes the code** |
 | MODULE | a course module | init, researcher, architect, judge_design, planner, author, student, validate, judge_content, compound, commit, pr, notify, done |
 | LESSON | one lesson fix/rewrite | init, researcher, author, student, validate, judge_content, commit, pr, notify, done |
+| DESIGN | flows, design system, page prototypes (`tier:design`) | init, researcher, architect, judge_design, planner, author, judge_ux, compound, commit, pr, notify, done |
 | RESEARCH | question, no change | init, researcher, notify, done |
 | RELEASE | tag a version, rebuild stack | init, release, notify, done |
 | PIPELINE | changes to `.claude/hooks`, `pipeline.json`, `settings*.json` | same as PROJECT, main checkout only, needs Stepan's grant (section 7) |
 
 ### Phase -> agent
-| Phase | Dev tiers | Content tiers |
-|-------|-----------|---------------|
-| researcher | dev/researcher.md | content/content-researcher.md |
-| architect | dev/architect.md | content/curriculum-architect.md |
-| judge_design | 3 dev judges, ONE message, review the design | 3 content judges review the module design |
-| planner | you, inline: write `plans/<issue>-<slug>.md` | you: per-lesson work items |
-| coder | dev/coder.md | - |
-| learner (LEARN) | Stepan codes; you may spawn dev/mentor.md on request | - |
-| author | - | content/lesson-author.md + content/practice-designer.md in parallel |
-| student | - | content/student.md (honest run + cheater run) |
-| tester | dev/tester.md | - |
-| validate | - | run `pnpm content:validate` yourself, it must be green |
-| judge_code / judge_content | 3 judges, ONE message, review diff + test/student report | |
+| Phase | Dev tiers | Content tiers | Design tier |
+|-------|-----------|---------------|-------------|
+| researcher | dev/researcher.md | content/content-researcher.md | design/ux-researcher.md (research) |
+| architect | dev/architect.md | content/curriculum-architect.md | design/ux-researcher.md (flows, IA, scope) |
+| judge_design | 3 dev judges, ONE message, review the design | 3 content judges review the module design | 3 design judges review flows, IA and scope; you run `python3 -I scripts/design_tokens.py check design` and pass its output |
+| planner | you, inline: write `plans/<issue>-<slug>.md` | you: per-lesson work items | you: per-page work items |
+| coder | dev/coder.md | - | - |
+| learner (LEARN) | Stepan codes; you may spawn dev/mentor.md on request | - | - |
+| author | - | content/lesson-author.md + content/practice-designer.md in parallel | design/ui-designer.md first (only when tokens or components change), then design/product-designer.md |
+| student | - | content/student.md (honest run + cheater run) | - |
+| tester | dev/tester.md | - | - |
+| validate | - | run `pnpm content:validate` yourself, it must be green | - |
+| judge_code / judge_content / judge_ux | 3 judges, ONE message, review diff + test/student report | | judge_ux: 3 design judges review prototypes, tokens, acceptance notes and the validator output you pass |
 
 ### Hooks enforce
 Threat model: the hooks are a guardrail against the mistakes of an honest agent, not a sandbox.
@@ -98,8 +105,10 @@ Deliberate bypasses (`python3 -c`, relative `cd`, forged transcripts) are accept
   message. Every block, fallback and crash is logged to `.git/pipeline-hooks.log`.
 - In LEARN, product code (`apps/`, `services/`, `packages/`, `images/`) cannot be written by any
   agent or shell command; tests and docs can. The coder agent is blocked (`phase-gate.sh`).
-- Each role agent may run only inside its phase window; the role is the LEADING
-  `Read .claude/agents/<team>/<file>.md first` of the prompt (or `subagent_type`).
+- Each gated role may run only inside its phase window and only in tiers of its own team. The role
+  is the file named by the leading `Read .claude/agents/<team>/<file>.md first` only if that exact
+  path exists; its team is the directory it lives in; a wrong path or a `subagent_type` naming
+  another agent is blocked for every role.
 - Judge votes come only from spawned judges of the tier: the verdict is the last exact
   `PASS` / `FAIL` / `VERDICT: ...` line of the judge's report. No leaving a judge round without
   3/3 PASS.
