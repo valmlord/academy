@@ -4,7 +4,7 @@ A personal learning platform in the spirit of Hexlet. The first course: "AI for 
 learning happens in the web interface: theory, a workspace with a terminal and an agent in a Docker
 container, checks, mentor review, progress on the dashboard.
 
-Two agent teams build the platform and the course, and the process works like a real product team:
+Three agent teams build the platform, the course and its design, and the process works like a real product team:
 tasks in GitHub Issues, branches, PRs, CI, ADRs. Some platform tasks (`tier:learn`) I write myself,
 while the agents design and review.
 
@@ -16,6 +16,7 @@ CLAUDE.md                 orchestrator instructions: how any task runs
 .claude/agents/dev/       dev team: researcher, architect, coder, tester, mentor, 3 judges
 .claude/agents/content/   methodologists: content-researcher, curriculum-architect, lesson-author,
                           practice-designer, student, 3 judges
+.claude/agents/design/    design team (UX/UI): ux-researcher, product-designer, ui-designer, 3 judges
 .claude/hooks/            hooks that keep the process from being broken
 .claude/feedback/         role mistakes: every judge FAIL appends a lesson, the role reads it before work
 pipeline/                 state machine description and shared rules for agents
@@ -25,6 +26,7 @@ docs/adr/                 architecture decisions
 docs/course-reference.md  reference course program
 packages/lesson-schema/   lesson contract between the teams + validator
 course/                   course content (written by the methodologists)
+design/                   flows, design system and page prototypes (written by the design team, ADR-0006)
 learner/                  learner profile and journal (the course adapts to it)
 backlog/                  drafts of the first tasks, imported into GitHub Issues
 tests/pipeline/           self-test of the pipeline hooks

@@ -23,10 +23,13 @@
 - **packages/db**: schema and migrations (Drizzle).
 - **images/workspace**: the workspace image.
 - **course/**: content. Written by the methodologists, read by the platform.
+- **design/**: flows, the design system (tokens) and page prototypes. Written by the design team, read by
+  apps/web (ADR-0006).
 
 ## Decisions that are costly to change (each has its own ADR)
 - Lesson format: ADR-0001
 - Workspace runtime: ADR-0002
 - Stack: ADR-0003
 - Development process: ADR-0004
+- Design/dev contract: ADR-0006
 - DB schema, workspace service API, authentication: their ADRs will come with the corresponding tasks.

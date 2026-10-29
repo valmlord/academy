@@ -4,7 +4,7 @@ Closes #
 
 ## Pipeline
 
-- Tier: <!-- HOTFIX | TASK | PROJECT | PIPELINE | LEARN | MODULE | LESSON | RESEARCH | RELEASE -->
+- Tier: <!-- HOTFIX | TASK | PROJECT | PIPELINE | LEARN | MODULE | LESSON | DESIGN | RESEARCH | RELEASE -->
 - Judges: <!-- e.g. design 3/3 PASS, code 3/3 PASS -->
 - Plan: <!-- plans/<issue>-*.md -->
 
@@ -19,3 +19,4 @@ Closes #
 - [ ] Migration committed and safe on existing data
 - [ ] ADR added/updated for costly-to-change decisions
 - [ ] Lesson contract unchanged, or ADR-0001 updated and all lessons migrated
+- [ ] Design contract unchanged, or ADR-0006 updated and all designs migrated

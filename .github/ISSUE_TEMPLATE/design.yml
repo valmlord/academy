@@ -1,0 +1,21 @@
+name: Design (UX/UI)
+description: Flows, design system or page prototypes, handled by the design team pipeline (DESIGN tier)
+title: "docs(design): "
+labels: ["type:feature", "team:design", "tier:design", "area:design"]
+body:
+  - type: textarea
+    id: scope
+    attributes:
+      label: Pages or flows in scope
+      placeholder: catalog page, lesson page, the start-a-lesson flow
+    validations: { required: true }
+  - type: textarea
+    id: goal
+    attributes:
+      label: Learner goal and its source
+      description: A course file, a learner journal entry or an issue the goal comes from.
+    validations: { required: true }
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and out of scope
