@@ -1,36 +1,37 @@
-# ADR-0001: Формат урока как контракт между командами
+# ADR-0001: Lesson format as the contract between the teams
 
 - Status: Proposed
 - Date: 2026-10-27
 - Issue: (bootstrap)
 
 ## Context
-Методисты производят уроки, платформа их показывает и проверяет. Если формат не зафиксирован,
-команды разъедутся: методисты придумают новое поле, платформа его не прочитает, или наоборот.
-Агенты с обеих сторон уверенно "додумывают" формат, поэтому договорённость должна проверяться
-машиной, а не текстом.
+The methodologists produce lessons; the platform displays and checks them. If the format is not
+fixed, the teams will drift apart: the methodologists invent a new field and the platform does not
+read it, or the other way round. Agents on both sides confidently "fill in" the format, so the
+agreement must be checked by a machine, not by text.
 
 ## Decision
-1. Единственное определение формата: `packages/lesson-schema/src/schema.ts` (zod). Платформа
-   импортирует типы оттуда же, своих типов урока не заводит.
-2. Структура: `course/<course>/course.yaml` -> `<NN-module>/module.yaml` -> `<NN-lesson>/`
-   с `lesson.yaml`, `theory.md`, `task.md`, `starter/`, `checks/`, `quiz.yaml`.
-3. Типы проверок: `quiz`, `command`, `rubric`, `hidden-task`, `bug-hunt`.
-4. Статусы: `planned`, `draft`, `ready`. Ученик видит только `ready`.
-5. Всё грейдерное лежит в `checks/` и никогда не попадает в `starter/`, `theory.md`, `task.md`
-   и в браузер.
-6. `pnpm content:validate` проверяет схему, наличие файлов, порядок, уникальность id, источники
-   у `ready`-уроков и утечки `checks/`. Это обязательная проверка CI.
-7. Изменение формата: задача dev-команды с обновлением этого ADR и миграцией всех уроков
-   в том же PR. Владелец (CODEOWNERS): Степан.
+1. The single definition of the format: `packages/lesson-schema/src/schema.ts` (zod). The platform
+   imports its types from the same place and defines no lesson types of its own.
+2. Structure: `course/<course>/course.yaml` -> `<NN-module>/module.yaml` -> `<NN-lesson>/`
+   with `lesson.yaml`, `theory.md`, `task.md`, `starter/`, `checks/`, `quiz.yaml`.
+3. Check types: `quiz`, `command`, `rubric`, `hidden-task`, `bug-hunt`.
+4. Statuses: `planned`, `draft`, `ready`. The learner sees only `ready`.
+5. Everything for the grader lives in `checks/` and never gets into `starter/`, `theory.md`, `task.md`
+   or the browser.
+6. `pnpm content:validate` checks the schema, the presence of files, the order, id uniqueness, sources
+   of `ready` lessons and leaks of `checks/`. It is a required CI check.
+7. Changing the format: a dev team task that updates this ADR and migrates all lessons
+   in the same PR. Owner (CODEOWNERS): Stepan.
 
 ## Alternatives considered
-- MDX с frontmatter в одном файле: удобно писать, но проверки и скрытые файлы всё равно
-  требуют структуры папок; отказ.
-- Хранить уроки в БД с админкой: отрезает методистов-агентов от git, ревью и CI; отказ.
-- JSON Schema как источник истины: нет нормальных типов в TS без генерации; zod даёт и
-  валидацию, и типы. JSON Schema можно генерировать из zod, если понадобится.
+- MDX with frontmatter in a single file: convenient to write, but checks and hidden files still
+  need a folder structure; rejected.
+- Storing lessons in the DB with an admin panel: cuts the agent methodologists off from git, review
+  and CI; rejected.
+- JSON Schema as the source of truth: no proper TS types without code generation; zod gives both
+  validation and types. JSON Schema can be generated from zod if needed.
 
 ## Consequences
-- Формат меняется медленно и осознанно, это и нужно.
-- Валидатор сам становится кодом, который надо поддерживать и тестировать (уже есть тесты).
+- The format changes slowly and deliberately, which is what we want.
+- The validator itself becomes code that has to be maintained and tested (it already has tests).

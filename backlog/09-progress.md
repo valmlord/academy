@@ -1,6 +1,6 @@
 ---
-title: "feat(web): попытки и прогресс в кабинете"
+title: "feat(web): attempts and progress on the dashboard"
 labels: [type:feature, team:dev, tier:task, area:web]
-milestone: "M2 Цикл обучения"
+milestone: "M2 Learning loop"
 ---
-История попыток по уроку, статус урока и модуля, процент курса, слабые темы (из `learner/journal.md`, позже из БД).
+Attempt history per lesson, lesson and module status, course percentage, weak topics (from `learner/journal.md`, later from the DB).

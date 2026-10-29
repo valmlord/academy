@@ -1,38 +1,38 @@
 # Academy
 
-Личная платформа обучения в духе Hexlet. Первый курс: "ИИ для разработчиков". Всё обучение
-идёт через веб-интерфейс: теория, рабочее место с терминалом и агентом в Docker-контейнере,
-проверки, разбор ментора, прогресс в кабинете.
+A personal learning platform in the spirit of Hexlet. The first course: "AI for developers". All
+learning happens in the web interface: theory, a workspace with a terminal and an agent in a Docker
+container, checks, mentor review, progress on the dashboard.
 
-Платформу и курс делают две команды агентов, а процесс устроен как в настоящей продуктовой
-команде: задачи в GitHub Issues, ветки, PR, CI, ADR. Часть задач по платформе (`tier:learn`)
-пишу сам, агенты проектируют и ревьюят.
+Two agent teams build the platform and the course, and the process works like a real product team:
+tasks in GitHub Issues, branches, PRs, CI, ADRs. Some platform tasks (`tier:learn`) I write myself,
+while the agents design and review.
 
-## Где что лежит
+## Where things are
 
 ```
-CLAUDE.md                 инструкции оркестратора: как идёт любая задача
-.claude/pipeline.json     машина состояний: уровни задач, фазы, судьи (источник истины)
-.claude/agents/dev/       команда разработки: researcher, architect, coder, tester, mentor, 3 судьи
-.claude/agents/content/   методисты: content-researcher, curriculum-architect, lesson-author,
-                          practice-designer, student, 3 судьи
-.claude/hooks/            хуки, которые не дают нарушить процесс
-.claude/feedback/         ошибки ролей: каждый FAIL судьи дописывает урок, роль читает перед работой
-pipeline/                 описание машины состояний и общие правила для агентов
-docs/learning-process.md  как устроено обучение (начать отсюда)
-docs/architecture.md      компоненты платформы
-docs/adr/                 архитектурные решения
-docs/course-reference.md  референсная программа курса
-packages/lesson-schema/   контракт урока между командами + валидатор
-course/                   контент курса (пишут методисты)
-learner/                  профиль и журнал ученика (по нему подстраивается курс)
-backlog/                  черновики первых задач, импортируются в GitHub Issues
-tests/pipeline/           самотест хуков пайплайна
+CLAUDE.md                 orchestrator instructions: how any task runs
+.claude/pipeline.json     state machine: task tiers, phases, judges (source of truth)
+.claude/agents/dev/       dev team: researcher, architect, coder, tester, mentor, 3 judges
+.claude/agents/content/   methodologists: content-researcher, curriculum-architect, lesson-author,
+                          practice-designer, student, 3 judges
+.claude/hooks/            hooks that keep the process from being broken
+.claude/feedback/         role mistakes: every judge FAIL appends a lesson, the role reads it before work
+pipeline/                 state machine description and shared rules for agents
+docs/learning-process.md  how learning works (start here)
+docs/architecture.md      platform components
+docs/adr/                 architecture decisions
+docs/course-reference.md  reference course program
+packages/lesson-schema/   lesson contract between the teams + validator
+course/                   course content (written by the methodologists)
+learner/                  learner profile and journal (the course adapts to it)
+backlog/                  drafts of the first tasks, imported into GitHub Issues
+tests/pipeline/           self-test of the pipeline hooks
 ```
 
-## Старт
+## Getting started
 
-Нужно: Node 22, pnpm 10, Docker, git, gh, python3, свежий Claude Code (хуки используют SubagentStop с `agent_transcript_path`).
+Requirements: Node 22, pnpm 10, Docker, git, gh, python3, a recent Claude Code (the hooks use SubagentStop with `agent_transcript_path`).
 
 ```bash
 pnpm install
@@ -41,21 +41,21 @@ cp .env.example .env
 docker compose up -d --wait
 ```
 
-## Подключить GitHub
+## Connecting GitHub
 
 ```bash
 gh repo create academy --private --source . --push
-python3 scripts/github_bootstrap.py --dry-run   # посмотреть план
-python3 scripts/github_bootstrap.py             # метки, вехи и 20 задач из backlog/
+python3 scripts/github_bootstrap.py --dry-run   # show the plan
+python3 scripts/github_bootstrap.py             # labels, milestones and 20 issues from backlog/
 ```
-Скрипт также заменяет `@OWNER` в `.github/CODEOWNERS` на твой логин. Это изменение надо
-закоммитить через ветку и PR, как любое другое.
+The script also replaces `@OWNER` in `.github/CODEOWNERS` with your login. Commit that change
+through a branch and a PR, like any other.
 
-## Как запустить задачу
+## Running a task
 
-Открываешь Claude Code в репозитории и пишешь, например, "возьми #1". Оркестратор читает задачу,
-выбирает уровень, объявляет `[PROJECT #1] pipeline: ...`, создаёт ветку и ведёт задачу по фазам
-до PR. Подробности в `CLAUDE.md`.
+Open Claude Code in the repository and write, for example, "take #1". The orchestrator reads the
+issue, picks the tier, announces `[PROJECT #1] pipeline: ...`, creates a branch and drives the task
+through the phases up to the PR. Details in `CLAUDE.md`.
 
-Предлагаемый порядок: #1 (каркас web) и модуль "Введение" параллельно, затем M0, затем
-LEARN-задачи M1.
+Suggested order: #1 (web skeleton) and the module "Introduction to AI-assisted development" in
+parallel, then M0, then the LEARN tasks of M1.

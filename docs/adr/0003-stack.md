@@ -1,25 +1,25 @@
-# ADR-0003: Стек
+# ADR-0003: Stack
 
 - Status: Proposed
 - Date: 2026-10-27
 
 ## Decision
-- Монорепо: pnpm workspaces + Turborepo, Node 22, TypeScript strict везде.
+- Monorepo: pnpm workspaces + Turborepo, Node 22, TypeScript strict everywhere.
 - Web: Next.js (App Router), Tailwind, shadcn/ui.
-- Workspace-сервис: Fastify + dockerode + ws.
-- БД: PostgreSQL 17, Drizzle ORM и drizzle-kit для миграций.
-- Аутентификация: Better Auth (email и пароль).
-- Ментор и агентские проверки: Claude Agent SDK; в рабочем месте Claude Code и/или OpenCode.
-- Качество: Biome (lint и format), Vitest (unit), testcontainers (интеграция), Playwright (e2e).
+- Workspace service: Fastify + dockerode + ws.
+- DB: PostgreSQL 17, Drizzle ORM and drizzle-kit for migrations.
+- Authentication: Better Auth (email and password).
+- Mentor and agent checks: Claude Agent SDK; in the workspace, Claude Code and/or OpenCode.
+- Quality: Biome (lint and format), Vitest (unit), testcontainers (integration), Playwright (e2e).
 - CI: GitHub Actions.
 
 ## Why
-- Один язык на весь проект: агентам проще держать контекст, общие типы контракта урока
-  импортируются и в web, и в workspace.
-- shadcn/ui нативно живёт в React, отсюда Next.js, а не Vue.
-- Drizzle: схема в TS, явные SQL-миграции, без магии.
-- Biome вместо ESLint + Prettier: один быстрый инструмент.
+- One language for the whole project: easier for agents to keep the context, and the shared lesson
+  contract types are imported by both web and workspace.
+- shadcn/ui lives natively in React, hence Next.js rather than Vue.
+- Drizzle: schema in TS, explicit SQL migrations, no magic.
+- Biome instead of ESLint + Prettier: one fast tool.
 
 ## Alternatives considered
-- FastAPI-бэкенд: ближе к рабочему стеку, но два языка и дублирование типов контракта.
-- Bun как рантайм (как в Tixter): dockerode и node-pty надёжнее на Node; можно вернуться позже.
+- FastAPI backend: closer to the stack used at work, but two languages and duplicated contract types.
+- Bun as the runtime (as in Tixter): dockerode and node-pty are more reliable on Node; can be revisited later.

@@ -1,12 +1,12 @@
 ---
-title: "content: модуль \"Оркестрация субагентов и мультиагентные пайплайны\""
+title: "content: module \"Subagent orchestration and multi-agent pipelines\""
 labels: [type:content, team:content, tier:module, area:content]
-milestone: "M3 Курс"
+milestone: "M3 Course"
 ---
-Методисты проектируют и пишут модуль `course/ai-for-developers/03-subagent-orchestration` по программе из `docs/course-reference.md`, с учётом `learner/profile.md` и `learner/journal.md`.
+The methodologists design and write the module `course/ai-for-developers/03-subagent-orchestration` following the program in `docs/course-reference.md`, taking `learner/profile.md` and `learner/journal.md` into account. The learner-facing module name is Subagent orchestration and multi-agent pipelines ("Оркестрация субагентов и мультиагентные пайплайны").
 
-Критерии приёмки:
-- [ ] module.yaml: результаты модуля, список уроков, статус `ready`
-- [ ] каждый урок проходит `pnpm content:validate`
-- [ ] у каждой проверки есть прогон "падает на пустом starter" и "проходит на эталоне"
-- [ ] отчёт агента-ученика приложен к PR, ни одна жульническая попытка не прошла
+Acceptance criteria:
+- [ ] module.yaml: module outcomes, lesson list, status `ready`
+- [ ] every lesson passes `pnpm content:validate`
+- [ ] every check has a run "fails on the empty starter" and a run "passes on the reference solution"
+- [ ] the report of the student agent is attached to the PR, and no cheating attempt passed

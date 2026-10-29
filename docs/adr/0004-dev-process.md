@@ -1,21 +1,21 @@
-# ADR-0004: Процесс разработки как в продакшене
+# ADR-0004: Development process as in production
 
 - Status: Proposed
 - Date: 2026-10-27
 
 ## Decision
-- Любая работа начинается с GitHub issue (шаблоны: feature, bug, LEARN, module/lesson, ADR).
-- Ветка `<type>/<issue>-<slug>`, conventional commits со ссылкой на issue, PR с `Closes #N`.
-- `main` защищён: merge только через PR с зелёным CI (squash).
-- CI: lint, typecheck, unit, build, content:validate, self-test пайплайна, `docker compose up --wait`;
-  e2e добавляется вместе с web.
-- PR-гигиена в CI: формат заголовка, ссылка на issue, имя ветки.
-- Агентский пайплайн (`.claude/`) обязателен для любой задачи; уровни и фазы в `.claude/pipeline.json`.
-- Решения, которые дорого менять, оформляются как ADR.
-- Релизы: semver-теги и CHANGELOG (задача RELEASE).
+- Any work starts with a GitHub issue (templates: feature, bug, LEARN, module/lesson, ADR).
+- Branch `<type>/<issue>-<slug>`, conventional commits referencing the issue, a PR with `Closes #N`.
+- `main` is protected: merge only through a PR with green CI (squash).
+- CI: lint, typecheck, unit, build, content:validate, pipeline self-test, `docker compose up --wait`;
+  e2e is added together with web.
+- PR hygiene in CI: title format, issue reference, branch name.
+- The agent pipeline (`.claude/`) is mandatory for any task; tiers and phases are in `.claude/pipeline.json`.
+- Decisions that are costly to change are recorded as ADRs.
+- Releases: semver tags and a CHANGELOG (RELEASE task).
 
 Pipeline mechanics: see ADR-0005.
 
 ## Consequences
-- Защита веток для приватных репозиториев на бесплатном плане GitHub может быть недоступна. Тогда
-  правило держится на хуках пайплайна (запрет работы на main) и дисциплине.
+- Branch protection for private repositories on GitHub's free plan may be unavailable. In that case
+  the rule is held by the pipeline hooks (no work on main) and by discipline.

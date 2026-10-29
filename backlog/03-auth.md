@@ -1,11 +1,11 @@
 ---
-title: "feat(web): вход и личный кабинет (Better Auth)"
+title: "feat(web): sign-in and dashboard (Better Auth)"
 labels: [type:feature, team:dev, tier:task, area:web]
-milestone: "M0 Фундамент"
+milestone: "M0 Foundation"
 ---
-Аутентификация по email и паролю, защищённые маршруты, страница кабинета с курсами и прогрессом (пока пустым). Seed-скрипт создаёт локального пользователя.
+Email and password authentication, protected routes, a dashboard page with courses and progress (empty for now). A seed script creates a local user.
 
-Критерии приёмки:
-- [ ] без входа нельзя открыть урок
-- [ ] e2e: вход, выход, редирект на логин
-- [ ] секреты только в env, `.env.example` обновлён
+Acceptance criteria:
+- [ ] a lesson cannot be opened without signing in
+- [ ] e2e: sign-in, sign-out, redirect to the sign-in page
+- [ ] secrets only in env, `.env.example` updated

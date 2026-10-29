@@ -1,77 +1,78 @@
-# Как устроено обучение
+# How learning works
 
-Всё обучение идёт через веб-интерфейс платформы, которая работает локально в Docker. Ниже
-описано, что видит и делает ученик и что происходит за сценой.
+All learning happens in the web interface of the platform, which runs locally in Docker. Below is
+what the learner sees and does and what happens behind the scenes.
 
-## 1. Урок
+## 1. Lesson
 
-Страница урока делится на две части.
+The lesson page has two parts.
 
-Слева:
-- теория (`theory.md`): короткая, начинается с конкретной проблемы, со ссылками на источники;
-- задание (`task.md`): что сделать и как понять, что готово;
-- результаты проверок и разбор ментора после сдачи.
+On the left:
+- theory (`theory.md`): short, starts from a concrete problem, with links to sources;
+- task (`task.md`): what to do and how to tell that it is done;
+- check results and the mentor review after submission.
 
-Справа рабочее место, вкладки:
-- **Терминал**: bash внутри контейнера урока. В нём же запускается агент (Claude Code или
-  OpenCode) с ключом из `.env`;
-- **Редактор**: code-server (появится в M4);
-- **Агент**: на первом этапе это просто агент в терминале, позже отдельная панель с
-  транскриптом.
+On the right, the workspace, with tabs:
+- **Terminal**: bash inside the lesson container. The agent (Claude Code or OpenCode) also runs
+  here, with the key from `.env`;
+- **Editor**: code-server (arrives in M4);
+- **Agent**: at first this is just the agent in the terminal, later a separate panel with the
+  transcript.
 
-Рабочее место представляет собой Docker-контейнер, который создаётся под урок из `starter/`.
-Файлы хранятся в volume, поэтому можно закрыть браузер и вернуться позже.
+The workspace is a Docker container created for the lesson from `starter/`. Files are kept in a
+volume, so you can close the browser and come back later.
 
-## 2. Сдача и проверка
+## 2. Submission and checks
 
-Кнопка "Проверить" запускает проверки из `lesson.yaml`:
+The "Check" button runs the checks from `lesson.yaml`:
 
-| Проверка | Что проверяет | Где выполняется |
-|----------|---------------|-----------------|
-| quiz | понимание понятий | сервер, в браузер правильные ответы не уходят |
-| command | тесты и скрипты в репозитории урока | контейнер рабочего места |
-| rubric | артефакты: спека, ADR, PRD, AGENTS.md, онтология | агент-ментор по рубрике |
-| hidden-task | работает ли твоя настройка агента: агент получает скрытую задачу и решает её в копии твоего рабочего места | отдельный контейнер, headless-агент |
-| bug-hunt | нашёл ли ты ошибки в коде, который "написал агент" | сверка с ключом ответов |
+| Check | What it checks | Where it runs |
+|-------|----------------|---------------|
+| quiz | understanding of concepts | server, correct answers never reach the browser |
+| command | tests and scripts in the lesson repository | workspace container |
+| rubric | artifacts: spec, ADR, PRD, AGENTS.md, ontology | mentor agent, by rubric |
+| hidden-task | whether your agent setup works: the agent gets a hidden task and solves it in a copy of your workspace | separate container, headless agent |
+| bug-hunt | whether you found the bugs in code "written by the agent" | compared against the answer key |
 
-Грейдерные файлы (`checks/`) никогда не попадают в рабочее место и в браузер. Это проверяет
-валидатор контракта в CI.
+Grader files (`checks/`) never reach the workspace or the browser. The contract validator checks
+this in CI.
 
-Агентные проверки (hidden-task, rubric) тратят токены. У каждой есть бюджет в `lesson.yaml`,
-и стоимость попытки видна в кабинете.
+Agent checks (hidden-task, rubric) spend tokens. Each has a budget in `lesson.yaml`, and the cost
+of an attempt is shown on the dashboard.
 
-## 3. Разбор ментора
+## 3. Mentor review
 
-После проверки агент-ментор разбирает попытку по Сократу. Сначала вопрос, потом сценарий, где
-что ломается, потом направление, куда смотреть. Готового решения он не даёт. Ментор видит и
-результат, и транскрипт работы с агентом: где ты дал плохой контекст, где не заметил, что агент
-ушёл не туда.
+After the checks, the mentor agent reviews the attempt the Socratic way. First a question, then a
+scenario where things break, then a direction where to look. It never gives a ready solution. The
+mentor sees both the result and the transcript of your work with the agent: where you gave poor
+context, where you did not notice the agent going the wrong way.
 
-Уровни подсказок по запросу: вопрос -> направление -> скелет -> прямое объяснение
-("скажи прямо").
+Hint levels on request: question -> direction -> skeleton -> direct explanation. You say
+hint ("подсказка") to go up one level, and can ask for the skeleton ("скелет") or a
+direct explanation ("скажи прямо") by name.
 
-## 4. Кабинет и подстройка курса
+## 4. Dashboard and course adaptation
 
-Кабинет показывает прогресс по модулям, историю попыток, замечания ментора и слабые темы.
-Слабые темы попадают в `learner/journal.md` (позже в БД). Методисты читают журнал, когда
-проектируют следующий модуль, и добавляют практику туда, где ты спотыкаешься. Курс под одного
-человека, а не "для всех".
+The dashboard shows progress by module, attempt history, mentor remarks and weak topics. Weak
+topics go to `learner/journal.md` (later to the database). The methodologists read the journal
+when they design the next module and add practice where you stumble. The course is built for one
+person, not "for everyone".
 
-## 5. Второй контур: учёба на самой платформе (LEARN)
+## 5. The second loop: learning on the platform itself (LEARN)
 
-Часть задач по разработке платформы помечена `tier:learn`. Их код пишешь ты руками:
-- агенты делают исследование и дизайн, разбитый на шаги по 30-60 строк;
-- ты реализуешь, ментор помогает по запросу;
-- тестировщик гоняет тесты и стек;
-- три судьи ревьюят твой код в режиме ментора, по той же планке, что и код агента;
-- пробелы попадают в журнал и влияют на курс.
+Some platform development tasks are labeled `tier:learn`. You write their code by hand:
+- the agents do the research and the design, split into steps of 30-60 lines;
+- you implement, the mentor helps on request;
+- the tester runs the tests and the stack;
+- three judges review your code in mentor mode, by the same bar as agent code;
+- gaps go to the journal and shape the course.
 
-Для LEARN выбраны задачи, которые агенты обычно скрывают: рабочие места на Docker API,
-терминал на WebSocket, запуск проверок с таймаутами и конкурентностью, hidden-task раннер.
+The tasks picked for LEARN are the ones agents usually hide: workspaces on the Docker API, a
+terminal over WebSocket, running checks with timeouts and concurrency, the hidden-task runner.
 
-## 6. Как выглядит неделя
+## 6. What a week looks like
 
-1. Понедельник: открываешь следующий урок в кабинете, читаешь теорию.
-2. Практика в рабочем месте, сдача, разбор ментора, повторная попытка при необходимости.
-3. Параллельно одна LEARN-задача по платформе: ветка, свой код, PR, CI, ревью судей.
-4. В конце недели смотришь журнал: какие темы всплыли и что методисты поменяли в следующем модуле.
+1. Monday: you open the next lesson on the dashboard and read the theory.
+2. Practice in the workspace, submission, mentor review, another attempt if needed.
+3. In parallel, one LEARN task on the platform: branch, your own code, PR, CI, judge review.
+4. At the end of the week you look at the journal: which topics came up and what the methodologists changed in the next module.

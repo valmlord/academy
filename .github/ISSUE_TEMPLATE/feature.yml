@@ -7,7 +7,7 @@ body:
     id: problem
     attributes:
       label: Problem / user story
-      description: "Как ученик, я хочу ..., чтобы ..."
+      description: "As the learner, I want ..., so that ..."
     validations: { required: true }
   - type: textarea
     id: acceptance

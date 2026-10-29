@@ -1,12 +1,12 @@
 ---
-title: "feat(web): каркас apps/web (Next.js, shadcn/ui, Playwright, Docker)"
+title: "feat(web): apps/web scaffold (Next.js, shadcn/ui, Playwright, Docker)"
 labels: [type:feature, team:dev, tier:project, area:web]
-milestone: "M0 Фундамент"
+milestone: "M0 Foundation"
 ---
-Поднять `apps/web`: Next.js (App Router, TypeScript), Tailwind + shadcn/ui, Vitest, Playwright, Dockerfile (multi-stage), сервис `web` в docker-compose с healthcheck, e2e-джоба в CI.
+Set up `apps/web`: Next.js (App Router, TypeScript), Tailwind + shadcn/ui, Vitest, Playwright, Dockerfile (multi-stage), a `web` service in docker-compose with a healthcheck, an e2e job in CI.
 
-Критерии приёмки:
-- [ ] `pnpm dev` открывает главную со списком курсов (пока заглушка)
-- [ ] `docker compose up -d --build --wait` поднимает web и db, healthcheck зелёный
-- [ ] Playwright smoke-тест открывает главную, работает в CI
-- [ ] lint/typecheck/test/build проходят в CI
+Acceptance criteria:
+- [ ] `pnpm dev` opens the home page with a list of courses (a stub for now)
+- [ ] `docker compose up -d --build --wait` starts web and db, the healthcheck is green
+- [ ] a Playwright smoke test opens the home page and runs in CI
+- [ ] lint/typecheck/test/build pass in CI

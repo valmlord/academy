@@ -1,14 +1,14 @@
 ---
-title: "learn(workspace): сервис рабочих мест, контейнер на урок"
+title: "learn(workspace): workspace service, one container per lesson"
 labels: [type:feature, team:dev, tier:learn, area:workspace]
-milestone: "M1 Рабочее место"
+milestone: "M1 Workspace"
 ---
-Пишу сам. `services/workspace`: Node + Fastify + dockerode. API: создать рабочее место для урока (копия `starter/` в volume), запустить, остановить, удалить; сборщик мусора для брошенных контейнеров. Лимиты CPU, памяти и pids, non-root, без docker socket внутри.
+I write this myself. `services/workspace`: Node + Fastify + dockerode. API: create a workspace for a lesson (a copy of `starter/` in a volume), start, stop, delete; a garbage collector for abandoned containers. CPU, memory and pids limits, non-root, no docker socket inside.
 
-Чему хочу научиться: Docker Engine API, жизненный цикл процессов и контейнеров, идемпотентность, восстановление после рестарта.
+What I want to learn: the Docker Engine API, the lifecycle of processes and containers, idempotency, recovery after a restart.
 
-Критерии приёмки:
-- [ ] повторный "создать" для того же урока возвращает то же рабочее место (идемпотентно)
-- [ ] после рестарта сервиса контейнеры подхватываются, сироты удаляются
-- [ ] интеграционные тесты на настоящем Docker
-- [ ] ADR-0002 переведён в Accepted с уточнениями
+Acceptance criteria:
+- [ ] a repeated "create" for the same lesson returns the same workspace (idempotent)
+- [ ] after a service restart, containers are picked up again and orphans are removed
+- [ ] integration tests on a real Docker
+- [ ] ADR-0002 moved to Accepted with refinements

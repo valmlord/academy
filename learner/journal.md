@@ -1,10 +1,10 @@
-# Журнал ученика
+# Learner journal
 
-Сюда пишут ментор и судьи в LEARN-режиме: пробелы, которые проявились в реальной работе.
-Методисты читают журнал при проектировании модулей. Формат записи:
+The mentor and the judges write here in LEARN mode: gaps that showed up in real work.
+Methodologists read the journal when they design modules. Entry format:
 
 ```
-### YYYY-MM-DD: Короткое описание (#issue)
+### YYYY-MM-DD: Short description (#issue)
 Topic: <concurrency | sql | docker | networking | testing | typescript | agents | ...>
 What happened: ...
 Question to revisit: ...

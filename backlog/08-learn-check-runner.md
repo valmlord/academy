@@ -1,11 +1,11 @@
 ---
-title: "learn(workspace): запуск проверок урока и стрим результатов"
+title: "learn(workspace): run lesson checks and stream the results"
 labels: [type:feature, team:dev, tier:learn, area:workspace]
-milestone: "M1 Рабочее место"
+milestone: "M1 Workspace"
 ---
-Пишу сам. Кнопка "Проверить": workspace-сервис выполняет `command`-проверки урока в контейнере, `checks/` монтируется только на время проверки и только для грейдера, результаты стримятся в UI и сохраняются как attempt.
+I write this myself. A "Check" button: the workspace service runs the lesson's `command` checks in the container, `checks/` is mounted only for the duration of the check and only for the grader, the results are streamed to the UI and saved as an attempt.
 
-Критерии приёмки:
-- [ ] проверка с таймаутом убивается и помечается как timeout
-- [ ] две одновременные проверки одного рабочего места не ломают друг друга
-- [ ] ученик не может прочитать `checks/` из своего терминала
+Acceptance criteria:
+- [ ] a check that hits its timeout is killed and marked as timeout
+- [ ] two concurrent checks of the same workspace do not break each other
+- [ ] the learner cannot read `checks/` from their terminal

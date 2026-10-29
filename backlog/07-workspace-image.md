@@ -1,11 +1,11 @@
 ---
-title: "build(workspace): образ рабочего места"
+title: "build(workspace): workspace image"
 labels: [type:chore, team:dev, tier:task, area:infra, area:workspace]
-milestone: "M1 Рабочее место"
+milestone: "M1 Workspace"
 ---
-`images/workspace/Dockerfile`: git, node, python, ripgrep, агентский CLI (Claude Code и/или OpenCode), non-root пользователь. Сборка в CI, фиксированные версии.
+`images/workspace/Dockerfile`: git, node, python, ripgrep, an agent CLI (Claude Code and/or OpenCode), a non-root user. Built in CI, pinned versions.
 
-Критерии приёмки:
-- [ ] образ собирается в CI, размер разумный
-- [ ] агентский CLI запускается с ключом из env
-- [ ] никаких секретов в слоях образа
+Acceptance criteria:
+- [ ] the image builds in CI, its size is reasonable
+- [ ] the agent CLI starts with a key from env
+- [ ] no secrets in the image layers

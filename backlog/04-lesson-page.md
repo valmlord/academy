@@ -1,11 +1,11 @@
 ---
-title: "feat(web): каталог курса и страница урока из course/"
+title: "feat(web): course catalog and lesson page from course/"
 labels: [type:feature, team:dev, tier:task, area:web, area:content]
-milestone: "M0 Фундамент"
+milestone: "M0 Foundation"
 ---
-Web читает курс через `@academy/lesson-schema` (никаких своих типов урока). Каталог модулей и уроков со статусом `ready`, страница урока: слева теория и задание (markdown), справа пока заглушка рабочего места.
+Web reads the course through `@academy/lesson-schema` (no lesson types of its own). A catalog of modules and lessons with status `ready`; the lesson page: theory and the task on the left (markdown), a workspace stub on the right for now.
 
-Критерии приёмки:
-- [ ] уроки не в статусе `ready` не видны
-- [ ] содержимое `checks/` никогда не отдаётся в браузер (тест на это)
-- [ ] e2e: открыть модуль, открыть урок, увидеть теорию
+Acceptance criteria:
+- [ ] lessons not in status `ready` are not visible
+- [ ] the contents of `checks/` are never sent to the browser (with a test for it)
+- [ ] e2e: open a module, open a lesson, see the theory

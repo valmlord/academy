@@ -1,12 +1,12 @@
 ---
-title: "feat(db): схема v1 и миграции (Drizzle)"
+title: "feat(db): schema v1 and migrations (Drizzle)"
 labels: [type:feature, team:dev, tier:task, area:db]
-milestone: "M0 Фундамент"
+milestone: "M0 Foundation"
 ---
-`packages/db`: Drizzle, схема v1 (users, enrollments, lesson_progress, attempts, check_results, mentor_reviews), миграции через drizzle-kit, интеграционные тесты на настоящем Postgres (testcontainers).
+`packages/db`: Drizzle, schema v1 (users, enrollments, lesson_progress, attempts, check_results, mentor_reviews), migrations through drizzle-kit, integration tests on a real Postgres (testcontainers).
 
-Критерии приёмки:
-- [ ] миграции применяются на пустую базу и повторно не ломаются
-- [ ] попытка хранит: lesson id, статус, результаты проверок, ссылку на транскрипт
-- [ ] интеграционные тесты в CI
-- [ ] ADR о модели данных прогресса
+Acceptance criteria:
+- [ ] migrations apply to an empty database and do not break when applied again
+- [ ] an attempt stores: lesson id, status, check results, a link to the transcript
+- [ ] integration tests in CI
+- [ ] an ADR on the progress data model

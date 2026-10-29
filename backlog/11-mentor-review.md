@@ -1,6 +1,6 @@
 ---
-title: "feat(workspace): ментор-ревью по рубрике (Claude Agent SDK)"
+title: "feat(workspace): mentor review by rubric (Claude Agent SDK)"
 labels: [type:feature, team:dev, tier:project, area:workspace]
-milestone: "M2 Цикл обучения"
+milestone: "M2 Learning loop"
 ---
-`rubric`-проверки: агент-ментор читает артефакты и транскрипт сессии, оценивает по `checks/rubric.md`, отвечает по Сократу, ставит балл. Бюджет на вызов, логирование стоимости.
+`rubric` checks: the mentor agent reads the artifacts and the session transcript, grades against `checks/rubric.md`, answers Socratically, gives a score. A budget per call, cost logging.

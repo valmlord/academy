@@ -1,6 +1,6 @@
 ---
-title: "feat(workspace): запись транскриптов агентских сессий"
+title: "feat(workspace): record agent session transcripts"
 labels: [type:feature, team:dev, tier:task, area:workspace]
-milestone: "M2 Цикл обучения"
+milestone: "M2 Learning loop"
 ---
-Сохранять транскрипт работы агента в рабочем месте (и терминальную сессию) и прикладывать его к попытке. Ментор разбирает не только результат, но и то, как ученик вёл агента.
+Save the transcript of the agent's work in the workspace (and the terminal session) and attach it to the attempt. The mentor reviews not only the result but also how the learner drove the agent.

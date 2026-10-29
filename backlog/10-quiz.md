@@ -1,6 +1,6 @@
 ---
-title: "feat(web): quiz-проверки прямо в браузере"
+title: "feat(web): quiz checks right in the browser"
 labels: [type:feature, team:dev, tier:task, area:web]
-milestone: "M2 Цикл обучения"
+milestone: "M2 Learning loop"
 ---
-Рендер `quiz.yaml`, подсчёт результата на сервере (правильные ответы не уходят в браузер до сдачи), объяснения после сдачи.
+Render `quiz.yaml`, score on the server (correct answers do not reach the browser before submission), explanations after submission.
