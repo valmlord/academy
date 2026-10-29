@@ -1,7 +1,9 @@
 #!/bin/bash
-# PreToolUse (Agent|Task): enforce which role agent may be spawned in which phase.
-# The role is the LEADING "Read .claude/agents/<team>/<file>.md first" of the prompt, or the
-# subagent_type (lib/hookio.py). Windows come from .claude/pipeline.json agent_gates.
+# PreToolUse (Agent|Task): enforce which role agent may be spawned in which phase and tier.
+# The role is the LEADING "Read .claude/agents/<team>/<file>.md first" of the prompt when that exact
+# file exists, or the subagent_type; its team is the directory the file lives in (lib/hookio.py).
+# A false claim is denied for every role; a gated role runs only in tiers of its own team, inside its
+# window from .claude/pipeline.json agent_gates.
 HOOK_KIND=gate
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
 # An inherited value must not fake a load.
@@ -20,9 +22,19 @@ deny() { # deny <message> <log reason>
 
 main_fn() {
   case "$TOOL_NAME" in Agent|Task) ;; *) return 0 ;; esac
-  local role gated judge_files is_gated=0 is_judge=0 tier="" phase="" order cur_idx first last f_idx l_idx key judges
-  role=$(printf '%s' "$INPUT" | hookio role)
-  [ -n "$role" ] || return 0   # not one of our role agents (e.g. a plain Explore search)
+  local spec team role gated judge_files is_gated=0 is_judge=0 tier="" phase="" order cur_idx first last f_idx l_idx key judges
+  local tier_team
+  # A plain assignment, so errexit turns a hookio crash into a block; a here-string or a read from a
+  # substitution would discard its exit status and allow the spawn.
+  spec=$(printf '%s' "$INPUT" | hookio role_team)
+  [ -n "$spec" ] || return 0   # not one of our role agents (e.g. a plain Explore search)
+  team=${spec%%/*}
+  role=${spec#*/}
+
+  case "$team" in
+    '!path') deny "$role: the prompt names a role file that does not exist at that exact path; use .claude/agents/<team>/<file>.md with the directory and case the file really has." "role-path:$role" ;;
+    '!type') deny "$role: subagent_type names a different agent than the prompt's role file; give one identity." "role-type:$role" ;;
+  esac
 
   gated=" $(cfg gated_agents) "
   judge_files=" $(cfg all_judges | tr ' ' '\n' | cut -d= -f2 | tr '\n' ' ') "
@@ -55,6 +67,13 @@ main_fn() {
   fi
 
   if [ "$is_gated" = 1 ]; then
+    tier_team=$(cfg team "$tier")
+    if [ -z "$tier_team" ]; then
+      deny "tier $tier has no team in .claude/pipeline.json; gated roles cannot run in it." "team:$role"
+    fi
+    if [ "$team" != "$tier_team" ]; then
+      deny "$role is a $team role; tier $tier belongs to team $tier_team." "team:$role"
+    fi
     read -r first last <<< "$(cfg gate "$role")"
     f_idx=$(idx_of "$first"); l_idx=$(idx_of "$last")
     if [ "$f_idx" -eq -1 ] || [ "$l_idx" -eq -1 ]; then

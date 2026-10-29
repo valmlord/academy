@@ -73,6 +73,26 @@ jobs:
       - run: >-
           MYPYPATH=.claude/hooks/lib python -m mypy --strict --python-version 3.9
           --cache-dir "$RUNNER_TEMP/mypy-cache" .claude/hooks/lib/*.py
+      # A separate invocation: the validator resolves from scripts/; the hook lib is there for the test's
+      # import of hookio, whose verdict parser the validator output must never trigger.
+      - run: >-
+          MYPYPATH=scripts:.claude/hooks/lib python -m mypy --strict --python-version 3.9
+          --cache-dir "$RUNNER_TEMP/mypy-cache-design" scripts/design_tokens.py tests/design/test_design_tokens.py
+
+  design:
+    name: design tokens
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests/design -v
+      # Required from the first DESIGN task on (ADR-0006); until tokens.css exists the skip is printed.
+      - run: |
+          if [ -f design/system/tokens.css ]; then
+            python3 -I scripts/design_tokens.py check design
+          else
+            echo "design/system/tokens.css not present yet: token checks skipped"
+          fi
 
   compose:
     name: docker compose stack
