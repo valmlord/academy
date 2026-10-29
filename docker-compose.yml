@@ -1,5 +1,6 @@
-# Local, production-like stack. Services are added by their issues (web, workspace).
-# Start: docker compose up -d --wait
+# Local, production-like stack. Services are added by their issues (workspace next).
+# Start: docker compose up -d --build --wait (always --build: web is tagged academy-web:local and up
+# without --build reuses a stale image)
 name: academy
 
 services:
@@ -19,6 +20,35 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: academy-web:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # Explicit, never env_file: .env, whose DATABASE_URL points at localhost (web itself in here).
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-academy}:${POSTGRES_PASSWORD:-academy}@db:5432/${POSTGRES_DB:-academy}
+    # Loopback only; 3080 so pnpm dev (3000) runs alongside.
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3080}:3000"
+    healthcheck:
+      # 127.0.0.1, not localhost: alpine resolves localhost to ::1 first. Probes the HTML of / only.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
 volumes:
   db-data:
