@@ -12,13 +12,14 @@ lists it, its .git file points into the main git dir, and it lies outside the ma
   checkout.py file <path>                  root\\x1fgitdir\\x1fbranch of the checkout owning <path>
   checkout.py log key=value ...            append one whitelisted JSON line to the hook log
 """
-import collections
 import errno
+import hashlib
 import json
 import os
 import subprocess
 import sys
 import time
+from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(HERE)
@@ -42,34 +43,47 @@ LOG_FIELDS = (
     "event", "hook", "tool", "agent_id", "checkout", "source", "forwarded", "decision", "reason", "rc",
     "judge", "verdict", "round", "path", "role_source", "transcript_kind", "transcript_lines",
     "handback_in_transcript", "bg_subagents_running", "bg_total", "grant", "issue",
+    # First line of a failed vote or spawn CLI output; may hold absolute paths, never a message.
+    "error",
 )
 
-Worktree = collections.namedtuple("Worktree", "root gitdir branch")
-Resolution = collections.namedtuple("Resolution", "state_root source gitdir branch main_root")
+class Worktree(NamedTuple):
+    root: str
+    gitdir: str
+    branch: str
+
+
+class Resolution(NamedTuple):
+    state_root: str
+    source: str
+    gitdir: str
+    branch: str
+    main_root: str
 
 
 class GitError(Exception):
     """`git worktree list` failed or returned no usable main worktree."""
 
 
-def code_root():
+def code_root() -> str:
     return os.path.realpath(os.path.join(HERE, "..", "..", ".."))
 
 
-def is_under(path, root):
+def is_under(path: str, root: str) -> bool:
     return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
 
 
-def _records(root):
+def _records(root: str) -> list[dict[str, str]]:
     try:
-        out = subprocess.run(
+        out: bytes = subprocess.run(
             ["git", "-C", root, "worktree", "list", "--porcelain", "-z"],
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             timeout=GIT_TIMEOUT_SECONDS, check=True,
         ).stdout
     except (OSError, subprocess.SubprocessError) as exc:
         raise GitError(str(exc))
-    records, cur = [], {}
+    records: list[dict[str, str]] = []
+    cur: dict[str, str] = {}
     for token in out.split(b"\0"):
         if not token:
             if cur:
@@ -83,13 +97,13 @@ def _records(root):
     return records
 
 
-def _branch(record):
+def _branch(record: dict[str, str]) -> str:
     ref = record.get("branch", "")
     prefix = "refs/heads/"
     return ref[len(prefix):] if ref.startswith(prefix) else ""
 
 
-def linked_gitdir(root):
+def linked_gitdir(root: str) -> Optional[str]:
     """Target of the `gitdir:` line in <root>/.git, or None when <root>/.git is not such a file."""
     path = os.path.join(root, ".git")
     if not os.path.isfile(path):
@@ -109,7 +123,7 @@ def linked_gitdir(root):
     return os.path.realpath(target)
 
 
-def worktrees(root=None):
+def worktrees(root: Optional[str] = None) -> tuple[list[Worktree], list[tuple[str, str]]]:
     """-> (accepted worktrees with the main one first, skipped [(path, why)])."""
     records = _records(root or code_root())
     if not records or "bare" in records[0] or "worktree" not in records[0]:
@@ -119,7 +133,7 @@ def worktrees(root=None):
     if not os.path.isdir(main_gitdir):
         raise GitError("main .git is not a directory")
     accepted = [Worktree(main_root, main_gitdir, _branch(records[0]))]
-    skipped = []
+    skipped: list[tuple[str, str]] = []
     admin_dir = os.path.join(main_gitdir, "worktrees")
     allowed_nest = os.path.join(main_root, WORKTREES_DIR)
     for rec in records[1:]:
@@ -143,20 +157,20 @@ def worktrees(root=None):
     return accepted, skipped
 
 
-def owner_of(accepted, path):
+def owner_of(accepted: Sequence[Worktree], path: str) -> Optional[Worktree]:
     """The accepted worktree whose root is the longest component prefix of path."""
-    best = None
+    best: Optional[Worktree] = None
     for wt in accepted:
         if is_under(path, wt.root) and (best is None or len(wt.root) > len(best.root)):
             best = wt
     return best
 
 
-def _resolution(wt, source, main_root):
+def _resolution(wt: Worktree, source: str, main_root: str) -> Resolution:
     return Resolution(wt.root, source, wt.gitdir, wt.branch, main_root)
 
 
-def resolve_cwd(cwd):
+def resolve_cwd(cwd: str) -> tuple[Resolution, list[tuple[str, str]]]:
     """-> (Resolution, skipped worktrees). Falls back to the main checkout for any cwd that is not
     inside a registered, accepted checkout, so a `cd` elsewhere never picks up a stray state."""
     try:
@@ -175,35 +189,35 @@ def resolve_cwd(cwd):
     return _resolution(pick, "cwd", main.root), skipped
 
 
-def checkout_of(path):
+def checkout_of(path: str) -> Optional[Worktree]:
     """The accepted checkout whose root is the longest component prefix of realpath(path)."""
     accepted, _ = worktrees()
     return owner_of(accepted, os.path.realpath(path))
 
 
-def _clean(value):
+def _clean(value: object) -> str:
     return value if isinstance(value, str) and SEP not in value and "\n" not in value else ""
 
 
-def read_state(root):
+def read_state(root: str) -> tuple[str, Optional[dict[str, object]]]:
     """-> (status, state dict or None). status is none | unreadable | ok."""
     path = os.path.join(root, STATE_REL)
     if not os.path.lexists(path):
         return "none", None
     try:
         with open(path, encoding="utf-8") as fh:
-            data = json.load(fh)
+            data: object = json.load(fh)
     except (OSError, ValueError):
         return "unreadable", None
     if not isinstance(data, dict):
         return "unreadable", None
-    tier, phase = data.get("tier"), data.get("phase")
-    if not _clean(tier) or not _clean(phase) or ":" in tier + phase:
+    tier, phase = _clean(data.get("tier")), _clean(data.get("phase"))
+    if not tier or not phase or ":" in tier + phase:
         return "unreadable", None
     return "ok", data
 
 
-def foreign_reason(data, gitdir, branch):
+def foreign_reason(data: Mapping[str, object], gitdir: str, branch: str) -> str:
     """The ownership rule: "" when the state belongs to this checkout, else why it is foreign
     ("gitdir" or "branch"). A state copied from another checkout keeps its gitdir_at_init; a legacy
     state without one is own only on the branch it was started on, so a copy that landed in a new
@@ -214,10 +228,11 @@ def foreign_reason(data, gitdir, branch):
     return "" if data.get("branch_at_init") == branch else "branch"
 
 
-def state_status(root, gitdir, branch):
+def state_status(root: str, gitdir: str, branch: str) -> str:
     """none | own:<tier>:<phase> | foreign:<why> | done | unreadable, for the checkout at root."""
     status, data = read_state(root)
-    if status != "ok":
+    # read_state returns a dict exactly when status is "ok"; the None check is for mypy.
+    if status != "ok" or data is None:
         return status
     foreign = foreign_reason(data, gitdir, branch)
     if foreign:
@@ -227,18 +242,18 @@ def state_status(root, gitdir, branch):
     return "own:%s:%s" % (data["tier"], data["phase"])
 
 
-def status_of(wt):
+def status_of(wt: Worktree) -> str:
     return state_status(wt.root, wt.gitdir, wt.branch)
 
 
-def _log_path():
+def _log_path() -> str:
     gitdir = os.path.join(code_root(), ".git")
     if os.path.isdir(gitdir):
         return os.path.join(gitdir, LOG_NAME)
     return os.path.join(os.environ.get("TMPDIR") or "/tmp", "academy-pipeline-hooks-%d.log" % os.getuid())
 
 
-def _log_max_bytes():
+def _log_max_bytes() -> int:
     try:
         value = cfg.load().get("hook_log_max_bytes", DEFAULT_LOG_MAX_BYTES)
     except (OSError, ValueError):
@@ -246,10 +261,10 @@ def _log_max_bytes():
     return value if type(value) is int and value > 0 else DEFAULT_LOG_MAX_BYTES
 
 
-def log_event(**fields):
+def log_event(**fields: object) -> None:
     """Append one JSON line. Diagnostics only: an OSError is reported on stderr and swallowed, so
     no gate decision ever depends on the log."""
-    record = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "pid": os.getpid()}
+    record: dict[str, object] = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "pid": os.getpid()}
     for key in LOG_FIELDS:
         value = fields.get(key)
         if value is None or value == "":
@@ -271,25 +286,44 @@ def log_event(**fields):
         finally:
             os.close(fd)
     except OSError as exc:
-        print("pipeline log write failed: %s" % errno.errorcode.get(exc.errno, exc.errno), file=sys.stderr)
+        code = exc.errno
+        print("pipeline log write failed: %s" % (errno.errorcode.get(code, code) if code is not None else code), file=sys.stderr)
 
 
-def _hook_input():
+def _hook_input() -> dict[str, object]:
     raw = sys.stdin.buffer.read().decode("utf-8", "replace")
     if not raw.strip():
         return {}
     try:
-        data = json.loads(raw)
+        data: object = json.loads(raw)
     except ValueError:
         return {}
     return data if isinstance(data, dict) else {}
 
 
-def _context(argv):
+def _foreign_marker_is_new(session_id: str, state_root: str, status: str) -> bool:
+    """True the first time a session sees this foreign status for this checkout: every hook call
+    resolves the state, and one line per call drowned the log. The marker is an empty file in
+    TMPDIR. Only an OSError is handled (log anyway); anything else is a defect and fails closed."""
+    # backslashreplace cannot raise for a str: it covers the lone surrogates json.loads can return.
+    key = (session_id + "\0" + state_root + "\0" + status).encode("utf-8", "backslashreplace")
+    path = os.path.join(os.environ.get("TMPDIR") or "/tmp", "pipeline_foreign_" + hashlib.sha1(key).hexdigest()[:16])
+    try:
+        # 0o600: the name derives from the session id; other users have no business with it.
+        os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+    except FileExistsError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
+def _context(argv: list[str]) -> int:
     hook = argv[0] if argv else ""
     forwarded = argv[1] if len(argv) > 1 else ""
     data = _hook_input()
-    cwd = data.get("cwd") if isinstance(data.get("cwd"), str) else ""
+    raw_cwd = data.get("cwd")
+    cwd = raw_cwd if isinstance(raw_cwd, str) else ""
     if not cwd:
         try:
             cwd = os.getcwd()
@@ -300,9 +334,13 @@ def _context(argv):
     common = {"hook": hook, "forwarded": forwarded, "checkout": res.state_root, "source": res.source}
     for _, why in skipped:
         log_event(event="worktree-skipped:%s" % why, **common)
-    # Gates treat both as "no own active state"; the log says why, once per call.
+    # Gates treat both as "no own active state"; the log says why: a foreign state once per session,
+    # checkout and status (every call when the input has no session id), an unreadable one every call.
     if status.startswith("foreign:"):
-        log_event(event="foreign-state", reason=status, **common)
+        session_id = data.get("session_id")
+        if not isinstance(session_id, str) or not session_id \
+                or _foreign_marker_is_new(session_id, res.state_root, status):
+            log_event(event="foreign-state", reason=status, **common)
     elif status == "unreadable":
         log_event(event="state-unreadable", **common)
     if res.source != "cwd":
@@ -312,7 +350,7 @@ def _context(argv):
     return 0
 
 
-def _file(argv):
+def _file(argv: list[str]) -> int:
     if not argv:
         return 1
     wt = checkout_of(argv[0])
@@ -321,8 +359,8 @@ def _file(argv):
     return 0
 
 
-def _log(argv):
-    fields = {}
+def _log(argv: list[str]) -> int:
+    fields: dict[str, str] = {}
     for arg in argv:
         key, sep, value = arg.partition("=")
         if sep:
@@ -331,8 +369,8 @@ def _log(argv):
     return 0
 
 
-def main(argv):
-    commands = {"context": _context, "file": _file, "log": _log}
+def main(argv: list[str]) -> int:
+    commands: dict[str, Callable[[list[str]], int]] = {"context": _context, "file": _file, "log": _log}
     if len(argv) < 2 or argv[1] not in commands:
         print(__doc__, file=sys.stderr)
         return 1

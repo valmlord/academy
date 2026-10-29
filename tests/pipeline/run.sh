@@ -34,6 +34,32 @@ cp "$SRC/.gitignore" "$WORK/.gitignore"
 # Tests write user-level files (transcripts, settings) and temp markers; keep them out of the real home.
 export HOME="$BASE/home" TMPDIR="$BASE/tmp"
 cd "$WORK" || exit 1
+# BSD mktemp (macOS) replaces only trailing X's: a template ending in anything else is created
+# literally, and a second call fails because the file exists. GNU mktemp (CI) randomizes it, so
+# without this shim no Linux run could see the #23 race. The template reaches Python as an
+# argument, never inside its source; every other invocation goes to the real mktemp.
+mkdir -p "$BASE/bsdbin"
+{
+  echo '#!/bin/bash'
+  printf 'REAL_MKTEMP=%q\n' "$(command -v mktemp)"
+  cat <<'SH'
+if [ $# -eq 1 ] && [ "${1#-}" = "$1" ] && [ "${1%X}" = "$1" ]; then
+  exec python3 -I -c '
+import os, sys
+path = sys.argv[1]
+try:
+    os.close(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+except FileExistsError:
+    sys.stderr.write("mktemp: mkstemp failed on %s: File exists\n" % path)
+    sys.exit(1)
+print(path)
+' "$1"
+fi
+exec "$REAL_MKTEMP" "$@"
+SH
+} > "$BASE/bsdbin/mktemp"
+chmod +x "$BASE/bsdbin/mktemp"
+export PATH="$BASE/bsdbin:$PATH"
 git init -q -b main . && git config user.email t@t && git config user.name t
 echo '.claude/worktrees/' >> .git/info/exclude
 echo x > README.md && git add -A && git commit -qm "init"
@@ -428,6 +454,76 @@ chmod "$CK_MODE" "$H/lib/checkout.py"
 if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "pipeline resolver failed" && [ "$OBS_RC" = 0 ] && [ "$(mode_of "$H/lib/checkout.py")" = "$CK_MODE" ]; then
   ok "resolver failure blocks gates"
 else bad "resolver failure blocks gates (rc=$RC obs=$OBS_RC)"; fi
+
+# A syntax error stops `source` early; before the sentinel every hook then exited 127 (non-blocking).
+cp -p "$H/lib/common.sh" "$BASE/common.sh.bak"
+{ printf 'fi\n'; cat "$BASE/common.sh.bak"; } > "$H/lib/common.sh"
+capture write_to "plans/x.md"; W_RC=$RC; W_ERR=$ERR
+capture bashcmd "ls"; B_RC=$RC; B_ERR=$ERR
+agent "$CODER" >/dev/null 2>&1; G_RC=$?
+printf '%s' "$WJ" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1; OBS_RC=$?
+capture "${ADV[@]}" status
+if [ "$W_RC" = 2 ] && printf '%s' "$W_ERR" | grep -q "common.sh did not load" \
+  && [ "$B_RC" = 2 ] && printf '%s' "$B_ERR" | grep -q "common.sh did not load" \
+  && [ "$G_RC" = 2 ] && [ "$OBS_RC" = 0 ] && [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "ERROR: lib/common.sh did not load"; then
+  ok "hooks fail safe when lib/common.sh does not load"
+else bad "hooks fail safe when lib/common.sh does not load (write=$W_RC bash=$B_RC agent=$G_RC obs=$OBS_RC cli=$RC)"; fi
+ERR=$(export PL_COMMON_LOADED=1; write_to "plans/x.md" 2>&1 >/dev/null); RC=$?
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "common.sh did not load"; then
+  ok "an inherited PL_COMMON_LOADED does not fake a load"
+else bad "an inherited PL_COMMON_LOADED does not fake a load (rc=$RC)"; fi
+# A working hook would block this Stop (phase coder); without common.sh it must not, either way.
+# The input comes from a file: the fallback exits before reading stdin, and under pipefail a writer
+# that hits the closed pipe (Python exits 120) would hide the hook's own exit code.
+stop_from_file() { stop_json "$1" > "$BASE/stop.json"; bash "$H/phase-complete.sh" < "$BASE/stop.json"; }
+put_state "$WORK" PROJECT coder
+for active in 0 1; do
+  capture stop_from_file "$active"
+  if [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "not blocking" && printf '%s' "$ERR" | grep -q "common.sh did not load"; then
+    ok "stop is never blocked when lib/common.sh does not load (stop_hook_active=$active)"
+  else bad "stop is never blocked when lib/common.sh does not load (stop_hook_active=$active, rc=$RC)"; fi
+done
+cp -p "$BASE/common.sh.bak" "$H/lib/common.sh"
+cmp -s "$BASE/common.sh.bak" "$H/lib/common.sh" || bad "common.sh restored after the load-failure rows"
+stop_json 0 > "$BASE/stop.json"
+ERR=$(PATH="$BASE/badpy:$PATH" bash "$H/phase-complete.sh" < "$BASE/stop.json" 2>&1 >/dev/null); RC=$?
+if [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "not blocking" && printf '%s' "$ERR" | grep -q "python3 not found or unusable"; then
+  ok "stop is never blocked when python3 is unusable"
+else bad "stop is never blocked when python3 is unusable (rc=$RC)"; fi
+
+log_prev() { # log_prev <field>: that field of the second newest hook log line
+  tail -n 2 "$LOG" 2>/dev/null | head -n 1 | python3 -c "import json,sys; v=json.loads(sys.stdin.read() or '{}').get(sys.argv[1], ''); print(v)" "$1"; }
+# CPython exits 2 with empty stdout when it cannot open a script; that is a crash, not a verdict.
+# The entry script is run directly and never cached, so chmod 000 really makes it unreadable.
+WG_MODE=$(mode_of "$H/lib/pl_write_gate.py")
+chmod 000 "$H/lib/pl_write_gate.py"
+capture write_to "plans/x.md"
+chmod "$WG_MODE" "$H/lib/pl_write_gate.py"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally (rc=70)" \
+  && [ "$(log_last event)" = gate-crash ] && [ "$(log_last rc)" = 70 ] \
+  && [ "$(log_prev event)" = gate-no-verdict ] && [ "$(log_prev rc)" = 2 ] && [ "$(mode_of "$H/lib/pl_write_gate.py")" = "$WG_MODE" ]; then
+  ok "an unreadable pl_write_gate.py blocks as a crash, not as an empty verdict"
+else bad "an unreadable pl_write_gate.py blocks as a crash, not as an empty verdict (rc=$RC)"; fi
+SG_MODE=$(mode_of "$H/lib/pl_shell_guard.py")
+chmod 000 "$H/lib/pl_shell_guard.py"
+capture bashcmd "ls"
+chmod "$SG_MODE" "$H/lib/pl_shell_guard.py"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally (rc=70)" \
+  && [ "$(log_last event)" = gate-crash ] && [ "$(log_last rc)" = 70 ] \
+  && [ "$(log_prev event)" = gate-no-verdict ] && [ "$(log_prev rc)" = 2 ] && [ "$(mode_of "$H/lib/pl_shell_guard.py")" = "$SG_MODE" ]; then
+  ok "an unreadable pl_shell_guard.py blocks as a crash, not as an empty verdict"
+else bad "an unreadable pl_shell_guard.py blocks as a crash, not as an empty verdict (rc=$RC)"; fi
+# pl_gate is imported, and a cached pyc would still load for an unreadable source; a missing
+# source is never served from __pycache__, so it is moved aside rather than chmod-ed.
+cp -p "$H/lib/pl_gate.py" "$BASE/pl_gate.py.bak" && mv "$H/lib/pl_gate.py" "$BASE/pl_gate.py.aside"
+capture write_to "plans/x.md"; W_RC=$RC; W_ERR=$ERR; W_EVENT=$(log_last event); W_LOGRC=$(log_last rc)
+capture bashcmd "ls"; B_RC=$RC; B_ERR=$ERR; B_EVENT=$(log_last event); B_LOGRC=$(log_last rc)
+mv "$BASE/pl_gate.py.aside" "$H/lib/pl_gate.py"
+if [ "$W_RC" = 2 ] && printf '%s' "$W_ERR" | grep -q "failed internally (rc=1)" && [ "$W_EVENT" = gate-crash ] && [ "$W_LOGRC" = 1 ] \
+  && [ "$B_RC" = 2 ] && printf '%s' "$B_ERR" | grep -q "failed internally (rc=1)" && [ "$B_EVENT" = gate-crash ] && [ "$B_LOGRC" = 1 ] \
+  && cmp -s "$BASE/pl_gate.py.bak" "$H/lib/pl_gate.py"; then
+  ok "a missing pl_gate.py blocks both gates as a crash"
+else bad "a missing pl_gate.py blocks both gates as a crash (write rc=$W_RC bash rc=$B_RC)"; fi
 reset_state
 
 echo "== write gate on real paths"
@@ -812,6 +908,27 @@ expect_rc "grant file is never written by tools or shell, even in PIPELINE (shel
 put_state "$WORK" LEARN learner
 expect_rc "pipeline core not writable in LEARN" 2 write_to ".claude/hooks/x.sh"
 reset_state
+
+set_tier_key() { # set_tier_key <tier> <key> <json value> in the test repo's pipeline.json; restore_cfg undoes it
+  [ -f "$CFG_SAVED" ] || cp "$WORK/.claude/pipeline.json" "$CFG_SAVED"
+  python3 -c "import json,sys; c=json.load(open(sys.argv[1])); c['tiers'][sys.argv[2]][sys.argv[3]]=json.loads(sys.argv[4]); json.dump(c, open(sys.argv[1],'w'))" "$WORK/.claude/pipeline.json" "$@"; }
+put_state "$WORK" PROJECT coder
+set_tier_key PROJECT edits_pipeline_core '"false"'
+capture write_to ".claude/hooks/x.sh"
+restore_cfg
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q "failed internally"; then
+  ok "a non-bool edits_pipeline_core makes the write gate block as a crash"
+else bad "a non-bool edits_pipeline_core makes the write gate block as a crash (rc=$RC)"; fi
+reset_state
+BAD_TIER_KEYS=""
+for kv in 'team=7' 'requires_issue="true"' 'edits_pipeline_core=1' 'learner_writes_code=null'; do
+  set_tier_key PROJECT "${kv%%=*}" "${kv#*=}"
+  capture python3 -I "$H/lib/cfg.py" tiers
+  restore_cfg
+  [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "tiers.PROJECT.${kv%%=*} must be" || BAD_TIER_KEYS="$BAD_TIER_KEYS ${kv%%=*}"
+done
+[ -z "$BAD_TIER_KEYS" ] && ok "pipeline.json refuses a tier team or flag of the wrong type" \
+  || bad "pipeline.json refuses a tier team or flag of the wrong type:$BAD_TIER_KEYS"
 make_wt
 put_state "$WT" PIPELINE coder
 expect_rc "shell core write refused from a worktree holding a PIPELINE state" 2 at "$WT" bashcmd "echo x >> \"$WORK/.claude/hooks/x.sh\""
@@ -881,9 +998,17 @@ put_state "$WORK" PROJECT coder
 for c in "rm -rf .claude/hooks" "cp x.sh .claude/hooks" "mv .claude/hooks .claude/hooks.bak" "ln -sf /tmp/x .claude/hooks" \
          "rm -rf .claude" "rm -rf .claude/" "git restore .claude" \
          "git checkout main -- .claude/hooks" "git checkout main -- .claude" "git checkout HEAD .claude/hooks" \
-         "rm -rf .claude/*" "rm -rf .claude/h*"; do
+         "rm -rf .claude/*" "rm -rf .claude/h*" \
+         "rm -rf .claude/{hooks,}" "mv .claude, x" "rm -rf .claude/{pipeline.json,x}" "rm -rf .claude//hooks"; do
   expect_rc "shell write to hooks blocked outside PIPELINE: $c" 2 bashcmd "$c"
 done
+expect_rc "a brace inside the first component after .claude/ is blocked" 2 bashcmd "rm -rf .claude/h{ooks,}"
+# Stepan's decision 1 (#23): the one token-end rule blocks this harmless spelling too; accepted.
+expect_rc "accepted false positive: brace list under .claude is blocked" 2 bashcmd "rm -rf .claude/{agents,feedback}/x"
+capture bashcmd "rm -rf node_modules/.claude"
+if [ "$RC" = 2 ] && printf '%s' "$ERR" | grep -q ".claude directory" && ! printf '%s' "$ERR" | grep -q "pipeline.json"; then
+  ok "stray .claude token gets the .claude directory message"
+else bad "stray .claude token gets the .claude directory message (rc=$RC)"; fi
 for c in "ls .claude" "cat .claude/hooks/x.sh" "echo x >> .claude/feedback/coder_mistakes.md" \
          "cp x.md .claude/agents/dev/y.md" "echo x > plans/x.md" "rm -rf .claude/worktrees/old-one" \
          "git checkout feat/x" "git diff .claude" "git log -- .claude/hooks" "git show HEAD:.claude/hooks/x.sh" \
@@ -904,6 +1029,8 @@ hold_lock "$WORK" 3
 handback lk2 "PASS" "$MAIN_T" >/dev/null 2>&1
 wait
 [ "$(log_last event)" = vote-ignored:advance-rc-75 ] && ok "judge hook logs the real rc of a failed vote" || bad "judge hook logs the real rc of a failed vote ($(log_last event))"
+log_last error | grep -q "could not lock" && ok "judge hook logs the first output line of a failed vote" \
+  || bad "judge hook logs the first output line of a failed vote ($(log_last error))"
 restore_cfg
 reset_state
 
@@ -928,6 +1055,135 @@ if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "pipeline_state.json.broken"; t
   ok "unreadable state message names the command to move it aside"
 else bad "unreadable state message names the command to move it aside (rc=$RC)"; fi
 reset_state
+git checkout -q main
+
+echo "== #23: temp files, concurrent votes, follow-ups"
+reset_state
+git checkout -q -B feat/112-race main
+SHIM_T="$TMPDIR/shimcheck.XXXXXX.py"
+SHIM_OUT1=$(mktemp "$SHIM_T" 2>/dev/null); SHIM_RC1=$?
+SHIM_ERR2=$(mktemp "$SHIM_T" 2>&1 >/dev/null); SHIM_RC2=$?
+SHIM_DIR=$(mktemp -d)
+if [ "$(command -v mktemp)" = "$BASE/bsdbin/mktemp" ] && [ "$SHIM_RC1" = 0 ] && [ "$SHIM_OUT1" = "$SHIM_T" ] \
+  && [ "$SHIM_RC2" = 1 ] && printf '%s' "$SHIM_ERR2" | grep -q "File exists" && [ -d "$SHIM_DIR" ]; then
+  ok "mktemp shim behaves like BSD for a template without trailing X"
+else bad "mktemp shim behaves like BSD for a template without trailing X (rc=$SHIM_RC1/$SHIM_RC2)"; fi
+rm -rf "$SHIM_T" "$SHIM_DIR"
+
+put_state "$WORK" PROJECT judge_design
+STRANDED="$TMPDIR/pipeline_py.XXXXXX.py"
+: > "$STRANDED"
+STATUS_OK=0
+"${ADV[@]}" status 2>/dev/null | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null && STATUS_OK=1
+transcript "$TDIR/$SID/subagents/agent-t1s.jsonl" "$JS"
+handback t1s "Checked.
+PASS" "$MAIN_T" >/dev/null 2>&1
+if [ "$STATUS_OK" = 1 ] && [ "$(votes_by t1s)" = "security:PASS:handback" ]; then
+  ok "status and a vote work while a literal pipeline_py.XXXXXX.py exists in TMPDIR"
+else bad "status and a vote work while a literal pipeline_py.XXXXXX.py exists in TMPDIR (status=$STATUS_OK vote=$(votes_by t1s))"; fi
+rm -f "$STRANDED"
+
+RACE_BAD=""
+for r in 1 2 3; do
+  put_state "$WORK" PROJECT judge_design
+  rm -f "$LOG"
+  transcript "$TDIR/$SID/subagents/agent-c${r}s.jsonl" "$JS"
+  transcript "$TDIR/$SID/subagents/agent-c${r}a.jsonl" "$JA"
+  transcript "$TDIR/$SID/subagents/agent-c${r}o.jsonl" "$JO"
+  for j in s a o; do
+    handback "c$r$j" "Checked.
+PASS" "$MAIN_T" >/dev/null 2>&1 &
+  done
+  wait
+  RACE_GOT="$(votes_by "c${r}s") $(votes_by "c${r}a") $(votes_by "c${r}o")"
+  if [ "$RACE_GOT" != "security:PASS:handback architecture:PASS:handback operations:PASS:handback" ] \
+    || [ "$(grep -c '"vote-recorded"' "$LOG")" != 3 ]; then
+    RACE_BAD="$RACE_BAD round $r: $RACE_GOT;"
+  fi
+done
+[ -z "$RACE_BAD" ] && ok "three concurrent handbacks record three votes, three rounds in a row" \
+  || bad "three concurrent handbacks record three votes, three rounds in a row ($RACE_BAD)"
+reset_state
+
+put_state "$WORK" PROJECT judge_design
+set_cfg state_lock_timeout_seconds 1
+hold_lock "$WORK" 3
+python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[2],'tool_input':{'prompt':sys.argv[1]},'tool_response':{'agentId':'sp1'}}))" "$JS" "$WORK" \
+  > "$BASE/spawn.json"
+bash "$H/judge-count.sh" < "$BASE/spawn.json" >/dev/null 2>&1; RC=$?
+wait
+restore_cfg
+if [ "$RC" = 0 ] && [ "$(log_last event)" = spawn-failed ] && [ "$(log_last rc)" = 75 ] && log_last error | grep -q "could not lock"; then
+  ok "a spawn that cannot take the lock is logged as spawn-failed"
+else bad "a spawn that cannot take the lock is logged as spawn-failed (rc=$RC event=$(log_last event))"; fi
+reset_state
+
+mkdir -p "$PARKED" && printf '[]\n' > "$PARKED/111-1.json"
+PARKED_OUT=$("${ADV[@]}" parked 2>&1); PARKED_RC=$?
+capture "${ADV[@]}" status
+if [ "$PARKED_RC" = 0 ] && printf '%s' "$PARKED_OUT" | grep -q "111-1 (not a JSON object)" \
+  && [ "$RC" = 0 ] && printf '%s' "$ERR" | grep -q "111-1 (not a JSON object)"; then
+  ok "parked and status list a parked file that is not a JSON object"
+else bad "parked and status list a parked file that is not a JSON object (parked rc=$PARKED_RC status rc=$RC)"; fi
+reset_state
+
+mkdir -p "$PARKED"
+printf '{"issue": 112, "tier": "PROJECT", "phase": "coder", "parked_ts": "soon"}\n' > "$PARKED/112-1.json"
+printf '{"issue": 113, "tier": "PROJECT", "phase": "coder"}\n' > "$PARKED/113-1.json"
+printf '{"issue": 114, "tier": "PROJECT", "phase": "coder", "parked_ts": true}\n' > "$PARKED/114-1.json"
+printf '{"issue": 115, "tier": "PROJECT", "phase": "coder", "parked_ts": 1e400}\n' > "$PARKED/115-1.json"
+printf '{"issue": 116, "tier": "PROJECT", "phase": "coder", "parked_ts": 100000000000000000000}\n' > "$PARKED/116-1.json"
+# 10**309, above the float maximum (~1.8e308): json.load returns an int that float() cannot convert
+# (OverflowError), unlike 10**308, which still converts.
+printf '{"issue": 117, "tier": "PROJECT", "phase": "coder", "parked_ts": 1%0309d}\n' 0 > "$PARKED/117-1.json"
+PARKED_OUT=$("${ADV[@]}" parked 2>&1); PARKED_RC=$?
+if [ "$PARKED_RC" = 0 ] && printf '%s' "$PARKED_OUT" | grep -q "key 112-1, parked ?," \
+  && printf '%s' "$PARKED_OUT" | grep -q "key 113-1, parked ?," && printf '%s' "$PARKED_OUT" | grep -q "key 114-1, parked ?," \
+  && printf '%s' "$PARKED_OUT" | grep -q "key 115-1, parked ?," && printf '%s' "$PARKED_OUT" | grep -q "key 116-1, parked ?," \
+  && printf '%s' "$PARKED_OUT" | grep -q "key 117-1, parked ?," \
+  && ! printf '%s' "$PARKED_OUT" | grep -q "parked 19[67]"; then
+  ok "parked shows an unknown time for a missing, non-numeric, boolean, infinite or out-of-range parked_ts"
+else bad "parked shows an unknown time for a missing, non-numeric, boolean, infinite or out-of-range parked_ts (rc=$PARKED_RC: $PARKED_OUT)"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder
+edit_state "$WORK" '{"gitdir_at_init": "/elsewhere/.git"}'
+foreign_write() { # foreign_write <session id | lone-surrogate>: Write of plans/x.md from that session
+  python3 -c "import json,sys; s=sys.argv[3]; s='\ud800' if s=='lone-surrogate' else s; print(json.dumps({'tool_name':'Write','cwd':sys.argv[2],'session_id':s,'tool_input':{'file_path':sys.argv[1]}}))" \
+    "$WORK/plans/x.md" "$HCWD" "$1" | bash "$H/require-pipeline.sh"; }
+rm -f "$LOG"
+for s in t11-s1 t11-s1 t11-s2; do foreign_write "$s" >/dev/null 2>&1; done
+FOREIGN_LINES=$(grep -c '"foreign-state"' "$LOG")
+foreign_write lone-surrogate >/dev/null 2>&1; RC=$?
+if [ "$FOREIGN_LINES" = 2 ] && [ "$RC" = 0 ] && [ "$(grep -c '"foreign-state"' "$LOG")" = 3 ]; then
+  ok "foreign-state is logged once per session and checkout"
+else bad "foreign-state is logged once per session and checkout (lines=$FOREIGN_LINES surrogate rc=$RC)"; fi
+reset_state
+
+put_state "$WORK" PROJECT coder 77 120
+edit_state "$WORK" '{"phase_history": [{"phase": "coder", "ts": "x"}]}'
+rm -f "$LOG" "$TMPDIR"/pipeline_watchdog_*
+write_json "$WORK/plans/x.md" | bash "$H/pipeline-watchdog.sh" >/dev/null 2>&1
+if grep -q '"watchdog-notify"' "$LOG" 2>/dev/null && ! grep -q '"observer-crash"' "$LOG"; then
+  ok "watchdog survives a non-numeric ts and still warns"
+else bad "watchdog survives a non-numeric ts and still warns"; fi
+reset_state
+
+capture "${ADV[@]}" init RESEARCH ²
+if [ "$RC" = 1 ] && printf '%s' "$ERR" | grep -q "issue must be a GitHub issue number" && ! printf '%s' "$ERR" | grep -q Traceback \
+  && [ ! -e "$WORK/.claude/pipeline_state.json" ] && [ ! -e "$PARKED" ]; then
+  ok "init refuses a Unicode digit issue without a traceback and changes nothing"
+else bad "init refuses a Unicode digit issue without a traceback and changes nothing (rc=$RC)"; fi
+reset_state
+
+QWT="$WORK/.claude/worktrees/it's wt"
+git -C "$WORK" worktree add -q -b feat/113-quote "$QWT" HEAD >/dev/null 2>&1
+put_state "$QWT" PROJECT coder 113
+if (cd "$QWT" && "${ADV[@]}" status 2>/dev/null) | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('issue') == 113 else 1)"; then
+  ok "status works in a checkout whose path contains a single quote"
+else bad "status works in a checkout whose path contains a single quote"; fi
+reset_state
+git branch -D feat/113-quote >/dev/null 2>&1
 git checkout -q main
 
 echo

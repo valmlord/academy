@@ -22,8 +22,12 @@
 # worktree: bash "$(git rev-parse --path-format=absolute --git-common-dir)/../.claude/hooks/pipeline-advance.sh"
 HOOK_KIND=cli
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# An inherited value must not fake a load.
+unset PL_COMMON_LOADED
 # shellcheck source=lib/common.sh
 source "$HOOK_DIR/lib/common.sh"
+# Set by the last line of common.sh; a source that stopped early must not run half-defined.
+[ "${PL_COMMON_LOADED:-}" = 1 ] || { echo "ERROR: lib/common.sh did not load" >&2; exit 1; }
 
 set -euo pipefail
 SCRIPT_DIR="$CODE_ROOT/.claude/hooks"
@@ -32,17 +36,25 @@ REPO_DIR="$STATE_ROOT"
 PHASE="${1:?Usage: pipeline-advance.sh <phase> [args...]}"
 shift
 
-py_run() {
-  local tmpf; tmpf=$(mktemp "${TMPDIR:-/tmp}/pipeline_py.XXXXXX.py")
-  cat > "$tmpf"
-  python3 -I "$tmpf" "$@"
-  local rc=$?
-  rm -f "$tmpf"
-  return $rc
-}
+# The script comes on stdin, never through a temp file: BSD mktemp keeps a template without
+# trailing X's literal, so concurrent calls collided on one file name and lost votes (#23).
+# Shell values reach the script only as arguments, never inside its source text.
+py_run() { python3 -I - "$@"; }
 
-read_state()      { echo "import json; d=json.load(open(r'$STATE_FILE')); v=d.get('$1',''); print('' if v is None else v)" | py_run; }
-read_state_json() { echo "import json; print(json.dumps(json.load(open(r'$STATE_FILE')),indent=2,ensure_ascii=False))" | py_run; }
+read_state() { # read_state <key>
+  py_run "$STATE_FILE" "$1" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+v = d.get(sys.argv[2], '')
+print('' if v is None else v)
+PY
+}
+read_state_json() {
+  py_run "$STATE_FILE" <<'PY'
+import json, sys
+print(json.dumps(json.load(open(sys.argv[1])), indent=2, ensure_ascii=False))
+PY
+}
 
 # Every state write is one locked transaction in lib/state.py.
 state_op() { python3 -I "$LIB/state.py" "$1" "$STATE_ROOT" "${@:2}"; }
@@ -50,12 +62,11 @@ set_artifact() { state_op set_artifact "$1" "$2" >/dev/null; }
 
 # Unanimity for the CURRENT judge round. Prints OK / FAIL:<..> NOTVOTED:<..>
 check_judges_unanimous() {
-  local need="$1"
-  py_run "$need" <<PYEOF
+  py_run "$STATE_FILE" "$1" <<'PYEOF'
 import json,sys
-d=json.load(open(r'$STATE_FILE'))
+d=json.load(open(sys.argv[1]))
 cur=d.get('phase','')
-need=sys.argv[1].split()
+need=sys.argv[2].split()
 latest={}
 for v in d.get('artifacts',{}).get('judge_votes',[]):
     if v.get('round')==cur:
@@ -69,6 +80,26 @@ else:
     if fails: parts.append('FAIL:'+','.join(fails))
     if notvoted: parts.append('NOTVOTED:'+','.join(notvoted))
     print(' '.join(parts))
+PYEOF
+}
+
+# A function, not a heredoc inside $(...): bash 3.2 mis-parses a heredoc in a command substitution
+# when its body has unbalanced quotes or parentheses.
+notify_body() {
+  py_run "$STATE_FILE" <<'PYEOF'
+import json,sys,time
+d = json.load(open(sys.argv[1]))
+lines = ['Tier: %s  Issue: #%s' % (d.get('tier','?'), d.get('issue') or '-')]
+st = d.get('session_ts', 0)
+lines.append('Total: %.1f min' % ((time.time()-st)/60 if st else 0))
+a = d.get('artifacts',{})
+if a.get('pr'): lines.append('PR: %s' % a['pr'])
+votes = a.get('judge_votes',[])
+if votes:
+    lines.append('Judge verdicts:')
+    for v in votes:
+        lines.append('  [%s] %s: %s' % (v.get('round'), v.get('agent'), v.get('verdict')))
+print('\n'.join(lines))
 PYEOF
 }
 
@@ -226,22 +257,7 @@ fi
 
 # ---------------------------------------------------------------- NOTIFY
 if [ "$PHASE" = "notify" ]; then
-  NOTIFY_BODY=$(py_run <<PYEOF
-import json,time
-d = json.load(open(r'$STATE_FILE'))
-lines = ['Tier: %s  Issue: #%s' % (d.get('tier','?'), d.get('issue') or '-')]
-st = d.get('session_ts', 0)
-lines.append('Total: %.1f min' % ((time.time()-st)/60 if st else 0))
-a = d.get('artifacts',{})
-if a.get('pr'): lines.append('PR: %s' % a['pr'])
-votes = a.get('judge_votes',[])
-if votes:
-    lines.append('Judge verdicts:')
-    for v in votes:
-        lines.append('  [%s] %s: %s' % (v.get('round'), v.get('agent'), v.get('verdict')))
-print('\n'.join(lines))
-PYEOF
-)
+  NOTIFY_BODY=$(notify_body)
   if [ -f "$SCRIPT_DIR/notify.sh" ]; then
     echo "$NOTIFY_BODY" | bash "$SCRIPT_DIR/notify.sh" "$TIER" || echo "WARNING: notify hook failed (non-fatal)" >&2
   fi

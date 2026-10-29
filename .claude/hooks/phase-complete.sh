@@ -6,10 +6,17 @@
 # - A subagent is still running (background_tasks) -> allow; its result is still to come.
 # - Otherwise require: phase=done, each judge round unanimous for the tier, notify run, clean
 #   tree, not on a protected branch for issue-linked work.
-HOOK_KIND=gate
+# - Cannot evaluate (common.sh did not load, python3 unusable, resolver failure) -> warn and
+#   allow (HOOK_KIND=stop): blocking a Stop that nothing can repair only loops.
+HOOK_KIND=stop
 case $0 in */*) HOOK_DIR=${0%/*} ;; *) HOOK_DIR=. ;; esac
+# An inherited value must not fake a load.
+unset PL_COMMON_LOADED
 # shellcheck source=lib/common.sh
 source "$HOOK_DIR/lib/common.sh"
+# Set by the last line of common.sh. Without it stop_hook_active cannot be read, so a block here
+# would repeat on every Stop: warn and allow.
+[ "${PL_COMMON_LOADED:-}" = 1 ] || { echo "WARNING (not blocking): $0: lib/common.sh did not load; the pipeline completion check did not run. Stepan: kill switch, CLAUDE.md section 7" >&2; exit 0; }
 
 ACTIVE_FLAG=""
 block() {

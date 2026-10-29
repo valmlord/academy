@@ -88,3 +88,10 @@ the drift.
 Rule: An edit to a shared surface is only a "live change" if it differs from what is ALREADY
 there. Establish the direction of drift first. If you cannot check, state the conditional
 instead of issuing a FAIL whose severity hinges on the unknown.
+
+### 2026-10-28: PASSed a design whose post-merge step was impossible on the real repo (#23)
+The operations judge passed #23's design, including "Stepan adds pipeline-types to required
+checks", without checking that the private free-plan repo supports branch protection (it does
+not: 403). The flaw surfaced only in code review.
+Rule: For every "Stepan does X after merge" step, run the read-only check of X against the real
+repo/host during design review.
