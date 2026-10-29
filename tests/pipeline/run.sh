@@ -155,6 +155,8 @@ JS="Read .claude/agents/dev/judge-security.md first. Then review the design."
 JA="Read .claude/agents/dev/judge-architecture.md first. Do not duplicate judge-security.md findings."
 JO="Read .claude/agents/dev/judge-operations.md first. Then review."
 CODER="Read .claude/agents/dev/coder.md first. Then implement the plan."
+CA="Read .claude/agents/content/curriculum-architect.md first."
+ARCH="Read .claude/agents/dev/architect.md first."
 
 WT="$WORK/.claude/worktrees/wt one"
 # reset_state: remove every runtime file a test group may leave behind, in WORK and in each test
@@ -293,6 +295,51 @@ adv_ok "off-tier judge vote ignored, content trio enough" planner
 expect_rc "lesson-author allowed in author phase" 0 agent "Read .claude/agents/content/lesson-author.md first."
 expect_rc "course files writable" 0 write_to "course/ai-for-developers/00-introduction/module.yaml"
 rm -f .claude/pipeline_state.json
+
+echo "== teams"
+reset_state
+# expect_reason <desc> <rc> <log reason> <cmd...>: the rc and the reason of the newest hook log line.
+expect_reason() {
+  local d="$1" want="$2" reason="$3" rc got; shift 3
+  "$@" >/dev/null 2>&1; rc=$?; got=$(log_last reason)
+  if [ "$rc" = "$want" ] && [ "$got" = "$reason" ]; then ok "$d"; else bad "$d (rc=$rc, want $want; reason=$got, want $reason)"; fi
+}
+del_tier_key() { # del_tier_key <tier> <key> in the test repo's pipeline.json; restore_cfg undoes it
+  [ -f "$CFG_SAVED" ] || cp "$WORK/.claude/pipeline.json" "$CFG_SAVED"
+  python3 -c "import json,sys; c=json.load(open(sys.argv[1])); del c['tiers'][sys.argv[2]][sys.argv[3]]; json.dump(c, open(sys.argv[1],'w'))" "$WORK/.claude/pipeline.json" "$@"; }
+put_state "$WORK" TASK architect
+expect_reason "T1 content role refused in a dev tier by prompt" 2 "team:curriculum-architect.md" agent "$CA"
+expect_reason "T2 content role refused in a dev tier by subagent_type" 2 "team:curriculum-architect.md" agent "design the module" curriculum-architect
+expect_reason "T10 a gated role claimed under another team's directory is refused" 2 "role-path:curriculum-architect.md" agent "Read .claude/agents/dev/curriculum-architect.md first."
+expect_reason "T11 a case variant of a role path is refused and logged as the real file" 2 "role-path:curriculum-architect.md" agent "Read .claude/agents/content/Curriculum-Architect.md first."
+expect_reason "T15 a subagent_type naming another known agent than the prompt is refused" 2 "role-type:architect.md" agent "$ARCH" curriculum-architect
+put_state "$WORK" MODULE architect
+expect_rc "T5 content role allowed in its own team's tier" 0 agent "$CA"
+put_state "$WORK" TASK coder
+expect_reason "T9 a role path under a directory that does not exist is refused" 2 "role-path:coder.md" agent "Read .claude/agents/qa/coder.md first."
+expect_reason "T13 a role file that does not exist is refused" 2 "role-path:nonexistent.md" agent "Read .claude/agents/dev/nonexistent.md first."
+expect_rc "T14 a true path of an ungated role is allowed" 0 agent "Read .claude/agents/dev/researcher.md first."
+expect_rc "T16 prompt and subagent_type naming the same agent are allowed" 0 agent "$CODER" coder
+expect_reason "T17 a case variant of another agent's subagent_type is refused" 2 "role-type:coder.md" agent "$CODER" Curriculum-Architect
+expect_rc "T18 a built-in subagent_type next to a role prompt is allowed" 0 agent "$CODER" general-purpose
+python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[1],'tool_input':{'prompt':5,'subagent_type':''}}))" "$HCWD" \
+  | bash "$H/phase-gate.sh" >/dev/null 2>&1
+T8_RC=$?
+[ "$T8_RC" = 2 ] && [ "$(log_last event)" = gate-crash ] && ok "T8 a role parse crash blocks the spawn" \
+  || bad "T8 a role parse crash blocks the spawn (rc=$T8_RC, event=$(log_last event))"
+del_tier_key TASK team
+expect_reason "T7 a tier without a team refuses gated roles" 2 "team:coder.md" agent "$CODER"
+restore_cfg
+mv "$WORK/.claude/agents" "$WORK/.claude/agents.off"
+agent "$CODER" >/dev/null 2>&1; T19_RC=$?; T19_EVENT=$(log_last event)
+# A built-in subagent_type also needs the scan, so a broken tree blocks it too (documented).
+agent "find the files" Explore >/dev/null 2>&1; T19_EXPLORE_RC=$?
+agent "plain search" >/dev/null 2>&1; T19_PLAIN_RC=$?
+mv "$WORK/.claude/agents.off" "$WORK/.claude/agents"
+if [ "$T19_RC" = 2 ] && [ "$T19_EVENT" = gate-crash ] && [ "$T19_EXPLORE_RC" = 2 ] && [ "$T19_PLAIN_RC" = 0 ]; then
+  ok "T19 a missing agent tree blocks role spawns; a spawn without claim or type needs no scan"
+else bad "T19 a missing agent tree blocks role spawns (rc=$T19_RC event=$T19_EVENT explore=$T19_EXPLORE_RC plain=$T19_PLAIN_RC)"; fi
+reset_state
 
 echo "== resolver, forwarding and fail-closed"
 reset_state
