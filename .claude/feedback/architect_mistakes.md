@@ -571,3 +571,67 @@ Rule: A prescribed mutation must be applicable alone, with every other test stil
 prescribing one that removes or narrows a key, constraint, column or table, list every dependent object
 (FKs that reference the key, indexes, CHECKs, views, other tests' fixtures) and keep or replace what they
 need. Then state which test goes red, at which assertion, and which tests stay green.
+
+### 2026-10-29: A redaction rule with no test that fails when it is broken (#1, judge_design rev 2, security)
+Design 4.2 item 3 says the startup log prints `message` only for `MigrationError`,
+`InvalidConnectionStringError` and the two option errors, and only the name for any other value. U1-U3 and
+mutations 8b (i)-(iii) never hand `migrateOnStartup` an unlisted error, so code that prints `message` for
+every error passes them all; the rule that protects against a raw driver or import error carrying the URL
+is unguarded. Check 7b's leak grep was the literal `academy:academy@`, which finds nothing whenever the root
+`.env` uses another password, so it cannot fail in that state either.
+Rule: For every "never log X" rule, add a test whose input carries a canary in exactly the place the rule
+covers (here: the `message` of an unlisted error), assert the canary is absent from every log sink, and
+prescribe the mutation that breaks the rule. A leak grep searches for the secret actually in use, read
+from its source, never a hard-coded default.
+
+### 2026-10-29: A "stays empty" guard that matches the verbatim copy it requires (#1, judge_design rev 2, architecture)
+Design 2.1 (row ADR-0006 item 3) and tester Call 5-6 say `rg -n "design/" apps/ -g '!**/*.test.ts'` stays
+empty, while 3.1 copies `design/system/tokens.css` byte for byte into `apps/web/app/globals.css`. Line 6 of
+tokens.css is a comment naming `design/system/README.md`, so the grep matches globals.css on correct work and
+the tester has to stop and report a design defect (the same class as the dropped filesystem-access guard).
+`lib/copy.ts` comments citing `design/flows/ia.md` would match too.
+Rule: Before declaring a grep "stays empty", run it against every file the design itself copies or
+prescribes (verbatim blocks, comments it asks for), and narrow the pattern to what the ADR forbids (a
+runtime import), not the bare substring.
+
+### 2026-10-29: Took a design-system rule without its exceptions (#1, judge_design rev 2, architecture)
+Design 2.1 and 3.1 adopt the `design/system/README.md` focus ring as one global rule (`:focus-visible`, 2px
+`ring`, offset 2px outside) and add `main#main tabIndex={-1}` as the skip-link target, but the README's
+"Focus ring" section says elements focused programmatically with `tabindex="-1"` (`main`, headings) draw
+the ring inset. After the skip link, `main` spans the viewport, so an outside outline is clipped at the
+page edges.
+Rule: When a design adopts a rule from the design system, quote the whole rule including its exceptions
+and check each exception against the elements the design itself builds.
+
+### 2026-10-29: One recovery hint appended to every startup failure (#1, judge_design rev 2, operations)
+Design 4.2 item 3 ends every migration failure line with "is the database running? (docker compose up -d
+--wait db)". Run live in a scratch image without the drizzle COPY (tester check 9e), web logged
+"MigrationError stage apply: applying migrations from /app/packages/db/drizzle failed (unknown) ...; is the
+database running?" while db was healthy: the hint sends the 3 AM reader to the wrong layer.
+Rule: Attach a recovery hint only to the failure class it is true for (here: stage connect); for every
+other branch of an error formatter, run one failure of that branch and read the line it prints.
+
+### 2026-10-29: A mutation command written for the unformatted line (#1, judge_design rev 2, operations)
+Tester check 8d replaces the single line starting `export const MIGRATIONS_FOLDER`, but the new
+declaration is 113 characters and biome (lineWidth 100) wraps it to 5 lines, so the prescribed awk leaves
+four dangling lines and the red run fails on a syntax error instead of "Can't resolve '../drizzle'".
+Rule: Write mutation commands against the code as the formatter will leave it (run the formatter on the
+prescribed snippet first) and make them replace the whole statement.
+
+### 2026-10-29: Reused tester calls that wipe the owner's database volume (#1, judge_design rev 2, operations)
+Revision 2 reuses 3fea0fe Calls 14-16, 17 and 20 verbatim, each with `docker compose down -v`. When they
+were written compose had no stateful service; now `db` keeps the named volume `academy_db-data`, which
+exists on Stepan's machine, and the tester runs in the main checkout, so the run deletes his local database.
+Rule: When reusing a procedure, re-check every destructive command against the current stack; record at
+setup what pre-existed (volumes, images, `.env`) and tear down only what the run created.
+
+### 2026-10-29: Verified an env override on a path the README does not document (#1, judge_code, operations)
+Design 0.7 and 3.x prescribe the `next.config.ts` comment "a variable already set in the shell wins over the
+file", verified with `pnpm --filter @academy/web dev`. The README documents root `pnpm dev` = `turbo run dev`,
+and turbo 2 strict env mode drops undeclared variables: the `dev` task has no `env`/`passThroughEnv`, so a
+shell `DATABASE_URL` never reaches next and the root `.env` value is used instead. Run in a scratch clone:
+shell URL at a live db on 55432, root `.env` at 5432 -> root `pnpm dev` fails ECONNREFUSED (the `.env` URL),
+`pnpm --filter @academy/web dev` with the same shell applies the migrations. The same design already knew
+strict env drops `E2E_BASE_URL` and added `passThroughEnv` for `test:e2e`, but not for `dev`.
+Rule: Verify every env-precedence claim through the exact command the README documents, and for every turbo
+task list the variables the process reads and declare each in `env`/`passThroughEnv`.

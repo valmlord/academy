@@ -114,3 +114,13 @@ prints the object through `util.inspect`, password included. Design 4.11 says th
 `inspected` for exactly this, and I4/I5/I12 use it.
 Rule: A leak canary renders what the sink actually prints (`util.format`/`inspect` of every argument), never
 `String()`, and the "log an object that holds the secret" mutation is watched go red before handover.
+
+### 2026-10-29: Exported React components without explicit return types (#1)
+`apps/web/app/layout.tsx` `RootLayout`, `apps/web/app/page.tsx` `HomePage` and
+`apps/web/components/course-list.tsx` `CourseList` are exported with inferred return types. The author's
+code rules (`~/.claude/rules/code-style.md` section 2) require an explicit return type on every exported
+function, components included: inference at a boundary turns an implementation change into a silent
+contract change. The non-component exports of the same diff (`register`, `runStartup`, `migrateOnStartup`)
+were annotated, so the rule was known and skipped for TSX.
+Rule: Before handover, grep `export (default )?(async )?function` over the diff and give every hit an explicit
+return type (`React.JSX.Element` / `Promise<void>` ...), TSX components included.
