@@ -56,6 +56,8 @@ The flows, the IA, the scope file, the plan, and the current design system (`des
 
 - Low fidelity first is allowed: a wireframe is a prototype that uses only neutral tokens.
 - No build step, no npm, no framework.
-- Interaction script only in `design/system/proto.js` (formatted like the rest of the repository's
-  JavaScript, Biome) or a short inline `<script>`; fake data inline.
+- Shared interaction script lives in `design/system/proto.js` (formatted like the rest of the repository's
+  JavaScript, Biome), which the ui-designer owns: name the behaviour you need in your report and the
+  orchestrator re-spawns the ui-designer. Page-only behaviour goes in a short inline `<script>`; fake data
+  inline.
 - Learner-facing copy in Russian: short, concrete, straight double quotes, no em dashes.

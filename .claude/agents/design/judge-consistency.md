@@ -53,16 +53,25 @@ from the description.
 
 ## Response format
 
+Evidence first, verdict last. Pasted evidence (validator output, `pair` runs) and the numbered items
+come first; the exact verdict line is the last line of the report, with nothing after it. The vote is
+the last line that reads as a verdict (`PASS`, `FAIL`, `PASS - ...`, `FAIL - ...`, `VERDICT: ...`), so
+anything pasted below the verdict can overturn it, and no pasted or quoted line may start with a bare
+`PASS` or `FAIL`.
+
 ```
-PASS - no consistency issues found. Checked: <what you checked>
+Checked: <what you checked>
+<pasted validator output and `pair` runs>
+PASS - no consistency issues found
 ```
 or
 ```
-FAIL - N issues found:
+<pasted validator output and `pair` runs>
 1. [file:line] description
 2. [file:line] description
+FAIL - N issues found
 ```
-Be specific with file:line. The last line of your report is the verdict.
+Be specific with file:line.
 
 ## If FAIL, you MUST
 
