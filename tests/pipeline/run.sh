@@ -157,6 +157,13 @@ JO="Read .claude/agents/dev/judge-operations.md first. Then review."
 CODER="Read .claude/agents/dev/coder.md first. Then implement the plan."
 CA="Read .claude/agents/content/curriculum-architect.md first."
 ARCH="Read .claude/agents/dev/architect.md first."
+UXR="Read .claude/agents/design/ux-researcher.md first."
+PD="Read .claude/agents/design/product-designer.md first."
+# Not UID: bash makes that name read-only.
+UIDE="Read .claude/agents/design/ui-designer.md first."
+JU="Read .claude/agents/design/judge-usability.md first. Then review the flows."
+JAC="Read .claude/agents/design/judge-accessibility.md first. Then review."
+JV="Read .claude/agents/design/judge-consistency.md first. Then review."
 
 WT="$WORK/.claude/worktrees/wt one"
 # reset_state: remove every runtime file a test group may leave behind, in WORK and in each test
@@ -322,6 +329,14 @@ expect_rc "T14 a true path of an ungated role is allowed" 0 agent "Read .claude/
 expect_rc "T16 prompt and subagent_type naming the same agent are allowed" 0 agent "$CODER" coder
 expect_reason "T17 a case variant of another agent's subagent_type is refused" 2 "role-type:coder.md" agent "$CODER" Curriculum-Architect
 expect_rc "T18 a built-in subagent_type next to a role prompt is allowed" 0 agent "$CODER" general-purpose
+put_state "$WORK" TASK researcher
+expect_reason "T3 design role refused in a dev tier whose phases match its window" 2 "team:ux-researcher.md" agent "$UXR"
+expect_reason "T12 a design role claimed under the dev directory is refused" 2 "role-path:ux-researcher.md" agent "Read .claude/agents/dev/ux-researcher.md first."
+put_state "$WORK" MODULE researcher
+expect_reason "T4 design role refused in a content tier whose phases match its window" 2 "team:ux-researcher.md" agent "$UXR"
+put_state "$WORK" DESIGN architect
+expect_reason "T6 content role refused in DESIGN, which shares its window phases" 2 "team:curriculum-architect.md" agent "$CA"
+put_state "$WORK" TASK coder
 python3 -c "import json,sys; print(json.dumps({'tool_name':'Agent','cwd':sys.argv[1],'tool_input':{'prompt':5,'subagent_type':''}}))" "$HCWD" \
   | bash "$H/phase-gate.sh" >/dev/null 2>&1
 T8_RC=$?
@@ -339,6 +354,132 @@ mv "$WORK/.claude/agents.off" "$WORK/.claude/agents"
 if [ "$T19_RC" = 2 ] && [ "$T19_EVENT" = gate-crash ] && [ "$T19_EXPLORE_RC" = 2 ] && [ "$T19_PLAIN_RC" = 0 ]; then
   ok "T19 a missing agent tree blocks role spawns; a spawn without claim or type needs no scan"
 else bad "T19 a missing agent tree blocks role spawns (rc=$T19_RC event=$T19_EVENT explore=$T19_EXPLORE_RC plain=$T19_PLAIN_RC)"; fi
+reset_state
+
+echo "== design tier"
+reset_state
+git checkout -q -b docs/30-design main
+adv_ok "D0 DESIGN starts" init DESIGN 30
+expect_reason "D1 ux-researcher refused before its window" 2 "window:ux-researcher.md" agent "$UXR"
+"${ADV[@]}" researcher >/dev/null 2>&1
+expect_rc "D2 ux-researcher allowed in the researcher phase" 0 agent "$UXR"
+expect_rc "D3 product-designer refused before author, by subagent_type" 2 agent "draw the pages" product-designer
+expect_reason "D4 a content role is refused in DESIGN by its team" 2 "team:lesson-author.md" agent "Read .claude/agents/content/lesson-author.md first."
+for p in architect judge_design; do "${ADV[@]}" "$p" >/dev/null 2>&1; done
+expect_reason "D5 a dev judge is not a judge of DESIGN" 2 "not-a-judge:judge-security.md" agent "$JS"
+expect_rc "D6 a design judge is allowed in judge_design" 0 agent "$JU"
+subagent_stop "Read .claude/agents/dev/judge-usability.md first." "Checked.
+FAIL: wrong path"
+case " $(votes) " in
+  *" usability:"*) bad "D7b a judge vote under a wrong role path is not counted ($(votes))" ;;
+  *) ok "D7b a judge vote under a wrong role path is not counted" ;;
+esac
+subagent_stop "$JU" "Checked flows.
+PASS"
+subagent_handback "$JAC" "Checked.
+PASS: no issues"
+post_agent "$JV" "Checked.
+PASS - consistent"
+subagent_stop "$JS" "FAIL: off-tier"
+[ "$(votes)" = "usability:PASS accessibility:PASS consistency:PASS" ] \
+  && ok "D7 design votes recorded on all three paths, the off-tier vote ignored" \
+  || bad "D7 design votes recorded on all three paths, the off-tier vote ignored ($(votes))"
+adv_ok "D8 leaves judge_design with the design trio" planner
+"${ADV[@]}" author >/dev/null 2>&1
+if agent "$UIDE" >/dev/null 2>&1 && agent "draw the page" product-designer >/dev/null 2>&1; then
+  ok "D9 ui-designer and product-designer allowed in author"
+else bad "D9 ui-designer and product-designer allowed in author"; fi
+expect_reason "D10 ux-researcher refused after its window" 2 "window:ux-researcher.md" agent "$UXR"
+expect_rc "D11 design deliverables writable in the DESIGN pipeline" 0 write_to "design/pages/catalog/prototype.html"
+"${ADV[@]}" judge_ux >/dev/null 2>&1
+expect_rc "D12 product-designer re-spawn allowed in judge_ux" 0 agent "$PD"
+subagent_stop "$JU" "PASS"
+subagent_stop "$JAC" "PASS"
+adv_fail "D13 judge_ux cannot be left with two of three design votes" compound skip "no lessons"
+subagent_stop "$JV" "PASS"
+adv_ok "D13b judge_ux is left after the third design vote" compound skip "no lessons"
+reset_state
+put_state "$WORK" TASK judge_design
+expect_reason "D14 a design judge is not a judge of TASK" 2 "not-a-judge:judge-usability.md" agent "$JU"
+put_state "$WORK" MODULE judge_content
+expect_rc "D15 a design judge is not a judge of MODULE" 2 agent "$JAC"
+put_state "$WORK" LEARN learner
+expect_rc "D16 design/ is not writable by tools in LEARN" 2 write_to "design/flows/ia.md"
+reset_state
+expect_rc "D17 design/ is not writable without a pipeline" 2 write_to "design/README.md"
+# S1: static invariants of the agent tree and pipeline.json, one "ok <letter>" or
+# "FAIL <letter> <detail>" line per check.
+S1_OUT=$(python3 -I - "$WORK/.claude" <<'PY'
+import json, os, re, sys
+root = sys.argv[1]
+agents = os.path.join(root, "agents")
+cfg = json.load(open(os.path.join(root, "pipeline.json")))
+DIR_RE, FILE_RE = re.compile(r"[a-z0-9-]+"), re.compile(r"[a-z0-9-]+\.md")
+NAME_RE = re.compile(r"^name:\s*(\S+)\s*$", re.M)
+found = {k: [] for k in "abcde"}
+teams = {}
+# a: Claude Code registers every .md under .claude/agents/ recursively, so every one that does not
+# start with "_" must be a <team>/<file>.md the hooks index.
+for entry in sorted(os.listdir(agents)):
+    top = os.path.join(agents, entry)
+    if not os.path.isdir(top):
+        if entry.endswith(".md") and not entry.startswith("_"):
+            found["a"].append("top-level file " + entry)
+        continue
+    teams.setdefault(entry, set())
+    for dirpath, _dirs, files in os.walk(top):
+        for f in sorted(x for x in files if x.endswith(".md") and not x.startswith("_")):
+            rel = os.path.relpath(os.path.join(dirpath, f), agents)
+            if dirpath != top:
+                found["a"].append("nested file " + rel)
+            elif not DIR_RE.fullmatch(entry):
+                found["a"].append("directory name of " + rel)
+            elif not FILE_RE.fullmatch(f):
+                found["a"].append("file name " + rel)
+            else:
+                teams[entry].add(f)
+by_base, by_name = {}, {}
+for team in sorted(teams):
+    for f in sorted(teams[team]):
+        by_base.setdefault(f.lower(), []).append(team + "/" + f)
+        with open(os.path.join(agents, team, f), encoding="utf-8") as fh:
+            m = NAME_RE.search(fh.read(400))
+        name = m.group(1) if m else ""
+        if name != f[:-3]:
+            found["a"].append("name %r of %s/%s is not its file stem" % (name, team, f))
+        by_name.setdefault(name.lower(), []).append(team + "/" + f)
+found["a"] += ["basename %s in %s" % (k, ", ".join(v)) for k, v in sorted(by_base.items()) if len(v) > 1]
+found["a"] += ["frontmatter name %s in %s" % (k, ", ".join(v)) for k, v in sorted(by_name.items()) if len(v) > 1]
+homes = lambda f: [t for t in sorted(teams) if f in teams[t]]
+gated = [k for k in cfg["agent_gates"] if not k.startswith("_")]
+for f in gated + list(cfg["judge_agents"].values()):
+    if len(homes(f)) != 1:
+        found["b"].append("%s in %d team directories" % (f, len(homes(f))))
+for f in gated:
+    if len(homes(f)) == 1:
+        first, last = cfg["agent_gates"][f]
+        team = homes(f)[0]
+        if not any(t.get("team") == team and first in t.get("phases", []) and last in t.get("phases", [])
+                   for t in cfg["tiers"].values()):
+            found["c"].append("%s window %s..%s is in no %s tier" % (f, first, last, team))
+for name, tier in cfg["tiers"].items():
+    team = tier.get("team")
+    for key in tier.get("judges", []):
+        if cfg["judge_agents"].get(key) not in teams.get(team, set()):
+            found["d"].append("judge %s of %s is not a file of team %s" % (key, name, team))
+    if team == "any":
+        if tier.get("judges"):
+            found["e"].append("tier %s of team any has judges" % name)
+    elif not (isinstance(team, str) and DIR_RE.fullmatch(team) and os.path.isdir(os.path.join(agents, team))):
+        found["e"].append("tier %s team %r is not a directory under .claude/agents" % (name, team))
+for letter in "abcde":
+    print("\n".join("FAIL %s %s" % (letter, d) for d in found[letter]) if found[letter] else "ok " + letter)
+PY
+)
+S1_RC=$?
+if [ "$S1_RC" = 0 ] && [ "$(printf '%s\n' "$S1_OUT" | grep -c '^ok [a-e]$')" = 5 ]; then
+  ok "S1 static invariants of the agent tree and pipeline.json"
+else bad "S1 static invariants of the agent tree and pipeline.json (rc=$S1_RC: $(printf '%s\n' "$S1_OUT" | grep -v '^ok ' | tr '\n' ';'))"; fi
 reset_state
 
 echo "== resolver, forwarding and fail-closed"

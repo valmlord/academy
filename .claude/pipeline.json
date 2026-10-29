@@ -133,6 +133,25 @@
       ],
       "judges": ["accuracy", "pedagogy", "assessment"]
     },
+    "DESIGN": {
+      "team": "design",
+      "requires_issue": true,
+      "phases": [
+        "init",
+        "researcher",
+        "architect",
+        "judge_design",
+        "planner",
+        "author",
+        "judge_ux",
+        "compound",
+        "commit",
+        "pr",
+        "notify",
+        "done"
+      ],
+      "judges": ["usability", "accessibility", "consistency"]
+    },
     "RESEARCH": {
       "team": "any",
       "requires_issue": false,
@@ -153,7 +172,10 @@
     "curriculum-architect.md": ["architect", "judge_design"],
     "lesson-author.md": ["author", "judge_content"],
     "practice-designer.md": ["author", "judge_content"],
-    "student.md": ["student", "judge_content"]
+    "student.md": ["student", "judge_content"],
+    "ux-researcher.md": ["researcher", "judge_design"],
+    "product-designer.md": ["author", "judge_ux"],
+    "ui-designer.md": ["author", "judge_ux"]
   },
   "judge_agents": {
     "security": "judge-security.md",
@@ -161,7 +183,10 @@
     "operations": "judge-operations.md",
     "accuracy": "judge-accuracy.md",
     "pedagogy": "judge-pedagogy.md",
-    "assessment": "judge-assessment.md"
+    "assessment": "judge-assessment.md",
+    "usability": "judge-usability.md",
+    "accessibility": "judge-accessibility.md",
+    "consistency": "judge-consistency.md"
   },
   "learn_tier_editable_paths": [".claude/", "pipeline/", "docs/", "plans/", "learner/", "backlog/"],
   "human_wait_phases": ["learner"],
