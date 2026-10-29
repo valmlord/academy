@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru" data-default-state="default">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ИИ для разработчиков</title>
+  <link rel="stylesheet" href="../../system/tokens.css">
+  <link rel="stylesheet" href="../../system/proto.css">
+  <style>
+    /* Page layout only; every value is a token or a proto.css scale step. One column at every width
+       (decision A8). */
+    .course-header { display: flex; flex-direction: column; gap: var(--space-2); }
+    .module-list { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+    .module-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+    .module-section { display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-8); }
+    .module-heading { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <a class="skip-link" href="#main">К содержимому</a>
+
+  <header class="topbar" data-region>
+    <a class="topbar-brand" href="../dashboard/prototype.html">Академия</a>
+    <nav class="topbar-nav"><a href="../dashboard/prototype.html">Главная</a><a href="prototype.html" aria-current="page">Курс</a></nav>
+    <div class="topbar-end">
+      <div class="dropdown">
+        <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
+        <div class="dropdown-menu" id="user-menu" role="menu" aria-labelledby="user-menu-trigger">
+          <div role="group" aria-labelledby="user-menu-label">
+            <p class="dropdown-label" id="user-menu-label" role="presentation">learner@example.com</p>
+            <div class="dropdown-separator" role="separator"></div>
+            <a class="dropdown-item" role="menuitem" href="../sign-in/prototype.html#state-signed-out" data-step="F3.2">Выйти</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="notifications" data-notifications data-region>
+    <h2 class="sr-only" id="notifications-heading" data-notifications-heading>Уведомления</h2>
+    <div class="live" role="alert" data-live-key="page-alert"></div>
+    <div class="live" role="status" data-live-key="page-status"></div>
+  </div>
+  <template data-live-source="page-alert" data-state="session-expired">
+    <div class="alert" data-variant="destructive" data-step="F2.1">
+      <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+      <p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p>
+      <div class="alert-actions"><a class="button" data-size="sm" href="../sign-in/prototype.html?next=%2Fcourses%2Fai-for-developers#state-with-next">Войти снова</a></div>
+    </div>
+  </template>
+
+  <main id="main" class="page" tabindex="-1" data-region>
+    <div class="column">
+
+      <!-- Loading -->
+      <div class="stack" data-state="loading" aria-hidden="true">
+        <span class="skeleton" style="width: 50%; height: 2rem"></span>
+        <span class="skeleton" style="width: 90%"></span>
+        <span class="skeleton" style="width: 70%"></span>
+        <span class="skeleton" style="width: 60%"></span>
+      </div>
+
+      <!-- F5 error: course data cannot be read. The alert title is the page h1 in this state. -->
+      <div class="alert" data-variant="destructive" data-state="course-error">
+        <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+        <h1 class="alert-title text-sm">Не удалось загрузить курс</h1>
+        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="default" data-focus="#course-title">Повторить</button></div>
+      </div>
+
+      <div class="course-header" data-state="default failed-lesson ready-no-lessons progress-unavailable session-expired user-menu">
+        <h1 id="course-title" tabindex="-1">ИИ для разработчиков</h1>
+        <p class="muted">Работа с ИИ-агентами в реальной разработке: контекст и харнесс, Spec Driven Development, паттерны агентной разработки, оркестрация субагентов, итоговый проект и работа с legacy. Программа держится близко к курсу Hexlet "ИИ для разработчиков" (см. docs/course-reference.md).</p>
+        <!-- F5 / F6 error: progress cannot be read. The same line as on the dashboard, once, at the top. -->
+        <p class="icon-note" data-state="progress-unavailable"><span class="status-icon" data-status="info" aria-hidden="true"></span><span>Прогресс недоступен</span></p>
+      </div>
+
+      <!-- F5.1: module list in course order with module status. -->
+      <ol class="module-list" data-step="F5.1" data-state="default failed-lesson ready-no-lessons progress-unavailable session-expired user-menu">
+        <li><a href="#introduction">00. Введение в разработку с ИИ</a>
+          <span class="badge" data-variant="secondary" data-state="default failed-lesson progress-unavailable session-expired user-menu">Доступен</span>
+          <span class="badge" data-variant="outline" data-tone="muted" data-state="ready-no-lessons">Готовится</span></li>
+        <li><a href="#spec-driven-development">01. Spec Driven Development</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
+        <li><a href="#agentic-patterns">02. Паттерны агентной разработки</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
+        <li><a href="#subagent-orchestration">03. Оркестрация субагентов и мультиагентные пайплайны</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
+        <li><a href="#final-project">04. Итоговый проект: календарь звонков</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
+        <li><a href="#legacy-code">05. Работа с legacy-кодом</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
+      </ol>
+
+      <div data-state="default failed-lesson ready-no-lessons progress-unavailable session-expired user-menu">
+        <!-- F5.2: a ready module section. -->
+        <section class="module-section" id="introduction" aria-labelledby="introduction-heading" data-step="F5.2">
+          <hr class="separator">
+          <div class="module-heading">
+            <h2 id="introduction-heading" tabindex="-1">00. Введение в разработку с ИИ</h2>
+            <span class="badge" data-variant="secondary" data-state="default failed-lesson progress-unavailable session-expired user-menu">Доступен</span>
+            <span class="badge" data-variant="outline" data-tone="muted" data-state="ready-no-lessons">Готовится</span>
+          </div>
+          <p>Синхронизирующий блок. Выбор моделей и уровня ризонинга, локальные модели; ассистенты и экономика цена/качество; контекст-инжиниринг, планирование и исполнение; устройство агентов (loop, harness, tools, MCP); память и AGENTS.md; безопасность и контроль разрешений.</p>
+          <div class="outcomes">
+            <h3>Чему научитесь</h3>
+            <ul>
+              <li>Выбирает модель, уровень ризонинга и облачный или локальный запуск под конкретную задачу и называет ограничение, которое определило выбор: качество, задержка, цена, контекст или приватность.</li>
+              <li>Оценивает стоимость сессии агента по логу токенов и датированному снимку цен, находит главную составляющую стоимости и рычаг её снижения.</li>
+              <li>Реализует минимальный цикл агента: модель выбирает инструмент, харнесс проверяет разрешение, исполняет инструмент и возвращает результат в контекст; подключает инструменты внешнего процесса по протоколу в стиле MCP.</li>
+              <li>Находит в транскрипте сессии ошибки управления контекстом и до начала исполнения составляет план задачи с проверяемыми шагами.</li>
+              <li>Пишет короткий файл инструкций для агента (AGENTS.md и подключение к своему инструменту) только из невыводимых из кода фактов и предсказывает, какие файлы инструкций загрузит конкретный инструмент при настройках по умолчанию.</li>
+              <li>Переносит критичные запреты из инструкций в механизмы, которые исполняет харнесс (правила разрешений, хук), и находит обходы в конфигурации разрешений.</li>
+            </ul>
+          </div>
+
+          <!-- F5 empty: a ready module with no ready lesson. -->
+          <div class="empty" data-state="ready-no-lessons"><p class="empty-title">Уроки модуля готовятся</p></div>
+
+          <!-- F5.3: lesson rows. Each row is one link (one Tab); a prerequisite note follows its row. -->
+          <ul class="item-group" aria-labelledby="introduction-heading" data-step="F5.3" data-state="default failed-lesson progress-unavailable session-expired user-menu">
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-step="F5.4">
+                <span class="item-content"><span class="item-title">01. Модель, уровень ризонинга и локальные модели</span><span class="item-description">артефакт, около 40 мин</span></span>
+                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройден</span></span>
+              </a>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html">
+                <span class="item-content"><span class="item-title">02. Устройство агента: цикл, харнесс, инструменты, MCP</span><span class="item-description">артефакт, около 60 мин</span></span>
+                <span class="item-actions" data-state="default session-expired user-menu"><span class="badge" data-variant="secondary">В процессе</span></span>
+                <span class="item-actions" data-state="failed-lesson"><span class="badge" data-variant="outline" data-tone="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройден</span></span>
+              </a>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html">
+                <span class="item-content"><span class="item-title">03. Ассистенты, тарифы и экономика цена/качество</span><span class="item-description">артефакт, около 45 мин</span></span>
+                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
+              </a>
+              <p class="item-note" data-step="F6.1" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html">
+                <span class="item-content"><span class="item-title">04. Контекст-инжиниринг. Планирование и исполнение</span><span class="item-description">поиск багов, около 70 мин</span></span>
+                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
+              </a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html">Ассистенты, тарифы и экономика цена/качество</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html">
+                <span class="item-content"><span class="item-title">05. Память агента и AGENTS.md</span><span class="item-description">артефакт, около 50 мин</span></span>
+                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
+              </a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Контекст-инжиниринг. Планирование и исполнение</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html">
+                <span class="item-content"><span class="item-title">06. Безопасность и контроль разрешений</span><span class="item-description">артефакт, около 80 мин</span></span>
+                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
+              </a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html">Память агента и AGENTS.md</a></p>
+            </li>
+          </ul>
+        </section>
+
+        <!-- F5 empty: planned modules. No outcomes in their module.yaml, so no "Чему научитесь". -->
+        <section class="module-section" id="spec-driven-development" aria-labelledby="spec-driven-development-heading">
+          <hr class="separator">
+          <div class="module-heading"><h2 id="spec-driven-development-heading" tabindex="-1">01. Spec Driven Development</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <p>Верификация результата работы агента; скиллы и их жизненный цикл в проекте; SDD от проектирования до реализации (ADR, PRD и другие артефакты, автоматический контроль их целостности); онтология проекта: доменная модель, сущности, связи, процессы.</p>
+          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+        </section>
+        <section class="module-section" id="agentic-patterns" aria-labelledby="agentic-patterns-heading">
+          <hr class="separator">
+          <div class="module-heading"><h2 id="agentic-patterns-heading" tabindex="-1">02. Паттерны агентной разработки</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <p>Адаптация проекта под агента (менять код, а не дописывать правила); метанавыки: где и почему LLM не справляется и как улучшать обвязку; разработка в закрытых контурах; антипаттерны.</p>
+          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+        </section>
+        <section class="module-section" id="subagent-orchestration" aria-labelledby="subagent-orchestration-heading">
+          <hr class="separator">
+          <div class="module-heading"><h2 id="subagent-orchestration-heading" tabindex="-1">03. Оркестрация субагентов и мультиагентные пайплайны</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <p>Read-only ревьюер и пайплайн Coder -&gt; Reviewer -&gt; Summarizer под оркестратором; контракт роли; модель под роль; fan-out параллельных ревьюеров и synthesizer; защита от каскада галлюцинаций; наблюдаемость передач и rule-based оценка на стыках.</p>
+          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+        </section>
+        <section class="module-section" id="final-project" aria-labelledby="final-project-heading">
+          <hr class="separator">
+          <div class="module-heading"><h2 id="final-project-heading" tabindex="-1">04. Итоговый проект: календарь звонков</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <p>Букинг тайм-слотов по типу Calendly с разными расписаниями и видами активностей, через Design First: API-контракт на TypeSpec, backend и frontend через SDD, интеграционные и E2E тесты, CI и деплой.</p>
+          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+        </section>
+        <section class="module-section" id="legacy-code" aria-labelledby="legacy-code-heading">
+          <hr class="separator">
+          <div class="module-heading"><h2 id="legacy-code-heading" tabindex="-1">05. Работа с legacy-кодом</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <p>Анализ существующего проекта, погружение ИИ в структуру проекта, безопасный рефакторинг (characterization-тесты), постепенное внедрение ИИ в существующие процессы.</p>
+          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div class="proto-chrome" lang="en">
+    <span>Prototype states:</span>
+    <nav data-state-index aria-label="Prototype states" class="row"></nav>
+    <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
+    <span hidden data-state="default" data-state-label="default (ready and planned modules, prerequisites)"></span>
+    <span hidden data-state="failed-lesson" data-state-label="lesson failed (D1 data)"></span>
+    <span hidden data-state="ready-no-lessons" data-state-label="ready module without ready lessons"></span>
+    <span hidden data-state="loading" data-state-label="loading"></span>
+    <span hidden data-state="course-error" data-state-label="course load error"></span>
+    <span hidden data-state="progress-unavailable" data-state-label="progress unavailable"></span>
+    <span hidden data-state="session-expired" data-state-label="session expired (F2.1)"></span>
+    <span hidden data-state="user-menu" data-state-label="user menu open (F3.1)"></span>
+  </div>
+</div>
+
+<script src="../../system/proto.js"></script>
+</body>
+</html>
