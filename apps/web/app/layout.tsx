@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactElement } from "react";
 import { brandName, skipLinkLabel } from "@/lib/copy";
 import { themeScript } from "@/lib/theme-script";
 import "./globals.css";
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   title: { default: brandName, template: "%s" },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: LayoutProps<"/">): ReactElement {
   return (
     // The theme script sets the `dark` class before hydration, so React must not report the mismatch.
     <html lang="ru" suppressHydrationWarning>

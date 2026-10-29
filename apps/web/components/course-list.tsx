@@ -1,6 +1,7 @@
+import type { ReactElement } from "react";
 import type { CourseSummary } from "@/lib/courses";
 
-export function CourseList({ courses }: { courses: readonly CourseSummary[] }) {
+export function CourseList({ courses }: { courses: readonly CourseSummary[] }): ReactElement {
   return (
     <ul className="mt-6 space-y-2">
       {courses.map((course) => (
