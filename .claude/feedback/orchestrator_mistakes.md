@@ -130,3 +130,77 @@ ran every check live.
 Rule: when a design prescribes scripts or git procedures, have them executed (scratch clone, scratch
 directory, dry run) before the judge round, and give the operations judge the explicit job of running them.
 Put the infra procedure in its own issue when it dominates the design of a docs task.
+
+### 2026-10-29: Pasted tool output can carry a vote line (#27)
+
+judge_code round 1 on #27 found that the design validator printed lines starting with `PASS :root ...`, which
+`hookio.VERDICT_RE` parses as a verdict; the design judges were told to paste that output under their FAIL items, so
+an honest FAIL would have been recorded as PASS. Design review (two rounds, 3/3) did not catch it because nobody ran a
+tool's output through `verdict_from`.
+Rule: whenever a design adds a tool whose output a judge pastes into its report, the design review brief asks one
+judge to run sample output through `hookio.verdict_from` and confirm no line parses as a verdict; judge templates put
+the verdict on the last line.
+
+### 2026-10-29: Plan the unrelated uncommitted file before the pr gate (#27)
+
+Stepan's uncommitted `.github/CODEOWNERS` edit blocks `pr` and Stop at done (clean-tree checks), and agents may not
+stash. Round 1 of the #27 design FAILed partly for having no path.
+Rule: at init, if `git status --porcelain` shows a file outside the task, put "how the tree gets clean before pr"
+into the architect brief as a requirement, with the step owned by Stepan.
+
+### 2026-10-29: Issue spec exempted only process work from "every new issue gets a milestone" (#57)
+
+The #57 issue body said "a new issue gets a milestone (process work under #56 may have none)". Cross-milestone
+epics (#52, #53) exist precisely because they span milestones and carry none, so the rule, applied literally,
+tells the orchestrator to give the next feature epic a single milestone. The coder copied the exemption as
+written. Judge-architecture FAILed the HOTFIX on it.
+Rule: When a spec states a universal rule ("every new X gets Y"), check it against every existing kind of X
+in the live data (here: epics, process issues, feature issues) and list each exemption the data already shows.
+
+### 2026-10-29: A shell-less architect prescribed tester commands nobody had run (#28)
+
+The #28 design took three rounds. Rounds 2 and 3 were spent on the tester's command register: commands written for a
+clean machine (T-install on a populated node_modules, `git diff` without histogram, DOCKER_HOST that testcontainers
+ignores, a vitest globalSetup error it rewrites), and checks run in the worktree where uncommitted generated files
+make them red on correct work. The architect has no shell, so every round trusted text that only the operations judge
+could run. Round 3 passed once the operations judge was told to run every command verbatim against a scratch clone
+that reproduces the state the pipeline leaves behind.
+Rule: when a design prescribes tester or CI commands, the round-1 operations brief already says "run every
+prescribed command verbatim in a scratch clone with the pipeline's real state (populated node_modules, uncommitted
+generated files, leftover containers)". Tooling checks that depend on a clean tree run in a clone, never in the
+worktree.
+
+### 2026-10-29: A flow gap found after judge_design had no owner (#50)
+
+In the author phase the lesson prototype needed a label set (check kind) and accessible names ("Навигация",
+"Область", "Разделы урока") that `design/flows/ia.md` did not register. The ux-researcher's window ends at
+judge_design and phases cannot go back, so nobody could fix the flows; Stepan had to decide to drop the field and
+defer the names to a follow-up.
+Rule: in a DESIGN architect brief, require a register entry for every string and accessible name each in-scope page
+will render (incl. landmark, tab-list and menu labels and every field a row shows), and have judge_design check the
+register against the page inventory before passing.
+
+### 2026-10-29: judge_ux rounds spent on behaviour nobody ran (#50)
+
+judge_ux took four rounds; every blocker from round 2 on was cross-page or state behaviour (tab reset by simulated
+actions, `?tab=` not written, Back) that a scripted run would have shown, and two rounds were page workarounds of
+system gaps that the consistency judge then failed.
+Rule: before judge_ux, have the product-designer report system gaps instead of working around them (ui-designer
+closes them first), and require a headless run of every control in every state from every tab, plus Back and the
+cross-page round trips, with counts in the report.
+
+### 2026-10-29: Formatter fix plan claimed "whitespace only" without running the formatter (#50 CI fix)
+`plans/50-learner-flows-design-system-ci-format.md` scoped the biome run as "whitespace and line breaks
+only", but `biome format design/system/proto.js` also inserts trailing commas (call arguments, arrays).
+The acceptance offered an eyeballed `git diff -w` as an alternative to a token-level proof, and the
+behaviour test it named covers only the lesson page, while `proto.js` drives all four prototypes.
+Rule: Run the formatter in check mode before writing the plan, list every change class it makes, and make
+a mechanical equivalence check (minified or AST output byte-identical) the mandatory acceptance.
+
+### 2026-10-29: CI-format plan claimed "whitespace only" without dry-running the formatter (#50)
+The proto.js format plan set "token-identical / pure line wrapping" as acceptance, but a dry run of
+`biome format` adds 11 trailing commas and moves a parenthesis inside the F6 region-cycle filter
+(equivalent only by `&`-over-`&&` precedence). The plan's behaviour check (r4.mjs) does not exercise F6
+or focus at all, so the one non-whitespace change in a keyboard path had no test.
+Rule: Before writing acceptance for a mechanical rewrite, dry-run the tool to a scratch file, list every
+non-whitespace delta, and require a behaviour check for each code path a delta touches.

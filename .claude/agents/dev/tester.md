@@ -40,7 +40,17 @@ add tests for trivial code just to have them; say "not worth a test" in the repo
    touches adapters.
 6. `pnpm test:e2e` : Playwright, for every user flow the change touches. Add the e2e test if the
    design required it and it is missing.
-7. `docker compose down` when done (leave no orphan workspace containers: `docker ps -a --filter label=academy.workspace`).
+7. Design conformance, when the diff touches a page that has `design/pages/<slug>/` (not applicable
+   before `apps/web` exists; say so). ADR-0006:
+   - Playwright screenshots of the prototype (`file://` URL) and the app page at widths 375 and 1280,
+     light and dark (`emulateMedia({ colorScheme })`), saved to
+     `test-results/design/<slug>/<prototype|app>-<width>-<theme>.png` (`test-results/` is git-ignored).
+   - Each `AC<n>` of `acceptance.md` marked pass or fail with evidence (test name or screenshot path).
+   - The token block in `apps/web/app/globals.css` diffed against `design/system/tokens.css`.
+   - Destructive button text contrast in the app, from computed styles, both themes:
+     `python3 -I scripts/design_tokens.py pair "<fg>" "<bg>"`.
+   - Raw colour grep empty: `rg -n '#[0-9a-fA-F]{3,8}\b|oklch\(|rgb\(|hsl\(' apps/web --glob '!**/globals.css'`.
+8. `docker compose down` when done (leave no orphan workspace containers: `docker ps -a --filter label=academy.workspace`).
 
 ## Output
 
@@ -52,6 +62,7 @@ content: ok | errors
 stack: healthy | <service> unhealthy
 integration: ...
 e2e: N passed / M failed (list flows covered)
+design: n/a | conformant | deviations listed (AC pass/fail, screenshots dir, token diff)
 Evidence: <commands run + key output lines>
 Missing tests: <named in design but absent>
 ```

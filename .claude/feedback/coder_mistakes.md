@@ -94,3 +94,23 @@ Design section 4, V3, requires the multiset of inline code spans of every transl
 `main`'s, so the tester's span diff went red on all six files.
 Rule: A translation neither adds nor removes code spans. Name a role in plain prose unless the original
 already backticks it, and diff the span multiset against `git show main:<file>` before handing back.
+
+### 2026-10-29: A test named for a check could not fail when that check was deleted (#27)
+`test_color_token_missing_in_dark_is_an_error` removes `--accent`, a required token, so the required-token
+check reports it and the separate theme-symmetry loop (`scripts/design_tokens.py:345-348`, "every colour token
+present in one theme is a colour token in the other") is never what the test sees. Deleting that loop leaves all 44
+tests green, although the design table names exactly that mutation for this row and the commit says every test was
+watched going red. Custom tokens (the case the ui-designer seed warns about) are therefore unguarded.
+Rule: Watch the named mutation go red for every row yourself; when two checks would report the same fixture, pick a
+fixture only the guarded check can see (here a custom colour token in one theme only).
+
+### 2026-10-29: A secret-leak canary flattened logger arguments with String(), so object leaks stayed green (#28)
+`packages/db/test/integration/client.int.test.ts:72` (I8b) builds the logged text as
+`consoleError.mock.calls.flat().map(String).join(" ")`. `String({ connectionString })` is `"[object Object]"`, so the
+design's own I8b mutation, "log the pool options or the URL in the default logger" (e.g.
+`console.error(prefix, error, pool.options)`), leaves the canary assertion green, while the real `console.error`
+prints the object through `util.inspect`, password included. Design 4.11 says the tests assert on
+`util.inspect(value, { depth: Infinity })` because that is what a logger prints; `test/assertions.ts` already exports
+`inspected` for exactly this, and I4/I5/I12 use it.
+Rule: A leak canary renders what the sink actually prints (`util.format`/`inspect` of every argument), never
+`String()`, and the "log an object that holds the secret" mutation is watched go red before handover.

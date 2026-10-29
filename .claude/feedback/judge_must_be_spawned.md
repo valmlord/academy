@@ -22,6 +22,14 @@ The `agent_roles_mandatory` rule already covered this and was ignored under time
   Agent(prompt="Read .claude/agents/content/judge-pedagogy.md first. Then review: <lesson>")
   Agent(prompt="Read .claude/agents/content/judge-assessment.md first. Then review: <lesson>")
   ```
+
+  Design tier (DESIGN):
+
+  ```
+  Agent(prompt="Read .claude/agents/design/judge-usability.md first. Then review: <flows or pages + validator output>")
+  Agent(prompt="Read .claude/agents/design/judge-accessibility.md first. Then review: <flows or pages + validator output>")
+  Agent(prompt="Read .claude/agents/design/judge-consistency.md first. Then review: <flows or pages + validator output>")
+  ```
 - Record only the verdict each agent actually returns (the judge-count hook does this).
 - All three in ONE message - never three separate messages (that breaks the parallelism and
   wastes time).
