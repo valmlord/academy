@@ -147,3 +147,12 @@ Stepan's uncommitted `.github/CODEOWNERS` edit blocks `pr` and Stop at done (cle
 stash. Round 1 of the #27 design FAILed partly for having no path.
 Rule: at init, if `git status --porcelain` shows a file outside the task, put "how the tree gets clean before pr"
 into the architect brief as a requirement, with the step owned by Stepan.
+
+### 2026-10-29: Issue spec exempted only process work from "every new issue gets a milestone" (#57)
+
+The #57 issue body said "a new issue gets a milestone (process work under #56 may have none)". Cross-milestone
+epics (#52, #53) exist precisely because they span milestones and carry none, so the rule, applied literally,
+tells the orchestrator to give the next feature epic a single milestone. The coder copied the exemption as
+written. Judge-architecture FAILed the HOTFIX on it.
+Rule: When a spec states a universal rule ("every new X gets Y"), check it against every existing kind of X
+in the live data (here: epics, process issues, feature issues) and list each exemption the data already shows.
