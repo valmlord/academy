@@ -1,7 +1,18 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
 import type { NextConfig } from "next";
 
 const repositoryRoot = path.join(import.meta.dirname, "../../");
+
+// Next reads env files from apps/web only, while the repository keeps one root .env (DATABASE_URL for
+// pnpm dev). The Docker build context excludes it, so the image never sees it; a variable already set
+// in the shell wins over the file.
+// Any NEXT_PUBLIC_* variable in the root .env is inlined into the client bundle of a local next dev or
+// next build, so the root .env never holds a secret under that prefix.
+const rootEnvFile = path.join(repositoryRoot, ".env");
+if (existsSync(rootEnvFile)) {
+  process.loadEnvFile(rootEnvFile);
+}
 
 const nextConfig: NextConfig = {
   output: "standalone",

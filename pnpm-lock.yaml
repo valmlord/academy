@@ -20,6 +20,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@academy/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@academy/lesson-schema':
         specifier: workspace:*
         version: link:../../packages/lesson-schema
