@@ -44,6 +44,41 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm content:validate
 
+  # No path filter: a lesson-schema PR that adds a check kind must turn the drift step red (ADR-0007).
+  db:
+    name: db migrations and integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # The runner VM is discarded after the job, so the reaper has nothing to clean up.
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The PR merge commit plus both parents, for the append-only step.
+          fetch-depth: 2
+          # The job runs PR code (drizzle-kit loads schema.ts); nothing after checkout needs the token.
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: applied migrations are append-only
+        if: github.event_name == 'pull_request'
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash packages/db/scripts/check-append-only.sh
+      # drizzle-kit loads schema.ts, which imports lesson-schema's dist/.
+      - run: pnpm exec turbo run build --filter='@academy/db^...'
+      - run: pnpm --filter @academy/db run db:check
+      - name: migrations match the schema
+        # A backstop only: drizzle-kit without a TTY exits instead of waiting for a prompt.
+        timeout-minutes: 3
+        run: bash packages/db/scripts/check-drift.sh
+      - run: pnpm test:integration
+
   pipeline:
     name: agent pipeline hooks
     runs-on: ubuntu-24.04

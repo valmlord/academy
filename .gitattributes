@@ -7,3 +7,6 @@
 # though it is all green for whoever authored it locally. This line is what makes the scaffold
 # survive being shipped.
 *.sh text eol=lf
+
+# drizzle-kit snapshots collapse in PR diffs; the SQL migrations stay visible for review.
+packages/db/drizzle/meta/** linguist-generated=true
