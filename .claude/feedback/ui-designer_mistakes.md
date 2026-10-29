@@ -66,3 +66,10 @@ the new `.outcomes` entry and both pages use `space-6` and no margin. The galler
 shows two structures for one component.
 Rule: When a component is promoted, replace every gallery example of the same content with the promoted
 markup and grep the gallery for the old one.
+
+### 2026-10-29: proto.js reached CI unformatted (#50)
+
+`design/system/proto.js` is inside biome's scope (`biome.json` includes `**/*.js`), and nobody on the design team ran
+biome before reporting, so PR #67 went red on `pnpm lint` and the pipeline had to be re-opened for a format pass.
+Rule: run `node_modules/.bin/biome check design/` before reporting any change to a `.js` or `.json` file under
+`design/`; it must report no error.

@@ -49,3 +49,12 @@ sticky check bar must not obscure focus at 320 px / 400 % (2.4.11); preset after
 
 `python3 -I scripts/design_tokens.py check design` exit 0; `rg '[а-яА-ЯёЁ]'` only in learner-facing
 copy (prototype HTML text, acceptance Copy tables, flow labels); every page `Status:` set.
+
+## CI format pass (re-opened after PR #67 lint failure)
+
+Design: `plans/50-learner-flows-design-system-ci-format.md` (judge_design 3/3, round 2).
+
+- W5 (ui-designer): `biome format --write design/system/proto.js`; mandatory esbuild minify + `cmp` proof
+  against `git show HEAD:design/system/proto.js`; supplementary headless before/after runs on all four
+  pages (keyboard regions, roving tabindex, menu Esc, tooltip, live-container identity, no pageerror) and
+  r4.mjs on the lesson; `biome check design/` clean; validator exit 0.

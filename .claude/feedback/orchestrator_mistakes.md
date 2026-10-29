@@ -188,3 +188,19 @@ system gaps that the consistency judge then failed.
 Rule: before judge_ux, have the product-designer report system gaps instead of working around them (ui-designer
 closes them first), and require a headless run of every control in every state from every tab, plus Back and the
 cross-page round trips, with counts in the report.
+
+### 2026-10-29: Formatter fix plan claimed "whitespace only" without running the formatter (#50 CI fix)
+`plans/50-learner-flows-design-system-ci-format.md` scoped the biome run as "whitespace and line breaks
+only", but `biome format design/system/proto.js` also inserts trailing commas (call arguments, arrays).
+The acceptance offered an eyeballed `git diff -w` as an alternative to a token-level proof, and the
+behaviour test it named covers only the lesson page, while `proto.js` drives all four prototypes.
+Rule: Run the formatter in check mode before writing the plan, list every change class it makes, and make
+a mechanical equivalence check (minified or AST output byte-identical) the mandatory acceptance.
+
+### 2026-10-29: CI-format plan claimed "whitespace only" without dry-running the formatter (#50)
+The proto.js format plan set "token-identical / pure line wrapping" as acceptance, but a dry run of
+`biome format` adds 11 trailing commas and moves a parenthesis inside the F6 region-cycle filter
+(equivalent only by `&`-over-`&&` precedence). The plan's behaviour check (r4.mjs) does not exercise F6
+or focus at all, so the one non-whitespace change in a keyboard path had no test.
+Rule: Before writing acceptance for a mechanical rewrite, dry-run the tool to a scratch file, list every
+non-whitespace delta, and require a behaviour check for each code path a delta touches.
