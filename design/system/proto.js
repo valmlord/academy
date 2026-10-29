@@ -12,8 +12,13 @@
   var SPLIT_STEP = 5; // arrow keys move the split by 5 % (F9)
   var STATE_PREFIX = "#state-";
   var FOCUSABLE = [
-    "a[href]", "button", "input", "select", "textarea", "summary",
-    "[tabindex]:not([tabindex='-1'])"
+    "a[href]",
+    "button",
+    "input",
+    "select",
+    "textarea",
+    "summary",
+    "[tabindex]:not([tabindex='-1'])",
   ].join(",");
 
   var WHITESPACE = new RegExp("\\s+"); // a RegExp literal here reads as a protocol-relative URL to the validator
@@ -106,7 +111,8 @@
       var key = container.getAttribute("data-live-key");
       var source = null;
       document.querySelectorAll("template[data-live-source]").forEach(function (template) {
-        if (template.getAttribute("data-live-source") === key && hasState(template, name)) source = template;
+        if (template.getAttribute("data-live-source") === key && hasState(template, name))
+          source = template;
       });
       // R2: the container stays; only its content is replaced.
       if (source) container.replaceChildren(source.content.cloneNode(true));
@@ -156,11 +162,18 @@
   // state, else to its first tab the state shows, so a hidden tab never keeps its panel open.
   function applyTabSelection(list, name, keepTabs) {
     var tabs = Array.prototype.slice.call(list.querySelectorAll("[role='tab']"));
-    var current = tabs.filter(function (tab) { return tab.getAttribute("aria-selected") === "true"; })[0];
+    var current = tabs.filter(function (tab) {
+      return tab.getAttribute("aria-selected") === "true";
+    })[0];
     if (keepTabs && current && isTabShownIn(current, name)) return;
-    var chosen = tabs.filter(function (tab) { return hasState(tab, name, "data-select-in-states"); })[0];
+    var chosen = tabs.filter(function (tab) {
+      return hasState(tab, name, "data-select-in-states");
+    })[0];
     if (!chosen && current && isTabShownIn(current, name)) return;
-    if (!chosen) chosen = tabs.filter(function (tab) { return isTabShownIn(tab, name); })[0];
+    if (!chosen)
+      chosen = tabs.filter(function (tab) {
+        return isTabShownIn(tab, name);
+      })[0];
     if (chosen && chosen !== current) selectTab(chosen, false);
   }
 
@@ -168,9 +181,12 @@
   // collapsible, so a state can show "menu open" or "dialog open" without a click. Focus is not moved.
   function applyStateOpenings(name, keepTabs) {
     closeMenu(false);
-    document.querySelectorAll("dialog[open]").forEach(function (dialog) { dialog.close(); });
+    document.querySelectorAll("dialog[open]").forEach(function (dialog) {
+      dialog.close();
+    });
     document.querySelectorAll("[role='tablist']:not([data-pane-switch])").forEach(function (list) {
-      if (list.querySelector("[role='tab'][data-select-in-states]")) applyTabSelection(list, name, keepTabs);
+      if (list.querySelector("[role='tab'][data-select-in-states]"))
+        applyTabSelection(list, name, keepTabs);
     });
     document.querySelectorAll("[data-open-in-states]").forEach(function (el) {
       var open = hasState(el, name, "data-open-in-states");
@@ -191,9 +207,12 @@
   function syncNotifications() {
     document.querySelectorAll("[data-notifications]").forEach(function (wrapper) {
       var heading = wrapper.querySelector("[data-notifications-heading]");
-      var hasContent = Array.prototype.some.call(wrapper.querySelectorAll("[data-live-key]"), function (container) {
-        return container.childNodes.length > 0;
-      });
+      var hasContent = Array.prototype.some.call(
+        wrapper.querySelectorAll("[data-live-key]"),
+        function (container) {
+          return container.childNodes.length > 0;
+        },
+      );
       if (hasContent) {
         wrapper.setAttribute("role", "region");
         if (heading && heading.id) wrapper.setAttribute("aria-labelledby", heading.id);
@@ -256,7 +275,11 @@
     if (!list) return;
     if (list.hasAttribute("data-pane-switch")) {
       var pane = showPane(tab.getAttribute("data-show-pane"), tab);
-      var twin = pane && pane.querySelector("[data-pane-switch] [data-show-pane='" + tab.getAttribute("data-show-pane") + "']");
+      var twin =
+        pane &&
+        pane.querySelector(
+          "[data-pane-switch] [data-show-pane='" + tab.getAttribute("data-show-pane") + "']",
+        );
       if (twin && moveFocus !== false) twin.focus();
       return;
     }
@@ -328,9 +351,18 @@
     else if (event.key === "ArrowUp") next = items[(index - 1 + items.length) % items.length];
     else if (event.key === "Home") next = items[0];
     else if (event.key === "End") next = items[items.length - 1];
-    else if (event.key === "Escape") { event.preventDefault(); closeMenu(true); return; }
-    else if (event.key === "Tab") { closeMenu(false); return; }
-    if (next) { event.preventDefault(); next.focus(); }
+    else if (event.key === "Escape") {
+      event.preventDefault();
+      closeMenu(true);
+      return;
+    } else if (event.key === "Tab") {
+      closeMenu(false);
+      return;
+    }
+    if (next) {
+      event.preventDefault();
+      next.focus();
+    }
   }
 
   /* ---------- AlertDialog (native <dialog>) ---------- */
@@ -344,13 +376,17 @@
     if (initial) initial.focus();
   }
 
-  document.addEventListener("close", function (event) {
-    var dialog = event.target;
-    if (dialog.tagName === "DIALOG" && dialog.protoOpener) {
-      dialog.protoOpener.focus();
-      dialog.protoOpener = null;
-    }
-  }, true);
+  document.addEventListener(
+    "close",
+    function (event) {
+      var dialog = event.target;
+      if (dialog.tagName === "DIALOG" && dialog.protoOpener) {
+        dialog.protoOpener.focus();
+        dialog.protoOpener = null;
+      }
+    },
+    true,
+  );
 
   /* ---------- Tooltip: hover and focus, hoverable, Esc closes (WCAG 1.4.13) ---------- */
 
@@ -398,7 +434,7 @@
   function handleRange(handle) {
     return {
       min: Number(handle.getAttribute("aria-valuemin") || 25),
-      max: Number(handle.getAttribute("aria-valuemax") || 75)
+      max: Number(handle.getAttribute("aria-valuemax") || 75),
     };
   }
 
@@ -457,13 +493,21 @@
   /* ---------- Region cycle: F6 / Shift+F6, Ctrl+Shift+. / Ctrl+Shift+, (R3) ---------- */
 
   function regionCandidates() {
-    return Array.prototype.filter.call(document.querySelectorAll("[data-region]"), function (region) {
-      if (region.hasAttribute("data-notifications") && region.getAttribute("role") !== "region") return false;
-      var layout = region.closest(".lesson-layout");
-      var hiddenPane = region.matches(".pane[data-pane]") && region.hidden && layout && layout.classList.contains("is-one-pane");
-      if (hiddenPane) return !region.parentElement.closest("[hidden]");
-      return isRendered(region);
-    });
+    return Array.prototype.filter.call(
+      document.querySelectorAll("[data-region]"),
+      function (region) {
+        if (region.hasAttribute("data-notifications") && region.getAttribute("role") !== "region")
+          return false;
+        var layout = region.closest(".lesson-layout");
+        var hiddenPane =
+          region.matches(".pane[data-pane]") &&
+          region.hidden &&
+          layout &&
+          layout.classList.contains("is-one-pane");
+        if (hiddenPane) return !region.parentElement.closest("[hidden]");
+        return isRendered(region);
+      },
+    );
   }
 
   function cycleRegion(step) {
@@ -471,28 +515,37 @@
     if (!regions.length) return;
     var active = document.activeElement;
     var current = -1;
-    regions.forEach(function (region, i) { if (region.contains(active)) current = i; });
+    regions.forEach(function (region, i) {
+      if (region.contains(active)) current = i;
+    });
     var target;
     if (current >= 0) {
       target = regions[(current + step + regions.length) % regions.length];
     } else {
       // Focus outside every region (the split handle, body): take the nearest region in DOM order.
       var following = regions.filter(function (region) {
-        return active && active !== document.body &&
-          (active.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING);
+        return (
+          active &&
+          active !== document.body &&
+          active.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING
+        );
       });
       if (step > 0) target = following[0] || regions[0];
       else {
-        var preceding = regions.filter(function (region) { return following.indexOf(region) < 0; });
+        var preceding = regions.filter(function (region) {
+          return following.indexOf(region) < 0;
+        });
         target = preceding[preceding.length - 1] || regions[regions.length - 1];
       }
     }
-    if (target.matches(".pane[data-pane]") && target.hidden) showPane(target.getAttribute("data-pane"), target);
+    if (target.matches(".pane[data-pane]") && target.hidden)
+      showPane(target.getAttribute("data-pane"), target);
     focusInto(target);
   }
 
   function regionStep(event) {
-    if (event.key === "F6" && !event.ctrlKey && !event.altKey && !event.metaKey) return event.shiftKey ? -1 : 1;
+    if (event.key === "F6" && !event.ctrlKey && !event.altKey && !event.metaKey)
+      return event.shiftKey ? -1 : 1;
     if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey) {
       if (event.code === "Period") return 1;
       if (event.code === "Comma") return -1;
@@ -501,15 +554,19 @@
   }
 
   // Capture phase, so the keys reach the page before a terminal (xterm in the app) handles them.
-  window.addEventListener("keydown", function (event) {
-    var step = regionStep(event);
-    if (!step || !document.querySelector("[data-region]")) return;
-    if (document.querySelector("dialog[open]")) return;
-    event.preventDefault();
-    event.stopPropagation();
-    closeMenu(false);
-    cycleRegion(step);
-  }, true);
+  window.addEventListener(
+    "keydown",
+    function (event) {
+      var step = regionStep(event);
+      if (!step || !document.querySelector("[data-region]")) return;
+      if (document.querySelector("dialog[open]")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(false);
+      cycleRegion(step);
+    },
+    true,
+  );
 
   /* ---------- Collapsible ---------- */
 
@@ -529,7 +586,9 @@
   // target made programmatically focusable.
   function anchorFocusTarget(target) {
     if (target.matches(FOCUSABLE) || target.hasAttribute("tabindex")) return target;
-    var heading = target.querySelector("h1[tabindex='-1'], h2[tabindex='-1'], h3[tabindex='-1'], h4[tabindex='-1']");
+    var heading = target.querySelector(
+      "h1[tabindex='-1'], h2[tabindex='-1'], h3[tabindex='-1'], h4[tabindex='-1']",
+    );
     if (heading) return heading;
     target.setAttribute("tabindex", "-1");
     return target;
@@ -553,7 +612,8 @@
   function focusSelector(selector) {
     var target = selector && document.querySelector(selector);
     if (!target) return;
-    if (!target.matches(FOCUSABLE) && !target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+    if (!target.matches(FOCUSABLE) && !target.hasAttribute("tabindex"))
+      target.setAttribute("tabindex", "-1");
     target.focus();
   }
 
@@ -577,12 +637,16 @@
   /* ---------- Click and key delegation ---------- */
 
   // R1: an aria-disabled control stays focusable and does nothing when activated.
-  document.addEventListener("click", function (event) {
-    if (event.target.closest("[aria-disabled='true']")) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
-  }, true);
+  document.addEventListener(
+    "click",
+    function (event) {
+      if (event.target.closest("[aria-disabled='true']")) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
 
   document.addEventListener("click", function (event) {
     var el = event.target;
@@ -595,7 +659,10 @@
     }
 
     var tab = el.closest("[role='tab']");
-    if (tab) { selectTab(tab, true); return; }
+    if (tab) {
+      selectTab(tab, true);
+      return;
+    }
 
     var menuTrigger = el.closest("[data-menu-trigger]");
     if (menuTrigger) {
@@ -607,7 +674,10 @@
     var menuItem = el.closest("[role^='menuitem']");
     if (menuItem && openMenu) {
       if (menuItem.getAttribute("role") === "menuitemcheckbox") {
-        menuItem.setAttribute("aria-checked", String(menuItem.getAttribute("aria-checked") !== "true"));
+        menuItem.setAttribute(
+          "aria-checked",
+          String(menuItem.getAttribute("aria-checked") !== "true"),
+        );
         return;
       }
       var opener = openMenu.trigger;
@@ -619,10 +689,16 @@
     if (openMenu && !openMenu.menu.contains(el)) closeMenu(false);
 
     var dialogOpener = el.closest("[data-dialog-open]");
-    if (dialogOpener) { openDialog(dialogOpener.getAttribute("data-dialog-open"), dialogOpener); return; }
+    if (dialogOpener) {
+      openDialog(dialogOpener.getAttribute("data-dialog-open"), dialogOpener);
+      return;
+    }
 
     var dialogCloser = el.closest("[data-dialog-close]");
-    if (dialogCloser) { dialogCloser.closest("dialog").close(); return; }
+    if (dialogCloser) {
+      dialogCloser.closest("dialog").close();
+      return;
+    }
 
     var collapsible = el.closest("[data-collapsible]");
     if (collapsible) {
@@ -646,7 +722,10 @@
         var deniedLabel = copy.getAttribute("data-copy-denied");
         if (deniedLabel) copy.textContent = deniedLabel;
       };
-      if (!source || !navigator.clipboard) { denied(); return; }
+      if (!source || !navigator.clipboard) {
+        denied();
+        return;
+      }
       navigator.clipboard.writeText(source.textContent).catch(denied);
       return;
     }
@@ -667,12 +746,20 @@
 
   document.addEventListener("keydown", function (event) {
     var el = event.target;
-    if (openMenu && openMenu.menu.contains(el)) { onMenuKey(event); return; }
+    if (openMenu && openMenu.menu.contains(el)) {
+      onMenuKey(event);
+      return;
+    }
     if (event.key === "Escape") {
-      document.querySelectorAll("[data-tooltip]").forEach(function (trigger) { setTooltip(trigger, false); });
+      document.querySelectorAll("[data-tooltip]").forEach(function (trigger) {
+        setTooltip(trigger, false);
+      });
     }
     var tab = el.closest && el.closest("[role='tab']");
-    if (tab) { onTabKey(event, tab); return; }
+    if (tab) {
+      onTabKey(event, tab);
+      return;
+    }
     var handle = el.closest && el.closest(".resizable-handle[role='separator']");
     if (handle) onHandleKey(event, handle);
   });
@@ -680,7 +767,9 @@
   /* ---------- Start ---------- */
 
   function start() {
-    document.querySelectorAll(".dropdown-menu, .tooltip").forEach(function (el) { el.hidden = true; });
+    document.querySelectorAll(".dropdown-menu, .tooltip").forEach(function (el) {
+      el.hidden = true;
+    });
     document.querySelectorAll(".resizable-handle[role='separator']").forEach(function (handle) {
       setSplit(handle, Number(handle.getAttribute("aria-valuenow") || 50));
     });
@@ -714,7 +803,10 @@
   else window.addEventListener("load", focusArrivalAnchor);
 
   window.proto = {
-    setState: setState, showPane: showPane, syncNotifications: syncNotifications, setTheme: setTheme,
-    focusAnchor: focusAnchor
+    setState: setState,
+    showPane: showPane,
+    syncNotifications: syncNotifications,
+    setTheme: setTheme,
+    focusAnchor: focusAnchor,
   };
 })();
