@@ -1,0 +1,7 @@
+{
+  "session_cost_usd": {"a": null, "b": null, "c": null},
+  "a_repriced_on_mid_tier_usd": null,
+  "b_cache_miss_turn": null,
+  "largest_component": {"a": null, "b": null, "c": null},
+  "cheaper_per_task": null
+}

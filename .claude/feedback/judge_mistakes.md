@@ -62,6 +62,24 @@ reviewers to watch for a symptom that could never appear.
 Rule: Before asserting HOW something fails, read the actual call and confirm the failure mode
 (synchronous vs silent/threaded). A wrong symptom is a wrong detector.
 
+### 2026-10-27: A judge condition listed an incomplete value set (#15)
+
+Round-2 accuracy condition 1 gave the L5 `instructionFiles` values as three
+(`claude-md-or-agents-md`, `claude-md-and-agents-md`, `managed-only`); the memory page lists four
+(also `claude-md`). The architect copied the condition verbatim, so the omission reached the design.
+Rule: When a condition dictates an enumeration (values, scopes, versions), copy the full table
+from the source and say "complete list" only after counting its rows.
+
+### 2026-10-28: A judge's prescribed fix wording was itself inaccurate (#15)
+
+Round-4 accuracy FAIL on L6 theory.md:70 prescribed "no prompts; only deny rules, ask rules and the
+few actions no mode auto-approves stop a call". The lesson-author copied it. permission-modes says
+those actions "get a prompt or a denial" even in bypassPermissions, and the permissions mode table
+says bypass "Skips permission prompts, except for the actions no mode auto-approves". So "запросов
+нет" was false, and the round-5 text was wrong because of the judge.
+Rule: A fix wording in a FAIL is a factual claim too. Check it against the source sentence by
+sentence before writing it, and quote the source's own verb (prompt or deny, block, skip).
+
 ### FAILed a hunk on an unverifiable direction-of-drift claim
 
 FAILed an out-of-scope edit as "pushes a new value onto a shared surface" when it was actually

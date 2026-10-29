@@ -101,3 +101,22 @@ Rule: When re-spawning the coder after a judge FAIL, the brief always says (1) u
 and ADR statement the fix contradicts, in the same pass; (2) add a test at the exact boundary that
 breaks the old code and watch it go red before the fix; (3) no new guard outside an existing
 exception boundary.
+
+### Forwarded a judge's suggested wording as the fix, unchecked (#15)
+
+judge_content on #15 took six rounds. Twice the next blocker came from the replacement text a judge had
+proposed in the previous round: "запросов нет; ... ask-правила" for bypassPermissions, and a closed
+defaultMode set that dropped the documented `manual` alias. I passed those suggestions to the author as
+the fix.
+Rule: A judge's proposed wording is a hint, not a source. When re-spawning the author, tell them to fetch
+the primary source themselves and write from its quotes, and to report the quotes. When a fix narrows a
+rule to a closed set, have the researcher or author enumerate every documented value (aliases included)
+before the set is written.
+
+### Content round budget spent on one lesson's long tail (#15)
+
+From round 3 on, every judge_content blocker was in L6 permissions text or checks, and each round surfaced
+one new edge. Asking Stepan before every extra round was right, but a single targeted "close every
+documented value and every claim about modes against the docs" pass on L6 would have saved three rounds.
+Rule: When two consecutive FAILs land in the same file and topic, the next re-spawn asks the author for a
+full sweep of that topic against the source, not only the listed item.

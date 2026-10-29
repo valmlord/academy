@@ -1,0 +1,46 @@
+id: intro-models-effort
+title: Модель, уровень ризонинга и локальные модели
+type: artifact
+outcomes:
+  - "Выбирает модель, уровень ризонинга и облачный или локальный запуск под конкретную задачу и называет ограничение, которое определило выбор: качество, задержка, цена, контекст или приватность."
+estimatedMinutes: 40
+status: ready
+prerequisites: []
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Anthropic: Models overview (линейка, цены, окно контекста, effort по умолчанию)"
+    url: https://platform.claude.com/docs/en/about-claude/models/overview
+    checkedAt: "2026-10-27"
+  - title: "Anthropic: Effort (уровни, рекомендации по моделям)"
+    url: https://platform.claude.com/docs/en/build-with-claude/effort
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Model configuration (/effort, ultrathink, effort по умолчанию)"
+    url: https://code.claude.com/docs/en/model-config
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Best practices (ultrathink и think hard)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-27"
+  - title: "OpenAI Codex: Models (модели и уровни reasoning)"
+    url: https://learn.chatgpt.com/docs/models
+    checkedAt: "2026-10-27"
+  - title: "Ollama: Claude Code integration"
+    url: https://docs.ollama.com/integrations/claude-code
+    checkedAt: "2026-10-27"
+  - title: "OpenCode: Providers (OpenAI-совместимые локальные провайдеры)"
+    url: https://opencode.ai/docs/providers/
+    checkedAt: "2026-10-27"
+checks:
+  - id: model-routing
+    title: "Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_routing.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: models-effort-quiz
+    title: "Квиз: effort, поверхности и локальные модели"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
