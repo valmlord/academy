@@ -3,8 +3,6 @@
 
   hookio.py role_team            stdin: PreToolUse JSON -> "<team>/<file>" of the spawned agent (e.g. dev/coder.md;
                                  the team may be the sentinel !path or !type) or ""
-  hookio.py role                 stdin: PreToolUse/PostToolUse JSON -> role file of the spawned agent (e.g. coder.md) or "";
-                                 kept for the phase gate of the previous install step, prints the file for sentinels too
   hookio.py judge_vote           stdin: SubagentStop JSON ->
                                  "<judge-key>|<PASS|FAIL|UNKNOWN>|<agent_id>|<transcript lines>|<true|false>"
                                  (the last field: the transcript already holds a SubagentHandback call)
@@ -357,9 +355,6 @@ def main(argv: list[str]) -> int:
         ti = _obj(d.get("tool_input", {}), "tool_input")
         team, role_file = role_spec(ti.get("prompt", ""), ti.get("subagent_type", ""))
         print("%s/%s" % (team, role_file) if role_file else "")
-    elif cmd == "role":
-        ti = _obj(d.get("tool_input", {}), "tool_input")
-        print(role_spec(ti.get("prompt", ""), ti.get("subagent_type", ""))[1])
     elif cmd == "judge_vote":
         if d.get("hook_event_name") not in (None, "", "SubagentStop"):
             print("||||false")
