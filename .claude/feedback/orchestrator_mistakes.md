@@ -148,6 +148,28 @@ stash. Round 1 of the #27 design FAILed partly for having no path.
 Rule: at init, if `git status --porcelain` shows a file outside the task, put "how the tree gets clean before pr"
 into the architect brief as a requirement, with the step owned by Stepan.
 
+### 2026-10-29: Issue spec exempted only process work from "every new issue gets a milestone" (#57)
+
+The #57 issue body said "a new issue gets a milestone (process work under #56 may have none)". Cross-milestone
+epics (#52, #53) exist precisely because they span milestones and carry none, so the rule, applied literally,
+tells the orchestrator to give the next feature epic a single milestone. The coder copied the exemption as
+written. Judge-architecture FAILed the HOTFIX on it.
+Rule: When a spec states a universal rule ("every new X gets Y"), check it against every existing kind of X
+in the live data (here: epics, process issues, feature issues) and list each exemption the data already shows.
+
+### 2026-10-29: A shell-less architect prescribed tester commands nobody had run (#28)
+
+The #28 design took three rounds. Rounds 2 and 3 were spent on the tester's command register: commands written for a
+clean machine (T-install on a populated node_modules, `git diff` without histogram, DOCKER_HOST that testcontainers
+ignores, a vitest globalSetup error it rewrites), and checks run in the worktree where uncommitted generated files
+make them red on correct work. The architect has no shell, so every round trusted text that only the operations judge
+could run. Round 3 passed once the operations judge was told to run every command verbatim against a scratch clone
+that reproduces the state the pipeline leaves behind.
+Rule: when a design prescribes tester or CI commands, the round-1 operations brief already says "run every
+prescribed command verbatim in a scratch clone with the pipeline's real state (populated node_modules, uncommitted
+generated files, leftover containers)". Tooling checks that depend on a clean tree run in a clone, never in the
+worktree.
+
 ### 2026-10-29: A flow gap found after judge_design had no owner (#50)
 
 In the author phase the lesson prototype needed a label set (check kind) and accessible names ("Навигация",
