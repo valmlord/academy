@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Shared parsing for hook inputs, so every hook identifies roles and verdicts the same way.
 
-  hookio.py role                 stdin: PreToolUse/PostToolUse JSON -> role file of the spawned agent (e.g. coder.md) or ""
+  hookio.py role_team            stdin: PreToolUse JSON -> "<team>/<file>" of the spawned agent (e.g. dev/coder.md;
+                                 the team may be the sentinel !path or !type) or ""
+  hookio.py role                 stdin: PreToolUse/PostToolUse JSON -> role file of the spawned agent (e.g. coder.md) or "";
+                                 kept for the phase gate of the previous install step, prints the file for sentinels too
   hookio.py judge_vote           stdin: SubagentStop JSON ->
                                  "<judge-key>|<PASS|FAIL|UNKNOWN>|<agent_id>|<transcript lines>|<true|false>"
                                  (the last field: the transcript already holds a SubagentHandback call)
@@ -16,9 +19,12 @@
   hookio.py field <dotted.path>  stdin: any hook JSON -> value or ""
 
 Role detection rule (deliberately strict): the role is the agent file named in the LEADING
-"Read .claude/agents/<team>/<file>.md first" instruction of the spawn prompt, or the
-subagent_type when it equals an agent's frontmatter name. Other agent files mentioned later in
-the prompt are context, not the role.
+"Read .claude/agents/<team>/<file>.md first" instruction of the spawn prompt when that exact file
+(directory and case) exists in the main checkout's agent tree, and its team is the directory it lives
+in; without that instruction, the subagent_type when it names an agent's frontmatter name. A
+subagent_type that names a known agent must agree with the prompt's role. A claim that is not true
+yields the sentinel team !path (no such file at that path) or !type (subagent_type names another
+agent). Other agent files mentioned later in the prompt are context, not the role.
 Verdict rule: the last line that is exactly a verdict: "PASS", "FAIL", "PASS: ...", "FAIL: ...",
 "PASS - ...", "FAIL - N issues", or "VERDICT: PASS|FAIL" (markdown markers stripped). Uppercase only,
 so prose like "pass-through" never counts.
@@ -36,7 +42,17 @@ from pl_jsonshape import as_list, as_object, as_str  # noqa: E402
 
 # agent_id becomes part of a transcript file path and the vote dedupe key.
 AGENT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
-ROLE_RE = re.compile(r"""^\s*Read\s+[`"']?\.claude/agents/(?:dev|content)/([a-z0-9-]+\.md)[`"']?\s+first""", re.I)
+# Case-insensitive, so both groups are only a claim: role_spec resolves them against the scanned tree.
+ROLE_RE = re.compile(r"""^\s*Read\s+[`"']?\.claude/agents/([a-z0-9-]+)/([a-z0-9-]+\.md)[`"']?\s+first""", re.I)
+# Case-sensitive on purpose: the index holds names exactly as the file system reports them.
+TEAM_DIR_RE = re.compile(r"[a-z0-9-]+")
+ROLE_FILE_RE = re.compile(r"[a-z0-9-]+\.md")
+NAME_RE = re.compile(r"^name:\s*([a-z0-9-]+)\s*$", re.M)
+FRONTMATTER_HEAD_BYTES = 400
+# Never produced by TEAM_DIR_RE, so a sentinel never equals a tier's team; never empty, because an
+# empty team means "not a role", which the gate allows.
+TEAM_BAD_PATH = "!path"
+TEAM_BAD_TYPE = "!type"
 VERDICT_RE = re.compile(r"^(?:VERDICT:\s*)?(PASS|FAIL)(?:\s*$|\s*[:\-]|\s+-)")
 
 
@@ -59,36 +75,97 @@ def _text(value: object, what: str) -> str:
     raise ValueError("%s is not a string" % what)
 
 
-def agent_names() -> dict[str, str]:
-    """frontmatter name -> file name, for subagent_type matching."""
-    out: dict[str, str] = {}
-    # Agents always come from the main checkout, like the hook code itself.
+AgentPair = tuple[str, str]
+
+
+def _raise_oserror(err: OSError) -> None:
+    raise err
+
+
+def _stray_role_files(top: str) -> list[str]:
+    """Every .md below `top` (a directory that is not itself a team directory, or a team directory's
+    subdirectory). Claude Code registers agents recursively, so such a file would be a spawnable agent
+    the gates do not know."""
+    found: list[str] = []
+    for root, _dirs, files in os.walk(top, onerror=_raise_oserror):
+        found.extend(os.path.join(root, f) for f in files if f.endswith(".md") and not f.startswith("_"))
+    return found
+
+
+def _frontmatter_name(path: str) -> str:
+    with open(path, encoding="utf-8") as fh:
+        m = NAME_RE.search(fh.read(FRONTMATTER_HEAD_BYTES))
+    return m.group(1).lower() if m else ""
+
+
+def agent_index() -> tuple[frozenset[AgentPair], dict[str, AgentPair]]:
+    """(every (team, file) of the agent tree, lower-cased frontmatter name -> (team, file)).
+
+    Agents always come from the main checkout, like the hook code itself. Names come from os.listdir,
+    so they carry the real case on a case-insensitive file system too. An unreadable tree raises
+    OSError and a tree with no role file or with a stray one raises ValueError: the callers map both to
+    a block or to "no vote", because treating every role as unknown would allow it."""
     base = os.path.join(checkout.code_root(), ".claude", "agents")
-    for team in ("dev", "content"):
-        d = os.path.join(base, team)
-        if not os.path.isdir(d):
+    pairs: set[AgentPair] = set()
+    names: dict[str, AgentPair] = {}
+    stray: list[str] = []
+    for team in sorted(os.listdir(base)):
+        team_path = os.path.join(base, team)
+        if not os.path.isdir(team_path):
+            if team.endswith(".md") and not team.startswith("_"):
+                stray.append(team_path)
             continue
-        for f in os.listdir(d):
-            if not f.endswith(".md") or f.startswith("_"):
+        if not TEAM_DIR_RE.fullmatch(team):
+            stray.extend(_stray_role_files(team_path))
+            continue
+        for f in sorted(os.listdir(team_path)):
+            path = os.path.join(team_path, f)
+            if os.path.isdir(path):
+                stray.extend(_stray_role_files(path))
+            elif f.startswith("_") or not f.endswith(".md"):
                 continue
-            try:
-                head = open(os.path.join(d, f), encoding="utf-8").read(400)
-            except OSError:
-                continue
-            m = re.search(r"^name:\s*([a-z0-9-]+)\s*$", head, re.M)
-            if m:
-                out[m.group(1)] = f
-    return out
+            elif not ROLE_FILE_RE.fullmatch(f):
+                stray.append(path)
+            else:
+                pairs.add((team, f))
+                name = _frontmatter_name(path)
+                if name:
+                    # First one wins in sorted order; duplicates are a CI failure (run.sh S1a).
+                    names.setdefault(name, (team, f))
+    if stray:
+        raise ValueError("agent files outside .claude/agents/<team>/<file>.md (lower-case names): %s"
+                         % ", ".join(sorted(stray)))
+    if not pairs:
+        raise ValueError("no agent role files under %s" % base)
+    return frozenset(pairs), names
+
+
+def role_spec(prompt: object, subtype: object) -> AgentPair:
+    """(team, file) of a spawned role: team is a real directory, TEAM_BAD_PATH, TEAM_BAD_TYPE, or ""
+    (not a role, file "" too)."""
+    m = ROLE_RE.search(_text(prompt, "prompt"))
+    sub_name = _text(subtype, "subagent_type")
+    if not m and not sub_name:
+        return "", ""
+    pairs, names = agent_index()
+    # Lower-cased because whether Claude Code matches subagent_type case-insensitively is not
+    # verified; an unknown name (general-purpose, Explore, fork) is ignored.
+    sub = names.get(sub_name.lower()) if sub_name else None
+    if not m:
+        return sub if sub else ("", "")
+    claim = (m.group(1), m.group(2))
+    if claim not in pairs:
+        same_name = [f for _team, f in pairs if f.lower() == claim[1].lower()]
+        return TEAM_BAD_PATH, same_name[0] if len(same_name) == 1 else claim[1]
+    if sub and sub != claim:
+        return TEAM_BAD_TYPE, claim[1]
+    return claim
 
 
 def role_from(prompt: object, subtype: object) -> str:
-    m = ROLE_RE.search(_text(prompt, "prompt"))
-    if m:
-        return m.group(1)
-    sub = _text(subtype, "subagent_type")
-    if sub:
-        return agent_names().get(sub, "")
-    return ""
+    """The role file, or "" when the claim is not true: a vote under a false identity never counts."""
+    team, role_file = role_spec(prompt, subtype)
+    return role_file if team and not team.startswith("!") else ""
 
 
 def verdict_from(text: object) -> str:
@@ -276,9 +353,13 @@ def main(argv: list[str]) -> int:
     except ValueError:
         raw = {}
     d = as_object(raw) or {}
-    if cmd == "role":
+    if cmd == "role_team":
         ti = _obj(d.get("tool_input", {}), "tool_input")
-        print(role_from(ti.get("prompt", ""), ti.get("subagent_type", "")))
+        team, role_file = role_spec(ti.get("prompt", ""), ti.get("subagent_type", ""))
+        print("%s/%s" % (team, role_file) if role_file else "")
+    elif cmd == "role":
+        ti = _obj(d.get("tool_input", {}), "tool_input")
+        print(role_spec(ti.get("prompt", ""), ti.get("subagent_type", ""))[1])
     elif cmd == "judge_vote":
         if d.get("hook_event_name") not in (None, "", "SubagentStop"):
             print("||||false")
