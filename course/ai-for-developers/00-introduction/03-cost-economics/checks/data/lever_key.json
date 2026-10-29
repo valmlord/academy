@@ -1,0 +1,15 @@
+{
+  "comment": "Mentor data only, not graded: cost-estimate no longer has lever fields (Stepan's decision 2026-10-28; cost-quiz Q2 and the mentor assess the lever). Reasonable levers per session for the mentor's walk-through. Allowed levers per session: the lever that reduces that session's largest component. a (frontier): output dominates, so shorter output or lower effort; smaller-tier is refuted by session c (the same task on mid, 5x cheaper per token, cost more). b: uncached input dominates because of the cache miss after the idle gap; avoiding the gap removes it, a fresh session shrinks the context that is re-sent uncached. c (mid): cache reads of the accumulated context dominate; a fresh session drops it. smaller-tier is not accepted: c itself shows a cheaper tier adding turns and context.",
+  "lever": {
+    "a": [
+      "lower-effort-shorter-output"
+    ],
+    "b": [
+      "avoid-idle-gaps",
+      "fresh-session"
+    ],
+    "c": [
+      "fresh-session"
+    ]
+  }
+}

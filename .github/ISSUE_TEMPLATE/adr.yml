@@ -1,0 +1,12 @@
+name: Architecture decision
+description: A costly-to-change decision that needs an ADR
+title: "adr: "
+labels: ["type:adr"]
+body:
+  - type: textarea
+    id: context
+    attributes: { label: Context and the decision to make }
+    validations: { required: true }
+  - type: textarea
+    id: options
+    attributes: { label: Options considered }

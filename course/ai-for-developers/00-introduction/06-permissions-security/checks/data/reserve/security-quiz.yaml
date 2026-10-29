@@ -1,0 +1,98 @@
+# Reserve pool for the mentor review after security-quiz is closed (design 2.5.6).
+# Mentor-review store, never on the command-check mount; never shown before the review. Same format and authoring rules as quiz.yaml.
+version: 1
+check: security-quiz
+passBar: "passScore 0.8: at least 5 of 6 correct, exact set match per question"
+questions:
+  - id: deny-beats-allow
+    type: single
+    prompt: |
+      Claude Code 2.1.311. В deny стоит `Edit(src/**)`, в allow стоит `Edit(src/invoices/api.py)`.
+      Агент пытается править `src/invoices/api.py`. Что будет?
+    options:
+      - { id: a, text: "Правка запрещена: deny проверяется первым, allow не делает исключений" }
+      - { id: b, text: "Правка разрешена: более точное правило allow побеждает общее deny" }
+      - { id: c, text: "Правка спрашивает: при конфликте правил Claude Code всегда задаёт вопрос" }
+      - { id: d, text: "Решает режим: в auto побеждает allow, а в Manual побеждает deny" }
+    correct: [a]
+    explanation: |
+      Правила проверяются в порядке deny, ask, allow; первое совпадение решает, и точность правила
+      порядок не меняет. Allow не может вырезать исключение из deny.
+
+  - id: env-at-any-depth
+    type: single
+    prompt: |
+      Claude Code 2.1.311. Нужно запретить чтение `.env` и в корне, и в `config/`. Какое правило deny
+      это делает?
+    options:
+      - { id: a, text: "`Read(./.env)`: путь от текущего каталога на любой глубине" }
+      - { id: b, text: "`Read(.env)`: имя без слэша совпадает на любой глубине" }
+      - { id: c, text: "`Read(/.env)`: корень файловой системы и все каталоги ниже" }
+      - { id: d, text: "`Write(.env)`: запрет записи заодно запрещает и чтение" }
+    correct: [b]
+    explanation: |
+      Шаблоны файлов следуют правилам gitignore: имя без слэша (`.env`) совпадает на любой глубине,
+      `./.env` - только в текущем каталоге, `/` - от источника настроек, `//` - от корня файловой
+      системы. Правила `Write(...)` с путём Claude Code принимает, но они никогда не совпадают.
+
+  - id: hook-explains-deny-enforces
+    type: single
+    prompt: |
+      Команда хочет, чтобы агент не правил `generated/` и при попытке узнавал, что делать вместо этого.
+      Как разумно разделить работу между правилом и хуком?
+    options:
+      - { id: a, text: "Только строка в CLAUDE.md: модель прочитает и не будет править" }
+      - { id: b, text: "Только хук: он и блокирует, и объясняет, отдельное deny-правило не нужно" }
+      - { id: c, text: "Deny-правило запрещает, хук блокирует и объясняет `make codegen`" }
+      - { id: d, text: "Только allow-правило на всё, кроме generated/, без deny и хука" }
+    correct: [c]
+    explanation: |
+      Deny-правило исполняет запрет в любом режиме. Хук по умолчанию fail open (падение или таймаут
+      пропускают вызов), зато его stderr при exit 2 видит модель: удобно объяснить, что
+      регенерировать нужно через `make codegen`.
+
+  - id: allow-needs-trust
+    type: single
+    prompt: |
+      Claude Code 2.1.311. Вы клонировали чужой репозиторий с `.claude/settings.json`, где в allow
+      стоит `Bash(make deploy)`, и ещё не приняли диалог доверия к папке. Действует ли это правило?
+    options:
+      - { id: a, text: "Да: проектные allow действуют сразу после клонирования" }
+      - { id: b, text: "Да, но только в режиме bypassPermissions, в других нет" }
+      - { id: c, text: "Нет: allow из проекта не действуют ни при каких условиях" }
+      - { id: d, text: "Нет, пока не принято доверие; deny и ask действуют сразу" }
+    correct: [d]
+    explanation: |
+      Проектные allow-правила дают возможности, поэтому Claude Code применяет их только после
+      принятия доверия к рабочей папке. Deny и ask от этого не зависят и действуют всегда.
+
+  - id: compound-command
+    type: multiple
+    prompt: |
+      Claude Code 2.1.311. В allow стоит `Bash(make test)`, в deny стоит `Bash(git push *)`. Какие
+      утверждения про составные команды верны? Выберите все верные.
+    options:
+      - { id: a, text: "`make test && git push origin main` запрещена: deny сработал на части" }
+      - { id: b, text: "`make test && rm -rf build` не разрешена правилом: allow нужен каждой части" }
+      - { id: c, text: "`make test; git push origin main` разрешена: первая часть совпала с allow" }
+      - { id: d, text: "Составные команды Claude Code проверяет по каждой части отдельно" }
+    correct: [a, b, d]
+    explanation: |
+      Составная команда делится на части. Deny и ask срабатывают, если совпала любая часть; allow
+      разрешает, только если совпали все части. Поэтому одной разрешённой части мало.
+
+  - id: modes-fallthrough
+    type: multiple
+    prompt: |
+      Claude Code 2.1.311. Для `WebFetch` нет ни одного правила. Какие утверждения верны? Выберите все
+      верные.
+    options:
+      - { id: a, text: "Исход зависит от режима, в котором идёт сессия" }
+      - { id: b, text: "Чтобы загрузка всегда спрашивала, нужно явное ask-правило" }
+      - { id: c, text: "Без правила загрузка из веба всегда запрещена в любом режиме" }
+      - { id: d, text: "В режиме dontAsk то, что спросило бы, будет отклонено" }
+    correct: [a, b, d]
+    explanation: |
+      Без совпавшего правила исход решает режим: в Manual загрузка спрашивает (кроме встроенных
+      доменов документации), в auto решает классификатор, в dontAsk всё, что спросило бы,
+      отклоняется. Если нужен вопрос всегда, нужно явное ask-правило.

@@ -1,0 +1,38 @@
+id: intro-cost-economics
+title: "Ассистенты, тарифы и экономика цена/качество"
+type: artifact
+outcomes:
+  - "Оценивает стоимость сессии агента по логу токенов и датированному снимку цен, находит главную составляющую стоимости и рычаг её снижения."
+estimatedMinutes: 45
+status: ready
+prerequisites:
+  - intro-agent-loop
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Anthropic: Models overview (цены за MTok, кэш, batch)"
+    url: https://platform.claude.com/docs/en/about-claude/models/overview
+    checkedAt: "2026-10-27"
+  - title: "Claude: Pricing (тарифы и лимиты)"
+    url: https://claude.com/pricing
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Manage costs (средние траты, рычаги, /usage, /context)"
+    url: https://code.claude.com/docs/en/costs
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Best practices (кэш, /clear, /compact)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-27"
+checks:
+  - id: cost-estimate
+    title: "Стоимость трёх сессий, промах кэша, главная составляющая, дешевле за задачу"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_estimate.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: cost-quiz
+    title: "Квиз: что делает ход дороже, рычаги, субагенты, лимиты"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

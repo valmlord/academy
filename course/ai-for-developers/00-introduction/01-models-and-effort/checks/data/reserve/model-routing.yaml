@@ -1,0 +1,47 @@
+# Reserve pool for the mentor review after model-routing is closed (design 2.5.6).
+# Mentor-review store, never on the command-check mount; never copied to the workspace, never shown before the review.
+version: 1
+check: model-routing
+passBar: "3 of 3 cards correct (tier, effort and deployment in their sets, binding_constraint exact, reason given)"
+cards:
+  - id: voice-assistant
+    title: Голосовой ассистент в машине
+    situation: >-
+      Ассистент в автомобиле отвечает на голосовой вопрос водителя об уже открытом маршруте.
+      Ответ должен начаться менее чем через секунду, иначе водитель переспрашивает. Машина всегда
+      онлайн, локальный вычислитель слишком слабый для модели.
+    relaxed: >-
+      Данные маршрута не секретны. Количество запросов небольшое, цена не важна. Ответ из одного
+      предложения, ошибка стоит повторного вопроса.
+    key:
+      tier: [small, mid]
+      effort: [low]
+      deployment: [cloud]
+      binding_constraint: latency
+  - id: medical-notes
+    title: Обезличивание медицинских записей
+    situation: >-
+      Нужно обезличить 300 медицинских записей перед передачей исследователям. Политика клиники
+      запрещает отправлять исходные записи во внешние сервисы; есть рабочая станция с GPU и
+      локальной моделью.
+    relaxed: >-
+      Время не ограничено (можно оставить на ночь), бюджет не ограничен, каждую запись потом
+      проверяет человек.
+    key:
+      tier: [mid, small]
+      effort: [low, medium, high]
+      deployment: [local]
+      binding_constraint: privacy
+  - id: migration-plan
+    title: План миграции схемы платёжной БД
+    situation: >-
+      Нужен план миграции схемы платёжной базы с нулевым простоем: порядок шагов, откат на каждом
+      шаге, риски блокировок. Ошибка в плане стоит инцидента в продакшене.
+    relaxed: >-
+      Бюджет и время не ограничены, данные схемы можно отправлять в облако, весь контекст
+      помещается в окно любой модели.
+    key:
+      tier: [frontier, large]
+      effort: [high, xhigh, max]
+      deployment: [cloud]
+      binding_constraint: quality

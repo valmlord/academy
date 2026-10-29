@@ -1,0 +1,62 @@
+id: intro-agent-memory
+title: "Память агента и AGENTS.md"
+type: artifact
+outcomes:
+  - "Пишет короткий файл инструкций для агента (AGENTS.md и подключение к своему инструменту) только из невыводимых из кода фактов и предсказывает, какие файлы инструкций загрузит конкретный инструмент при настройках по умолчанию."
+estimatedMinutes: 50
+status: ready
+prerequisites:
+  - intro-context-planning
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "AGENTS.md: открытый формат"
+    url: https://agents.md
+    checkedAt: "2026-10-27"
+  - title: "OpenAI Codex: AGENTS.md (порядок загрузки, override)"
+    url: https://learn.chatgpt.com/docs/agent-configuration/agents-md.md
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: How Claude remembers your project (CLAUDE.md, AGENTS.md, Project instructions, rules, auto memory)"
+    url: https://code.claude.com/docs/en/memory
+    checkedAt: "2026-10-28"
+  - title: "Claude Code: Best practices (что писать в CLAUDE.md, IMPORTANT и ALL CAPS)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-27"
+  - title: "Gloaguen et al.: файлы контекста для агентов (arXiv:2602.11988v3, 2026-09-29; MemAgents workshop @ ICLR 2026)"
+    url: https://arxiv.org/abs/2602.11988v3
+    checkedAt: "2026-10-28"
+  - title: "Lulla et al.: AGENTS.md и эффективность агентов (arXiv:2601.20404)"
+    url: https://arxiv.org/abs/2601.20404
+    checkedAt: "2026-10-27"
+checks:
+  - id: agents-md-structure
+    # The negation-token rule is a cheap filter only: the meaning and polarity of each rule are
+    # graded by agents-md-rubric (design L5).
+    title: "Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_memory.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: agents-md-rubric
+    title: "Качество AGENTS.md (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric-memory.md
+    artifacts:
+      - AGENTS.md
+      - CLAUDE.md
+      - CLAUDE.local.md
+      - .claude/AGENTS.md
+      - .claude/CLAUDE.md
+      - .claude/rules/**/*.md
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - "**/CLAUDE.local.md"
+    passScore: 0.7
+    weight: 1
+  - id: memory-precedence-quiz
+    title: "Квиз: какие файлы инструкций загрузятся при настройках по умолчанию"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.75
+    weight: 1

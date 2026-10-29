@@ -1,0 +1,9 @@
+# Normalize all text to LF for consistent cross-platform behavior.
+* text=auto eol=lf
+
+# Shell hooks MUST stay LF. Git Bash cannot execute CRLF scripts (`$'\r': command not found`,
+# and heredoc terminators like <<'PYEOF' stop matching). Without this, a fresh clone under
+# Windows (core.autocrlf=true) writes CRLF and the scaffold breaks on the first hook — even
+# though it is all green for whoever authored it locally. This line is what makes the scaffold
+# survive being shipped.
+*.sh text eol=lf
