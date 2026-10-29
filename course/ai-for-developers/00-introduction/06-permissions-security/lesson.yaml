@@ -1,0 +1,66 @@
+id: intro-permissions-security
+title: "Безопасность и контроль разрешений"
+type: artifact
+outcomes:
+  - "Переносит критичные запреты из инструкций в механизмы, которые исполняет харнесс (правила разрешений, хук), и находит обходы в конфигурации разрешений."
+estimatedMinutes: 80
+status: ready
+prerequisites:
+  - intro-agent-loop
+  - intro-agent-memory
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: Permissions (порядок правил, синтаксис, обходы Bash-правил)"
+    url: https://code.claude.com/docs/en/permissions
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Permission modes"
+    url: https://code.claude.com/docs/en/permission-modes
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Hooks reference (PreToolUse, коды выхода, exec и shell form, onFailure)"
+    url: https://code.claude.com/docs/en/hooks
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Hooks guide"
+    url: https://code.claude.com/docs/en/hooks-guide
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Settings"
+    url: https://code.claude.com/docs/en/settings
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Settings reference (defaultMode в проектных настройках)"
+    url: https://code.claude.com/docs/en/settings-reference
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Sandboxing"
+    url: https://code.claude.com/docs/en/sandboxing
+    checkedAt: "2026-10-27"
+  - title: "Claude Code: Best practices (акценты в CLAUDE.md и хуки)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-27"
+  - title: "Simon Willison: The lethal trifecta for AI agents (2025-06-16)"
+    url: https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/
+    checkedAt: "2026-10-27"
+  - title: "OWASP Top 10 for LLM Applications 2025"
+    url: https://genai.owasp.org/llm-top-10/
+    checkedAt: "2026-10-27"
+  - title: "MCP: Security best practices"
+    url: https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices
+    checkedAt: "2026-10-27"
+checks:
+  - id: permissions-policy
+    title: "Правила разрешений в .claude/settings.json и Makefile против политики"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_permissions.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: hook-blocks-generated
+    title: "PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_hook.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: security-quiz
+    title: "Квиз: lethal trifecta, обходы правил, песочница, режимы, хуки"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

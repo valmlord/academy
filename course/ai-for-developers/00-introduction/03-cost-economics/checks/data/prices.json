@@ -1,0 +1,36 @@
+{
+  "snapshotDate": "2026-10-27",
+  "sourceUrl": "https://platform.claude.com/docs/en/about-claude/models/overview",
+  "currency": "USD",
+  "unit": "USD per 1,000,000 tokens",
+  "tiers": {
+    "frontier": {
+      "model": "Fable 5.1",
+      "inputPerMTok": 10.0,
+      "outputPerMTok": 50.0,
+      "cacheReadMultiplier": 0.025,
+      "batchMultiplier": 0.5
+    },
+    "large": {
+      "model": "Opus 5.5",
+      "inputPerMTok": 4.0,
+      "outputPerMTok": 20.0,
+      "cacheReadMultiplier": 0.05,
+      "batchMultiplier": 0.5
+    },
+    "mid": {
+      "model": "Sonnet 5.5",
+      "inputPerMTok": 2.0,
+      "outputPerMTok": 10.0,
+      "cacheReadMultiplier": 0.05,
+      "batchMultiplier": 0.5
+    },
+    "small": {
+      "model": "Haiku 5.5",
+      "inputPerMTok": 0.1,
+      "outputPerMTok": 0.5,
+      "cacheReadMultiplier": 0.1,
+      "batchMultiplier": 0.5
+    }
+  }
+}

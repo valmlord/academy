@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(src/**)",
+      "Bash(make test)",
+      "Bash(make lint)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Edit(src/invoices/generated/**)",
+      "Bash(git push *)"
+    ],
+    "ask": [
+      "WebFetch(domain:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/protect_generated.py",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

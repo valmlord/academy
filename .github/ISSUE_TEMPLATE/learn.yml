@@ -1,0 +1,23 @@
+name: LEARN task (I write the code)
+description: A platform task implemented by hand by the learner, designed and reviewed by agents
+title: "learn: "
+labels: ["type:feature", "tier:learn", "team:dev"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What to build
+    validations: { required: true }
+  - type: textarea
+    id: skills
+    attributes:
+      label: What I want to learn from it
+      description: e.g. Docker API, WebSocket backpressure, process lifecycle, idempotency
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+    validations: { required: true }

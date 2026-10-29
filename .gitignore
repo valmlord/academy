@@ -1,0 +1,34 @@
+# Pipeline runtime state — mutates every phase; must not be tracked or pulled into task commits.
+.claude/pipeline_state*
+
+# Worktrees live inside the repo; a fresh clone must not see them as untracked (dirty-tree gates).
+.claude/worktrees/
+
+# Stepan's machine-local files: the hook kill switch and the pipeline grant must never dirty the tree.
+.claude/settings.local.json
+.claude/settings.pipeline-grant.json
+
+# Hook backups and Python caches.
+*.bak
+**/__pycache__/
+
+# Node / build
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

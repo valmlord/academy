@@ -1,0 +1,6 @@
+# The learner owns the contracts between teams and the pipeline itself.
+# OWNER is replaced with your GitHub login by scripts/github_bootstrap.py.
+/packages/lesson-schema/  @OWNER
+/docs/adr/                @OWNER
+/.claude/                 @OWNER
+/course/                  @OWNER
