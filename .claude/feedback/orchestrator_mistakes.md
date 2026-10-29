@@ -147,3 +147,22 @@ Stepan's uncommitted `.github/CODEOWNERS` edit blocks `pr` and Stop at done (cle
 stash. Round 1 of the #27 design FAILed partly for having no path.
 Rule: at init, if `git status --porcelain` shows a file outside the task, put "how the tree gets clean before pr"
 into the architect brief as a requirement, with the step owned by Stepan.
+
+### 2026-10-29: A flow gap found after judge_design had no owner (#50)
+
+In the author phase the lesson prototype needed a label set (check kind) and accessible names ("Навигация",
+"Область", "Разделы урока") that `design/flows/ia.md` did not register. The ux-researcher's window ends at
+judge_design and phases cannot go back, so nobody could fix the flows; Stepan had to decide to drop the field and
+defer the names to a follow-up.
+Rule: in a DESIGN architect brief, require a register entry for every string and accessible name each in-scope page
+will render (incl. landmark, tab-list and menu labels and every field a row shows), and have judge_design check the
+register against the page inventory before passing.
+
+### 2026-10-29: judge_ux rounds spent on behaviour nobody ran (#50)
+
+judge_ux took four rounds; every blocker from round 2 on was cross-page or state behaviour (tab reset by simulated
+actions, `?tab=` not written, Back) that a scripted run would have shown, and two rounds were page workarounds of
+system gaps that the consistency judge then failed.
+Rule: before judge_ux, have the product-designer report system gaps instead of working around them (ui-designer
+closes them first), and require a headless run of every control in every state from every tab, plus Back and the
+cross-page round trips, with counts in the report.
