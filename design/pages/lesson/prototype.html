@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="ru" data-default-state="theory">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Модель, уровень ризонинга и локальные модели</title>
+  <link rel="stylesheet" href="../../system/tokens.css">
+  <link rel="stylesheet" href="../../system/proto.css">
+  <style>
+    /* Page-only layout. Colours come only from tokens.css and proto.css. */
+    body.proto-page { display: flex; flex-direction: column; height: 100vh; }
+    body.proto-page > .app[data-layout="lesson"] { flex: 1; height: auto; min-height: 0; }
+    @media (max-height: 30rem) { body.proto-page { height: auto; } }
+
+    /* The prototype chrome is last in the DOM, so the product Tab order starts with the skip link and
+       the top bar (R4); it is drawn first. */
+    .proto-chrome { order: -1; }
+    .proto-chrome details { flex: 1 1 100%; }
+    .proto-chrome summary { cursor: pointer; }
+    .proto-chrome-index { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding-top: var(--space-2); }
+
+    .lesson-header h1 { overflow-wrap: anywhere; }
+    .lesson-note { margin-bottom: var(--space-4); }
+    .lesson-alert { margin-bottom: var(--space-4); }
+    .toc { margin-bottom: var(--space-6); }
+    .sources { max-width: var(--prose-measure); margin-top: var(--space-10); }
+    .sources h2 { font-size: var(--text-xl); line-height: var(--text-xl-line); }
+    .sources ul { margin: var(--space-3) 0 0; padding-left: var(--space-5); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+    .sources li + li { margin-top: var(--space-2); }
+    .checks-panel { display: flex; flex-direction: column; gap: var(--space-4); max-width: var(--prose-measure); }
+    .checks-panel h2:focus-visible { outline-offset: var(--focus-offset); }
+  </style>
+</head>
+<body class="proto-page">
+<template data-state="theory" data-state-label="v1: Theory tab, environment running, before any run (default)"></template>
+<template data-state="task" data-state-label="F7.4 Task tab"></template>
+<template data-state="outcomes-collapsed" data-state-label="F7.1 outcomes collapsed (sample data)"></template>
+<template data-state="outcomes-expanded" data-state-label="F7.1 outcomes expanded (sample data)"></template>
+<template data-state="text-error" data-state-label="F7 error: text load error"></template>
+<template data-state="copy-denied" data-state-label="F7 error: copy denied"></template>
+<template data-state="no-theory" data-state-label="F7 empty: no theory, opens on Task"></template>
+<template data-state="no-sources" data-state-label="F7 empty: no sources"></template>
+<template data-state="prerequisite" data-state-label="F6.2 prerequisite alert (sample data)"></template>
+<template data-state="session-expired" data-state-label="F2.1 session expired"></template>
+<template data-state="user-menu" data-state-label="F3.1 user menu open"></template>
+<template data-state="m0" data-state-label="M0 lesson"></template>
+<template data-state="env-creating" data-state-label="F8.1 creating"></template>
+<template data-state="env-starting" data-state-label="F8.1 starting"></template>
+<template data-state="env-slow" data-state-label="F8 slow start"></template>
+<template data-state="api-key" data-state-label="F8.3 API key missing"></template>
+<template data-state="docker-down" data-state-label="F8 error: Docker not running"></template>
+<template data-state="image-missing" data-state-label="F8 error: image missing"></template>
+<template data-state="limits" data-state-label="F8 error: limits hit"></template>
+<template data-state="rejected" data-state-label="F8 error: environment rejected"></template>
+<template data-state="no-workspace" data-state-label="F8 empty: lesson without workspace (sample)"></template>
+<template data-state="terminal-focused" data-state-label="F9.1 terminal focused"></template>
+<template data-state="reconnecting" data-state-label="F9 error: reconnecting"></template>
+<template data-state="reconnect-failed" data-state-label="F9 error: reconnect failed"></template>
+<template data-state="shell-exited" data-state-label="F9 error: shell exited"></template>
+<template data-state="idle-warning" data-state-label="F10.1 idle warning"></template>
+<template data-state="stopped" data-state-label="F10.3 stopped"></template>
+<template data-state="volume-recreated" data-state-label="F10 error: working folder recreated"></template>
+<template data-state="actions-open" data-state-label="F11.1 Actions open"></template>
+<template data-state="actions-check-running" data-state-label="F11 disabled: check running"></template>
+<template data-state="actions-not-running" data-state-label="F11 disabled: environment not running"></template>
+<template data-state="reset-dialog" data-state-label="F11.3 reset dialog"></template>
+<template data-state="reset-done" data-state-label="F11.4 working folder reset"></template>
+<template data-state="checks-before" data-state-label="F13 empty: Checks tab before any run"></template>
+<template data-state="check-running" data-state-label="F13.2 check running"></template>
+<template data-state="results" data-state-label="F13.4-F13.5 results, row open"></template>
+<template data-state="statuses" data-state-label="F13.3 every v1 check status (sample data)"></template>
+<template data-state="lesson-passed" data-state-label="F13 success: lesson passed"></template>
+<template data-state="after-run-stopped" data-state-label="F13.4 after a run, environment stopped"></template>
+<template data-state="after-run-starting" data-state-label="F13.4 after a run, environment restarting"></template>
+<template data-state="no-checks" data-state-label="F13 empty: no check the platform runs (sample)"></template>
+<template data-state="one-pane-env" data-state-label="Environment running, new terminal session, Environment shown (one pane below 1024px)"></template>
+<template data-state="split-focused" data-state-label="F9.3 split handle focused, tooltip"></template>
+<template data-state="split-cycled" data-state-label="F9.3 split handle cycled to 35 %"></template>
+<a class="skip-link" href="#main">К содержимому</a>
+
+<div class="app" data-layout="lesson">
+
+  <header class="topbar" data-region>
+    <a class="topbar-brand" href="../dashboard/prototype.html">Академия</a>
+    <nav class="topbar-nav">
+      <a href="../dashboard/prototype.html">Главная</a>
+      <a href="../catalog/prototype.html">Курс</a>
+    </nav>
+    <div class="topbar-end">
+      <div class="dropdown">
+        <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
+        <div class="dropdown-menu" id="user-menu" role="menu" aria-labelledby="user-menu-trigger">
+          <div role="group" aria-labelledby="user-menu-label">
+            <p class="dropdown-label" id="user-menu-label" role="presentation">learner@example.com</p>
+            <div class="dropdown-separator" role="separator"></div>
+            <a class="dropdown-item" role="menuitem" href="../sign-in/prototype.html#state-signed-out" data-step="F3.2">Выйти</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="notifications" data-notifications data-region>
+    <h2 class="sr-only" id="notifications-heading" data-notifications-heading>Уведомления</h2>
+    <div class="live" role="alert" data-live-key="page-alert"></div>
+    <div class="live" role="status" data-live-key="page-status"></div>
+  </div>
+  <template data-live-source="page-alert" data-state="session-expired">
+    <div class="alert" data-variant="destructive" data-step="F2.1">
+      <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+      <p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p>
+      <div class="alert-actions"><a class="button" data-size="sm" id="sign-in-again" href="../sign-in/prototype.html?next=%2Fcourses%2Fai-for-developers%2Flessons%2Fintro-models-effort%3Ftab%3Dtheory#state-with-next">Войти снова</a></div>
+    </div>
+  </template>
+  <template data-live-source="page-status" data-state="idle-warning">
+    <div class="alert" data-step="F10.1">
+      <span class="status-icon" data-status="info" aria-hidden="true"></span>
+      <p class="alert-title">Окружение остановится через 5 мин без активности. Файлы сохранятся.</p>
+      <div class="alert-actions"><button class="button" type="button" data-size="sm" data-goto-state="theory" data-focus=".is-one-pane > .pane[data-pane=&quot;lesson&quot;] [data-show-pane=&quot;lesson&quot;], #crumb-course" data-step="F10.2">Продолжить работу</button></div>
+    </div>
+  </template>
+
+  <main class="lesson-layout" id="main" tabindex="-1" data-active-pane="lesson">
+
+    <!-- Region "Урок" (left pane) -->
+    <section class="pane" data-pane="lesson" data-region aria-labelledby="lesson-region-heading">
+      <h2 class="sr-only" id="lesson-region-heading">Урок</h2>
+      <div class="pane-switch">
+        <div class="tabs-list" role="tablist" aria-label="Область" data-pane-switch>
+          <button class="tabs-trigger" type="button" role="tab" data-show-pane="lesson">Урок</button>
+          <button class="tabs-trigger" type="button" role="tab" data-show-pane="environment">Окружение<span class="status-icon" data-status="destructive" aria-hidden="true" data-state="limits stopped after-run-stopped docker-down image-missing rejected"></span><span class="sr-only" data-state="limits stopped after-run-stopped"> остановлено</span><span class="sr-only" data-state="docker-down image-missing rejected"> ошибка</span></button>
+        </div>
+      </div>
+      <div class="scroll-area">
+        <nav class="breadcrumb" aria-label="Навигация">
+          <ol>
+            <li><a id="crumb-course" href="../catalog/prototype.html">Курс</a></li>
+            <li><a href="../catalog/prototype.html#introduction">Введение в разработку с ИИ</a></li>
+            <li><span aria-current="page">Модель, уровень ризонинга и локальные модели</span></li>
+          </ol>
+        </nav>
+
+        <div class="lesson-header" data-step="F7.1">
+          <h1>Модель, уровень ризонинга и локальные модели</h1>
+          <p class="lesson-meta"><span class="badge" data-variant="outline">артефакт</span><span>около 40 мин</span></p>
+          <div class="outcomes">
+            <h2>Чему научитесь</h2>
+            <ul data-state="theory task text-error copy-denied no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled">
+              <li>Выбирает модель, уровень ризонинга и облачный или локальный запуск под конкретную задачу и называет ограничение, которое определило выбор: качество, задержка, цена, контекст или приватность.</li>
+            </ul>
+            <div class="stack" data-gap="2" data-state="outcomes-collapsed outcomes-expanded">
+              <ul>
+                <li>Выбирает модель, уровень ризонинга и облачный или локальный запуск под конкретную задачу и называет ограничение, которое определило выбор: качество, задержка, цена, контекст или приватность.</li>
+              </ul>
+              <ul id="outcomes-more" hidden>
+                <li>Оценивает стоимость сессии агента по логу токенов и датированному снимку цен, находит главную составляющую стоимости и рычаг её снижения.</li>
+                <li>Находит в транскрипте сессии ошибки управления контекстом и до начала исполнения составляет план задачи с проверяемыми шагами.</li>
+              </ul>
+              <button class="button collapsible-trigger" type="button" data-variant="link" data-collapsible aria-expanded="false" aria-controls="outcomes-more" data-label-collapsed="Показать все" data-label-expanded="Свернуть" data-open-in-states="outcomes-expanded"><span data-collapsible-label>Показать все</span></button>
+            </div>
+          </div>
+        </div>
+
+        <p class="lesson-note muted text-sm" data-state="m0">Окружение и проверки появятся в следующей версии платформы</p>
+
+        <div class="alert lesson-alert" data-variant="warning" data-state="prerequisite" data-step="F6.2">
+          <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+          <p class="alert-title">Сначала пройдите: <a href="prototype.html" data-step="F6.3">Устройство агента: цикл, харнесс, инструменты, MCP</a></p>
+        </div>
+
+        <div class="tabs">
+          <div class="tabs-list" role="tablist" aria-label="Разделы урока" data-step="F2.4">
+            <button class="tabs-trigger" type="button" role="tab" id="tab-theory" aria-controls="panel-theory" aria-selected="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled" data-select-in-states="theory outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done check-running after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled">Теория</button>
+            <button class="tabs-trigger" type="button" role="tab" id="tab-task" aria-controls="panel-task" aria-selected="false" data-select-in-states="task no-theory">Задание</button>
+            <button class="tabs-trigger" type="button" role="tab" id="tab-checks" aria-controls="panel-checks" aria-selected="false" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled" data-select-in-states="checks-before results statuses lesson-passed">Проверки<span class="status-icon" data-status="running" aria-hidden="true" data-state="check-running actions-check-running statuses"></span><span class="sr-only" data-state="check-running actions-check-running statuses">, идёт проверка</span></button>
+          </div>
+
+          <!-- Теория -->
+          <div class="tabs-content" role="tabpanel" id="panel-theory" aria-labelledby="tab-theory" tabindex="0" data-step="F7.2">
+            <div class="alert" data-variant="destructive" data-state="text-error">
+              <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+              <p class="alert-title">Не удалось загрузить текст урока</p>
+              <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="theory" data-focus="#panel-theory">Повторить</button></div>
+            </div>
+
+            <div data-state="theory task outcomes-collapsed outcomes-expanded copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled">
+              <nav class="toc" aria-labelledby="toc-heading" data-step="F7.3">
+                <h2 id="toc-heading">Содержание</h2>
+                <ol>
+                  <li><a href="#sec-problem">Проблема</a></li>
+                  <li><a href="#sec-axes">Идея: оси выбора</a></li>
+                  <li><a href="#sec-tiers">Уровни моделей: снимок на 2026-10-27</a></li>
+                  <li><a href="#sec-effort">Effort: что он меняет на самом деле</a></li>
+                  <li><a href="#sec-local">Локальные модели</a></li>
+                  <li><a href="#sec-mistakes">Частые ошибки</a></li>
+                  <li><a href="#sec-practice">Что делать в практике</a></li>
+                </ol>
+              </nav>
+
+              <article class="prose">
+                <h2 id="sec-problem" tabindex="-1">Проблема</h2>
+                <p>Один и тот же агентный запуск на самой сильной модели с max-усилием стоит в десятки раз больше и отвечает медленнее, а для переименования переменной это ничего не даёт.</p>
+                <p>Обратная ошибка тоже частая: сложный рефакторинг на маленькой модели с низким усилием. Он выглядит дешёвым, пока не приходится день разбирать ревью.</p>
+                <p>Выбор модели не про "лучшую модель". Это выбор под ограничение, которое в этой задаче главное.</p>
+
+                <h2 id="sec-axes" tabindex="-1">Идея: оси выбора</h2>
+                <p>У каждой задачи есть несколько осей:</p>
+                <ul>
+                  <li><strong>качество</strong>: насколько дорого стоит ошибка;</li>
+                  <li><strong>задержка</strong>: сколько можно ждать ответа (автодополнение в IDE и ночной батч живут в разных мирах);</li>
+                  <li><strong>цена</strong>: сколько запусков и какой бюджет;</li>
+                  <li><strong>контекст</strong>: сколько текста нужно подать на вход и сколько получить на выходе;</li>
+                  <li><strong>приватность</strong>: может ли код покидать машину.</li>
+                </ul>
+                <p>Обычно одна ось связывает руки, а остальные можно ослабить. Сначала назовите её, потом выбирайте.</p>
+
+                <h2 id="sec-tiers" tabindex="-1">Уровни моделей: снимок на 2026-10-27</h2>
+                <p>Конкретные модели меняются каждые несколько месяцев, поэтому думайте уровнями. Снимок линейки Anthropic (страница Models overview, проверено 2026-10-27):</p>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Уровень</th><th>Модель в снимке</th><th>Цена входа относительно mid</th><th>Effort по умолчанию в API</th></tr></thead>
+                    <tbody>
+                      <tr><td>frontier</td><td>Fable 5.1</td><td>5x</td><td><code>high</code></td></tr>
+                      <tr><td>large</td><td>Opus 5.5</td><td>2x</td><td><code>medium</code></td></tr>
+                      <tr><td>mid</td><td>Sonnet 5.5</td><td>1x</td><td><code>high</code></td></tr>
+                      <tr><td>small</td><td>Haiku 5.5</td><td>от 1/20 (цена указана как "от")</td><td><code>medium</code></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p>В этом снимке у всех четырёх моделей окно контекста 1M токенов и лимит вывода 128K, а выходной токен у каждой стоит в 5 раз дороже входного. Значит, в этом снимке окно контекста не заставляет брать модель крупнее: 700k токенов на входе поместятся в любую. Абсолютные цены в долларах будут в уроке про экономику.</p>
+
+                <h2 id="sec-effort" tabindex="-1">Effort: что он меняет на самом деле</h2>
+                <p>Уровни effort у Anthropic: <code>low</code>, <code>medium</code>, <code>high</code>, <code>xhigh</code>, <code>max</code>. Документация называет effort "поведенческим сигналом, а не строгим бюджетом токенов". На низком уровне модель всё равно думает над трудной задачей, просто меньше.</p>
+                <p>Важная деталь: effort влияет на все выходные токены, включая вызовы инструментов. Вызов инструмента это тоже вывод модели (как устроен цикл агента, разберём в следующем уроке). На низком effort модель делает меньше вызовов и пишет их короче, на высоком делает больше вызовов и подробнее объясняет план. Поэтому агентный запуск с сотней вызовов на высоком effort заметно медленнее и дороже, даже если "думать" там почти не о чем.</p>
+                <h3>Значения по умолчанию зависят от поверхности</h3>
+                <p>Один и тот же уровень модели может работать с разным effort в зависимости от того, где вы её вызываете. Датированный пример: Sonnet 5.5 по умолчанию <code>high</code> в API и <code>medium</code> в Claude Code 2.1.311. У Opus 5.5 и Haiku 5.5 по умолчанию <code>medium</code> и там, и там.</p>
+                <p>Вывод не "запомните таблицу", а привычка: назовите поверхность и проверьте фактическую настройку. В Claude Code это <code>/effort</code>, флаг <code>--effort</code> или переменная <code>CLAUDE_CODE_EFFORT_LEVEL</code>; в API это поле <code>output_config.effort</code>; в другом инструменте смотрите его документацию.</p>
+                <h3>Рекомендации по моделям: проверьте страницу перед выбором</h3>
+                <p>Ниже сводка со страницы Effort на 2026-10-27. Это не таблица для заучивания: страница меняется вместе с моделями, перед выбором откройте её.</p>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Модель</th><th>С чего начать</th><th>Когда менять</th></tr></thead>
+                    <tbody>
+                      <tr><td>Haiku 5.5</td><td><code>medium</code>; <code>low</code> для простых массовых запросов</td><td><code>high</code> для длинных агентных задач; <code>xhigh</code>/<code>max</code> только если ваши evals показывают выигрыш</td></tr>
+                      <tr><td>Sonnet 5.5</td><td>агентное кодирование: <code>medium</code> для хорошо поставленных задач</td><td><code>high</code> для более трудных и длинных; <code>xhigh</code>/<code>max</code> только при выигрыше на evals</td></tr>
+                      <tr><td>Opus 5.5</td><td><code>medium</code> (по умолчанию)</td><td>жёсткого правила нет: страница просит прогнать effort sweep на своих evals</td></tr>
+                      <tr><td>Fable 5.1</td><td><code>high</code> (по умолчанию)</td><td><code>xhigh</code> или <code>max</code> для самой чувствительной к качеству агентной работы и кода</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <h3>Старые сниппеты и названия уровней</h3>
+                <p>Код из блога про прошлое поколение моделей может не работать. Пример на 2026-10-27: параметр <code>budget_tokens</code> (ручной режим extended thinking) не принимается текущими моделями, вместо него адаптивное мышление и effort. Надёжный ход: открыть документацию текущей модели, а не чинить сниппет наугад.</p>
+                <p>В Claude Code 2.1.311 слово <code>ultrathink</code> в промпте просит более глубокого рассуждения на один ход и не меняет настройку effort. А "think hard" или "be thorough" это обычный текст промпта, не ключевое слово.</p>
+                <p>У других вендоров свои названия уровней. В Codex (на 2026-10-27) это Light/Low, Medium, High, Extra High, Max и Ultra, где Ultra означает параллельные субагенты. Не переносите уровни один к одному между вендорами: одинаковое слово не значит одинаковое поведение.</p>
+
+                <h2 id="sec-local" tabindex="-1">Локальные модели</h2>
+                <p>Локальная модель оправдана, когда код не может покидать машину (приватность, NDA), нужна работа без сети или окружение закрыто. "Локально бесплатно" и "локально не хуже облака" это заблуждения: платите железом, временем и качеством. Паритета с облачными моделями на агентных задачах никто не обещает, и в этом уроке мы его не утверждаем.</p>
+                <p>Как подключить:</p>
+                <ul>
+                  <li><strong>Claude Code через Ollama</strong>: Ollama отдаёт Anthropic-совместимый endpoint. Либо <code>ollama launch claude</code>, либо переменные окружения:</li>
+                </ul>
+                <div class="code-block">
+                  <div class="code-block-header">
+                    <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="theory task outcomes-collapsed outcomes-expanded text-error no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled" data-step="F7.5">Копировать</button>
+                    <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="copy-denied">Не скопировано, выделите текст вручную</button>
+                  </div>
+                  <pre><code id="code-ollama">export ANTHROPIC_BASE_URL=http:&#47;&#47;localhost:11434
+export ANTHROPIC_AUTH_TOKEN=ollama
+export ANTHROPIC_API_KEY=""
+claude</code></pre>
+                </div>
+                <ul>
+                  <li><strong>OpenCode</strong>: OpenAI-совместимый провайдер (<code>@ai-sdk/openai-compatible</code>), например Ollama на <code>http:&#47;&#47;localhost:11434/v1</code>.</li>
+                </ul>
+                <p>Типичные поломки:</p>
+                <ul>
+                  <li><strong>маленькое окно контекста</strong>: определения инструментов, системный промпт и история не помещаются, вызовы инструментов ломаются. Документация Ollama для запуска Claude Code локально советует выставить окно контекста от 64k и брать модели, совместимые с вызовом инструментов. OpenCode предупреждает, что при маленьком <code>num_ctx</code> вызовы инструментов падают;</li>
+                  <li><strong>слабый tool calling</strong>: модель пишет вызов в неверном формате или выдумывает аргументы.</li>
+                </ul>
+                <p>Лечится это настройкой, а не уговорами в промпте: больше окно контекста, модель с поддержкой инструментов и меньше подключённых инструментов. Определения инструментов лежат в контексте каждого хода (подробно в следующем уроке), и на маленьком окне каждый лишний инструмент отнимает место у задачи.</p>
+                <h3>Уровень и effort для локальной модели</h3>
+                <p>Таблица уровней выше описывает облачную линейку. Для локального запуска <code>tier</code> в практике означает класс модели по возможностям, который вы реально можете запустить на этом железе. Вендоры такого соответствия не публикуют, так что это ваша оценка по карточке: на ноутбуке без видеокарты это небольшая модель, на машине с большой памятью и GPU можно рассчитывать на более крупную.</p>
+                <p>Effort это параметр API Anthropic (<code>output_config.effort</code>). Учитывает ли его локальный сервер и как именно, зависит от сервера и модели: проверяйте их документацию. В карточке effort для локального запуска означает, какую глубину рассуждения вы бы запросили, если инструмент это поддерживает.</p>
+
+                <h2 id="sec-mistakes" tabindex="-1">Частые ошибки</h2>
+                <ul>
+                  <li>Брать самую сильную модель и <code>max</code> "на всякий случай".</li>
+                  <li>Считать, что default одинаковый везде. Он зависит от поверхности.</li>
+                  <li>Выбирать большую модель "из-за контекста", когда окно у всех уровней одинаковое.</li>
+                  <li>Отправлять задачу с приватным кодом в облако, потому что так быстрее.</li>
+                  <li>Брать локальную модель ради экономии на задаче, где решает качество.</li>
+                </ul>
+
+                <h2 id="sec-practice" tabindex="-1">Что делать в практике</h2>
+                <p>Вы разберёте шесть карточек задач. В каждой одно ограничение связывает руки, остальные ослаблены. Для каждой выберите уровень модели, effort и место запуска и назовите ограничение, которое решило выбор. Потом квиз на механизмы: что меняет effort, как проверить настройку, когда оправдана локальная модель.</p>
+              </article>
+
+              <div class="sources" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled">
+                <h2>Источники</h2>
+                <ul>
+                  <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview">Anthropic: Models overview (линейка, цены, окно контекста, effort по умолчанию)</a> <span class="muted">проверено 2026-10-27</span></li>
+                  <li><a href="https://platform.claude.com/docs/en/build-with-claude/effort">Anthropic: Effort (уровни, рекомендации по моделям)</a> <span class="muted">проверено 2026-10-27</span></li>
+                  <li><a href="https://code.claude.com/docs/en/model-config">Claude Code: Model configuration (/effort, ultrathink, effort по умолчанию)</a> <span class="muted">проверено 2026-10-27</span></li>
+                  <li><a href="https://code.claude.com/docs/en/best-practices">Claude Code: Best practices (ultrathink и think hard)</a> <span class="muted">проверено 2026-10-27</span></li>
+                  <li><a href="https://learn.chatgpt.com/docs/models">OpenAI Codex: Models (модели и уровни reasoning)</a> <span class="muted">проверено 2026-10-27</span></li>
+                  <li><a href="https://docs.ollama.com/integrations/claude-code">Ollama: Claude Code integration</a> <span class="muted">проверено 2026-10-27</span></li>
+                  <li><a href="https://opencode.ai/docs/providers/">OpenCode: Providers (OpenAI-совместимые локальные провайдеры)</a> <span class="muted">проверено 2026-10-27</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Задание -->
+          <div class="tabs-content" role="tabpanel" id="panel-task" aria-labelledby="tab-task" tabindex="0" hidden data-step="F7.4">
+            <article class="prose">
+              <h2>Задание: маршрутизация задач по моделям</h2>
+              <p>Время: около 40 минут (около 20 из них практика).</p>
+              <h3>Что в рабочей папке</h3>
+              <ul>
+                <li><code>cards.json</code>: 6 карточек задач. В каждой описана ситуация и одно ограничение, которое связывает руки; про остальные сказано, что они ослаблены.</li>
+                <li><code>routing.json</code>: шаблон ответа. Для каждой карточки (по её <code>id</code>) пять полей, все <code>null</code>: <code>tier</code>, <code>effort</code>, <code>deployment</code>, <code>binding_constraint</code>, <code>reason</code>.</li>
+                <li><code>README.md</code>: допустимые значения полей.</li>
+              </ul>
+              <h3>Что сделать</h3>
+              <p>Для каждой карточки заполните в <code>routing.json</code>:</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Поле</th><th>Допустимые значения</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>tier</code></td><td><code>frontier</code>, <code>large</code>, <code>mid</code>, <code>small</code> (уровни из таблицы в теории; для <code>local</code> это класс модели, которую реально запустить на железе из карточки)</td></tr>
+                    <tr><td><code>effort</code></td><td><code>low</code>, <code>medium</code>, <code>high</code>, <code>xhigh</code>, <code>max</code></td></tr>
+                    <tr><td><code>deployment</code></td><td><code>cloud</code>, <code>local</code></td></tr>
+                    <tr><td><code>binding_constraint</code></td><td><code>quality</code>, <code>latency</code>, <code>price</code>, <code>context</code>, <code>privacy</code></td></tr>
+                    <tr><td><code>reason</code></td><td>одна строка до 200 символов: почему именно так</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>Опирайтесь на теорию: какое ограничение в карточке главное, какие уровни модели и effort ему соответствуют по рекомендациям страницы Effort, допустим ли облачный запуск.</p>
+              <p>Файл должен остаться валидным JSON (без комментариев и лишних запятых).</p>
+              <h3>Что значит "готово"</h3>
+              <ul>
+                <li>В <code>routing.json</code> есть все 6 карточек, у каждой заполнены все пять полей значениями из таблицы.</li>
+                <li>Проверка <code>model-routing</code> проходит.</li>
+                <li>Квиз пройден.</li>
+              </ul>
+              <h3>Как проверяется</h3>
+              <p><strong><code>model-routing</code></strong> (команда в рабочей папке, детерминированная проверка):</p>
+              <ul>
+                <li>для каждой карточки есть набор допустимых значений <code>tier</code>, <code>effort</code> и <code>deployment</code> (одно или несколько правильных значений на поле, потому что в реальной задаче часто подходит не один вариант) и ровно одно правильное <code>binding_constraint</code>;</li>
+                <li>карточка верна, когда все четыре поля попали в допустимое и <code>reason</code> непустая строка;</li>
+                <li>проверка пройдена, когда верны не меньше 5 карточек из 6;</li>
+                <li><code>reason</code> не оценивается автоматически, его читает ментор.</li>
+              </ul>
+              <p>Сообщения проверки: ошибки формата (нет поля, значение не из списка, не JSON) называются точно, с карточкой и полем. Если формат в порядке, сообщение говорит только, сколько карточек неверно, и не говорит какие.</p>
+              <p><strong><code>models-effort-quiz</code></strong> (квиз): 6 вопросов-сценариев, нужно 5 верных. В вопросах с пометкой "выберите все верные" засчитывается только точный набор ответов.</p>
+              <h3>Попытки и подсказки</h3>
+              <ul>
+                <li><code>model-routing</code>: не больше 10 неудачных проверок. После 10-й проверка закрывается как "не пройдено", дальше разбор с ментором. Запуск, который упал на ошибке формата, не считается. Сброс урока или рабочей папки счётчик не обнуляет.</li>
+                <li>Квиз: не больше 3 попыток. После неудачи показывается только общий балл. Ответы и пояснения открываются после прохождения или после 3-й неудачной попытки, и тогда квиз закрывается как "не пройдено" с разбором у ментора.</li>
+                <li>Ментор между попытками задаёт вопросы и подсказывает направление, но не говорит, какая карточка или какой вопрос неверны. Уровни "скелет" и "скажи прямо" открываются после того, как проверка закрыта: раньше они выдали бы ключ.</li>
+              </ul>
+            </article>
+          </div>
+
+          <!-- Проверки -->
+          <div class="tabs-content" role="tabpanel" id="panel-checks" aria-labelledby="tab-checks" tabindex="0" hidden>
+            <div class="checks-panel">
+              <h2 id="checks-heading" tabindex="-1">Проверки</h2>
+
+              <ul class="check-list" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-not-running reset-dialog reset-done checks-before one-pane-env split-focused split-cycled">
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-notrun">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-notrun" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
+                </li>
+              </ul>
+              <p class="text-sm muted" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-not-running reset-dialog reset-done checks-before one-pane-env split-focused split-cycled">Попыток пока нет. Нажмите "Проверить", когда будете готовы.</p>
+
+              <ul class="check-list" data-state="check-running actions-check-running" data-step="F13.3">
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-running">
+                    <span class="status-icon" data-status="running" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Идёт</span>
+                    <span class="check-row-meta"><span class="timer" role="timer">0:12 из 0:30</span></span>
+                  </button>
+                  <div class="check-row-panel" id="row-running" hidden><p class="text-sm muted">Неудачных попыток: 2</p></div>
+                </li>
+              </ul>
+
+              <ul class="check-list" data-state="results after-run-stopped after-run-starting">
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="row-failed">
+                    <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-failed" data-step="F13.5">
+                    <pre class="check-row-message">2 из 6 карточек неверны.</pre>
+                    <p class="text-sm muted">Неудачных попыток: 3</p>
+                  </div>
+                </li>
+              </ul>
+
+              <ul class="check-list" data-state="lesson-passed">
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-passed">
+                    <span class="status-icon" data-status="success" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-passed" hidden>
+                    <pre class="check-row-message">Пройдено: не меньше 5 из 6 карточек верны.</pre>
+                    <p class="text-sm muted">Неудачных попыток: 3</p>
+                  </div>
+                </li>
+              </ul>
+
+              <!-- Sample data: one row per v1 check status, titles of module 00 command checks. -->
+              <ul class="check-list" data-state="statuses">
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-s1">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Правила разрешений в .claude/settings.json и Makefile против политики</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-s1" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
+                </li>
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-s2">
+                    <span class="status-icon" data-status="queued" aria-hidden="true"></span>
+                    <span class="check-row-title">PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит</span>
+                    <span class="check-row-status">В очереди</span>
+                  </button>
+                  <div class="check-row-panel" id="row-s2" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
+                </li>
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-s3">
+                    <span class="status-icon" data-status="running" aria-hidden="true"></span>
+                    <span class="check-row-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения</span>
+                    <span class="check-row-status">Идёт</span>
+                    <span class="check-row-meta"><span class="timer" role="timer">0:42 из 2:00</span></span>
+                  </button>
+                  <div class="check-row-panel" id="row-s3" hidden><p class="text-sm muted">Неудачных попыток: 1</p></div>
+                </li>
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-s4">
+                    <span class="status-icon" data-status="success" aria-hidden="true"></span>
+                    <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
+                    <span class="check-row-status">Пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-s4" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
+                </li>
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="row-s5">
+                    <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                    <span class="check-row-title">Стоимость трёх сессий, промах кэша, главная составляющая, дешевле за задачу</span>
+                    <span class="check-row-status">Не пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-s5">
+                    <pre class="check-row-message">Вне допуска или неверны: session_cost_usd.b</pre>
+                    <p class="text-sm muted">Неудачных попыток: 2</p>
+                  </div>
+                </li>
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="row-s6">
+                    <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+                    <span class="check-row-title">Структура plan.md: разделы, шаги с проверкой, пути, вопросы</span>
+                    <span class="check-row-status">Время вышло</span>
+                    <span class="check-row-meta"><span>лимит 0:30</span></span>
+                  </button>
+                  <div class="check-row-panel" id="row-s6" hidden><p class="text-sm muted">Неудачных попыток: 1</p></div>
+                </li>
+                <li>
+                  <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="row-s7">
+                    <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Ошибка формата, попытка не засчитана</span>
+                  </button>
+                  <div class="check-row-panel" id="row-s7">
+                    <pre class="check-row-message">routing.json: offline-audit.tier: ожидается одно из frontier|large|mid|small</pre>
+                    <p class="text-sm muted">Неудачных попыток: 2</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Region "Проверка" (check bar): a sibling of "Урок", drawn under it -->
+    <section class="check-bar" data-region aria-labelledby="check-region-heading" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled">
+      <h2 class="sr-only" id="check-region-heading">Проверка</h2>
+      <div class="check-bar-controls">
+        <button class="button" type="button" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed one-pane-env split-focused split-cycled" data-goto-state="check-running" data-focus="#check-run-wait" data-step="F13.1">Проверить</button>
+        <button class="button" type="button" aria-disabled="true" aria-describedby="reason-check-starting" data-state="env-creating env-starting env-slow actions-not-running after-run-starting">Проверить</button>
+        <button class="button" type="button" aria-disabled="true" aria-describedby="reason-check-stopped" data-state="docker-down image-missing limits rejected stopped after-run-stopped">Проверить</button>
+        <button class="button" type="button" id="check-run-wait" aria-disabled="true" aria-describedby="reason-check-wait" data-state="check-running actions-check-running statuses">Проверить</button>
+        <button class="button" type="button" data-variant="outline" data-show-pane="environment" data-focus="[data-status-action]:not([hidden])" data-state="docker-down image-missing limits rejected stopped after-run-stopped">К окружению</button>
+        <button class="button" type="button" data-variant="ghost" data-show-pane="lesson" data-select-tab="tab-checks" data-focus="#checks-heading" data-state="results lesson-passed after-run-stopped after-run-starting">Открыть результаты</button>
+      </div>
+      <div class="check-bar-status" data-step="F13.4">
+        <span class="spinner" aria-hidden="true" data-state="check-running actions-check-running statuses"></span>
+        <span role="status" data-live-key="check-status"></span>
+        <span class="timer" role="timer" data-state="check-running actions-check-running statuses" data-step="F13.2">0:12</span>
+      </div>
+      <p class="disabled-reason" id="reason-check-starting" data-state="env-creating env-starting env-slow actions-not-running after-run-starting">Окружение запускается, проверка станет доступна после запуска</p>
+      <p class="disabled-reason" id="reason-check-stopped" data-state="docker-down image-missing limits rejected stopped after-run-stopped">Сначала запустите окружение</p>
+      <p class="disabled-reason" id="reason-check-wait" data-state="check-running actions-check-running statuses">Дождитесь окончания проверки</p>
+    </section>
+    <template data-live-source="check-status" data-state="check-running actions-check-running statuses">Идёт проверка</template>
+    <template data-live-source="check-status" data-state="results after-run-stopped after-run-starting">Пройдено: 0 из 1</template>
+    <template data-live-source="check-status" data-state="lesson-passed">Урок пройден</template>
+
+    <!-- Split handle: no region, between "Проверка" and "Окружение" in the DOM (R4) -->
+    <div class="resizable-handle tooltip-anchor" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Граница панелей" aria-valuemin="25" aria-valuemax="75" aria-valuenow="50" data-presets="50 35 65" data-tooltip="tip-handle" aria-describedby="tip-handle" data-open-in-states="split-focused" data-step="F9.3">
+      <span class="resizable-handle-grip" aria-hidden="true"></span>
+      <span class="tooltip" role="tooltip" id="tip-handle" data-side="right">Перетащите или щёлкните, чтобы сменить ширину</span>
+    </div>
+
+    <!-- Region "Окружение" (right pane) -->
+    <section class="pane" data-pane="environment" data-region aria-labelledby="env-region-heading">
+      <h2 class="sr-only" id="env-region-heading">Окружение</h2>
+      <div class="pane-switch">
+        <div class="tabs-list" role="tablist" aria-label="Область" data-pane-switch>
+          <button class="tabs-trigger" type="button" role="tab" data-show-pane="lesson">Урок</button>
+          <button class="tabs-trigger" type="button" role="tab" data-show-pane="environment">Окружение<span class="status-icon" data-status="destructive" aria-hidden="true" data-state="limits stopped after-run-stopped docker-down image-missing rejected"></span><span class="sr-only" data-state="limits stopped after-run-stopped"> остановлено</span><span class="sr-only" data-state="docker-down image-missing rejected"> ошибка</span></button>
+        </div>
+      </div>
+
+      <div class="env-statusbar" data-step="F8.4">
+        <div class="env-status" data-step="F8.1">
+          <span class="status-icon" data-status="success" aria-hidden="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled"></span>
+          <span class="status-icon" data-status="warning" aria-hidden="true" data-state="reconnecting"></span>
+          <span class="status-icon" data-status="destructive" aria-hidden="true" data-state="docker-down image-missing limits rejected reconnect-failed"></span>
+          <span class="status-icon" data-status="muted" aria-hidden="true" data-state="stopped after-run-stopped shell-exited"></span>
+          <span class="spinner" aria-hidden="true" data-state="env-creating env-starting env-slow actions-not-running after-run-starting"></span>
+          <span class="env-status-text" role="status" data-live-key="env-status"></span>
+          <span class="timer" role="timer" data-state="env-creating env-starting actions-not-running after-run-starting">0:07</span>
+          <span class="timer" role="timer" data-state="env-slow">1:32</span>
+        </div>
+        <div class="env-actions">
+          <button class="button" type="button" data-size="sm" data-status-action data-state="docker-down image-missing" data-goto-state="env-starting" data-focus="#actions-trigger">Повторить</button>
+          <button class="button" type="button" data-size="sm" data-status-action data-state="limits stopped after-run-stopped" data-goto-state="env-starting" data-focus="#actions-trigger" data-step="F10.4">Запустить снова</button>
+          <a class="button" data-size="sm" href="../catalog/prototype.html" data-status-action data-state="rejected">Открыть курс</a>
+          <button class="button" type="button" data-size="sm" data-status-action data-state="reconnect-failed" data-goto-state="reconnecting" data-focus="#actions-trigger">Переподключиться</button>
+          <button class="button" type="button" data-size="sm" data-status-action data-state="shell-exited" data-goto-state="one-pane-env" data-focus="#actions-trigger">Открыть новый сеанс</button>
+          <button class="button collapsible-trigger" type="button" data-variant="ghost" data-size="sm" data-collapsible aria-expanded="false" aria-controls="env-details" data-state="docker-down image-missing limits rejected">Подробности</button>
+          <div class="dropdown">
+            <button class="button" type="button" data-variant="outline" data-size="sm" id="actions-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu" data-open-in-states="actions-open actions-check-running actions-not-running" data-step="F11.1">Действия</button>
+            <div class="dropdown-menu" id="actions-menu" role="menu" aria-label="Действия">
+              <button class="dropdown-item" type="button" role="menuitem" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled" data-goto-state="env-starting" data-focus="#actions-trigger" data-step="F11.2"><span class="dropdown-item-body">Перезапустить окружение</span></button>
+              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-restart-wait" data-state="check-running actions-check-running statuses"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="reason-restart-wait">Дождитесь окончания проверки</span></span></button>
+              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-restart-env" data-state="env-creating env-starting env-slow docker-down image-missing limits rejected stopped actions-not-running after-run-stopped after-run-starting"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="reason-restart-env">Доступно, когда окружение работает</span></span></button>
+              <button class="dropdown-item" type="button" role="menuitem" data-dialog-open="reset-dialog" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled"><span class="dropdown-item-body">Сбросить рабочую папку</span></button>
+              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-reset-wait" data-state="check-running actions-check-running statuses"><span class="dropdown-item-body">Сбросить рабочую папку<span class="dropdown-item-reason" aria-hidden="true" id="reason-reset-wait">Дождитесь окончания проверки</span></span></button>
+              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-reset-env" data-state="env-creating env-starting env-slow docker-down image-missing limits rejected stopped actions-not-running after-run-stopped after-run-starting"><span class="dropdown-item-body">Сбросить рабочую папку<span class="dropdown-item-reason" aria-hidden="true" id="reason-reset-env">Доступно, когда окружение работает</span></span></button>
+              <div class="dropdown-separator" role="separator"></div>
+              <button class="dropdown-item" type="button" role="menuitemcheckbox" aria-checked="false"><span class="dropdown-check" aria-hidden="true"></span>Режим для экранного диктора</button>
+            </div>
+          </div>
+        </div>
+        <pre class="env-details" id="env-details" hidden><span data-state="docker-down">Cannot connect to the Docker daemon. Is the docker daemon running?</span><span data-state="image-missing">Error response from daemon: No such image: academy-workspace:dev</span><span data-state="limits">container exited: OOMKilled=true, exit code 137, memory limit 2g</span><span data-state="rejected">403 Forbidden: environment belongs to another user</span></pre>
+        <p class="env-hint" id="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled" data-step="F9.4"><kbd class="kbd">F6</kbd> или <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd class="kbd">.</kbd> (клавиша Ю): следующая область</p>
+      </div>
+
+      <div class="env-tabs tabs">
+        <div class="tabs-list" role="tablist" aria-label="Окружение">
+          <button class="tabs-trigger" type="button" role="tab" id="tab-terminal" aria-controls="panel-terminal" aria-selected="true" data-step="F9.5">Терминал</button>
+        </div>
+        <div class="tabs-content" role="tabpanel" id="panel-terminal" aria-labelledby="tab-terminal" data-step="F8.2">
+          <div class="terminal-frame" id="terminal-session" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks split-focused split-cycled" data-step="F9.1">
+<pre class="terminal-output" data-step="F9.2"><span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ ls
+README.md  cards.json  routing.json
+<span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ python3 -m json.tool routing.json &gt; /dev/null &amp;&amp; echo ok
+ok
+<span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ claude
+<span class="ansi-bright-black">&gt; Прочитай cards.json и предложи маршрутизацию для карточки offline-audit</span>
+<span class="ansi-bright-black">  Карточка запрещает отправлять код внешнему сервису: binding_constraint = privacy, deployment = local.</span>
+<span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ <span class="terminal-cursor"> </span></pre>
+          </div>
+          <div class="terminal-frame" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-state="volume-recreated reset-done one-pane-env">
+<pre class="terminal-output"><span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ <span class="terminal-cursor"> </span></pre>
+          </div>
+          <div class="terminal-frame" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-connection="lost" data-state="reconnecting reconnect-failed">
+<pre class="terminal-output"><span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ ls
+README.md  cards.json  routing.json
+<span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ <span class="terminal-cursor"> </span></pre>
+          </div>
+          <div class="terminal-frame" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-state="shell-exited">
+<pre class="terminal-output"><span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ ls
+README.md  cards.json  routing.json
+<span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ exit
+exit</pre>
+          </div>
+          <div class="terminal-placeholder" aria-hidden="true" data-state="env-creating"><span class="spinner"></span>Создаём окружение</div>
+          <div class="terminal-placeholder" aria-hidden="true" data-state="env-starting env-slow actions-not-running after-run-starting"><span class="spinner"></span>Запускаем окружение</div>
+          <div class="terminal-placeholder" aria-hidden="true" data-state="docker-down image-missing limits rejected stopped after-run-stopped" data-step="F10.3"><span class="status-icon" data-status="muted"></span></div>
+        </div>
+      </div>
+    </section>
+    <template data-live-source="env-status" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled"><span>Окружение работает</span></template>
+    <template data-live-source="env-status" data-state="api-key"><span>Окружение работает</span><span class="env-status-note" data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true" data-step="F8.3"></span>Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу.</span></template>
+    <template data-live-source="env-status" data-state="volume-recreated"><span>Окружение работает</span><span class="env-status-note">Рабочая папка не найдена, создано новое окружение из исходных файлов урока.</span></template>
+    <template data-live-source="env-status" data-state="reset-done"><span>Окружение работает</span><span class="env-status-note">Рабочая папка сброшена</span></template>
+    <template data-live-source="env-status" data-state="reconnecting"><span>Соединение с терминалом потеряно. Переподключаемся...</span></template>
+    <template data-live-source="env-status" data-state="reconnect-failed"><span>Не удалось переподключиться</span></template>
+    <template data-live-source="env-status" data-state="shell-exited"><span>Сеанс терминала завершён</span></template>
+    <template data-live-source="env-status" data-state="env-creating"><span>Создаём окружение</span></template>
+    <template data-live-source="env-status" data-state="env-starting actions-not-running after-run-starting"><span>Запускаем окружение</span></template>
+    <template data-live-source="env-status" data-state="env-slow"><span>Запускаем окружение</span><span class="env-status-note">Запуск идёт дольше обычного</span></template>
+    <template data-live-source="env-status" data-state="docker-down"><span>Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".</span></template>
+    <template data-live-source="env-status" data-state="image-missing"><span>Нет образа окружения academy-workspace. Соберите его (см. README) и нажмите "Повторить".</span></template>
+    <template data-live-source="env-status" data-state="limits"><span>Окружение остановлено: превышен лимит памяти. Файлы сохранены.</span></template>
+    <template data-live-source="env-status" data-state="rejected"><span>Нет доступа к этому окружению.</span></template>
+    <template data-live-source="env-status" data-state="stopped after-run-stopped"><span>Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены.</span></template>
+  </main>
+
+  <dialog class="alert-dialog" id="reset-dialog" role="alertdialog" aria-labelledby="reset-title" aria-describedby="reset-description" data-open-in-states="reset-dialog" data-step="F11.3">
+    <h2 class="alert-dialog-title" id="reset-title">Сбросить рабочую папку?</h2>
+    <p class="alert-dialog-description" id="reset-description">Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.</p>
+    <div class="alert-dialog-footer">
+      <button class="button" type="button" data-variant="outline" data-dialog-close autofocus>Отмена</button>
+      <button class="button" type="button" data-variant="destructive" data-dialog-close data-goto-state="reset-done" data-focus="#actions-trigger" data-step="F11.4">Сбросить</button>
+    </div>
+  </dialog>
+</div>
+
+<div class="proto-chrome" lang="en">
+  <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
+  <span>Prototype only, not product UI. Lesson page, design #50.</span>
+  <details>
+    <summary>States</summary>
+    <nav class="proto-chrome-index" data-state-index aria-label="Prototype states"></nav>
+  </details>
+</div>
+
+<script src="../../system/proto.js"></script>
+<script>
+  /* Page-only behaviour for the prototype: per-state layout attributes and the ?tab= deep link.
+     Simulated transitions (data-goto-state + data-focus) and Back come from proto.js. */
+  (function () {
+    "use strict";
+
+    var NO_ENVIRONMENT_STATES = ["m0", "no-workspace"];
+    // In one-pane mode these states show "Окружение"; every other state shows "Урок".
+    var ENVIRONMENT_PANE_STATES = [
+      "one-pane-env", "terminal-focused", "actions-open", "actions-check-running", "actions-not-running",
+      "reset-dialog", "reset-done", "reconnecting", "reconnect-failed", "shell-exited", "env-creating",
+      "env-starting", "env-slow", "api-key", "docker-down", "image-missing", "rejected", "limits",
+      "volume-recreated"
+    ];
+    // ?tab= of the route (ia.md "Deep links"): the dashboard's "Продолжить" and the sign-in next redirect
+    // send ?tab=task. "theory" or an unknown value keeps the default state.
+    var TAB_QUERY_STATES = { task: "task", checks: "checks-before" };
+    var STATE_FOCUS = { "terminal-focused": "#terminal-session", "split-focused": ".resizable-handle" };
+    var CYCLED_SPLIT_PERCENT = 35; // the second preset of "50 35 65" (F9.3)
+    var DEFAULT_SPLIT_PERCENT = 50;
+
+    var root = document.documentElement;
+    var layout = document.querySelector(".lesson-layout");
+    var handle = document.querySelector(".resizable-handle");
+
+    var tabState = TAB_QUERY_STATES[new URLSearchParams(window.location.search).get("tab")];
+    // proto.js reads data-default-state when the URL has no #state- hash, so an explicit state still wins.
+    if (tabState) root.setAttribute("data-default-state", tabState);
+
+    function setSplit(percent) {
+      layout.style.setProperty("--split-left", percent + "%");
+      handle.setAttribute("aria-valuenow", String(percent));
+      handle.setAttribute("aria-valuetext", percent + " %");
+    }
+
+    // Runs before proto.js applies data-focus, so the pane that holds the focus target is already shown.
+    document.addEventListener("proto:statechange", function (event) {
+      var state = event.detail.state;
+      if (NO_ENVIRONMENT_STATES.indexOf(state) >= 0) layout.setAttribute("data-environment", "none");
+      else layout.removeAttribute("data-environment");
+      window.proto.showPane(ENVIRONMENT_PANE_STATES.indexOf(state) >= 0 ? "environment" : "lesson");
+      setSplit(state === "split-cycled" ? CYCLED_SPLIT_PERCENT : DEFAULT_SPLIT_PERCENT);
+      var target = STATE_FOCUS[state] ? document.querySelector(STATE_FOCUS[state]) : null;
+      if (target) target.focus();
+    });
+
+    // Write side of ?tab=: the selected left-pane tab replaces the query (no new history entry, as the app's
+    // history.replaceState), the #state- hash stays, and "Войти снова" carries the tab in next (F2.1, F2.4).
+    var TAB_BY_ID = { "tab-theory": "theory", "tab-task": "task", "tab-checks": "checks" };
+    var LESSON_APP_PATH = "/courses/ai-for-developers/lessons/intro-models-effort";
+    var SIGN_IN_PROTOTYPE = "../sign-in/prototype.html";
+    // "Войти снова" lives in a <template> that proto.js clones into "Уведомления" on each state change, so
+    // both the template copy and the shown clone get the current tab.
+    var sessionAlertSource = document.querySelector("template[data-live-source='page-alert'][data-state~='session-expired']");
+    var lessonTabs = Object.keys(TAB_BY_ID).map(function (id) { return document.getElementById(id); });
+    // A click in the "States" index shows that state as documented, so its data-select-in-states tab wins
+    // over the query; every other state change (arrival, Back, a typed #state-) keeps the query's tab.
+    var isStateIndexNavigation = false;
+
+    function selectedTabName() {
+      for (var i = 0; i < lessonTabs.length; i++) {
+        if (lessonTabs[i].getAttribute("aria-selected") === "true") return TAB_BY_ID[lessonTabs[i].id];
+      }
+      return "theory";
+    }
+
+    function writeTabQuery() {
+      var tab = selectedTabName();
+      var params = new URLSearchParams(window.location.search);
+      if ((params.get("tab") || "theory") !== tab) {
+        params.set("tab", tab);
+        history.replaceState(history.state, "", "?" + params.toString() + window.location.hash);
+      }
+      var next = LESSON_APP_PATH + "?tab=" + tab;
+      var href = SIGN_IN_PROTOTYPE + "?next=" + encodeURIComponent(next) + "#state-with-next";
+      [sessionAlertSource.content.getElementById("sign-in-again"), document.getElementById("sign-in-again")]
+        .forEach(function (link) { if (link) link.setAttribute("href", href); });
+    }
+
+    // The URL is the tab's source of truth: the #state- hash picks the state, then the query re-selects the
+    // tab the learner had, when that state shows it. A reload and Back both land here, and Back returns to
+    // an entry whose ?tab= the learner's last selection there wrote (replaceState), so neither switches the
+    // tab (A17). A data-goto-state transition already kept the tab, so the query matches and nothing moves.
+    function restoreQueryTab() {
+      var queryTab = new URLSearchParams(window.location.search).get("tab");
+      var id = Object.keys(TAB_BY_ID).filter(function (key) { return TAB_BY_ID[key] === queryTab; })[0];
+      var tab = id ? document.getElementById(id) : null;
+      if (tab && !tab.hidden && tab.getAttribute("aria-selected") !== "true") tab.click();
+    }
+
+    document.addEventListener("click", function (event) {
+      if (event.target.closest("[data-state-index] a")) isStateIndexNavigation = true;
+    });
+
+    document.addEventListener("proto:statechange", function () {
+      if (!isStateIndexNavigation) restoreQueryTab();
+      isStateIndexNavigation = false;
+      writeTabQuery();
+    });
+    new MutationObserver(writeTabQuery).observe(document.querySelector("#tab-theory").parentNode, {
+      attributes: true, subtree: true, attributeFilter: ["aria-selected"]
+    });
+  })();
+</script>
+</body>
+</html>
