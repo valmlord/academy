@@ -167,9 +167,14 @@ Each item can be accepted or overturned on its own.
 - `apps/web` marks an attempt `error` with `finished_at` when the service stream for it ends without a
   final result, and at startup marks every attempt still `running` as `error` (one web process assumed; a
   multi-instance deployment needs an owner or heartbeat column first).
-- Bundled consumers (Next.js) list `@academy/db`, `drizzle-orm` and `pg` in `serverExternalPackages` or
-  pass an absolute `migrationsFolder`; every image ships `packages/db/drizzle`; #1 tests `migrateDatabase`
-  inside the built image.
+- Amended by #1 (Proposed): Next.js 16 with Turbopack bundles `@academy/db` even when it is listed in
+  `serverExternalPackages`, and fails the build on `new URL("../drizzle", import.meta.url)`.
+  `MIGRATIONS_FOLDER` is therefore computed with `path.dirname(fileURLToPath(import.meta.url))`, which
+  Turbopack evaluates to the module's path under the tracing root; every image ships
+  `packages/db/drizzle` at `<root>/packages/db/drizzle`; #1's `check-image-migrations.sh` runs in CI on
+  every PR and guards it. Item 9's "A bundled consumer passes an absolute `migrationsFolder`" stays true
+  but is no longer sufficient: the build fails before any caller option is read. The stale-attempt sweep
+  ships with #34, the first issue that creates attempts.
 - drizzle-kit 0.31 pulls `esbuild@0.18.20` (moderate GHSA-67mh-4wv8-2f99, exploitable only while
   `esbuild serve` runs, which nothing here does). Accepted until the 1.0 upgrade.
 - Transcripts survive the database cascade; the account-deletion flow deletes them.

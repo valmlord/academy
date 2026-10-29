@@ -40,8 +40,35 @@ Requirements: Node 22, pnpm 10, Docker, git, gh, python3, a recent Claude Code (
 pnpm install
 pnpm lint && pnpm typecheck && pnpm test && pnpm content:validate && pnpm test:pipeline
 cp .env.example .env
-docker compose up -d --wait
+docker compose up -d --build --wait
 ```
+
+## Web app
+
+`apps/web` applies the database migrations at startup and exits if the database is down or a migration
+fails, so start the database first.
+
+```bash
+docker compose up -d --wait db   # the database alone
+pnpm dev                         # http://localhost:3000, reads DATABASE_URL from the root .env
+docker compose up -d --build --wait   # the whole stack, web on http://127.0.0.1:3080 (WEB_PORT)
+```
+
+Always pass `--build` after a change: compose tags the image `academy-web:local`, and `up` without
+`--build` reuses a stale one. End-to-end tests run against the compose stack:
+
+```bash
+pnpm --filter @academy/web exec playwright install chromium --only-shell   # once
+pnpm test:e2e                    # E2E_BASE_URL overrides http://127.0.0.1:3080
+```
+
+`apps/web/app/globals.css` carries `design/system/tokens.css` verbatim between the `design-tokens`
+markers, and `pnpm test` fails when they differ. When a DESIGN PR changes `tokens.css`, its CI goes red;
+the orchestrator opens a dev HOTFIX issue "re-copy the token block" whose branch is cut from the DESIGN
+branch and whose PR targets it (`gh pr create --base <design-branch>`). The coder copies the file between
+the markers and nothing else. GitHub does not close an issue from a PR into a non-default branch, so that
+issue is closed by hand after the DESIGN PR merges. A re-copy that changes more than 5 lines runs as
+TASK, not HOTFIX.
 
 ## Connecting GitHub
 
