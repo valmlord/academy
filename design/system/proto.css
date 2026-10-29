@@ -1,0 +1,728 @@
+/*
+ * Prototype styles, design system v1 (#50). Prototype only: apps/web never imports this file (ADR-0006
+ * section 3). Colours come only from tokens.css; scales are documented in design/system/README.md.
+ */
+
+:root {
+  /* Aliases of the @theme inline radius steps, identical values: browsers drop @theme inline. */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  /* Tailwind's rounded-full: a pill or a circle at any size (the progress track, status icons). */
+  --radius-full: calc(infinity * 1px);
+
+  /* The app's font is a dev decision (next/font); prototypes use the system stacks. */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Spacing: Tailwind's 0.25rem step, so a value here is a Tailwind class in the app. */
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Type scale: Tailwind text-xs .. text-3xl, each with its line height. */
+  --text-xs: 0.75rem;
+  --text-xs-line: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm-line: 1.25rem;
+  --text-base: 1rem;
+  --text-base-line: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg-line: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl-line: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl-line: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl-line: 2.25rem;
+  --prose-line: 1.7;
+  --prose-measure: 70ch;
+
+  /* Motion. prefers-reduced-motion sets every duration to 0 at the end of this file. */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --spinner-period: 800ms;
+  --skeleton-period: 1600ms;
+
+  /* Focus ring: a solid --ring outline outside the element (README, "Focus ring"). */
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* Layout. 1024px is the two-pane breakpoint of decision A8; proto.js reads the same number. */
+  --page-max: 72rem;
+  --column-max: 48rem;
+  --underline-offset: 0.2em;
+  --underline-hover-width: 2px;
+  --topbar-height: 3.5rem;
+  --control-height: 2.25rem;
+  --control-height-sm: 2rem;
+  --hit-min: 1.5rem;
+  --split-left: 50%;
+  --progress-value: 0%;
+  /* The handle column is the full 24px target (WCAG 2.5.8), so the handle never overlaps a pane's
+     scrollbar. */
+  --handle-width: var(--hit-min);
+  --pane-min: 20rem;
+
+  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
+  --shadow-md: 0 4px 12px -2px color-mix(in oklab, var(--foreground) 14%, transparent);
+  --scrim: color-mix(in oklab, var(--foreground) 50%, transparent);
+}
+
+/* The light scrim is a dark --foreground mix; in dark mode --foreground is light, so the scrim follows
+   --background instead to stay a darkening layer. */
+.dark {
+  --scrim: color-mix(in oklab, var(--background) 70%, transparent);
+  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--background) 60%, transparent);
+  --shadow-md: 0 4px 12px -2px color-mix(in oklab, var(--background) 80%, transparent);
+}
+
+/* ---------- Base ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-family: var(--font-sans);
+  font-size: 100%;
+  line-height: var(--text-base-line);
+  color: var(--foreground);
+  background: var(--background);
+  -webkit-text-size-adjust: 100%;
+}
+
+body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); }
+
+[hidden] { display: none !important; }
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; }
+h1 { font-size: var(--text-2xl); line-height: var(--text-2xl-line); }
+h2 { font-size: var(--text-xl); line-height: var(--text-xl-line); }
+h3 { font-size: var(--text-lg); line-height: var(--text-lg-line); }
+p { margin: 0; }
+
+a { color: var(--foreground); text-decoration: underline; text-underline-offset: var(--underline-offset); }
+a:hover { text-decoration-thickness: var(--underline-hover-width); }
+
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--focus-width) solid var(--ring);
+  outline-offset: var(--focus-offset);
+}
+[tabindex="-1"]:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.muted { color: var(--muted-foreground); }
+.text-sm { font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.text-xs { font-size: var(--text-xs); line-height: var(--text-xs-line); }
+.stack { display: flex; flex-direction: column; gap: var(--space-4); }
+.stack[data-gap="2"] { gap: var(--space-2); }
+.stack[data-gap="6"] { gap: var(--space-6); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+/* Skip link: off screen until focused, then the first visible thing on the page (R4). */
+.skip-link {
+  position: absolute; left: var(--space-2); top: var(--space-2); z-index: 100;
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  background: var(--primary); color: var(--primary-foreground);
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+
+/* ---------- Button (shadcn Button) ---------- */
+
+.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: var(--control-height); padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent; border-radius: var(--radius-md);
+  font: inherit; font-size: var(--text-sm); line-height: var(--text-sm-line); font-weight: 500;
+  white-space: nowrap; text-decoration: none; cursor: pointer;
+  background: var(--primary); color: var(--primary-foreground);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+.button:hover { background: color-mix(in oklab, var(--primary) 90%, var(--background)); }
+.button[data-variant="secondary"] { background: var(--secondary); color: var(--secondary-foreground); }
+.button[data-variant="secondary"]:hover { background: var(--accent); color: var(--accent-foreground); }
+.button[data-variant="outline"] {
+  background: var(--background); color: var(--foreground); border-color: var(--input);
+}
+.button[data-variant="outline"]:hover { background: var(--accent); color: var(--accent-foreground); }
+.button[data-variant="ghost"] { background: transparent; color: var(--foreground); }
+.button[data-variant="ghost"]:hover { background: var(--accent); color: var(--accent-foreground); }
+.button[data-variant="link"] {
+  background: transparent; color: var(--foreground); padding-inline: 0;
+  text-decoration: underline; text-underline-offset: var(--underline-offset);
+}
+/* Solid --destructive with --destructive-foreground in both themes; shadcn's text-white plus
+   dark:bg-destructive/60 is not used (README, "destructive-foreground"). */
+.button[data-variant="destructive"] { background: var(--destructive); color: var(--destructive-foreground); }
+.button[data-variant="destructive"]:hover {
+  background: color-mix(in oklab, var(--destructive) 90%, var(--foreground));
+}
+.button[data-size="sm"] {
+  min-height: var(--control-height-sm); padding: var(--space-1-5) var(--space-3); font-size: var(--text-sm);
+}
+.button[data-size="icon"] { width: var(--control-height); padding: 0; }
+/* R1: aria-disabled stays focusable and in place; it only looks inactive. Contrast is kept: no opacity. */
+.button[aria-disabled="true"],
+.button[aria-disabled="true"]:hover {
+  cursor: not-allowed; background: var(--muted); color: var(--muted-foreground); border-color: var(--border);
+}
+.button[aria-busy="true"] { cursor: progress; }
+
+/* The R1 reason line next to a disabled control. */
+.disabled-reason { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); }
+
+/* A muted line with a leading status icon ("Прогресс недоступен" on dashboard and catalog). Usable on a
+   p or a heading (a heading keeps its level, not its weight). The 1.25rem icon equals the text-sm line
+   height, so it stays on the first line when the text wraps. */
+.icon-note {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  font-size: var(--text-sm); line-height: var(--text-sm-line); font-weight: 400; color: var(--muted-foreground);
+}
+
+/* ---------- Card ---------- */
+
+.card {
+  display: flex; flex-direction: column; gap: var(--space-6);
+  padding: var(--space-6); border: 1px solid var(--border); border-radius: var(--radius-xl);
+  background: var(--card); color: var(--card-foreground); box-shadow: var(--shadow-sm);
+}
+.card-header { display: flex; flex-direction: column; gap: var(--space-1-5); }
+.card-title { font-size: var(--text-lg); line-height: var(--text-lg-line); font-weight: 600; }
+.card-description { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); }
+.card-footer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+/* ---------- Field, Label, Input ---------- */
+
+.field { display: flex; flex-direction: column; gap: var(--space-2); }
+.label { font-size: var(--text-sm); line-height: var(--text-sm-line); font-weight: 500; }
+.field-description { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); }
+.field-error { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--destructive); }
+.input {
+  width: 100%; min-height: var(--control-height); padding: var(--space-1-5) var(--space-3);
+  border: 1px solid var(--input); border-radius: var(--radius-md);
+  background: var(--background); color: var(--foreground); font: inherit; font-size: var(--text-base);
+}
+.input::placeholder { color: var(--muted-foreground); }
+.input[aria-invalid="true"] { border-color: var(--destructive); }
+.input[aria-invalid="true"]:focus-visible { outline-color: var(--destructive); }
+
+/* ---------- Alert ---------- */
+
+.alert {
+  display: grid; grid-template-columns: auto 1fr; column-gap: var(--space-3); row-gap: var(--space-1);
+  padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--card); color: var(--card-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line);
+}
+.alert > .status-icon { grid-row: span 3; margin-top: var(--space-0-5); }
+.alert-title { font-weight: 600; }
+.alert-description { color: var(--muted-foreground); }
+.alert-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.alert[data-variant="destructive"] { border-color: var(--destructive); }
+.alert[data-variant="destructive"] .alert-title { color: var(--destructive); }
+.alert[data-variant="warning"] { border-color: var(--warning); }
+
+/* ---------- Status icon (check, lesson and environment statuses) ---------- */
+/* Icon shape and the word carry the status; colour is the third signal. Icons are aria-hidden. */
+
+.status-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 1.25rem; height: 1.25rem; border-radius: var(--radius-full);
+  border: 2px solid currentColor; font-size: var(--text-xs); line-height: 1; font-weight: 600;
+  color: var(--muted-foreground);
+}
+.status-icon::before { content: ""; }
+.status-icon[data-status="success"] { color: var(--success); }
+.status-icon[data-status="success"]::before { content: "\2713"; }
+.status-icon[data-status="destructive"] { color: var(--destructive); }
+.status-icon[data-status="destructive"]::before { content: "\2715"; }
+.status-icon[data-status="warning"] { color: var(--warning); border-radius: var(--radius-sm); }
+.status-icon[data-status="warning"]::before { content: "!"; }
+.status-icon[data-status="info"] { color: var(--info); }
+.status-icon[data-status="info"]::before { content: "i"; }
+.status-icon[data-status="queued"] { color: var(--info); border-style: dashed; }
+.status-icon[data-status="running"] {
+  color: var(--info); border-right-color: transparent;
+  animation: spin var(--spinner-period) linear infinite;
+}
+.status-icon[data-status="muted"] { color: var(--muted-foreground); border-style: dotted; }
+
+/* ---------- Badge ---------- */
+
+.badge {
+  display: inline-flex; align-items: center; gap: var(--space-1); width: fit-content;
+  padding: var(--space-0-5) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-md);
+  font-size: var(--text-xs); line-height: var(--text-xs-line); font-weight: 500; white-space: nowrap;
+  background: var(--primary); color: var(--primary-foreground);
+}
+.badge[data-variant="secondary"] { background: var(--secondary); color: var(--secondary-foreground); }
+.badge[data-variant="outline"] { background: transparent; color: var(--foreground); border-color: var(--border); }
+.badge[data-variant="outline"][data-tone="muted"] { color: var(--muted-foreground); }
+/* The fail badge: outline with the destructive icon and word (design section 2). */
+.badge[data-variant="outline"][data-tone="destructive"] { color: var(--destructive); border-color: var(--destructive); }
+.badge[data-variant="success"] { background: var(--success); color: var(--success-foreground); }
+.badge[data-variant="warning"] { background: var(--warning); color: var(--warning-foreground); }
+.badge[data-variant="info"] { background: var(--info); color: var(--info-foreground); }
+.badge[data-variant="muted"] { background: var(--muted); color: var(--muted-foreground); }
+/* In a badge the icon is one text-xs line tall, with a thin stroke so the glyph keeps room. */
+.badge .status-icon {
+  width: var(--text-xs-line); height: var(--text-xs-line); border-width: 1px;
+  font-size: var(--text-xs); color: currentColor;
+}
+
+/* ---------- DropdownMenu ---------- */
+
+.dropdown { position: relative; display: inline-block; }
+.dropdown-menu {
+  position: absolute; z-index: 50; top: calc(100% + var(--space-1)); right: 0; min-width: 14rem;
+  padding: var(--space-1); border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--popover); color: var(--popover-foreground); box-shadow: var(--shadow-md);
+}
+.dropdown-menu[data-align="start"] { left: 0; right: auto; }
+.dropdown-label { padding: var(--space-1-5) var(--space-2); font-size: var(--text-sm); color: var(--muted-foreground); overflow-wrap: anywhere; }
+.dropdown-item {
+  display: flex; align-items: flex-start; gap: var(--space-2); width: 100%;
+  padding: var(--space-1-5) var(--space-2); border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: inherit; font: inherit; font-size: var(--text-sm); line-height: var(--text-sm-line);
+  text-align: left; cursor: pointer;
+}
+/* A menu item that navigates ("Выйти") is a link: it keeps the item look, not the link underline. */
+a.dropdown-item { text-decoration: none; }
+.dropdown-item:hover, .dropdown-item:focus-visible { background: var(--accent); color: var(--accent-foreground); }
+/* shadcn's focus:bg-accent alone measures 1.090:1 (light) / 1.185:1 (dark) on popover, so the focused
+   item also keeps the ring, drawn inset to stay inside the menu (README, "Focus ring"). Disabled items
+   keep it too. */
+.dropdown-item:focus-visible { outline: var(--focus-width) solid var(--ring); outline-offset: calc(var(--focus-width) * -1); }
+.dropdown-item[aria-disabled="true"] { cursor: not-allowed; color: var(--muted-foreground); }
+.dropdown-item[aria-disabled="true"]:hover,
+.dropdown-item[aria-disabled="true"]:focus-visible { background: var(--muted); color: var(--muted-foreground); }
+.dropdown-item-body { display: flex; flex-direction: column; }
+.dropdown-item-reason { font-size: var(--text-xs); line-height: var(--text-xs-line); color: var(--muted-foreground); }
+.dropdown-check {
+  flex: none; width: 1rem; height: 1rem; margin-top: var(--space-0-5);
+  border: 1px solid var(--input); border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs);
+}
+[aria-checked="true"] > .dropdown-check::before { content: "\2713"; }
+.dropdown-separator { height: 1px; margin: var(--space-1) calc(var(--space-1) * -1); background: var(--border); }
+
+/* ---------- Breadcrumb ---------- */
+
+.breadcrumb ol {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1-5);
+  margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); line-height: var(--text-sm-line);
+  color: var(--muted-foreground);
+}
+.breadcrumb a { color: var(--muted-foreground); }
+.breadcrumb a:hover { color: var(--foreground); }
+.breadcrumb li + li::before { content: "/"; margin-right: var(--space-1-5); color: var(--muted-foreground); }
+.breadcrumb [aria-current="page"] { color: var(--foreground); }
+
+/* ---------- Tabs ---------- */
+
+.tabs { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.tabs-list {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); width: fit-content;
+  padding: var(--space-1); border-radius: var(--radius-lg); background: var(--muted); color: var(--muted-foreground);
+}
+.tabs-trigger {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  min-height: var(--control-height-sm); padding: var(--space-1) var(--space-3);
+  border: 1px solid transparent; border-radius: var(--radius-md);
+  background: transparent; color: var(--muted-foreground); font: inherit; font-size: var(--text-sm); font-weight: 500;
+  cursor: pointer;
+}
+/* The selected pill's surface alone does not mark it (background on muted: 1.090:1 light, 1.308:1
+   dark), and shadcn's border-input fails in dark (2.757:1 on muted). A 1px muted-foreground border
+   around the whole pill does: 4.816:1 / 5.857:1 on muted, 5.251:1 / 7.663:1 on background (README,
+   "Contrast runs"). The focus ring stays distinct: 2px ring, offset outside the pill. */
+.tabs-trigger[aria-selected="true"] {
+  background: var(--background); color: var(--foreground); border-color: var(--muted-foreground);
+  box-shadow: var(--shadow-sm);
+}
+.tabs-content { min-width: 0; }
+
+/* ---------- Progress ---------- */
+
+.progress {
+  position: relative; width: 100%; height: 0.5rem; overflow: hidden;
+  border: 1px solid var(--input); border-radius: var(--radius-full); background: var(--secondary);
+}
+.progress-indicator {
+  display: block; height: 100%; width: var(--progress-value); background: var(--primary);
+  transition: width var(--duration-normal) var(--ease-standard);
+}
+
+/* ---------- Item (list row) ---------- */
+
+.item-group { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.item {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-md);
+  color: var(--foreground); text-decoration: none;
+}
+a.item:hover { background: var(--accent); color: var(--accent-foreground); }
+.item-group > li + li > .item { border-top-color: var(--border); border-radius: 0; }
+.item-content { display: flex; flex-direction: column; gap: var(--space-1); flex: 1; min-width: 0; }
+.item-title { font-weight: 500; }
+.item-description { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); }
+.item-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* A note under a row (the catalog prerequisite note F6.1): a sibling of .item in the same li, so links
+   inside it are not nested in the row link; indented to the row's text. */
+.item-note {
+  padding: 0 var(--space-4) var(--space-3);
+  font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground);
+}
+
+/* ---------- Collapsible ---------- */
+
+.collapsible-trigger { display: inline-flex; align-items: center; gap: var(--space-1-5); }
+.collapsible-trigger::after {
+  content: ""; width: var(--space-1-5); height: var(--space-1-5);
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(45deg); transition: transform var(--duration-fast) var(--ease-standard);
+}
+.collapsible-trigger[aria-expanded="true"]::after { transform: rotate(-135deg); }
+
+/* ---------- Separator ---------- */
+
+.separator { border: 0; height: 1px; margin: 0; background: var(--border); flex: none; }
+.separator[data-orientation="vertical"] { width: 1px; height: auto; align-self: stretch; }
+
+/* ---------- ScrollArea ---------- */
+
+.scroll-area { overflow: auto; min-height: 0; overscroll-behavior: contain; }
+
+/* ---------- AlertDialog ---------- */
+
+dialog.alert-dialog {
+  width: min(32rem, calc(100vw - var(--space-8))); padding: var(--space-6);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--background); color: var(--foreground); box-shadow: var(--shadow-md);
+}
+dialog.alert-dialog::backdrop { background: var(--scrim); }
+.alert-dialog-title { font-size: var(--text-lg); line-height: var(--text-lg-line); font-weight: 600; }
+.alert-dialog-description { margin-top: var(--space-2); color: var(--muted-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.alert-dialog-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-6); }
+
+/* ---------- Spinner ---------- */
+
+.spinner {
+  display: inline-block; flex: none; width: 1rem; height: 1rem; border-radius: var(--radius-full);
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: spin var(--spinner-period) linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Kbd ---------- */
+
+.kbd {
+  display: inline-flex; align-items: center; min-width: 1.25rem; padding: 0 var(--space-1);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--muted); color: var(--foreground);
+  font-family: var(--font-mono); font-size: var(--text-xs); line-height: var(--text-sm-line);
+}
+
+/* ---------- Tooltip ---------- */
+/* shadcn v4 tooltip: bg-foreground text-background. Opens on hover and focus, stays while hovered,
+   closes with Esc (WCAG 1.4.13), handled by proto.js. */
+
+.tooltip-anchor { position: relative; display: inline-flex; }
+.tooltip {
+  position: absolute; z-index: 60; bottom: calc(100% + var(--space-2)); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 16rem; padding: var(--space-1-5) var(--space-3); border-radius: var(--radius-md);
+  background: var(--foreground); color: var(--background); font-size: var(--text-xs); line-height: var(--text-xs-line);
+}
+.tooltip[data-side="right"] { bottom: auto; top: 50%; left: calc(100% + var(--space-2)); transform: translateY(-50%); }
+.tooltip[data-side="left"] { bottom: auto; top: 50%; left: auto; right: calc(100% + var(--space-2)); transform: translateY(-50%); }
+/* A transparent bridge over the space-2 gap: it is part of the tooltip, which sits inside the anchor, so
+   the pointer moving from the trigger to the tip never leaves the anchor and the tip stays (WCAG 1.4.13). */
+.tooltip::before { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: var(--space-2); }
+.tooltip[data-side="right"]::before { top: 0; bottom: 0; left: auto; right: 100%; width: var(--space-2); height: auto; }
+.tooltip[data-side="left"]::before { top: 0; bottom: 0; left: 100%; right: auto; width: var(--space-2); height: auto; }
+
+/* ---------- Skeleton ---------- */
+
+.skeleton {
+  display: block; height: 1rem; border-radius: var(--radius-md); background: var(--accent);
+  animation: pulse var(--skeleton-period) ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: 0.5; } }
+
+/* ---------- Empty ---------- */
+
+.empty {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center;
+  padding: var(--space-8) var(--space-6); border: 1px dashed var(--border); border-radius: var(--radius-lg);
+}
+.empty-title { font-size: var(--text-lg); line-height: var(--text-lg-line); font-weight: 600; }
+.empty-description { max-width: 40ch; color: var(--muted-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+
+/* ---------- Composition: page shell and top bar ---------- */
+
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+.topbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); min-height: var(--topbar-height);
+  padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); background: var(--background);
+}
+.topbar-brand { font-weight: 600; text-decoration: none; color: var(--foreground); }
+.topbar-nav { display: flex; flex-wrap: nowrap; gap: var(--space-1); }
+.topbar-nav a {
+  padding: var(--space-1-5) var(--space-2); border-radius: var(--radius-md);
+  color: var(--muted-foreground); text-decoration: none; font-size: var(--text-sm);
+}
+.topbar-nav a:hover { color: var(--foreground); background: var(--accent); }
+.topbar-nav a[aria-current="page"] { color: var(--foreground); }
+.topbar-end { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); }
+/* The email is cut with an ellipsis only visually: the button's accessible name is the full text, and
+   the menu's .dropdown-label shows it in full. */
+.user-email { display: block; min-width: 0; max-width: 14rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* Below 480px the bar keeps one row down to 375px: brand, nav and a 6rem email with space-2 gaps take
+   370px of 375px. At 320px, or at 400 % zoom, .topbar wraps and .topbar-end moves to a second row,
+   right-aligned (WCAG 1.4.10). */
+@media (max-width: 30rem) {
+  .topbar { gap: var(--space-2); }
+  .user-email { max-width: 6rem; }
+}
+
+.page { width: 100%; max-width: var(--page-max); margin: 0 auto; padding: var(--space-6) var(--space-4); }
+main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
+/* One readable column inside .page (dashboard, catalog; decision A8): sections space-8 apart. */
+.column { display: flex; flex-direction: column; gap: var(--space-8); max-width: var(--column-max); }
+
+/* ---------- Composition: outcomes ("Чему научитесь", catalog and lesson) ---------- */
+/* One structure: a heading of the page's level, then one or more lists. Nested wrappers (the lesson's
+   collapsible) are allowed, so the list rules use descendant selectors. */
+.outcomes { display: flex; flex-direction: column; gap: var(--space-1); }
+.outcomes > :is(h2, h3, h4) { font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.outcomes ul { margin: 0; padding-left: var(--space-6); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.outcomes li + li { margin-top: var(--space-1); }
+
+/* ---------- Composition: notifications region ---------- */
+/* The wrapper and both live containers are always in the DOM (R2); proto.js adds the region role and
+   unhides the heading only while a container holds content. Empty containers take no space. */
+
+.notifications { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-4); }
+.notifications[role="region"] { padding-block: var(--space-3); border-bottom: 1px solid var(--border); }
+.notifications .live:empty { display: none; }
+
+/* ---------- Composition: lesson layout (two panes from 1024px, one pane below) ---------- */
+/* DOM order: lesson pane, check bar, split handle, environment pane (R3, R4). proto.js sets
+   .is-one-pane below 1024px. Rows are grid rows, never overlays, so the check bar never covers focus. */
+
+.lesson-layout {
+  display: grid; flex: 1; min-height: 0;
+  grid-template-columns: minmax(var(--pane-min), var(--split-left)) var(--handle-width) minmax(var(--pane-min), 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "lesson handle env" "checks handle env";
+}
+.app[data-layout="lesson"] { height: 100vh; }
+.lesson-layout > .pane[data-pane="lesson"] { grid-area: lesson; }
+.lesson-layout > .pane[data-pane="environment"] { grid-area: env; }
+.lesson-layout > .check-bar { grid-area: checks; }
+.lesson-layout > .resizable-handle { grid-area: handle; }
+.lesson-layout[data-environment="none"] {
+  grid-template-columns: minmax(0, 1fr); grid-template-areas: "lesson" "checks";
+}
+/* A lesson without an environment (M0, no workspace field): the pane and the handle are not drawn, so
+   they are no F6 stop and no Tab stop. */
+.lesson-layout[data-environment="none"] > .pane[data-pane="environment"],
+.lesson-layout[data-environment="none"] > .resizable-handle { display: none; }
+.lesson-layout.is-one-pane {
+  grid-template-columns: minmax(0, 1fr); grid-template-areas: "lesson" "checks";
+}
+.lesson-layout.is-one-pane > .pane[data-pane="environment"] { grid-area: lesson; }
+.lesson-layout.is-one-pane > .resizable-handle { display: none; }
+.lesson-layout:not(.is-one-pane) .pane-switch { display: none; }
+/* Short viewports (400% zoom): the page scrolls as a document instead of squeezing the panes. */
+@media (max-height: 30rem) {
+  .app[data-layout="lesson"] { height: auto; }
+  .lesson-layout { grid-template-rows: auto auto; }
+}
+
+.pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.pane > .scroll-area { flex: 1; padding: var(--space-4); }
+/* The environment pane scrolls as a whole, like the lesson pane's .scroll-area: its terminal keeps a
+   12rem minimum, so in a grid cell shorter than its content it must never paint over the check bar row. */
+.pane[data-pane="environment"] { background: var(--background); overflow-y: auto; overscroll-behavior: contain; }
+.pane-switch { padding: var(--space-2) var(--space-4) 0; }
+.pane-switch .tabs-list { width: 100%; }
+.pane-switch .tabs-trigger { flex: 1; justify-content: center; }
+
+.lesson-header { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.lesson-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--muted-foreground); }
+
+/* ---------- Resizable handle ---------- */
+
+.resizable-handle {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  min-width: var(--hit-min);
+  background: transparent; cursor: col-resize; touch-action: none; z-index: 1;
+}
+.resizable-handle::before { content: ""; position: absolute; inset: 0 50%; width: 1px; background: var(--border); }
+.resizable-handle-grip {
+  position: relative; width: 0.75rem; height: 1.5rem; border: 1px solid var(--input); border-radius: var(--radius-sm);
+  background: var(--background);
+}
+.resizable-handle:hover .resizable-handle-grip,
+.resizable-handle:focus-visible .resizable-handle-grip { border-color: var(--ring); }
+
+/* ---------- Composition: environment status bar ---------- */
+
+.env-statusbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); background: var(--card);
+  color: var(--card-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line);
+}
+.env-status { display: flex; align-items: flex-start; gap: var(--space-2); flex: 1 1 16rem; min-width: 0; }
+.env-status-text { display: flex; flex-direction: column; }
+.env-status-note { color: var(--muted-foreground); }
+/* A note that warns (the missing API key, F8.3): warning icon first, words in card-foreground, as the
+   warning Alert. The icon stays on the first line when the text wraps. */
+.env-status-note[data-tone="warning"] { display: flex; align-items: flex-start; gap: var(--space-1-5); color: var(--card-foreground); }
+.env-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.env-hint { flex-basis: 100%; color: var(--muted-foreground); font-size: var(--text-xs); line-height: var(--text-xs-line); }
+.env-details {
+  flex-basis: 100%; margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  background: var(--muted); color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-xs);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.timer { font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+
+/* ---------- Composition: terminal frame (static mock of xterm output) ---------- */
+/* Dark in both themes. The focus ring sits outside the frame with an offset, measured on --background
+   and on --terminal (README). Lost connection is shown by the dashed frame, never by opacity, which
+   would lower the ANSI contrast below 4.5:1. */
+
+/* No min-height: 0 here: the tabs keep the terminal's 12rem minimum, so a short pane scrolls instead of
+   squeezing the terminal below it. */
+.env-tabs { flex: 1; display: flex; flex-direction: column; padding: var(--space-2) var(--space-4) var(--space-4); }
+.env-tabs > .tabs-content { flex: 1; display: flex; }
+.terminal-frame {
+  flex: 1; min-height: 12rem; padding: var(--space-3); overflow: auto;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--terminal); color: var(--terminal-foreground);
+  font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--text-sm-line);
+}
+.terminal-frame:focus-visible, .terminal-frame:focus-within {
+  outline: var(--focus-width) solid var(--ring); outline-offset: var(--focus-offset);
+}
+.terminal-frame[data-connection="lost"] { border-style: dashed; border-color: var(--warning); }
+.terminal-frame[data-connection="lost"] .terminal-cursor { visibility: hidden; }
+.terminal-output { margin: 0; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.terminal-cursor { background: var(--terminal-cursor); color: var(--terminal-cursor-accent); }
+.terminal-output ::selection, .terminal-selection { background: var(--terminal-selection); color: var(--terminal-foreground); }
+.ansi-black { color: var(--terminal-foreground); background: var(--terminal-ansi-black); }
+.ansi-red { color: var(--terminal-ansi-red); }
+.ansi-green { color: var(--terminal-ansi-green); }
+.ansi-yellow { color: var(--terminal-ansi-yellow); }
+.ansi-blue { color: var(--terminal-ansi-blue); }
+.ansi-magenta { color: var(--terminal-ansi-magenta); }
+.ansi-cyan { color: var(--terminal-ansi-cyan); }
+.ansi-white { color: var(--terminal-ansi-white); }
+.ansi-bright-black { color: var(--terminal-ansi-bright-black); }
+.ansi-bright-red { color: var(--terminal-ansi-bright-red); }
+.ansi-bright-green { color: var(--terminal-ansi-bright-green); }
+.ansi-bright-yellow { color: var(--terminal-ansi-bright-yellow); }
+.ansi-bright-blue { color: var(--terminal-ansi-bright-blue); }
+.ansi-bright-magenta { color: var(--terminal-ansi-bright-magenta); }
+.ansi-bright-cyan { color: var(--terminal-ansi-bright-cyan); }
+.ansi-bright-white { color: var(--terminal-ansi-bright-white); }
+.terminal-placeholder {
+  display: flex; flex: 1; align-items: center; justify-content: center; gap: var(--space-2); min-height: 12rem;
+  border: 1px dashed var(--border); border-radius: var(--radius-md); color: var(--muted-foreground); font-size: var(--text-sm);
+}
+
+/* ---------- Composition: check bar (the checks region) ---------- */
+
+.check-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border); background: var(--card);
+  color: var(--card-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line);
+}
+.check-bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.check-bar-status { display: flex; align-items: center; gap: var(--space-2); flex: 1 1 10rem; min-width: 0; }
+.check-bar .disabled-reason { flex-basis: 100%; }
+
+/* ---------- Composition: check row (the checks tab) ---------- */
+
+.check-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.check-list > li + li { border-top: 1px solid var(--border); }
+.check-row-trigger {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-1) var(--space-3);
+  width: 100%; padding: var(--space-3) var(--space-4); border: 0; background: transparent; color: var(--foreground);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.check-row-trigger:hover { background: var(--accent); color: var(--accent-foreground); }
+.check-row-title { font-weight: 500; }
+.check-row-meta { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: var(--space-2); font-size: var(--text-sm); color: var(--muted-foreground); }
+.check-row-status { display: inline-flex; align-items: center; gap: var(--space-1-5); font-size: var(--text-sm); }
+.check-row-panel { padding: 0 var(--space-4) var(--space-4) calc(var(--space-4) + 1.25rem + var(--space-3)); }
+.check-row-message {
+  margin: 0 0 var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  background: var(--muted); color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-sm);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* ---------- Composition: prose (theory.md, task.md) ---------- */
+
+.prose { max-width: var(--prose-measure); font-size: var(--text-base); line-height: var(--prose-line); overflow-wrap: break-word; }
+.prose > * + * { margin-top: var(--space-4); }
+.prose h1 { font-size: var(--text-3xl); line-height: var(--text-3xl-line); }
+.prose h2 { font-size: var(--text-2xl); line-height: var(--text-2xl-line); margin-top: var(--space-10); }
+.prose h3 { font-size: var(--text-xl); line-height: var(--text-xl-line); margin-top: var(--space-8); }
+.prose h2:focus-visible, .prose h3:focus-visible { outline-offset: var(--focus-offset); }
+.prose ul, .prose ol { padding-left: var(--space-6); }
+.prose li + li { margin-top: var(--space-1); }
+.prose blockquote { margin-inline: 0; padding-left: var(--space-4); border-left: 2px solid var(--border); color: var(--muted-foreground); }
+.prose code {
+  padding: var(--space-0-5) var(--space-1); border-radius: var(--radius-sm); background: var(--muted); color: var(--foreground);
+  font-family: var(--font-mono); font-size: var(--text-sm);
+}
+.prose .table-wrap { overflow-x: auto; }
+.prose table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.prose th, .prose td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.prose th { font-weight: 600; }
+.code-block { position: relative; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); }
+.code-block pre { margin: 0; padding: var(--space-3) var(--space-4); overflow-x: auto; font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.code-block pre code { padding: 0; background: transparent; font-size: inherit; }
+.code-block-header { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border); }
+.toc { font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.toc > :is(h2, h3, h4) { font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.toc ol { margin: var(--space-2) 0 0; padding-left: var(--space-5); }
+
+/* ---------- Prototype chrome (state index, theme toggle): not part of the product ---------- */
+
+.proto-chrome {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4);
+  border-bottom: 1px dashed var(--border); background: var(--muted); color: var(--muted-foreground);
+  font-size: var(--text-xs); line-height: var(--text-xs-line);
+}
+.proto-chrome a { color: var(--foreground); }
+.proto-chrome a[aria-current="true"] { font-weight: 600; }
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-normal: 0ms; }
+  .spinner, .status-icon[data-status="running"] { animation: none; border-right-color: currentColor; border-style: dotted; }
+  .skeleton { animation: none; }
+  * { scroll-behavior: auto !important; transition-duration: 0ms !important; }
+}
