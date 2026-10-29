@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru" data-default-state="default">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вход</title>
+  <link rel="stylesheet" href="../../system/tokens.css">
+  <link rel="stylesheet" href="../../system/proto.css">
+  <style>
+    /* Page layout only; every value is a token or a proto.css scale step. */
+    .signin { display: flex; flex: 1; align-items: flex-start; justify-content: center; padding: var(--space-12) var(--space-4); }
+    .signin-card { width: 100%; max-width: 24rem; }
+    .signin-card form { display: flex; flex-direction: column; gap: var(--space-6); }
+    .signin-fields { display: flex; flex-direction: column; gap: var(--space-4); }
+    .signin-card .card-footer > .button[type="submit"] { width: 100%; }
+    @media (max-width: 30rem) { .signin { padding-top: var(--space-6); } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <a class="skip-link" href="#main">К содержимому</a>
+
+  <main id="main" class="signin" tabindex="-1">
+    <section class="card signin-card" aria-labelledby="signin-title" data-step="F1.1">
+      <div class="card-header">
+        <h1 class="card-title" id="signin-title">Вход</h1>
+        <p class="card-description" data-step="F3.3" data-state="signed-out">Вы вышли</p>
+      </div>
+
+      <!-- One message place above the form (F1.3 errors). No role="alert": focus moves here when the
+           text is set, so a screen reader reads it once at the focus point (ia.md R2). -->
+      <div class="alert" data-variant="destructive" role="group" tabindex="-1" aria-labelledby="msg-wrong-title" data-state="wrong-credentials" data-message>
+        <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+        <p class="alert-title" id="msg-wrong-title">Неверная почта или пароль</p>
+      </div>
+      <div class="alert" data-variant="destructive" role="group" tabindex="-1" aria-labelledby="msg-nouser-title" aria-describedby="msg-nouser-description" data-state="no-user" data-message>
+        <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+        <p class="alert-title" id="msg-nouser-title">Неверная почта или пароль</p>
+        <p class="alert-description" id="msg-nouser-description">Пользователя создаёт скрипт seed, см. README</p>
+      </div>
+      <div class="alert" data-variant="warning" role="group" tabindex="-1" aria-labelledby="msg-server-title" data-state="server-unreachable" data-message>
+        <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+        <p class="alert-title" id="msg-server-title">Не удалось связаться с сервером. Проверьте, что платформа запущена (docker compose up), и попробуйте снова.</p>
+        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-retry>Повторить</button></div>
+      </div>
+      <div class="alert" data-variant="warning" role="group" tabindex="-1" aria-labelledby="msg-limit-title" data-state="too-many-attempts" data-message>
+        <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+        <p class="alert-title" id="msg-limit-title">Слишком много попыток входа. Подождите и попробуйте снова.</p>
+      </div>
+
+      <form action="../dashboard/prototype.html" method="get" novalidate data-step="F1.4" id="signin-form">
+        <input type="hidden" name="next" value="/courses/ai-for-developers/lessons/intro-models-effort?tab=task" data-step="F2.2" disabled>
+        <div class="signin-fields" data-step="F1.2">
+          <div class="field">
+            <label class="label" for="email">Почта</label>
+            <input class="input" id="email" name="email" type="email" autocomplete="username" autofocus>
+            <p class="field-error" id="email-error" data-state="empty-fields">Введите почту</p>
+          </div>
+          <div class="field">
+            <label class="label" for="password">Пароль</label>
+            <input class="input" id="password" name="password" type="password" autocomplete="current-password">
+            <p class="field-error" id="password-error" data-state="empty-fields empty-password">Введите пароль</p>
+          </div>
+        </div>
+        <div class="card-footer" data-step="F2.3">
+          <button class="button" type="submit" id="submit" data-step="F1.3"><span class="spinner" aria-hidden="true" data-state="submitting"></span><span id="submit-label">Войти</span></button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <div class="proto-chrome" lang="en">
+    <span>Prototype states:</span>
+    <nav data-state-index aria-label="Prototype states" class="row"></nav>
+    <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
+    <span id="next-url" hidden></span>
+    <span hidden data-state="default" data-state-label="default"></span>
+    <span hidden data-state="with-next" data-state-label="with next (F2.2)"></span>
+    <span hidden data-state="empty-fields" data-state-label="empty fields"></span>
+    <span hidden data-state="empty-password" data-state-label="empty password"></span>
+    <span hidden data-state="submitting" data-state-label="submitting"></span>
+    <span hidden data-state="wrong-credentials" data-state-label="wrong credentials"></span>
+    <span hidden data-state="server-unreachable" data-state-label="server unreachable"></span>
+    <span hidden data-state="too-many-attempts" data-state-label="too many attempts"></span>
+    <span hidden data-state="no-user" data-state-label="no user (seed)"></span>
+    <span hidden data-state="signed-out" data-state-label="signed out (F3.3)"></span>
+  </div>
+</div>
+
+<script src="../../system/proto.js"></script>
+<script>
+  /* Page-only behaviour: per-state field values, error wiring and focus (auth.md F1 keyboard path),
+     and a fake submit. The app replaces all of it. */
+  (function () {
+    "use strict";
+    var root = document.documentElement;
+    var email = document.getElementById("email");
+    var password = document.getElementById("password");
+    var submit = document.getElementById("submit");
+    var submitLabel = document.getElementById("submit-label");
+    var nextInput = document.querySelector("input[name='next']");
+    var nextUrl = document.getElementById("next-url");
+    var SAMPLE_EMAIL = "learner@example.com";
+    // #state-with-next opened without a ?next= query shows this sample value.
+    var SAMPLE_NEXT = "/courses/ai-for-developers/lessons/intro-models-effort?tab=task";
+    var LESSON_PATH = /^\/courses\/[^/?#]+\/lessons\/[^/?#]+(\?[^#]*)?$/;
+    var CATALOG_PATH = /^\/courses\/[^/?#]+(#[^?]*)?$/;
+    var queryNext = new URLSearchParams(window.location.search).get("next");
+    // F1.4: only a same-origin path is kept: a leading slash not followed by a second one.
+    var nextPath = queryNext && queryNext.charAt(0) === "/" && queryNext.charAt(1) !== "/" ? queryNext : null;
+    var SAMPLE_PASSWORD = "sample-password";
+    var FAKE_REQUEST_MS = 1200; // long enough to see "Входим..." in the prototype
+
+    // Values each state starts with; null keeps what the learner typed.
+    var VALUES = {
+      "default": null,
+      "with-next": null,
+      "signed-out": null,
+      "empty-fields": ["", ""],
+      "empty-password": [SAMPLE_EMAIL, ""],
+      "submitting": [SAMPLE_EMAIL, SAMPLE_PASSWORD],
+      "wrong-credentials": [SAMPLE_EMAIL, ""],
+      "no-user": [SAMPLE_EMAIL, ""],
+      "server-unreachable": [SAMPLE_EMAIL, SAMPLE_PASSWORD],
+      "too-many-attempts": [SAMPLE_EMAIL, ""]
+    };
+
+    function setInvalid(input, errorId, isInvalid) {
+      if (isInvalid) {
+        input.setAttribute("aria-invalid", "true");
+        input.setAttribute("aria-describedby", errorId);
+      } else {
+        input.removeAttribute("aria-invalid");
+        input.removeAttribute("aria-describedby");
+      }
+    }
+
+    function applyState(state) {
+      var values = VALUES[state];
+      if (values) { email.value = values[0]; password.value = values[1]; }
+      setInvalid(email, "email-error", state === "empty-fields");
+      setInvalid(password, "password-error", state === "empty-fields" || state === "empty-password");
+      var isBusy = state === "submitting";
+      if (isBusy) {
+        submit.setAttribute("aria-disabled", "true");
+        submit.setAttribute("aria-busy", "true");
+      } else {
+        submit.removeAttribute("aria-disabled");
+        submit.removeAttribute("aria-busy");
+      }
+      submitLabel.textContent = isBusy ? "Входим..." : "Войти";
+      // next lives as long as the page: an empty-field error and "Повторить" keep it (F2.2, F2.3).
+      if (state === "with-next" && !nextPath) nextPath = SAMPLE_NEXT;
+      if ((state === "default" || state === "signed-out") && !queryNext) nextPath = null;
+      nextInput.disabled = !nextPath;
+      if (nextPath) nextInput.value = nextPath;
+      nextUrl.hidden = !nextPath;
+      nextUrl.textContent = nextPath ? "URL: /sign-in?next=" + encodeURIComponent(nextPath) : "";
+
+      var message = document.querySelector("[data-message]:not([hidden])");
+      if (message) message.focus();
+      else if (state === "empty-password") password.focus();
+      else if (isBusy) submit.focus();
+      else email.focus();
+    }
+
+    new MutationObserver(function () {
+      applyState(root.getAttribute("data-active-state"));
+    }).observe(root, { attributes: true, attributeFilter: ["data-active-state"] });
+
+    // replaceState, not the push of data-goto-state: a failed submit is not a place Back should return to,
+    // as in the app, where the form never changes the URL. The query (next) is kept.
+    function goTo(state) {
+      history.replaceState(null, "", window.location.search + "#state-" + state);
+      window.proto.setState(state);
+    }
+
+    function send() {
+      // The prototype maps an app path to its page: a lesson path opens the lesson prototype with its query,
+      // a course path the catalog prototype with its module anchor, any other the dashboard.
+      var lessonMatch = nextPath ? nextPath.match(LESSON_PATH) : null;
+      var catalogMatch = nextPath ? nextPath.match(CATALOG_PATH) : null;
+      var target = "../dashboard/prototype.html";
+      if (lessonMatch) target = "../lesson/prototype.html" + (lessonMatch[1] || "");
+      else if (catalogMatch) target = "../catalog/prototype.html" + (catalogMatch[1] || "");
+      goTo("submitting");
+      window.setTimeout(function () { window.location.href = target; }, FAKE_REQUEST_MS);
+    }
+
+    document.getElementById("signin-form").addEventListener("submit", function (event) {
+      event.preventDefault();
+      if (submit.getAttribute("aria-disabled") === "true") return;
+      if (email.value.trim() === "") { goTo("empty-fields"); return; }
+      if (password.value === "") { goTo("empty-password"); return; }
+      send();
+    });
+
+    document.querySelector("[data-retry]").addEventListener("click", send);
+  })();
+</script>
+</body>
+</html>
