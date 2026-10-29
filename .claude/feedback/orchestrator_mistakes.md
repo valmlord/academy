@@ -130,3 +130,20 @@ ran every check live.
 Rule: when a design prescribes scripts or git procedures, have them executed (scratch clone, scratch
 directory, dry run) before the judge round, and give the operations judge the explicit job of running them.
 Put the infra procedure in its own issue when it dominates the design of a docs task.
+
+### 2026-10-29: Pasted tool output can carry a vote line (#27)
+
+judge_code round 1 on #27 found that the design validator printed lines starting with `PASS :root ...`, which
+`hookio.VERDICT_RE` parses as a verdict; the design judges were told to paste that output under their FAIL items, so
+an honest FAIL would have been recorded as PASS. Design review (two rounds, 3/3) did not catch it because nobody ran a
+tool's output through `verdict_from`.
+Rule: whenever a design adds a tool whose output a judge pastes into its report, the design review brief asks one
+judge to run sample output through `hookio.verdict_from` and confirm no line parses as a verdict; judge templates put
+the verdict on the last line.
+
+### 2026-10-29: Plan the unrelated uncommitted file before the pr gate (#27)
+
+Stepan's uncommitted `.github/CODEOWNERS` edit blocks `pr` and Stop at done (clean-tree checks), and agents may not
+stash. Round 1 of the #27 design FAILed partly for having no path.
+Rule: at init, if `git status --porcelain` shows a file outside the task, put "how the tree gets clean before pr"
+into the architect brief as a requirement, with the step owned by Stepan.

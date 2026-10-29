@@ -453,3 +453,49 @@ The literals (G1b, G2, G3, G8a) all check exit codes; only the one irreversible 
 Rule: Before a write-once or commit marker, the design names a check for every artifact the marker vouches
 for (exit status of each write, and a content check: parses, expected shape, expected count), and the step
 that sets the marker is either a prescribed literal or names those checks explicitly.
+
+### 2026-10-29: Identity rule stated as "where the file lives", mechanism trusts the prompt's claim (#27, round 1, security)
+Design rev 1, 1.1 says a gated role may run only when "the directory its file lives in" equals the tier's team,
+but 2.1.2 takes the team from the `ROLE_RE` capture of the prompt text. `Read .claude/agents/dev/curriculum-architect.md
+first` in TASK architect yields `dev/curriculum-architect.md`: team equals the tier, window exists, spawn allowed, and the
+leak the design claims to close stays open behind a wrong directory (case-insensitive `re.I` plus the macOS file system
+widens it: `content/Curriculum-Architect.md` is an ungated basename). Likewise `role_from` returns the prompt match before
+looking at `subagent_type`, so a dev prompt plus `subagent_type: curriculum-architect` (which selects the real agent
+definition) is never team-checked, although the design says the leak is closed "both by prompt and by subagent_type".
+Rule: When a gate enforces an identity, derive it from the ground truth (the scanned file location, every identity
+source present in the input), never from a value the input merely claims; a claim that disagrees with the ground truth
+or a missing file resolves to a non-matching sentinel, never to empty ("not a role").
+
+### 2026-10-29: The enforced rule reads the prompt's claim, the documented rule names the file (#27, round 1, architecture)
+Design revision 1, 2.1.2-2.1.3: the team check compares the tier's `team` with the directory captured from the
+prompt text (`ROLE_RE` group 1), while 1.1 and the ADR-0005 item 10 text say "the directory its file lives in".
+`Read .claude/agents/dev/curriculum-architect.md first` in TASK `architect` yields team `dev`, passes the check and the
+window, and the leak the change exists to close stays open for a one-word slip; T1/T2 only test the correctly spelled
+path, so the suite reports the leak closed. Same revision, 2.7/2.8: `tokens.css` is said to style the prototypes
+unchanged, yet browsers drop the whole `@theme inline` block, so `--radius-sm`, `--font-sans` or `--color-*` defined
+there are undefined in a prototype; the validator's "defined token" set and its color/non-color classification of
+`:root` declarations were left unstated, so it can certify a prototype that renders wrong. The unit test list has no
+text pair between 3:1 and 4.5:1, so the core 1.4.3 threshold could be 3.0 and every test would stay green.
+Rule: When a rule is stated about a real object (a file's location, what a browser applies), the check derives it from
+that object, not from a string that describes it, and a test exercises the description and the object disagreeing.
+Every threshold a validator enforces gets a test case on each side of it.
+
+### 2026-10-29: "Leave the file out of every commit" with no path through the clean-tree gates (#27, round 1, operations)
+Design revision 1, 9.3 and 5 keep Stepan's uncommitted `.github/CODEOWNERS` out of every commit (explicit-path
+commits) and 11.2 defers it to "when committing the pending edit", but never says what happens at `pr`:
+`pipeline-advance.sh:249` refuses on any `git status --porcelain` output and the Stop gate at `done`
+(`phase-complete.sh:90`) does the same, so the pipeline cannot leave `commit` while the edit sits in the tree. The
+research listed this constraint explicitly; #23 got past it only by an ad hoc `git stash`. Same revision: the recovery
+row "S1 blocked, S3 succeeds" names `cfg.py` although F1 says a broken `cfg.py` closes the Write gate too, and P3
+prescribes `shellcheck` and mypy runs with no tool present on this Mac (no local shellcheck, no offline mypy).
+Rule: For every working-tree file a design keeps out of commits, it names the exact step that gets it past each
+clean-tree gate (`pr`, Stop at `done`) and back afterwards; every prescribed local command names a runnable tool
+invocation that was actually run on this machine.
+
+### 2026-10-29: A tool's output format collided with the vote parser the judges feed it to (#27)
+Design 2.8 fixed the validator's lines as `PASS|FAIL <theme> ...`, and 2.5 told the design judges to paste them and
+gave a FAIL template whose items follow the verdict line. With the theme `:root`, `PASS :root --ring on
+--background: ...` matches `hookio.VERDICT_RE` (`\s*[:\-]` after PASS), and `verdict_from` takes the last
+verdict-shaped line, so a FAIL report with the validator output pasted below it is recorded as a PASS vote.
+Rule: Any text a judge is told to quote in its report must be checked against VERDICT_RE; tool output lines never
+start with a bare PASS or FAIL token.

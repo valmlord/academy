@@ -7,10 +7,11 @@ crashed; the judges rubber-stamped PASS without loading their own role file that
 for resource leaks". Two roles skipped their files; one bug took the host down.
 
 **How to apply:**
-- ALWAYS spawn as `Agent(prompt="Read .claude/agents/<role>.md first. Then: <task>")`.
+- ALWAYS spawn as `Agent(prompt="Read .claude/agents/<team>/<role>.md first. Then: <task>")`, with the
+  directory the file really lives in (the hooks deny a path that does not exist).
 - NEVER rely on a bare built-in `subagent_type` - that is a generic agent with none of the
   project's rules and checklists.
-- For judges: `Agent(prompt="Read .claude/agents/judge-security.md first. Then: <review>")`,
+- For judges: `Agent(prompt="Read .claude/agents/dev/judge-security.md first. Then: <review>")`,
   and likewise for the other judges of the tier (`.claude/pipeline.json`).
 - NEVER record a judge PASS inline without actually spawning the judge agents.
 - Under time pressure - still load the files. Ten seconds of reading prevents the class of
@@ -18,4 +19,4 @@ for resource leaks". Two roles skipped their files; one bug took the host down.
 
 **Key distinction:**
 - bare `subagent_type` → generic agent, no project rules.
-- `Agent(prompt="Read .claude/agents/<role>.md first...")` → the role agent with its rules.
+- `Agent(prompt="Read .claude/agents/<team>/<role>.md first...")` → the role agent with its rules.
