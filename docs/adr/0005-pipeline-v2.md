@@ -3,7 +3,7 @@
 - Status: Proposed
 - Date: 2026-10-27
 - Issue: #21
-- Amended: #23 (items 6, 7, 8 and 9)
+- Amended: #23 (items 6, 7, 8 and 9); #27 (item 10)
 
 ## Context
 Pipeline v1 assumed one checkout. With git worktrees (#15) every hook still read the main
@@ -87,6 +87,18 @@ decisions 1-7: `plans/21-pipeline-v2-research.md`; full design: `plans/21-pipeli
    tier's `team` must be a string and its three flags exactly `true`/`false`. Anything else is a
    crash of both PreToolUse gates, i.e. every write and command blocked, rather than a string
    `"false"` read as true; the way out is fixing the file by hand or the kill switch.
+10. **Team of a role (#27).** The role of a spawn is the agent file named by the prompt's leading
+    `Read .claude/agents/<dir>/<file>.md first` only when that exact path (directory and case) exists
+    in the main checkout's agent tree, and its team is the directory the file lives in. A prompt naming
+    a path that does not exist, or a `subagent_type` naming a known agent other than the prompt's role,
+    is denied for every role (`role-path`, `role-type`), and such a judge's vote never counts. A gated
+    role may be spawned only in a tier whose `team` equals its team; a tier without a team refuses
+    gated roles. An unreadable or empty agent tree, or a `.md` under `.claude/agents/` that is not a
+    `<team>/<file>.md` with lower-case names (files starting with `_` excepted; Claude Code registers
+    agents recursively), blocks role spawns (fail closed). Agent names and basenames are unique across
+    directories (CI, `tests/pipeline/run.sh` S1); judges are bound by the tier's judge list. Residual
+    risk accepted as for items 1-9: a deliberate bypass (a prompt without the leading `Read` line and no
+    `subagent_type`) is not a role spawn and is caught by review.
 
 ## Alternatives considered
 - Dispatch to the resolved checkout's own scripts: an old-commit worktree or a fake `.git`-file

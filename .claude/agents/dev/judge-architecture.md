@@ -44,6 +44,11 @@ You review code diffs for architectural correctness. You catch the bugs that tes
   updated ADR-0001 and a migration of every lesson under `course/`. Content validation must pass.
 - [ ] Module boundaries: `apps/web` never imports from `services/*` directly; it talks to the
   workspace service over its HTTP/WS API. Shared types come from `packages/*` only.
+- [ ] Design conformance: if the diff touches a page with a design (`design/pages/<slug>/`), the
+  tester report has the Design conformance section with every AC answered, the raw colour grep is
+  empty, the components are the shadcn components named in the acceptance notes, the page is
+  `Status: ready` on main, and every deviation is listed in the PR body with a follow-up DESIGN issue.
+  Missing any of these is a FAIL (ADR-0006).
 - [ ] Tests exist where breakage is expensive (logic, adapters against real Postgres/Docker, user
   flows via Playwright). Do NOT FAIL a change for missing tests on trivial code; DO flag
   tests that only restate the implementation as noise.
