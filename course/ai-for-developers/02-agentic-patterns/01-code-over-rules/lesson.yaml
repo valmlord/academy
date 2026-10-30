@@ -1,0 +1,53 @@
+id: patterns-code-over-rules
+title: "Менять код, а не правила"
+type: artifact
+outcomes:
+  - "Раскладывает правила из файла инструкций агента по ступеням (удалить, изменить код, проверка, хук, память) по заданному порядку решения, убирает из памяти всё, что ушло на другие ступени, и меняет код так, чтобы ошибка, от которой предостерегало правило, стала невозможной."
+estimatedMinutes: 60
+status: ready
+prerequisites:
+  - sdd-integrity-control
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: Best practices (детерминированные и недетерминированные инструкции, хуки для предпочтений, команда проверки как самая полезная строка CLAUDE.md, What you can stop doing)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Manage Claude's memory (CLAUDE.md, CLAUDE.local.md, .claude/rules/, AGENTS.md, импорты @path)"
+    url: https://code.claude.com/docs/en/memory
+    checkedAt: "2026-10-30"
+  - title: "Birgitta Böckeler: Harness engineering for coding agent users (2026-04-02; guides и sensors, computational и inferential, harnessability)"
+    url: https://martinfowler.com/articles/harness-engineering.html
+    checkedAt: "2026-10-30"
+  - title: "Mitchell Hashimoto: My AI Adoption Journey (2026-02-05; Engineer the Harness)"
+    url: https://mitchellh.com/writing/my-ai-adoption-journey
+    checkedAt: "2026-10-30"
+  - title: "Anthropic: Building effective agents (2024-12-19; poka-yoke для инструментов агента)"
+    url: https://www.anthropic.com/engineering/building-effective-agents
+    checkedAt: "2026-10-30"
+  - title: "Ryan Lopopolo, OpenAI: Harness engineering: leveraging Codex in an agent-first world (2026-02-11; AGENTS.md как карта, promote the rule into code)"
+    url: https://openai.com/index/harness-engineering/
+    checkedAt: "2026-10-30"
+  - title: "Gloaguen et al.: Evaluating AGENTS.md (arXiv:2602.11988 v3, 2026-09-29; инструкции хорошо исполняются)"
+    url: https://arxiv.org/abs/2602.11988
+    checkedAt: "2026-10-30"
+checks:
+  - id: rule-placement
+    title: "Правила CLAUDE.md разложены по ступеням, ушедшие на другие ступени убраны из памяти"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_placement.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: poka-yoke-applied
+    title: "late_fee принимает только именованные аргументы, вызовы исправлены, мёртвый модуль удалён"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_pokayoke.py"'
+    timeoutSec: 150
+    weight: 2
+  - id: code-over-rules-quiz
+    title: "Квиз: лестница размещения, понижение хука, вычислительные сенсоры, AGENTS.md как карта"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

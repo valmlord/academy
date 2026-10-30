@@ -1,0 +1,11 @@
+{
+  "apiKeyHelper": "/opt/corp/bin/llm-token",
+  "sandbox": {
+    "network": {
+      "strictAllowlist": true,
+      "allowedDomains": [
+        "pypi.corp.local"
+      ]
+    }
+  }
+}

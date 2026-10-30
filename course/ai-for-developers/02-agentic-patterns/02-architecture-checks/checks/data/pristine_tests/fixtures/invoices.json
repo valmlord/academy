@@ -1,0 +1,11 @@
+[
+  {"id": 1, "customer": "Acme GmbH", "currency": "EUR", "status": "paid", "dispute": "none",
+   "issued_on": "2026-09-01", "due_on": "2026-09-15", "paid_cents": 120000,
+   "lines": [{"description": "Annual-support", "amount_cents": 120000}]},
+  {"id": 2, "customer": "Globex", "currency": "USD", "status": "issued", "dispute": "none",
+   "issued_on": "2026-09-14", "due_on": "2026-09-28", "paid_cents": 0,
+   "lines": [{"description": "Setup", "amount_cents": 30050}, {"description": "Training", "amount_cents": 15000}]},
+  {"id": 3, "customer": "Initech", "currency": "EUR", "status": "draft", "dispute": "none",
+   "issued_on": "2026-10-02", "due_on": "2026-10-16", "paid_cents": 0,
+   "lines": [{"description": "Licences", "amount_cents": 9900}]}
+]

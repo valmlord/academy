@@ -1,0 +1,2 @@
+# Third-party modules that src/ may import, one top-level name per line.
+# The project uses only the standard library at runtime, so the list is empty.

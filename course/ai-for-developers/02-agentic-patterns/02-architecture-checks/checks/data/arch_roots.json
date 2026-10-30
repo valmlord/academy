@@ -1,0 +1,636 @@
+{
+ "roots": [
+  {
+   "name": "a1-forms",
+   "theme": "формы импорта invoices из ledger",
+   "expect": "findings",
+   "files": [
+    {
+     "path": "src/ledger/%m1%.py",
+     "chunks": [
+      {
+       "text": "import invoices",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import invoices.money",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import invoices.money as money_module",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from invoices import models, money",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from invoices.money import format_cents",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from invoices.service import (\n    validate_status,\n    to_json_dict,\n)",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "def %f1%():\n    import invoices.api\n    return invoices.api",
+       "findings": [
+        [
+         "A1",
+         1
+        ]
+       ]
+      },
+      {
+       "text": "from typing import TYPE_CHECKING\n\nif TYPE_CHECKING:\n    from invoices.models import Invoice",
+       "findings": [
+        [
+         "A1",
+         3
+        ]
+       ]
+      },
+      {
+       "text": "import invoices  # noqa: A1",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "x = 1; import invoices.repository",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from . import accounts",
+       "findings": []
+      },
+      {
+       "text": "import invoices_archive",
+       "findings": []
+      },
+      {
+       "text": "import invoicesx",
+       "findings": []
+      },
+      {
+       "text": "NOTES = \"\"\"\nimport invoices\nfrom invoices import money\n\"\"\"",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/ledger/%m2%/%m3%.py",
+     "chunks": [
+      {
+       "text": "from __future__ import annotations",
+       "findings": [],
+       "future": true
+      },
+      {
+       "text": "from ..accounts import Entry",
+       "findings": []
+      },
+      {
+       "text": "import invoices.late_fee",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from .. import accounts",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a1-near",
+   "theme": "похожие на A1, но допустимые случаи",
+   "expect": "clean",
+   "files": [
+    {
+     "path": "src/ledgerx/%m1%.py",
+     "chunks": [
+      {
+       "text": "import invoices",
+       "findings": []
+      },
+      {
+       "text": "from invoices.money import format_cents",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "tests/ledger/test_%m2%.py",
+     "chunks": [
+      {
+       "text": "import invoices",
+       "findings": []
+      },
+      {
+       "text": "import sqlite3",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/ledger/%m3%.py",
+     "chunks": [
+      {
+       "text": "TEXT = \"import invoices\"",
+       "findings": []
+      },
+      {
+       "text": "# import invoices",
+       "findings": []
+      },
+      {
+       "text": "from ledger import accounts",
+       "findings": []
+      },
+      {
+       "text": "import ledger.accounts",
+       "findings": []
+      },
+      {
+       "text": "from . import posting",
+       "findings": []
+      },
+      {
+       "text": "import json, os",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/%m4%.py",
+     "chunks": [
+      {
+       "text": "import invoices.money",
+       "findings": []
+      },
+      {
+       "text": "from invoices import models",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "scripts/%m5%.py",
+     "chunks": [
+      {
+       "text": "from invoices import legacy_format",
+       "findings": []
+      },
+      {
+       "text": "import sqlite3",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a2-forms",
+   "theme": "формы импорта sqlite3",
+   "expect": "findings",
+   "files": [
+    {
+     "path": "src/invoices/%m1%.py",
+     "chunks": [
+      {
+       "text": "import os, sqlite3",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from sqlite3 import connect",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import sqlite3.dbapi2",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "def %f1%():\n    import sqlite3\n    return sqlite3",
+       "findings": [
+        [
+         "A2",
+         1
+        ]
+       ]
+      },
+      {
+       "text": "import os, \\\n    sqlite3",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import sqlite3x",
+       "findings": []
+      },
+      {
+       "text": "import mysqlite3",
+       "findings": []
+      },
+      {
+       "text": "from os import path",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/repository.py",
+     "chunks": [
+      {
+       "text": "import sqlite3",
+       "findings": []
+      },
+      {
+       "text": "from sqlite3 import Connection",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/repository_helpers.py",
+     "chunks": [
+      {
+       "text": "import sqlite3",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "path": "src/ledger/repository.py",
+     "chunks": [
+      {
+       "text": "import sqlite3",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "path": "src/%m2%.py",
+     "chunks": [
+      {
+       "text": "from sqlite3 import dbapi2 as db",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "path": "scripts/%m3%.py",
+     "chunks": [
+      {
+       "text": "import sqlite3",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "a3-forms",
+   "theme": "формы импорта invoices.legacy_format",
+   "expect": "findings",
+   "files": [
+    {
+     "path": "src/invoices/%m1%.py",
+     "chunks": [
+      {
+       "text": "from . import legacy_format",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from .legacy_format import money_str",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from invoices import legacy_format, models",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import invoices.legacy_format as lf",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from invoices import (\n    models,\n    legacy_format,\n)",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import invoices.legacy_format_v2",
+       "findings": []
+      },
+      {
+       "text": "from . import models",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/%m2%/%m3%.py",
+     "chunks": [
+      {
+       "text": "from ..legacy_format import money_str",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from .. import models",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/%m2%/__init__.py",
+     "chunks": [
+      {
+       "text": "from .. import legacy_format",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/export_csv.py",
+     "chunks": [
+      {
+       "text": "from invoices.legacy_format import money_str",
+       "findings": []
+      },
+      {
+       "text": "from . import legacy_format",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/%m2%/export_csv.py",
+     "chunks": [
+      {
+       "text": "from invoices.legacy_format import money_str",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "combined",
+   "theme": "все правила сразу, в том числе два правила в одном операторе",
+   "expect": "findings",
+   "files": [
+    {
+     "path": "src/ledger/%m1%.py",
+     "chunks": [
+      {
+       "text": "from invoices import legacy_format",
+       "findings": [
+        [
+         "A1",
+         0
+        ],
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import sqlite3, invoices.money",
+       "findings": [
+        [
+         "A1",
+         0
+        ],
+        [
+         "A2",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from invoices.legacy_format import money_str",
+       "findings": [
+        [
+         "A1",
+         0
+        ],
+        [
+         "A3",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "import json",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/%m2%.py",
+     "chunks": [
+      {
+       "text": "import sqlite3",
+       "findings": [
+        [
+         "A2",
+         0
+        ]
+       ]
+      },
+      {
+       "text": "from .legacy_format import money_str",
+       "findings": [
+        [
+         "A3",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "path": "src/ledger/export_csv.py",
+     "chunks": [
+      {
+       "text": "from invoices.legacy_format import money_str",
+       "findings": [
+        [
+         "A1",
+         0
+        ],
+        [
+         "A3",
+         0
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "syntax-error",
+   "theme": "файл, который не разбирается",
+   "expect": "error",
+   "files": [
+    {
+     "path": "src/ledger/%m1%.py",
+     "chunks": [
+      {
+       "text": "import invoices",
+       "findings": [
+        [
+         "A1",
+         0
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/%m2%.py",
+     "chunks": [
+      {
+       "text": "def %f1%(:\n    pass",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "no-src",
+   "theme": "корень без src/",
+   "expect": "error",
+   "files": [
+    {
+     "path": "lib/ledger/%m1%.py",
+     "chunks": [
+      {
+       "text": "import invoices",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,44 @@
+# Reserve incidents for the mentor review after failure-log is closed (design #42 2.5, as 00 2.5.6).
+# Mentor-review store, never on the command-check mount; never shown before the review. Fiction, as the lesson's incidents.
+# Walk: step 0 (was the task the problem?), then the placement ladder (design 2.7); first yes decides.
+version: 1
+check: failure-log
+passBar: "3 of 3 incidents with the key cause and an accepted layer, each with the step where the walk stopped"
+incidents:
+  - id: I06
+    text: |
+      Контекст: репозиторий invoice-service, make check с тестами и A1-A3, Stop-хук с тестами.
+      > Добавь в GET /invoices параметр ?limit=.
+      ● Добавил limit в repository.list_invoices как list_invoices(conn, status, limit=None, *, order="id").
+      ● Bash(make check) ⎿ OK
+      ● Готово. (В коде вызвано conn.execute(..., timeout=5): у sqlite3 Connection.execute нет параметра timeout;
+        ветка с limit не покрыта тестами, падение нашли в проде.)
+    key: {cause: invented-api, layers: [check]}
+    walk:
+      - "0 n: the task was clear and small"
+      - "1-4 n: not a command line, nothing existing covers the branch, ignoring it is the harm, no code change makes a wrong keyword impossible"
+      - "5 n: found after the turn it costs one edit"
+      - "6 Y: a test of the ?limit= branch in make check fails on the TypeError"
+  - id: I09
+    text: |
+      Контекст: invoice-service, make check запускает тесты и линтер A1-A3; линтер пропускает файлы из списка EXCLUDE
+      в scripts/check_architecture.py. Агенту нужно было вынести sqlite3 из api.py в repository.py.
+      ● Bash(make check) ⎿ A2 src/invoices/api.py:3: ...
+      ● Edit(scripts/check_architecture.py): EXCLUDE = ["src/invoices/api.py"]
+      ● Bash(make check) ⎿ OK
+      ● Готово, проверка зелёная.
+    key: {cause: gamed-check, layers: [check, hook]}
+    walk:
+      - "0 n: the task was clear"
+      - "class 1 yes: the agent changed the check (an exclude) instead of the code"
+      - "5 (accepted): a PreToolUse hook that denies edits of scripts/check_*.py during implementation"
+      - "6 (accepted): CI applies its own copy of the rules, with no exclude list, to src/ (as arch-workspace-clean does)"
+  - id: I11
+    text: |
+      Контекст: агент сделал миграцию БД и в той же сессии запустил make db-reset на общей dev-базе, стерев данные
+      коллег. В settings.json нет правил deny и хуков.
+    key: {cause: missing-fact, layers: [hook]}
+    walk:
+      - "0 n: the task did not ask for a reset"
+      - "class: the shared dev database is a fact the repo does not state (missing-fact)"
+      - "5 Y: an irreversible command must be stopped before the tool call: a deny rule or PreToolUse hook on make db-reset"

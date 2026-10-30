@@ -1,0 +1,101 @@
+# Reserve pool for closed-environments-quiz (design #42 2.5): unseen questions for the mentor review
+# after the quiz is closed. Same format and authoring rules as quiz.yaml; never shown before the review.
+version: 1
+check: closed-environments-quiz
+questions:
+  - id: base-url-without-v1
+    type: single
+    prompt: |
+      Шлюз банка принимает запросы Messages API по адресу `https://llm.corp.local/v1/messages`.
+      Что записать в `ANTHROPIC_BASE_URL` для Claude Code 2.1.314?
+    options:
+      - { id: a, text: "`https://llm.corp.local/v1/messages`, полный адрес метода" }
+      - { id: b, text: "`https://llm.corp.local`, путь `/v1/messages` Claude Code добавит сам" }
+      - { id: c, text: "`https://llm.corp.local/v1`, потому что версия API входит в базовый адрес" }
+      - { id: d, text: "`llm.corp.local:443`, схему и путь Claude Code подставит сам" }
+    correct: [b]
+    explanation: |
+      В примере llm-gateway-connect запрос идёт на `"$ANTHROPIC_BASE_URL/v1/messages"`: Claude Code
+      дописывает `/v1/messages` к базовому адресу. С `/v1` в переменной получится `/v1/v1/messages`.
+
+  - id: committed-token-rotate
+    type: single
+    prompt: |
+      Статический токен шлюза месяц лежал в закоммиченном `.claude/settings.json`. Его удалили из
+      файла и закоммитили. Что ещё обязательно сделать?
+    options:
+      - { id: a, text: "Ничего: после коммита токена в репозитории больше нет" }
+      - { id: b, text: "Перенести токен в `.claude/settings.local.json`, он не попадает в git" }
+      - { id: c, text: "Отозвать или сменить токен: он остался в истории git" }
+      - { id: d, text: "Переписать последний коммит, чтобы удаление выглядело аккуратно" }
+    correct: [c]
+    explanation: |
+      Удалённый из файла токен остаётся в истории git у каждого, кто клонировал репозиторий, поэтому
+      его отзывают или меняют. Короткоживущие токены выдаёт программа из `apiKeyHelper`, и в файлах
+      токена нет вовсе.
+
+  - id: shell-export-background-agents
+    type: single
+    prompt: |
+      Разработчик экспортировал `ANTHROPIC_BASE_URL` шлюза в своём `.zshrc`. Интерактивная сессия
+      Claude Code 2.1.314 работает, а фоновые агенты иногда ходят мимо шлюза. Что исправит это?
+    options:
+      - { id: a, text: "Повторить `export` в `.bash_profile`, чтобы его видели все оболочки" }
+      - { id: b, text: "Перезапускать терминал перед каждым фоновым агентом" }
+      - { id: c, text: "Задать переменную в `CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT` вместе с адресом" }
+      - { id: d, text: "Задать адрес в `env` файла настроек, который доходит до фоновых сессий" }
+    correct: [d]
+    explanation: |
+      Документация шлюза предупреждает: переменная, экспортированная только в оболочке, ненадёжно
+      доходит до фоновых агентов, а `env` в настройках единственная конфигурация, которая доходит до
+      каждой фоновой сессии.
+
+  - id: local-over-project
+    type: single
+    prompt: |
+      В `.claude/settings.json` проекта `env.ANTHROPIC_BASE_URL` равен адресу шлюза, а в
+      `.claude/settings.local.json` того же проекта он равен `https://api.anthropic.com`. В
+      `~/.claude/settings.json` тоже стоит адрес шлюза. Куда пойдут запросы терминальной сессии?
+    options:
+      - { id: a, text: "В `api.anthropic.com`: локальные настройки проекта важнее общих и пользовательских" }
+      - { id: b, text: "В шлюз: два файла из трёх называют шлюз, большинство побеждает" }
+      - { id: c, text: "В шлюз: пользовательские настройки важнее настроек проекта" }
+      - { id: d, text: "В шлюз: закоммиченные настройки проекта важнее незакоммиченных" }
+    correct: [a]
+    explanation: |
+      Порядок старшинства: управляемые настройки, командная строка, локальные настройки проекта,
+      общие настройки проекта, пользовательские. Если переменную задают несколько файлов, действует
+      значение самого старшего, здесь `.claude/settings.local.json`.
+
+  - id: per-tool-ca-trust
+    type: multiple
+    prompt: |
+      Корневой CA банка лежит в `/etc/corp/ca-bundle.pem` и не входит в системное хранилище. Агент
+      Claude Code 2.1.314 вызывает и шлюз, и `uv pip install` через зеркало. Какие настройки нужны?
+      Выберите все верные.
+    options:
+      - { id: a, text: "`NODE_EXTRA_CA_CERTS` с путём к файлу CA для самого Claude Code" }
+      - { id: b, text: "`SSL_CERT_FILE` с тем же путём к файлу CA, для самого uv" }
+      - { id: c, text: "`UV_SYSTEM_CERTS=1`, чтобы uv взял сертификаты из системного хранилища" }
+      - { id: d, text: "Ничего сверх `NODE_EXTRA_CA_CERTS`: uv читает ту же переменную" }
+    correct: [a, b]
+    explanation: |
+      Каждый инструмент доверяет сертификатам по-своему: Claude Code читает `NODE_EXTRA_CA_CERTS`, uv
+      читает `SSL_CERT_FILE` или `SSL_CERT_DIR`; `NODE_EXTRA_CA_CERTS` на странице переменных uv нет.
+      `UV_SYSTEM_CERTS` берёт системное хранилище, а CA банка там нет.
+
+  - id: uv-index-vs-default-index
+    type: multiple
+    prompt: |
+      Пакеты Python можно брать только из зеркала `https://pypi.corp.local/simple`. Какие строки
+      профиля, который читают терминалы, дают это для uv? Выберите все верные.
+    options:
+      - { id: a, text: "`UV_DEFAULT_INDEX=https://pypi.corp.local/simple`" }
+      - { id: b, text: "`UV_INDEX=https://pypi.corp.local/simple` без других строк про индексы" }
+      - { id: c, text: "`UV_INDEX_URL=https://pypi.corp.local/simple`, устаревшее имя той же настройки" }
+      - { id: d, text: "`UV_EXTRA_INDEX_URL=https://pypi.corp.local/simple` без других строк" }
+    correct: [a, c]
+    explanation: |
+      `UV_DEFAULT_INDEX` заменяет индекс по умолчанию (публичный PyPI); `UV_INDEX_URL` его устаревший
+      синоним. `UV_INDEX` и его устаревший синоним `UV_EXTRA_INDEX_URL` только добавляют индексы, а
+      публичный индекс по умолчанию остаётся.

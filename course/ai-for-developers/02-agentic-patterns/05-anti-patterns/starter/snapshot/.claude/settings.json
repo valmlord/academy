@@ -1,0 +1,64 @@
+{
+  "model": "opus",
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/protect_generated.py"]
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/no_print.py"]
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/format_edited.py"]
+          },
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PROJECT_DIR}/scripts/review.sh"],
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_tests.py"],
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_import_review.py"],
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}

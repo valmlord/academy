@@ -1,0 +1,8 @@
+{
+ "allowed": [],
+ "firstParty": [
+  "invoices",
+  "ledger",
+  "shared"
+ ]
+}

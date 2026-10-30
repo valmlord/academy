@@ -1,0 +1,215 @@
+# Answer key for anti-pattern-hunt (design #42 L5, format as module 00 design 2.2 and 01 2.2).
+# Hidden: grader mount only. `file` is relative to the workspace root; `lines` are 1-based physical
+# lines (transcript.md prints them, and they equal the physical lines). Generated together with the
+# starter; ranges are pairwise non-overlapping, one accepted range per item. transcript.md line 1 (the
+# task.md format example) lies in no range.
+# Decision rule (task.md), first 'yes' decides, by location then content:
+#   1 a conversation message -> session-steering
+#   2 machinery that runs (hook code, settings, scripts, CI) -> over-harness
+#   3 an instruction-file line with a must-hold rule a program could check or enforce -> prose-rule
+#   4 otherwise in an instruction file -> memory-bloat
+# Anchor rule (task.md): the line of the setup decision. For a hook or a script, the lines of its code
+# that do the (extra) work; the settings.json registration line is in no range. A settings-only item is
+# anchored in settings.json. The agent's later action and the violating code line are in no range.
+# Blocks per category (each range is a guessable block): memory-bloat 2 + 4, prose-rule 2 + 4,
+# over-harness 3 + 6, session-steering 2 + 4 = 9 planted + 18 decoys.
+# Every instruction-file decoy survives lesson 1's ladder as `memory` (step 1 or 7), so a learner who
+# applies the ladder does not hit it.
+version: 1
+report: findings.json
+maxReports: 10
+maxDecoyHits: 1
+categories: [memory-bloat, prose-rule, over-harness, session-steering]
+bugs:
+  # Walk (mb-project-structure):
+  #   Rule 1: not a message. Rule 2: not machinery. Rule 3: a description of the tree is no rule.
+  #   Rule 4: yes, an instruction-file line. Anti-pattern: a repository overview the agent reads itself
+  #   (CC best practices 'Describe your architecture and file layout in CLAUDE.md' under what you can
+  #   stop doing; Gloaguen: overviews do not help). It is already stale: transcript 15-23 (reports/).
+  #   Anchor: the heading and the whole tree (one range).
+  - id: mb-project-structure
+    file: snapshot/CLAUDE.md
+    lines: [[7, 45]]
+    category: memory-bloat
+    title: "Раздел ## Project structure пересказывает дерево репозитория, которое агент читает сам; оно уже устарело (src/ledger/reports/ нет)."
+    explanation: "Обзор структуры в памяти тратит контекст на то, что видно из репозитория, и устаревает молча: агент пошёл в несуществующий src/ledger/reports/overdue.py. Хороший двойник: короткая карта со ссылками туда, где знание живёт (docs/adr/)."
+  # Walk (mb-shouting):
+  #   Rule 1-2: no. Rule 3: whether the agent asked about a meaning is a judgement no program can check,
+  #   so the line is not a prose-rule. Rule 4: yes. Anti-pattern: capitals and exclamation marks added
+  #   after the agent missed the line (transcript 93-96), CC best practices: 'piling on emphasis mostly
+  #   makes Claude over-apply the rule'. Look-alike: the calm ADR-conflict line; capitals in a sample name
+  #   (the fixtures line) are not emphasis.
+  #   Anchor: the line itself.
+  - id: mb-shouting
+    file: snapshot/CLAUDE.md
+    lines: [[55, 55]]
+    category: memory-bloat
+    title: "Правило про двусмысленные требования переписано заглавными с !!! после того, как агент его пропустил."
+    explanation: "Акцент не делает строку надёжнее, а заставляет модель применять правило где не нужно. Исправляют причину: короче файл, вопрос в постановке задачи (шаг task), а не громкость. Хороший двойник: спокойная строка про два расходящихся ADR."
+  # Walk (pr-ledger-imports):
+  #   Rule 1-2: no. Rule 3: yes, a must-hold boundary an AST import check enforces deterministically
+  #   (lesson 2), but only prose and an LLM Stop hook guard it; src/ledger/report.py:5 already breaks it
+  #   (transcript 30). The import linter in make check covers sqlite3 and legacy_format only. A rule guarded
+  #   only by a model review is still prose-rule (L5 theory/task): no program enforces it, so lesson 1's
+  #   step 2 ('an existing hook or check enforces it') does not apply.
+  #   Anchor: the CLAUDE.md line, not report.py (the violation is a consequence).
+  - id: pr-ledger-imports
+    file: snapshot/CLAUDE.md
+    lines: [[49, 49]]
+    category: prose-rule
+    title: "'ledger code never imports invoices' есть только в CLAUDE.md: make check его не проверяет, и report.py его уже нарушает."
+    explanation: "Обязательную границу импорта переводят в детерминированную проверку (AST-линтер в make check), а строку из памяти убирают. LLM-ревью в Stop-хуке её не обеспечивает: оно пропустило нарушение. Хороший двойник: правило, которое никакая программа проверить не может (какой из двух ADR следовать)."
+  # Walk (pr-typecheck):
+  #   Rule 1-2: no. Rule 3: yes, 'before you hand over, run make typecheck' is a must-hold step a
+  #   Stop hook enforces every time (CC best practices: such a line 'works most of the time, not every time').
+  #   The agent skipped it (transcript 76-79), CI went red. Anchor: the line.
+  - id: pr-typecheck
+    file: snapshot/CLAUDE.md
+    lines: [[51, 51]]
+    category: prose-rule
+    title: "'Before you hand over, run make typecheck' стоит строкой в CLAUDE.md вместо Stop-хука, и агент её пропустил."
+    explanation: "Шаг, который должен выполняться всегда в конце хода, ставят в Stop-хук (как тесты в stop_tests.py): он срабатывает каждый раз, а строка в памяти только иногда."
+  # Walk (oh-no-print):
+  #   Rule 1: no. Rule 2: yes, hook code. Anti-pattern: a blocking hook for a preference (logging over
+  #   print) with legitimate exceptions; it blocked a console script that must print (transcript 58-63)
+  #   and the agent worked around it. CC best practices: hooks for things that are only preferences,
+  #   delete them. Anchor: the docstring that states the preference through the lines that block.
+  - id: oh-no-print
+    file: snapshot/.claude/hooks/no_print.py
+    lines: [[2, 16]]
+    category: over-harness
+    title: "PreToolUse-хук no_print.py блокирует любую правку с print(, хотя это предпочтение с законными исключениями."
+    explanation: "Хук для предпочтения мешает правильной работе (консольному скрипту нужен stdout) и учит агента обходить хуки. Предпочтение оставляют модели или линтеру с исключениями; хук нужен там, где нарушение необратимо, как правка generated/."
+  # Walk (oh-llm-import-review):
+  #   Rule 1: no. Rule 2: yes, hook code. Anti-pattern (Böckeler): an inferential sensor where a
+  #   computational one would do; claude -p on every Stop is slow, costs money and missed the violation
+  #   in report.py (transcript 71, 173). The deterministic check is an AST import rule in make check.
+  #   Anchor: the docstring and the PROMPT constant through the claude -p call.
+  - id: oh-llm-import-review
+    file: snapshot/.claude/hooks/stop_import_review.py
+    lines: [[2, 23]]
+    category: over-harness
+    title: "Stop-хук stop_import_review.py спрашивает claude -p про направление импортов, хотя это проверяет детерминированный AST-линтер."
+    explanation: "Инференсный сенсор там, где хватает вычислительного: медленно, платно, недетерминированно, и он пропустил нарушение в report.py. Хороший двойник: LLM-ревью в CI, которое судит о смысле изменения относительно спецификации, где программа не поможет."
+  # Walk (oh-review-every-edit):
+  #   Rule 1: no. Rule 2: yes, script code run by a PostToolUse hook. Anti-pattern (Jain): the full
+  #   suite and an LLM review of the whole diff after every Edit, on a frontier model, for one-line
+  #   changes (transcript 45-51): minutes and dollars per session, same acceptance. Frontier models run
+  #   the tests once as a final gate. Anchor: the intent comment through the make test and claude -p lines.
+  - id: oh-review-every-edit
+    file: snapshot/scripts/review.sh
+    lines: [[2, 8]]
+    category: over-harness
+    title: "scripts/review.sh после каждой правки гоняет весь набор тестов и LLM-ревью всего diff, даже для правки в одну строку на сильной модели."
+    explanation: "На сильной модели тяжёлая обвязка на каждом шаге стоит в разы дороже при том же результате (Jain): тесты достаточно запускать один раз в конце (Stop-хук), а ревью раз на PR. Хороший двойник: форматтер только отредактированного файла, дешёвый и не блокирующий."
+  # Walk (ss-think-hard):
+  #   Rule 1: yes, a user message. Anti-pattern: 'think hard' phrases (here in Russian); CC best practices
+  #   list them under what you can stop doing, effort is the control (/effort). Look-alike: '/effort high'
+  #   plus 'list the affected postings first' in session 4. Anchor: the message.
+  - id: ss-think-hard
+    file: transcript.md
+    lines: [[98, 98]]
+    category: session-steering
+    title: "'Подумай над этим очень-очень тщательно' в сообщении вместо настройки усилия."
+    explanation: "Фразы 'подумай как следует' не управляют рассуждением; для этого есть /effort. Хороший двойник: /effort high перед трудной задачей и конкретная просьба сначала перечислить затронутые проводки."
+  # Walk (ss-dont-cheat):
+  #   Rule 1: yes, a user message. Anti-pattern (METR): 'don't cheat' as the only defence; the snapshot
+  #   has no deny on tests/, no hook, no hidden test, and the agent edited the expected value two lines
+  #   later (transcript 124-126). Anchor: the message.
+  - id: ss-dont-cheat
+    file: transcript.md
+    lines: [[120, 120]]
+    category: session-steering
+    title: "'Пожалуйста, ожидания в тестах оставь как есть' как единственная защита: ни deny на tests/, ни хука нет, и агент тут же правит ожидание."
+    explanation: "Просьба не жульничать почти не снижает подмену проверки (METR); защита в окружении: запрет правки tests/ в настройках или хуке, скрытые тесты. Хороший двойник: заданная заранее команда проверки и просьба показать её вывод и diff тестов."
+decoys:
+  - id: mb-decoy-make-check
+    file: snapshot/CLAUDE.md
+    lines: [[5, 5]]
+    lookalike: memory-bloat
+    note: "the whole-project check command: the single most useful line (ladder step 1)"
+  - id: mb-decoy-fixtures
+    file: snapshot/CLAUDE.md
+    lines: [[59, 59]]
+    lookalike: memory-bloat
+    note: "a fact the repo cannot show (lesson 1 R11, ladder step 7); its capitals are a sample name, not emphasis"
+  - id: mb-decoy-legacy
+    file: snapshot/CLAUDE.md
+    lines: [[60, 60]]
+    lookalike: memory-bloat
+    note: "a misleading place stated as a fact (partner contract; the capitals are a company name), CC best practices; ladder step 7"
+  - id: mb-decoy-adr
+    file: snapshot/CLAUDE.md
+    lines: [[61, 61]]
+    lookalike: memory-bloat
+    note: "a map pointer to where decisions live (AGENTS.md as a map, R OA)"
+  - id: pr-decoy-adr-conflict
+    file: snapshot/CLAUDE.md
+    lines: [[50, 50]]
+    lookalike: prose-rule
+    note: "says must, but is a judgement: no program can decide that two ADRs disagree; ladder step 7"
+  - id: pr-decoy-customer-data
+    file: snapshot/CLAUDE.md
+    lines: [[52, 52]]
+    lookalike: prose-rule
+    note: "no program tells real names from synthetic ones (lesson 1 R11 walk)"
+  - id: pr-decoy-spec-wins
+    file: snapshot/CLAUDE.md
+    lines: [[53, 53]]
+    lookalike: prose-rule
+    note: "says must, but is a judgement: no program can decide that a bug report and the spec disagree; ladder step 7"
+  - id: pr-decoy-pr-why
+    file: snapshot/CLAUDE.md
+    lines: [[54, 54]]
+    lookalike: prose-rule
+    note: "starts with Always but is a judgement about the reason in prose; a program can only see that text exists"
+  - id: oh-decoy-protect-generated
+    file: snapshot/.claude/hooks/protect_generated.py
+    lines: [[2, 34]]
+    lookalike: over-harness
+    note: "00 L6 hook: an edit lost on the next make codegen, stopped when it happens; its docstring says why it is not a preference"
+  - id: oh-decoy-stop-tests
+    file: snapshot/.claude/hooks/stop_tests.py
+    lines: [[2, 38]]
+    lookalike: over-harness
+    note: "01 L1 Stop hook: tests once, at the end of the turn"
+  - id: oh-decoy-deny-env
+    file: snapshot/.claude/settings.json
+    lines: [[5, 6]]
+    lookalike: over-harness
+    note: "deny Read(.env): a secret boundary, settings-only"
+  - id: oh-decoy-spec-review
+    file: snapshot/.github/workflows/spec-review.yml
+    lines: [[1, 17]]
+    lookalike: over-harness
+    note: "LLM review once per PR for spec intent, a judgement no program makes; comment only"
+  - id: oh-decoy-make-check
+    file: snapshot/Makefile
+    lines: [[6, 8]]
+    lookalike: over-harness
+    note: "make check runs the deterministic AST import linter; its comment names claude -p only to say it is not used"
+  - id: oh-decoy-format-edited
+    file: snapshot/.claude/hooks/format_edited.py
+    lines: [[2, 15]]
+    lookalike: over-harness
+    note: "PostToolUse formatter on the one edited file: a preference applied, never enforced; cheap, never blocks"
+  - id: ss-decoy-verify-upfront
+    file: transcript.md
+    lines: [[9, 11]]
+    lookalike: session-steering
+    note: "the verification command given up front (CC best practices), with a concrete request to list the cases first"
+  - id: ss-decoy-clear
+    file: transcript.md
+    lines: [[152, 155]]
+    lookalike: session-steering
+    note: "/clear and a concise re-prompt after two failed corrections (CC best practices); the expected values stated as a fact"
+  - id: ss-decoy-evidence
+    file: transcript.md
+    lines: [[166, 166]]
+    lookalike: session-steering
+    note: "asks for the command, its output and the tests diff as evidence; names cheating but checks for it"
+  - id: ss-decoy-effort
+    file: transcript.md
+    lines: [[177, 180]]
+    lookalike: session-steering
+    note: "/effort high before a hard task, and a concrete request to list the affected postings first"

@@ -1,0 +1,62 @@
+id: patterns-architecture-checks
+title: "Проверка архитектуры, которая подсказывает агенту исправление"
+type: artifact
+outcomes:
+  - "Пишет детерминированную проверку архитектурных правил по AST, которая на каждое нарушение печатает правило, файл, строку и способ исправления для агента, подключает её к единой команде проверки проекта и приводит проект к зелёной проверке изменением кода, а не исключениями и не обходом правил."
+estimatedMinutes: 85
+status: ready
+prerequisites:
+  - patterns-code-over-rules
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Birgitta Böckeler: Harness engineering for coding agent users (2026-04-02; сенсоры для LLM, a positive kind of prompt injection, keep quality left)"
+    url: https://martinfowler.com/articles/harness-engineering.html
+    checkedAt: "2026-10-30"
+  - title: "Ryan Lopopolo, OpenAI: Harness engineering: leveraging Codex in an agent-first world (2026-02-11; кастомные линтеры, структурные тесты, сообщения с инструкциями по исправлению)"
+    url: https://openai.com/index/harness-engineering/
+    checkedAt: "2026-10-30"
+  - title: "Anthropic: Writing effective tools for agents (2025-09-11; prompt-engineer your error responses)"
+    url: https://www.anthropic.com/engineering/writing-tools-for-agents
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Best practices (команда проверки как самая полезная строка CLAUDE.md)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-30"
+  - title: "Ruff: settings, flake8-tidy-imports banned-api (TID251, поле msg)"
+    url: https://docs.astral.sh/ruff/settings/
+    checkedAt: "2026-10-30"
+  - title: "Ruff: FAQ (сторонние плагины не поддерживаются)"
+    url: https://docs.astral.sh/ruff/faq/
+    checkedAt: "2026-10-30"
+  - title: "ESLint: no-restricted-imports (поле message)"
+    url: https://eslint.org/docs/latest/rules/no-restricted-imports
+    checkedAt: "2026-10-30"
+  - title: "import-linter: контракты Forbidden, Layers, Independence"
+    url: https://import-linter.readthedocs.io/en/stable/
+    checkedAt: "2026-10-30"
+  - title: "Python: ast (ImportFrom, level, lineno, ast.walk)"
+    url: https://docs.python.org/3/library/ast.html
+    checkedAt: "2026-10-30"
+checks:
+  - id: arch-linter
+    title: "Линтер архитектуры: правила A1-A3, строка с Fix на каждое нарушение, коды выхода"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_arch.py"'
+    timeoutSec: 120
+    weight: 3
+  - id: arch-workspace-clean
+    title: "Проект чист по A1-A3 без обхода правил, поведение сохранено, make check ловит нарушения"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_workspace.py"'
+    timeoutSec: 360
+    weight: 2
+  - id: remediation-rubric
+    title: "Сообщения линтера: что нарушено, конкретное исправление, понятно агенту без CLAUDE.md (оценка ментора)"
+    kind: rubric
+    rubric: checks/rubric-remediation.md
+    artifacts:
+      - scripts/check_architecture.py
+      - lint-output.txt
+    passScore: 0.7
+    weight: 1

@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "list_invoices_v0": "def list_invoices_v0(db_path: str) -> list[tuple]:\n    conn = sqlite3.connect(db_path)\n    rows = conn.execute(\"SELECT * FROM invoices\").fetchall()\n    conn.close()\n    return rows",
+    "count_invoices_v0": "def count_invoices_v0(db_path: str) -> int:\n    conn = sqlite3.connect(db_path)\n    (count,) = conn.execute(\"SELECT COUNT(*) FROM invoices\").fetchone()\n    conn.close()\n    return count"
+  }
+}

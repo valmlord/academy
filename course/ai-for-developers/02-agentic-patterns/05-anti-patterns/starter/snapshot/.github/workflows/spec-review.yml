@@ -1,0 +1,20 @@
+# Once per pull request: does the change do what the spec asked for? Comment only, never blocks.
+name: spec-review
+on:
+  pull_request:
+    paths: ["src/**", "docs/spec.md"]
+jobs:
+  spec-review:
+    runs-on: [self-hosted, bank]
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: make check
+      - run: |
+          git diff origin/main...HEAD > pr.diff
+          claude -p "Read docs/spec.md and pr.diff. For each REQ id the diff touches, say whether the change matches the intent of the requirement. Be brief." < /dev/null > spec-review.md
+      - run: gh pr comment "$PR" --body-file spec-review.md
+        env:
+          PR: ${{ github.event.pull_request.number }}
