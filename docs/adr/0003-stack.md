@@ -23,3 +23,8 @@
 ## Alternatives considered
 - FastAPI backend: closer to the stack used at work, but two languages and duplicated contract types.
 - Bun as the runtime (as in Tixter): dockerode and node-pty are more reliable on Node; can be revisited later.
+
+## Amendments
+- #1 (Proposed): shadcn/ui is initialised on Radix (`-b radix`, preset nova, style `radix-nova`), because
+  the design system inventory (`design/system/README.md`) is written against shadcn's Radix docs;
+  switching later means regenerating every component.
