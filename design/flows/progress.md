@@ -12,7 +12,8 @@ check_results, mentor_reviews tables); research §1 G5.
 **Goal:** see how far I am in the course, where I stumble and what my attempts cost. Source:
 learning-process §4; #35; G5.
 
-**Entry:** the dashboard, below the "Следующий урок" card (F4).
+**Entry:** the dashboard, below the "Следующий урок" card (F4), from #30. Before #30 the dashboard shows no
+progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before the catalog ships").
 
 **Steps (4):**
 

@@ -1,6 +1,8 @@
 # Local, production-like stack. Services are added by their issues (workspace next).
 # Start: docker compose up -d --build --wait (always --build: web is tagged academy-web:local and up
 # without --build reuses a stale image)
+# DB_PORT and WEB_IMAGE_TAG exist for isolated runs next to the owner's stack (another project name, host
+# port and image tag); their defaults are the owner's values.
 name: academy
 
 services:
@@ -12,7 +14,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-academy}
       POSTGRES_DB: ${POSTGRES_DB:-academy}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -25,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-    image: academy-web:local
+    image: academy-web:${WEB_IMAGE_TAG:-local}
     restart: unless-stopped
     depends_on:
       db:
@@ -33,6 +35,9 @@ services:
     # Explicit, never env_file: .env, whose DATABASE_URL points at localhost (web itself in here).
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-academy}:${POSTGRES_PASSWORD:-academy}@db:5432/${POSTGRES_DB:-academy}
+      # Required: compose refuses every command without it (ADR-0008 item 9). BETTER_AUTH_SECRETS is
+      # never passed: the app refuses it.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env, see .env.example}
     # Loopback only; 3080 so pnpm dev (3000) runs alongside.
     ports:
       - "127.0.0.1:${WEB_PORT:-3080}:3000"

@@ -20,6 +20,8 @@ dist/
 coverage/
 playwright-report/
 test-results/
+# Playwright storage state: a live session cookie of the seeded user.
+apps/web/playwright/.auth/
 *.tsbuildinfo
 next-env.d.ts
 

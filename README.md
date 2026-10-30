@@ -46,7 +46,10 @@ docker compose up -d --build --wait
 ## Web app
 
 `apps/web` applies the database migrations at startup and exits if the database is down or a migration
-fails, so start the database first.
+fails, so start the database first. It also exits when `BETTER_AUTH_SECRET` is missing, shorter than 32
+characters or Better Auth's public default. Append a generated one to the root `.env` without printing
+it: `printf 'BETTER_AUTH_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env`. Every compose command that reads
+the file needs it, including `docker compose up -d --wait db`, and so does `pnpm dev`.
 
 ```bash
 docker compose up -d --wait db   # the database alone
@@ -55,7 +58,28 @@ docker compose up -d --build --wait   # the whole stack, web on http://127.0.0.1
 ```
 
 Always pass `--build` after a change: compose tags the image `academy-web:local`, and `up` without
-`--build` reuses a stale one. End-to-end tests run against the compose stack:
+`--build` reuses a stale one.
+
+### Signing in
+
+The platform has one user, created by a seed script; there is no sign-up. From the repository root:
+
+1. `ls .env`; if it is missing, `cp .env.example .env`.
+2. Append the secret as above; `grep -c '^BETTER_AUTH_SECRET=' .env` prints `1`.
+3. Open `.env` in an editor and add `SEED_EMAIL=...` and `SEED_PASSWORD=...` (8 to 128 characters). The
+   file is git-ignored. Never type the password on a command line, where the shell history keeps it.
+4. `docker compose up -d --build --wait` (web applies the migrations, including the auth tables).
+5. `pnpm seed` prints `seed: created` (it builds `@academy/db` and `@academy/lesson-schema` first). To
+   keep the password out of `.env`, in zsh: `read -rs "SEED_PASSWORD?Seed password: " && export
+   SEED_PASSWORD && SEED_EMAIL=you@example.com pnpm seed; unset SEED_PASSWORD`.
+6. Open http://127.0.0.1:3080 and sign in with those values.
+
+To change the password, change `SEED_PASSWORD` in `.env` and run `pnpm seed` again: it prints
+`seed: updated` and ends every existing session. The seed refuses to create a second user.
+
+End-to-end tests sign in with the same `SEED_EMAIL` / `SEED_PASSWORD` and run against the compose stack.
+A Playwright trace of a failed local run can hold the typed password; `test-results/` is git-ignored,
+delete it when you share a machine.
 
 ```bash
 pnpm --filter @academy/web exec playwright install chromium --only-shell   # once

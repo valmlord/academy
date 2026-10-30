@@ -236,3 +236,25 @@ lesson.yaml `draft`. The phase gate then refused lesson-author (window author..j
 approve the orchestrator editing the six status lines itself.
 Rule: right after the last judge_content PASS and before advancing to compound, have the lesson-author set
 `status: ready` in module.yaml and every lesson.yaml and re-run `pnpm content:validate`.
+
+### 2026-10-30: Design-system drift reviewed by example, fixed by example (#29)
+
+judge_code needed four rounds for #29, and rounds 2-4 were all about vendored shadcn styles. Round 1 named three
+differences the tester saw (heights, card shadow, dark fill); the coder fixed exactly those; round 2 found `md:text-sm`
+and the Button states; round 3 found a why-comment the round-2 fix made false. My briefs passed the judges' examples
+straight to the coder instead of the class of problem. A separate cost: the operations judge's round-3 design verdict
+was not recorded because its final report did not end with the verdict line, which stalled the gate.
+Rule: when a finding is "vendored component defaults differ from the design system", brief the coder to walk every
+class and state of every vendored component against `proto.css` and the README and return a state table, and brief
+the tester to compare computed styles for every state, in round 1. In every judge brief, repeat that the final report
+must end with the bare PASS or FAIL line.
+
+### 2026-10-30: Architect brief named the hidden link, not the hidden class (#79)
+
+judge_design usability failed round 1 because my architect brief said "grep for the hidden item" and named the
+top-bar "Курс" link, while the rule the architect wrote hides every `/courses/...` control (Card button, module
+rows, "Открыть курс", breadcrumbs). The grep followed my wording, so five dashboard ACs describing the other
+hidden controls stayed unconditional. Round 2 passed once the brief named the class.
+Rule: when a DESIGN brief asks for a release or visibility rule, ask the architect to list every member of the
+class the rule hides first (labels, routes, flow step ids, components), then grep each member and scope every
+acceptance check, table row and AC that describes one.

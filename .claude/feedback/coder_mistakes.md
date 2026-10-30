@@ -124,3 +124,56 @@ contract change. The non-component exports of the same diff (`register`, `runSta
 were annotated, so the rule was known and skipped for TSX.
 Rule: Before handover, grep `export (default )?(async )?function` over the diff and give every hit an explicit
 return type (`React.JSX.Element` / `Promise<void>` ...), TSX components included.
+
+### 2026-10-30: A credential form without `method` submits the password in the URL before hydration (#29)
+`components/sign-in-form.tsx` renders `<form noValidate onSubmit={...}>` with no `method`. Server-rendered it is a
+plain `<form novalidate>`; until React hydrates there is no submit handler, so Enter (the email field is
+`autoFocus`, a password manager fills both) makes the browser GET `/sign-in?email=...&password=...`. The password
+lands in the address bar, the browser history, same-origin `Referer` headers and any URL log or trace. Every test
+ran after hydration, so none could see it.
+Rule: Every form that carries a secret gets `method="post"` even when JavaScript handles the submit, with a test
+asserting the rendered `method`; check the server-rendered markup, not only the hydrated behaviour.
+
+### 2026-10-30: A stale why-comment, a skipped env-example block and unlisted design-system drift (#29)
+`apps/web/test/integration/db.ts` justified raw SQL strings with "two copies of drizzle-orm ... whose SQL types do
+not mix". That was the coder's belief before the pause (resume note, finding 2); after the resume the lockfile was
+shown to hold one snapshot linked by both packages (design 6.6, tester section 10), and the comment stayed. In the
+same diff `.env.example` never got the `SEED_EMAIL` / `SEED_PASSWORD` lines of design 6.2, although the file's
+header says every variable the code reads is listed there. And the `radix-nova` defaults written by `shadcn add`
+(32px inputs, 28px small buttons, a ring instead of the card border and shadow, a translucent dark input fill) were
+left against `design/system/README.md` ("Controls: height 2.25rem, small 2rem", "shadows only on cards", "No
+opacity on ... any container with text"), neither fixed nor listed as deviations.
+Rule: When a finding is settled, grep the diff for every comment that states the old belief and fix it in the same
+commit; before handover, diff `.env.example` against the design's env table; for every vendored shadcn component,
+compare its sizes, borders, shadows and fills with `design/system/README.md` and `proto.css`, and fix or list each
+difference.
+
+### 2026-10-30: `.env.example` left out variables the new code reads, against the design's literal block (#29)
+Design 6.2 gave the exact `.env.example` lines to add, ending with the commented `SEED_EMAIL` / `SEED_PASSWORD`
+block and "Put them here, never on a command line". The commit added every line above it and dropped that block,
+although `apps/web/lib/seed-cli.ts` reads `SEED_EMAIL`, `SEED_PASSWORD` and `SEED_NAME` and the file's first line
+says "Every variable the code reads must be listed here". The README covered it, so no test went red; the file a
+fresh checkout copies to `.env` did not.
+Rule: Before handover, grep the diff for every `process.env.X` / `env.X` read and check each name appears in
+`.env.example`; when the design gives a literal block for a file, diff the file against that block line by line.
+
+### 2026-10-30: The shadcn alignment fixed only the items the judge named (#29, judge_code round 2)
+The round-1 rule said to compare every vendored shadcn component with `design/system/README.md` and `proto.css`.
+The fix changed the three named items (heights, card, input fill) and left, in the same class strings, `md:text-sm`
+on `Input` (README: inputs `text-base`, "16px avoids iOS zoom on focus"), no `aria-disabled` style on `Button` (the
+busy "Войти" stays solid primary; `proto.css` paints `muted` / `muted-foreground`), `hover:bg-primary/80` and ghost
+`dark:hover:bg-muted/50` (translucent fills under text; proto uses an opaque 90 % mix and `accent`), and
+`disabled:opacity-50`. A "design/system" comment was added above a class list that still contradicts it.
+Rule: Aligning a vendored component means walking every class in its string (size, font size, every state: hover,
+focus, aria-disabled, disabled, dark) against the matching `proto.css` rule, not only the classes a reviewer named;
+compare each non-default prototype state (`#state-*`) with the app, not only the default one.
+
+### 2026-10-30: A comment claimed parity with the prototype and a cause the built CSS does not have (#29, judge_code round 3)
+`ui/button.tsx` said "when it is also aria-busy the progress cursor wins, as in proto.css", but in proto.css
+`.button[aria-disabled="true"]:hover` outranks `[aria-busy]`, so the prototype computes `not-allowed`; the app's
+`progress` is right and the prototype is the bug. The same comment said the `aria-disabled:hover:*` classes are what
+keep the busy button muted on hover; the tester's mutation removed them and the computed paint did not change,
+because `aria-disabled:` already sorts after `hover:`. A unit test then pinned those dead class names.
+Rule: Before writing "as in X" or "so it is listed", check the claim against computed values (prototype in a browser,
+a mutation on the app); when the app intentionally differs from the prototype, the comment says so and names the
+DESIGN note, and a class that changes no computed value is deleted, not asserted on.

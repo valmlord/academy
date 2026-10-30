@@ -180,3 +180,18 @@ The designer narrowed the sentence to `test_statement.py` and `test_api.py`, whi
 note had missed. That cost round 4.
 Rule: A note that says a sentence is wrong "only for X" is a claim about every other case. Before writing it, grep the
 constant or stage that decides each case, even when the note is non-blocking.
+
+### 2026-10-30: Security judge prescribed a per-file allowlist and missed sign-out revocation in round 1 (#29)
+
+Round 1 F6 prescribed a file-level allowlist for the DAL guard, which exempts every later export of an
+allowlisted actions module; round 1 also never checked that any test proves sign-out deletes the server
+session. Both surfaced in round 2 and cost a review round.
+Rule: When prescribing an allowlist, key it by the smallest unit the check can see; for every auth flow,
+check in round 1 that a test asserts the server-side state, not only the browser's.
+
+### 2026-10-30: Architecture judge listed shadcn drift by example, missing font size and state styles (#29)
+Round 1 named control heights, the card and the dark input fill as the radix-nova drift, from default-state
+screenshots. The input's `md:text-sm`, the unstyled `aria-disabled` busy button and the translucent hover fills were
+in the same class strings and surfaced only in round 2, costing a round.
+Rule: When a finding is "vendored component differs from the design system", read the whole class string against
+the matching proto.css rules, every state included, and list every item in round 1.

@@ -123,3 +123,13 @@ in v1, and progress.md:24,26 agree, but the dashboard's required states (design 
 it must follow, and a `ready` dashboard would ship a placeholder box R6 calls a dead end.
 Rule: After adding a "not shown in v1" rule, grep the required-states lists, the page inventory and every
 empty state for each hidden item and remove or re-label it there in the same edit.
+
+### 2026-10-30: Release-state grep searched the link text, not the whole hidden class (#79)
+judge_design usability FAIL, round 1. ia.md R6 "Before the catalog ships" hides a class of controls (top-bar
+"Курс", "Открыть курс", the Card button "Начать" / "Продолжить", module rows, breadcrumbs), but the design
+file's grep (plans/79-...-design.md:147-148) searched only "Курс" and "Открыть курс". So
+dashboard/acceptance.md AC1, AC2, AC4, AC5, AC9 (unconditional: "the Card shows the first `ready` lesson",
+"the course line counts...") stay unscoped, and against #29's build with module 00 `ready` they fail and
+contradict the planned AC14 ("no link to a `/courses/...` route appears anywhere").
+Rule: When a release rule hides a class of controls, grep every member of the class (labels, routes,
+component names) and scope every acceptance check that describes a hidden control to its release.

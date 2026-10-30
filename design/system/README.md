@@ -209,7 +209,9 @@ bar's only `nav` and carries no label; its links never wrap inside it. `.user-em
 user menu trigger and is cut with an ellipsis only visually (14rem; 6rem below a 480px viewport, which keeps one row at 375px, where
 the bar's gaps tighten to `space-2`): the trigger's accessible name stays the full email and the menu's
 `.dropdown-label` shows it in full, wrapping. When the row still does not fit (320px, 400 % zoom) the bar
-wraps and `.topbar-end` moves to a second row, right-aligned. Pages add no top bar overrides.
+wraps and `.topbar-end` moves to a second row, right-aligned. Pages add no top bar overrides. The nav's links
+follow the release, the same on every page (`ia.md` R6, "Before the catalog ships"): "Главная" before #30,
+"Главная" and "Курс" from #30.
 
 ## proto.js API
 
