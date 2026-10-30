@@ -22,7 +22,7 @@
 
   <header class="topbar" data-region>
     <a class="topbar-brand" href="prototype.html">Академия</a>
-    <nav class="topbar-nav"><a href="prototype.html" aria-current="page">Главная</a><a href="../catalog/prototype.html">Курс</a></nav>
+    <nav class="topbar-nav"><a href="prototype.html" aria-current="page">Главная</a><a href="../catalog/prototype.html" data-state="first-run in-progress all-passed no-ready-lessons loading course-error progress-unavailable session-expired user-menu">Курс</a></nav>
     <div class="topbar-end">
       <div class="dropdown">
         <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
@@ -72,8 +72,9 @@
         <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="first-run" data-focus="#next-lesson-heading">Повторить</button></div>
       </div>
 
-      <!-- F4 empty: no ready lesson at all. Nothing focusable in main, so F6 lands on main (R3). -->
-      <div class="empty" data-state="no-ready-lessons">
+      <!-- F4 empty: no ready lesson at all (no-ready-lessons), and every course before #30 (before-catalog,
+           ia.md R6). Nothing focusable in main, so F6 lands on main (R3). -->
+      <div class="empty" data-state="no-ready-lessons before-catalog">
         <p class="empty-title">В курсе пока нет готовых уроков</p>
       </div>
 
@@ -163,6 +164,7 @@
     <span hidden data-state="progress-unavailable" data-state-label="progress unavailable"></span>
     <span hidden data-state="session-expired" data-state-label="session expired (F2.1)"></span>
     <span hidden data-state="user-menu" data-state-label="user menu open (F3.1)"></span>
+    <span hidden data-state="before-catalog" data-state-label="before #30 (no catalog)"></span>
   </div>
 </div>
 

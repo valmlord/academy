@@ -22,6 +22,9 @@ bottom and its "Dark theme" button are prototype chrome, not product UI.
 | F18.1 | the course line (h2 "Пройдено уроков: N из M" or "Пока нет пройденных уроков") and its Progress |
 | F18.2 | the module rows list |
 
+F4.1-F4.3 and F18.1-F18.2: from #30. Before #30 the page has elements only for F2.1, F3.1 and F3.2 (`ia.md` R6,
+"Before the catalog ships").
+
 F18.3 (recent attempts) and F18.4 (weak topics, cost) are not drawn in any state, not even as an empty slot
 (R6, D4).
 
@@ -36,10 +39,11 @@ Say in one look what to study next and open it (F4); show course and module prog
 ## Layout and breakpoints
 
 One column at every width (decision A8): top bar, "Уведомления" (only with an alert), then `main` with h1,
-the Card, the progress section. Content column `max-width: 48rem` inside the page container (`72rem`,
+the Card, the progress section (from #30; before #30 h1 and the Empty "В курсе пока нет готовых уроков",
+`ia.md` R6). Content column `max-width: 48rem` inside the page container (`72rem`,
 gutter `space-4`), gap `space-8`.
-- 1280 and 768: the column sits at the left of the page container; module rows show title, "N из M
-  уроков" and a bar, or the "Готовится" Badge at the right.
+- 1280 and 768: the column sits at the left of the page container; module rows (from #30) show title, "N из
+  M уроков" and a bar, or the "Готовится" Badge at the right.
 - 375: the same column at full width; titles wrap; the top bar stays one row (the system rule: the email
   is cut at 6rem below a 480px viewport, the button's accessible name stays the full email; at 320 the
   user button wraps to a second row). No horizontal scroll at
@@ -59,6 +63,10 @@ gutter `space-4`), gap `space-8`.
 | Empty | "В курсе пока нет готовых уроков" |
 | Skeleton | loading |
 
+Card, Badge, Progress, Item, Skeleton and the Button uses in the table above ("Начать" / "Продолжить",
+"Открыть курс", "Повторить") appear from #30. Before #30 the page uses Empty, the session Alert with its
+action "Войти снова" (a Button) and the DropdownMenu of the user menu with its ghost Button trigger.
+
 Compositions: top bar, "Уведомления" (R2), and the "Прогресс недоступен" line (see Accessibility notes).
 
 ## States
@@ -74,25 +82,33 @@ Compositions: top bar, "Уведомления" (R2), and the "Прогресс 
 | progress unavailable (F4 and F18 errors) | `#state-progress-unavailable` | Card: first lesson, "Начать", line "Прогресс недоступен, показан первый урок"; progress section: line "Прогресс недоступен" and "Повторить" |
 | session expired (F2.1) | `#state-session-expired` | in-progress content plus the Alert in "Уведомления" with "Войти снова" |
 | user menu open (F3.1) | `#state-user-menu` | in-progress content with the user menu open |
+| before #30 (no catalog) | `#state-before-catalog` | top bar "Академия", "Главная", user menu, no "Курс" (ia.md R6, "Before the catalog ships"); main as "no ready lessons": h1 and Empty "В курсе пока нет готовых уроков", nothing focusable |
 
 R5: until #31 or #34 ships no lesson can be started, so the shipped app shows only "Начать"; the
 in-progress state is drawn for when it can.
 
+Release states per `design/flows/dashboard.md` "Dashboard by release": before #30 only `before-catalog`
+ships; the nine other states are from #30. Before #30 the F2.1 alert and the user menu work on top of
+`before-catalog` (the bar of `before-catalog`, the alert of `session-expired`, the menu of `user-menu`); they
+are not drawn as separate states.
+
 ## Interactions and keyboard
 
-- Tab order: "К содержимому", "Академия", "Главная", "Курс", user menu, "Войти снова" (only with the
-  alert), then `main`: Card button (or "Повторить", or "Открыть курс"), "Повторить" of the progress
-  section when shown, module rows in order.
+- Tab order. From #30: "К содержимому", "Академия", "Главная", "Курс", user menu, "Войти снова" (only
+  with the alert), then `main`: Card button (or "Повторить", or "Открыть курс"), "Повторить" of the
+  progress section when shown, module rows in order. Before #30: "К содержимому", "Академия", "Главная",
+  user menu, "Войти снова" (only with the alert); nothing focusable in `main`.
 - `F6` / Shift+`F6` and Ctrl+Shift+. / Ctrl+Shift+, cycle "Верхняя панель" ("Академия"), "Уведомления"
   ("Войти снова", only while it holds the alert), `main` (its first focusable element: the Card button,
-  "Повторить" or "Открыть курс"; in "no ready lessons" `main` itself, `tabindex="-1"`). R3.
-- "Начать" / "Продолжить": navigation (`a href`); target tab per F4.3.
-- Course error "Повторить" (prototype: proto.js `data-goto-state` + `data-focus`): reloads the Card; focus moves to the Card heading "Следующий урок"
+  "Повторить" or "Открыть курс"; in "no ready lessons" `main` itself, `tabindex="-1"`). R3. Before #30
+  the same cycle; `main` lands on `main` itself, as in "no ready lessons".
+- From #30: "Начать" / "Продолжить": navigation (`a href`); target tab per F4.3.
+- From #30: course error "Повторить" (prototype: proto.js `data-goto-state` + `data-focus`): reloads the Card; focus moves to the Card heading "Следующий урок"
   (`tabindex="-1"`, R2).
-- **Progress "Повторить" (round-4 advisory):** reloads the progress section **and** the Card, because the
+- From #30: **progress "Повторить" (round-4 advisory):** reloads the progress section **and** the Card, because the
   next lesson and "Начать" / "Продолжить" are progress data; focus moves to the progress section heading
   (the course line, `tabindex="-1"`, R2). The Card updates in place without taking focus.
-- Module row: link to `/courses/[courseId]#[moduleId]` (`ia.md`; `moduleId` is the `module.yaml` `id`, e.g.
+- From #30: module row: link to `/courses/[courseId]#[moduleId]` (`ia.md`; `moduleId` is the `module.yaml` `id`, e.g.
   `#introduction`), which focuses that module's section heading (F5.2). The prototype links
   `../catalog/prototype.html#<moduleId>` with no `#state-`: the catalog opens its default state.
 - User menu: Enter or Space opens it, focus on the first item; arrows, Home, End; Esc closes and returns
@@ -107,7 +123,7 @@ in-progress state is drawn for when it can.
 | title, h1 | Главная |
 | skip link | К содержимому |
 | top bar brand | Академия |
-| top bar nav | Главная; Курс |
+| top bar nav | Главная; Курс (from #30, ia.md R6, "Before the catalog ships"; before #30: Главная) |
 | user menu item | Выйти |
 | notifications heading (visually hidden) | Уведомления |
 | session alert | Сессия закончилась. Файлы в рабочей папке сохранены. |
@@ -131,6 +147,10 @@ in-progress state is drawn for when it can.
 | module status | Готовится |
 | lesson type | артефакт (any of the `ia.md` lesson type set) |
 
+Rows "card title" to "open catalog" and "course line" to "lesson type" are shown from #30; before #30 the
+page renders title and h1, skip link, top bar brand and nav, user menu item, the notifications heading, the
+session alert and action, and "no ready lessons".
+
 Sample data (not copy): lesson, module titles and `learner@example.com`, from `course/` and the seed.
 
 ## Accessibility notes
@@ -146,11 +166,14 @@ Sample data (not copy): lesson, module titles and `learner@example.com`, from `c
   the progress section heading ("Прогресс недоступен", an h2 so focus has a target after "Повторить"),
   followed by "Повторить"; catalog uses it once under the course description without a button (its
   retry is the course reload). Same markup, same style; only the words and the following button differ.
-- Lesson-type Badge text is part of the Card; status is never colour alone ("Готовится" is a word).
-- Course Progress: `aria-labelledby` the course line, `aria-valuetext` "N из M".
+- From #30: the lesson-type Badge text is part of the Card; status is never colour alone ("Готовится" is a word).
+- From #30: the course Progress is `aria-labelledby` the course line, `aria-valuetext` "N из M".
 - Focus never falls back to `body` after "Повторить" (R2).
 
 ## Acceptance checks
+
+AC1-AC6, AC8 and AC9 apply from #30. AC7 and AC10-AC13 apply in both releases; before #30 AC7's `main` is
+shown whatever the course holds (AC14). AC14 applies before #30 only (`ia.md` R6, "Before the catalog ships").
 
 - AC1: the Card shows the first `ready` lesson in catalog order that is not finished, with module title,
   lesson type Badge, "около N мин" and one button.
@@ -178,6 +201,10 @@ Sample data (not copy): lesson, module titles and `learner@example.com`, from `c
   вышли"; Esc returns focus to the button.
 - AC12: `F6` and Ctrl+Shift+. cycle top bar, "Уведомления" (only when non-empty), `main` as R3.
 - AC13: no horizontal scroll at 375, 768, 1280, light and dark; the top bar stays one row at 375.
+- AC14: Before #30 the top bar shows "Академия", "Главная" and the user menu with no "Курс", and no link to a
+  `/courses/...` route appears anywhere on the page; `main` shows only the h1 and "В курсе пока нет готовых
+  уроков", nothing focusable, whatever the course holds; Tab order and `F6` as in Interactions (before #30);
+  `F6` to the top bar lands on "Академия".
 
 ## Open questions
 

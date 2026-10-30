@@ -81,11 +81,13 @@ whether the control is shown in v1; a hidden control appears only when its issue
 | Action | Label | Flows | v1 |
 |--------|-------|-------|----|
 | skip to the content | "К содержимому" | every page | yes |
+| open the dashboard (top bar) | "Академия" (brand link), "Главная" (nav link) | F4 | yes, every page with the top bar |
+| open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships") |
 | sign in | "Войти" | F1 | yes |
 | sign in again after expiry | "Войти снова" | F2 | yes |
 | sign out | "Выйти" | F3 | yes |
 | open the next lesson | "Начать" (lesson not started, R5) / "Продолжить" (started) | F4 | yes |
-| open the catalog | "Открыть курс" | F4, F5, F8 | yes |
+| open the catalog | "Открыть курс" | F4, F5, F8 | yes, from #30 (R6, "Before the catalog ships") |
 | retry a failed load or start | "Повторить" | F1, F4, F5, F7, F8, F13, F15, F16, F18, F19 | yes where its flow is v1 (F1, F4, F5, F7, F8, F18); F13 runner error D1; F15 D2; F16 D3; F19 D4 |
 | expand / collapse the outcomes | "Показать все" / "Свернуть" | F7 | yes |
 | copy a code block | "Копировать" | F7 | yes |
@@ -276,6 +278,30 @@ no shipped runner is not listed, not run and not counted in "Пройдено: N
 check the platform runs renders as a lesson with no checks: no check bar, no Проверки tab. Release states
 of the lesson page (the M0 lesson, v1): `lesson-environment.md`, "Lesson page by release".
 
+**Before the catalog ships (#30).** No control whose target is a `/courses/...` route is shown until #30
+ships that route, because a link to a missing route is a dead end (A15) and a link has no disabled state:
+R1 covers actions with a visible reason, and the one-row top bar has no room for one. These controls are
+the top-bar link "Курс", "Открыть курс", the dashboard Card button ("Начать" / "Продолжить", it opens a
+lesson route) and module rows, the breadcrumb "Курс" and the module crumb. The catalog, the lesson page and
+the not-found state ship with #30, so before #30 the dashboard is the only page with the top bar (sign-in
+has none) and it shows only its "no ready lessons" content (`dashboard.md`, "Dashboard by release").
+Before #30 an unknown URL shows the framework's default 404 page (#29 ships no not-found page, so it has no
+top bar and English text); it is reached only by typing a URL and browser Back leaves it, so no flow dead
+ends there.
+
+Top bar by release. One rule for every page with the top bar: the bar is the same on every page of a
+release, and a page added later takes the bar of the release it ships in, never a variant of its own.
+
+| Release | Pages with the top bar | Top bar, in Tab order after "К содержимому" | `F6` regions (landing) |
+|---------|------------------------|---------------------------------------------|------------------------|
+| before #30 (as #29 shipped) | dashboard | "Академия", "Главная", user menu | "Верхняя панель" ("Академия"); "Уведомления" ("Войти снова", only with the alert); `main` (`main` itself, nothing focusable) |
+| from #30 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс", user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
+
+"Главная" carries `aria-current="page"` on the dashboard, "Курс" on the catalog; the lesson page and
+not-found put `aria-current` on neither top-bar link. `F6` lands on "Академия" in "Верхняя панель" in
+every release, because it is the bar's first focusable element and is never hidden, so no landing table
+changes when "Курс" arrives.
+
 ## Sitemap
 
 ```mermaid
@@ -289,6 +315,9 @@ flowchart TD
   catalog --> dash
 ```
 
+The sitemap is the one from #30. Before #30 only sign-in and the dashboard exist, and no link leads to a
+`/courses/...` route (R6, "Before the catalog ships").
+
 Module pages are sections of the catalog (`/courses/[courseId]#[moduleId]`), not routes (decision A6).
 Progress is a section of the dashboard plus an attempts list on the lesson page, not a page (decision A7).
 The quiz and the mentor review live in the lesson page's left pane, not on routes of their own: both are
@@ -298,7 +327,8 @@ and `mentor.md`).
 ## Navigation model
 
 - **Top bar on every page except sign-in** (the not-found state included): product name "Академия"
-  (link to the dashboard), "Главная", "Курс", and a user menu (shows the email) with "Выйти" (F3). No
+  (link to the dashboard), "Главная", "Курс" (from #30; the bar by release: R6, "Before the catalog
+  ships"), and a user menu (shows the email) with "Выйти" (F3). No
   sidebar anywhere, because the app has four pages, a sidebar costs the lesson page the width its two
   panes need, and shadcn's sidebar toggle Ctrl+B is the key Claude Code uses for background tasks inside
   the terminal (research §8; decision A3).
@@ -309,8 +339,9 @@ and `mentor.md`).
 - **Breadcrumbs** on the lesson page: "Курс" / module title / lesson title. The module crumb links to
   the catalog anchor of that module; the lesson crumb is the current page (`aria-current="page"`, not a
   link).
-- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson); catalog: a lesson
-  row; lesson page: "Проверить".
+- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson; from #30, before it the
+  dashboard has no primary action, R6 "Before the catalog ships"); catalog: a lesson row; lesson page:
+  "Проверить".
 - **Skip link** "К содержимому": R4.
 - **Return after sign-in**: any protected route redirects to `/sign-in?next=<path>`; after sign-in the
   learner lands on `next` (only same-origin paths) or on the dashboard.
@@ -326,14 +357,15 @@ Flows column: every flow whose Entry line or steps happen on the page.
 | Slug | Route | Russian title (`<title>` / h1) | Purpose | Flows | Prototype in #50 |
 |------|-------|-------------------------------|---------|-------|------------------|
 | sign-in | `/sign-in` | "Вход" | email and password for the single local user | F1, F2 (F2.2-F2.3), F3 (F3.3) | yes |
-| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts, weak topics, cost | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс"), F18, F19 (entry F18.3, D4) | yes: F4 and F18.1-F18.2 only; F18.3-F18.4 are D4 and not drawn (R6) |
+| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts, weak topics, cost | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, D4) | yes: F4 and F18.1-F18.2 only; F18.3-F18.4 are D4 and not drawn (R6) |
 | catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков" | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
 | lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the design file |
 | not-found | any unknown route, unknown or not-`ready` lesson | "Страница не найдена" | explains and links to the catalog | F3, F5 | no: an app-shell state, copy in `catalog.md` F5, prototyped with the app shell later |
 
 Every page is reachable from the catalog: the catalog links to every `ready` lesson and, through the
 top bar, to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
-expired session (F2).
+expired session (F2). Release: sign-in and the dashboard from #29; catalog, lesson and not-found from #30.
+Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog ships").
 
 ## Flow registry
 
