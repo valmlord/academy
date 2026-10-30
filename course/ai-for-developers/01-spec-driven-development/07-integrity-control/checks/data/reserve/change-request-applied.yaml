@@ -1,0 +1,18 @@
+# Reserve items for the mentor review after change-request-applied is closed (design 2.5, as 00 2.5.6).
+# Never on the command-check mount, never shown before the review. The mentor grades with the key below.
+version: 1
+check: change-request-applied
+task: |
+  Запрос на изменение: "счета клиентов из чёрного списка не получают напоминаний". Опишите по
+  шагам, что вы меняете в спецификации, задачах, тестах и коде, и какие правила C1-C6 проверят
+  каждый шаг.
+items:
+  - id: new-id
+    key: "новое требование с новым id в форме WHEN...SHALL; старые строки не трогаются (C1/C2 и сравнение с исходником)"
+  - id: vocabulary
+    key: "в тексте не используется избегаемое слово client: Customer или по-русски (C6)"
+  - id: task-and-test
+    key: "задача перечисляет новый id и получает done только с тестом с его меткой (C1, C3)"
+  - id: adr
+    key: "новый ADR только если решение трудно отменить; существующие ADR не меняют статус без замены (C4, C5)"
+passBar: "4 of 4 steps with the rule that guards them"

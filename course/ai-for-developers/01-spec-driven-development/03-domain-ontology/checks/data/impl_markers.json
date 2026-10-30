@@ -1,0 +1,26 @@
+[
+  {
+    "pattern": "```|~~~",
+    "label": "блок кода"
+  },
+  {
+    "pattern": "`[^`]*(?:/|\\.[A-Za-z]{1,4})[^`]*`",
+    "label": "путь или файл в обратных кавычках"
+  },
+  {
+    "pattern": "\\.py\\b",
+    "label": "имя файла .py"
+  },
+  {
+    "pattern": "\\bdef\\s+[A-Za-z_]\\w*\\s*\\(",
+    "label": "def функции"
+  },
+  {
+    "pattern": "\\bclass\\s+[A-Z]\\w*",
+    "label": "class из кода"
+  },
+  {
+    "pattern": "\\b(?:SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|ALTER TABLE|JOIN)\\b",
+    "label": "ключевое слово SQL"
+  }
+]

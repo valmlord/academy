@@ -1,0 +1,62 @@
+id: sdd-verification
+title: "Проверка результата работы агента"
+type: artifact
+outcomes:
+  - "Делает проверку работы агента детерминированной: пишет тесты, которые падают на неверной реализации, и Stop-хук, который сам запускает тесты и не даёт агенту закончить ход при красных тестах."
+estimatedMinutes: 80
+status: ready
+prerequisites:
+  - intro-permissions-security
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: Best practices (Give Claude a check to run, уровни строгости, доказательство вместо заявления)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Keep Claude working toward a goal (/goal)"
+    url: https://code.claude.com/docs/en/goal
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Hooks reference (Stop, коды выхода, JSON-вывод, onFailure, CLAUDE_PROJECT_DIR, лимит блокировок)"
+    url: https://code.claude.com/docs/en/hooks
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Automate actions with hooks (guide)"
+    url: https://code.claude.com/docs/en/hooks-guide
+    checkedAt: "2026-10-29"
+  - title: "OpenAI Codex: Hooks (Stop в Codex CLI 0.165.0)"
+    url: https://learn.chatgpt.com/docs/hooks
+    checkedAt: "2026-10-29"
+  - title: "Anthropic: Prompting best practices (самопроверка, правка тестов, хардкод под тесты)"
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+    checkedAt: "2026-10-29"
+  - title: "Birgitta Böckeler: TDD inside the agent loop - theater or actual value? (2026-08-10 по индексу серии)"
+    url: https://martinfowler.com/articles/exploring-gen-ai/tdd-in-the-agent-loop.html
+    checkedAt: "2026-10-29"
+  - title: "Gabor, Lynch, Rosenfeld: EvilGenie (arXiv:2511.21654 v2)"
+    url: https://arxiv.org/abs/2511.21654
+    checkedAt: "2026-10-29"
+  - title: "GitHub: About protected branches (required status checks)"
+    url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skills v1.3.2 (скилл tdd)"
+    url: https://github.com/mattpocock/skills/tree/v1.3.2
+    checkedAt: "2026-10-29"
+checks:
+  - id: late-fee-verified
+    title: "Тесты ловят сломанные версии late_fee, код проходит скрытые приёмочные тесты"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_late_fee.py"'
+    timeoutSec: 300
+    weight: 3
+  - id: stop-hook-tests
+    title: "Stop-хук сам запускает тесты и не даёт закончить ход при красных тестах"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_stop_hook.py"'
+    timeoutSec: 480
+    weight: 2
+  - id: verification-quiz
+    title: "Квиз: /goal, детерминированные проверки, подделка тестов, Stop-хук"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
