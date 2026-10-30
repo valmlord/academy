@@ -1,0 +1,6 @@
+sdd_probegen.py: STATE FLOW PASS
+control_sumleak.py: STATE FLOW FAIL draw uses state 2 times
+control_genleak.py: STATE FLOW FAIL generate uses state outside the zero-tests branch, draw(state) and tokens (line [94])
+control_tokflow.py: STATE FLOW FAIL generate reads tokens after the tokens line outside the return (line 95); generate reads v after the tokens line outside the return (line 95); generate reads v after the tokens line ou
+control_tokleak.py: STATE FLOW FAIL the tokens expression holds a call or a walrus
+control_stubleak.py: STATE FLOW FAIL draw_stub uses behaviour 3 times; draw_stub: behaviour used other than as a seed index

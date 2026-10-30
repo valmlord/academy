@@ -1,0 +1,13 @@
+L1 student final table+snapshot (must fail)      EXIT 1  - (A) скрытые приёмочные тесты не пройдены: REQ-01
+L1 student final table, reference tests (must fail A) EXIT 1  - (A) скрытые приёмочные тесты не пройдены: REQ-01
+L1 student honest impl+tests (must pass)         EXIT 0  Пройдено: код проходит скрытые приёмочные тесты, тесты проходят на верной реализации и ловят каждую сломанную версию.
+L5 student final table+snapshot (must fail)      EXIT 1  - (A) скрытые приёмочные тесты не пройдены: REQ-01
+L5 student honest impl, 2nd duplicate counts (must fail A REQ-08 now) EXIT 1  - (A) скрытые приёмочные тесты не пройдены: REQ-08
+L5 pin: earliest sent_on counts (must fail A)    EXIT 1  - (A) скрытые приёмочные тесты не пройдены: REQ-02
+L5 pin: first ISSUED duplicate counts (must fail A) EXIT 1  - (A) скрытые приёмочные тесты не пройдены: REQ-08
+L5 student honest tests, reference impl (must pass) EXIT 0  Пройдено: код проходит скрытые приёмочные тесты, каждое требование покрыто тестом с его меткой, артефакты согласованы.
+L7 student final table+snapshot (must fail)      EXIT 1  - (A) скрытые приёмочные тесты не пройдены: REQ-01
+L7 student honest change (must pass)             EXIT 0  Пройдено: изменение REQ-09 внесено по спецификации, тесты ловят каждую сломанную версию, артефакты согласованы.
+L7 student honest linter, self-contained (must pass) EXIT 0  Пройдено: линтер находит каждое из правил C1-C6, молчит на чистых корнях и сообщает об ошибках разбора.
+L7 reference linter importing the helper (must pass) EXIT 0  Пройдено: линтер находит каждое из правил C1-C6, молчит на чистых корнях и сообщает об ошибках разбора.
+L7 skeleton with helper (must fail)              EXIT 1  - не найдено нарушение C1 (требование названо в заголовке задачи, но не в Requirements), exit 1

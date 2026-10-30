@@ -1,0 +1,47 @@
+01-verification: 500 draws, 150000 calls, largest draw 5377 bytes of JSON
+reference exceptions: [('ValueError', 'amount_cents must be positive')]
+  m01_grace_four_days              own category 500/500  any category 500/500
+  m01_grace_six_days               own category 500/500  any category 500/500
+  m01_negative_days_charged        own category 500/500  any category 500/500
+  m02_days_from_due_date           own category 500/500  any category 500/500
+  m02_one_percent_rate             own category 500/500  any category 500/500
+  m03_round_half_up                own category 500/500  any category 500/500
+  m03_round_up                     own category 500/500  any category 500/500
+  m04_cap_rounded_up               own category 500/500  any category 500/500
+  m04_no_cap                       own category 500/500  any category 500/500
+  m04_twenty_percent_cap           own category 500/500  any category 500/500
+  m05_checked_after_grace          own category 500/500  any category 500/500
+  m05_zero_amount_accepted         own category 500/500  any category 500/500
+RESULT every mutant caught by its own category in every draw
+05-pocock-pipeline: 500 draws, 120000 calls, largest draw 307130 bytes of JSON
+reference exceptions: none
+  m01_first_after_ten_days         own category 500/500  any category 500/500
+  m01_first_boundary               own category 500/500  any category 500/500
+  m02_second_boundary              own category 500/500  any category 500/500
+  m02_second_from_due_date         own category 500/500  any category 500/500
+  m03_final_after_seven_days       own category 500/500  any category 500/500
+  m03_final_boundary               own category 500/500  any category 500/500
+  m04_final_repeated               own category 500/500  any category 500/500
+  m05_any_positive_balance         own category 500/500  any category 500/500
+  m05_threshold_boundary           own category 500/500  any category 500/500
+  m06_cancelled_reminded           own category 500/500  any category 500/500
+  m07_balance_ignores_payments     own category 500/500  any category 500/500
+  m08_order_by_invoice_only        own category 500/500  any category 500/500
+RESULT every mutant caught by its own category in every draw
+07-integrity-control: 500 draws, 135000 calls, largest draw 332508 bytes of JSON
+reference exceptions: none
+  m01_first_after_ten_days         own category 500/500  any category 500/500
+  m01_first_boundary               own category 500/500  any category 500/500
+  m02_second_boundary              own category 500/500  any category 500/500
+  m02_second_from_due_date         own category 500/500  any category 500/500
+  m03_final_after_seven_days       own category 500/500  any category 500/500
+  m03_final_boundary               own category 500/500  any category 500/500
+  m04_final_repeated               own category 500/500  any category 500/500
+  m05_any_positive_balance         own category 500/500  any category 500/500
+  m05_threshold_boundary           own category 500/500  any category 500/500
+  m06_cancelled_reminded           own category 500/500  any category 500/500
+  m07_balance_ignores_payments     own category 500/500  any category 500/500
+  m08_order_by_invoice_only        own category 500/500  any category 500/500
+  m09_dispute_ignored              own category 500/500  any category 500/500
+  m09_resolved_dispute_blocks      own category 500/500  any category 500/500
+RESULT every mutant caught by its own category in every draw
