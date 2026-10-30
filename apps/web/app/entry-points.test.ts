@@ -21,6 +21,10 @@ const ALLOWLIST: AllowlistEntry[] = [
     entry: "app/api/auth/[...all]/route.ts",
     reason: "Better Auth authenticates its own endpoints",
   },
+  {
+    entry: "app/(app)/actions.ts#signOutAction",
+    reason: "sign-out needs no session; without one it only deletes cookies",
+  },
 ];
 
 const files = readSourceFiles(join(import.meta.dirname, ".."));

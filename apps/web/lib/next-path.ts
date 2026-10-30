@@ -9,6 +9,9 @@ const MAX_NEXT_LENGTH = 2048;
 // Browsers strip tab, CR and LF from URLs, so "/\t/evil.example" would become "//evil.example".
 const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
 
+/** The signed-out sign-in state of design/pages/sign-in (F3.3). */
+export const SIGNED_OUT_PATH = `${SIGN_IN_PATH}?signed-out=1`;
+
 /** `value` when it is a same-origin path, else `/`. */
 export function safeNextPath(value: unknown): string {
   if (typeof value !== "string" || value.length > MAX_NEXT_LENGTH) return "/";

@@ -1,4 +1,4 @@
-// Every Russian UI string of apps/web lives here or in the stub data of lib/courses.ts; nowhere else.
+// Every Russian UI string of apps/web lives here; nowhere else.
 // The copy is closed: each string is quoted from design/flows/ia.md, never invented. Tests import
 // these constants instead of repeating the text.
 
