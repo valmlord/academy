@@ -4,9 +4,11 @@ import {
   InvalidMigrationsFolderError,
   MigrationError,
 } from "@academy/db";
+import { type AuthSecretEnv, InvalidAuthSecretError, readAuthSecret } from "./auth/env";
 
 export interface StartupDeps {
   databaseUrl: string | undefined;
+  authEnv: AuthSecretEnv;
   migrate: (url: string) => Promise<void>;
   exit: (code: number) => never;
   logError: (line: string) => void;
@@ -23,15 +25,23 @@ export const connectHint =
 const IDENTIFIER = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
 
 /**
- * Applies the database migrations before the server handles a request, and exits the process on any
- * failure: a server without its schema would answer 500 forever (ADR-0007 item 8). No log line ever
- * carries the connection string.
+ * Checks the auth secret, then applies the database migrations before the server handles a request,
+ * and exits the process on any failure: a server without its schema would answer 500 forever
+ * (ADR-0007 item 8), and one without a valid secret would sign sessions with a guessable key
+ * (ADR-0008 item 9). No log line ever carries the connection string or the secret.
  */
 export async function migrateOnStartup(deps: StartupDeps): Promise<void> {
   if (deps.databaseUrl === undefined || deps.databaseUrl === "") {
     deps.logError(
       "web: DATABASE_URL is not set; start with the repository .env (pnpm dev) or the compose environment",
     );
+    deps.exit(1);
+  }
+  try {
+    readAuthSecret(deps.authEnv);
+  } catch (error: unknown) {
+    if (!(error instanceof InvalidAuthSecretError)) throw error;
+    deps.logError(`web: ${error.name}: ${error.message}`);
     deps.exit(1);
   }
   try {

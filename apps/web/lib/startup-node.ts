@@ -5,6 +5,10 @@ import { migrateOnStartup } from "./startup";
 export async function runStartup(): Promise<void> {
   await migrateOnStartup({
     databaseUrl: process.env.DATABASE_URL,
+    authEnv: {
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+      BETTER_AUTH_SECRETS: process.env.BETTER_AUTH_SECRETS,
+    },
     migrate: (url) => migrateDatabase(url),
     exit: (code) => process.exit(code),
     logError: (line) => console.error(line),

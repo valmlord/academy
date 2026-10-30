@@ -5,11 +5,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Database, type DbHandle } from "../../src/client.js";
 import { migrateDatabase } from "../../src/migrate.js";
 import {
+  accounts,
   attempts,
   checkResults,
   enrollments,
   lessonProgress,
   mentorReviews,
+  sessions,
   users,
 } from "../../src/schema.js";
 import {
@@ -343,4 +345,96 @@ describe("I11 row constraints", () => {
       await expect(insertAttempt("running", null, value)).resolves.toBeDefined();
     });
   }
+});
+
+describe("Better Auth tables (#29)", () => {
+  async function seedAuthUser(userId: string): Promise<void> {
+    await db
+      .insert(users)
+      .values({ id: userId, name: "Learner", email: `${userId}@example.invalid` });
+    await db.insert(sessions).values({
+      id: `${userId}-s`,
+      token: `${userId}-token`,
+      userId,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await db.insert(accounts).values({
+      id: `${userId}-a`,
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      password: "not-a-real-hash",
+    });
+  }
+
+  it("I-db-1 deleting a user removes its sessions and accounts", async () => {
+    await seedAuthUser("u-db1");
+
+    await db.delete(users).where(eq(users.id, "u-db1"));
+
+    const remaining = [
+      await db.select().from(sessions).where(eq(sessions.userId, "u-db1")),
+      await db.select().from(accounts).where(eq(accounts.userId, "u-db1")),
+    ];
+    expect(remaining.map((rows) => rows.length)).toEqual([0, 0]);
+  });
+
+  it("I-db-2 names every constraint and index of the auth tables", async () => {
+    const { rows: constraints } = await raw.query(
+      `SELECT conname FROM pg_constraint
+       WHERE conrelid::regclass::text IN ('sessions', 'accounts', 'verifications')
+       ORDER BY conname`,
+    );
+    const { rows: indexes } = await raw.query(
+      `SELECT indexname FROM pg_indexes
+       WHERE tablename IN ('sessions', 'accounts', 'verifications')
+       ORDER BY indexname`,
+    );
+
+    expect(constraints.map((row) => row.conname)).toEqual([
+      "accounts_pkey",
+      "accounts_provider_account_unique",
+      "accounts_user_id_fk",
+      "sessions_pkey",
+      "sessions_token_unique",
+      "sessions_user_id_fk",
+      "verifications_pkey",
+    ]);
+    expect(indexes.map((row) => row.indexname)).toEqual([
+      "accounts_pkey",
+      "accounts_provider_account_unique",
+      "accounts_user_id_idx",
+      "sessions_pkey",
+      "sessions_token_unique",
+      "sessions_user_id_idx",
+      "verifications_identifier_idx",
+      "verifications_pkey",
+    ]);
+  });
+
+  it("I-db-3 refuses a duplicate session token and a duplicate provider account", async () => {
+    await seedAuthUser("u-db3");
+
+    const duplicateToken = db.insert(sessions).values({
+      id: "u-db3-s2",
+      token: "u-db3-token",
+      userId: "u-db3",
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const duplicateAccount = db.insert(accounts).values({
+      id: "u-db3-a2",
+      accountId: "u-db3",
+      providerId: "credential",
+      userId: "u-db3",
+    });
+
+    expect(await failureOf(duplicateToken)).toEqual({
+      code: "23505",
+      constraint: "sessions_token_unique",
+    });
+    expect(await failureOf(duplicateAccount)).toEqual({
+      code: "23505",
+      constraint: "accounts_provider_account_unique",
+    });
+  });
 });

@@ -15,6 +15,7 @@
       "!**/next-env.d.ts",
       "!**/playwright-report",
       "!**/test-results",
+      "!**/playwright/.auth",
       "!packages/db/drizzle/meta/**",
       "!course/**/starter/**",
       "!course/**/checks/**"

@@ -101,8 +101,8 @@ Each item can be accepted or overturned on its own.
    (attempt_id, check_id)`), uuid keys for the event rows (`attempts`, `mentor_reviews`). Every constraint
    and index is named. The cascade covers **Postgres rows in these six tables only**: account deletion
    first collects every `attempts.transcript_path` of the user, then deletes the user, then deletes those
-   transcript files (#29 owns the flow, backlog 12 the store's delete operation). #29's `session` and
-   `account` FKs to `users` are `ON DELETE CASCADE`.
+   transcript files (#78 owns the flow, backlog 12 the store's delete operation; moved from #29 on
+   2026-10-30). #29's `sessions` and `accounts` FKs to `users` are `ON DELETE CASCADE`.
 7. **Transcript reference** = `attempts.transcript_path`, a path relative to the transcript store root,
    NULL when there is none, constrained by the allowlist
    `^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*/?$` (every segment starts with a letter or
@@ -110,7 +110,11 @@ Each item can be accepted or overturned on its own.
    depth: the reader (backlog 12) still resolves `realpath(root + path)` and refuses anything outside the
    root. No length cap; a `char_length` CHECK is additive later.
 8. **Database clients.** `apps/web` is the only process that connects to Postgres and the only writer. It
-   calls `migrateDatabase` at startup and exits non-zero if it rejects. Every route or API that takes an
+   calls `migrateDatabase` at startup and exits non-zero if it rejects. One-shot operator commands that
+   live in the `apps/web` package and are started by hand (today only `pnpm seed`, ADR-0008 item 10) count
+   as `apps/web`: they use the same `@academy/db` client and the same Better Auth configuration, never run
+   migrations and never run beside a request path; a command in another package, or a long-running one,
+   is a second client and needs this item changed first. Every route or API that takes an
    attempt id checks `attempts.user_id` against the session user. Requirement on the workspace API
    (backlog 05): it returns per-check results, mentor output and cost, and the transcript path to
    `apps/web`, and the stream the browser sees ends in, or is relayed by, `apps/web`. `architecture.md`
@@ -177,10 +181,15 @@ Each item can be accepted or overturned on its own.
   ships with #34, the first issue that creates attempts.
 - drizzle-kit 0.31 pulls `esbuild@0.18.20` (moderate GHSA-67mh-4wv8-2f99, exploitable only while
   `esbuild serve` runs, which nothing here does). Accepted until the 1.0 upgrade.
-- Transcripts survive the database cascade; the account-deletion flow deletes them.
+- Transcripts survive the database cascade; the account-deletion flow (#78) deletes them.
 - Drizzle 0.45's `DrizzleQueryError` message embeds the query parameters. Before credential tables exist,
   #29 states its own rule for logging DB errors (for example: the SQLSTATE and the constraint name, never
-  the Drizzle error message or object).
+  the Drizzle error message or object). #29's rule is ADR-0008 item 11.
+- Amended by #29 on 2026-10-30 (item 10: Stepan approves in the #29 PR; the status stays Accepted).
+  Item 6: the account-deletion flow moved from #29 to #78 (blocked by #29 and #38), Stepan's decision of
+  2026-10-30; #29 ships only the `sessions` and `accounts` cascade. Item 8: one-shot operator commands of
+  the `apps/web` package (the host-side `pnpm seed`, ADR-0008 item 10) count as `apps/web`; before this
+  amendment the item could be read as forbidding the seed's connection. No other decision changes.
 - Residual risks of the append-only guard: a direct push to `main` bypasses it (no branch protection,
   ADR-0004); an edited `when` of an existing `_journal.json` entry is unguarded (U1 only checks that the
   values increase); a migration applied locally before it was merged may later differ, so Stepan resets
