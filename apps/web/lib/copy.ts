@@ -1,3 +1,5 @@
+import type { Lesson } from "@academy/lesson-schema/schema";
+
 // Every Russian UI string of apps/web lives here; nowhere else.
 // The copy is closed: each string is quoted from design/flows/ia.md or from the Copy table of a ready
 // page's acceptance notes, never invented. Tests import these constants instead of repeating the text.
@@ -46,3 +48,51 @@ export const noReadyLessonsMessage = "В курсе пока нет готовы
 // ("copy denied", AC14).
 export const copyLabel = "Копировать";
 export const copyDeniedLabel = "Не скопировано, выделите текст вручную";
+
+// design/flows/ia.md, table "Action labels": the two "open the catalog" labels, "Курс" in the top bar and
+// the lesson breadcrumb, "Открыть курс" on the dashboard and the not-found page.
+export const courseLinkLabel = "Курс";
+export const openCourseLabel = "Открыть курс";
+
+// design/flows/ia.md, copy register "catalog (F5, F6)" and "dashboard (F4, F18)": the course read error
+// (catalog AC8, dashboard AC8).
+export const courseErrorTitle = "Не удалось загрузить курс";
+
+// design/flows/ia.md, copy register "catalog (F5, F6)": the not-found state, its title and h1.
+export const notFoundTitle = "Страница не найдена";
+
+// design/flows/ia.md, vocabulary "outcomes"; design/pages/catalog/acceptance.md, Copy "outcomes heading".
+export const outcomesHeading = "Чему научитесь";
+
+// design/flows/ia.md, copy register "dashboard (F4, F18)" and "lesson (F6-F13, F19)": "около N мин".
+export function durationLabel(minutes: number): string {
+  return `около ${minutes} мин`;
+}
+
+// design/flows/ia.md, closed set "lesson type": the schema `type` values, in schema order.
+export const lessonTypeLabels: Record<Lesson["type"], string> = {
+  theory: "теория",
+  quiz: "квиз",
+  artifact: "артефакт",
+  "agent-eval": "оценка агента",
+  "bug-hunt": "поиск багов",
+  project: "проект",
+};
+
+// design/flows/ia.md, closed set "module status".
+export const moduleAvailableLabel = "Доступен";
+export const modulePreparingLabel = "Готовится";
+
+// design/flows/ia.md, copy register "catalog (F5, F6)": a module without ready lessons (catalog AC4).
+export const noModuleLessonsMessage = "Уроки модуля готовятся";
+
+// design/pages/catalog/acceptance.md, Copy "lesson row meta": "<lesson type>, около N мин".
+export function lessonRowMeta(typeLabel: string, minutes: number): string {
+  return `${typeLabel}, ${durationLabel(minutes)}`;
+}
+
+// design/flows/ia.md, closed set "lesson status": every lesson is "not started" until #35 reads progress.
+export const lessonNotStartedLabel = "Не начат";
+
+// design/pages/catalog/acceptance.md, Copy "prerequisite note": the prefix before the lesson links.
+export const prerequisiteNotePrefix = "Сначала пройдите: ";

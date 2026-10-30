@@ -21,9 +21,10 @@ export function credentials(): { email: string; password: string } {
 let bucket = 0;
 
 /**
- * Gives this test its own sign-in rate-limit bucket (3 attempts per 10 s per address, always on):
- * every request to /api/auth/ carries an X-Forwarded-For unique to the test, which Better Auth trusts
- * when it is the only value (ADR-0008 residual risks).
+ * Gives this test its own Better Auth rate-limit bucket (always on): the sign-in limit (3 attempts per
+ * 10 s per address) and the get-session read every page load makes are both counted per address. Every
+ * request to /api/auth/ carries an X-Forwarded-For unique to the test, which Better Auth trusts when it
+ * is the only value (ADR-0008 residual risks).
  */
 export async function useOwnBucket(page: Page): Promise<void> {
   bucket += 1;
