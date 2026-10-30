@@ -28,7 +28,11 @@
     },
     "@academy/web#test": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/design/system/tokens.css"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/design/system/tokens.css",
+        "$TURBO_ROOT$/course/**"
+      ]
     }
   }
 }

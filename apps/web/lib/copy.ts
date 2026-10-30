@@ -1,6 +1,6 @@
 // Every Russian UI string of apps/web lives here; nowhere else.
-// The copy is closed: each string is quoted from design/flows/ia.md, never invented. Tests import
-// these constants instead of repeating the text.
+// The copy is closed: each string is quoted from design/flows/ia.md or from the Copy table of a ready
+// page's acceptance notes, never invented. Tests import these constants instead of repeating the text.
 
 // design/flows/ia.md, navigation model: the product name in the top bar.
 export const brandName = "Академия";
@@ -41,3 +41,8 @@ export const sessionExpiredMessage = "Сессия закончилась. Фа�
 
 // design/flows/ia.md, copy register "dashboard (F4, F18)": the empty state (dashboard AC7).
 export const noReadyLessonsMessage = "В курсе пока нет готовых уроков";
+
+// design/flows/ia.md, table "Action labels": "copy a code block"; design/pages/lesson/acceptance.md, Copy
+// ("copy denied", AC14).
+export const copyLabel = "Копировать";
+export const copyDeniedLabel = "Не скопировано, выделите текст вручную";
