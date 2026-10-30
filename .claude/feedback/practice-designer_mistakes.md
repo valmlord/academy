@@ -13,6 +13,25 @@ Rule: One-line rule that prevents this.
 A command check passed on the untouched starter, so it proved nothing.
 Rule: Run every check on the untouched starter (must fail) and on the reference solution (must pass).
 
+### 2026-10-30: A quiz decoy keyed false on a point the docs leave open (#42, judge_content round 1, accuracy)
+
+L4 quiz.yaml `local-open-weight-model` option d ("Claude Code сам перейдёт на короткий системный промпт для незнакомой
+модели") is keyed false. Changelog 2.1.312 only says which providers changed (Bedrock, Vertex, Foundry, Mantle). The
+env-vars row gives the full prompt only to the Haiku 4.5 / Sonnet 5 / Opus 4.7 families and the shorter one to newer
+models, so a learner can read d as true. The lesson's own theory says the docs are silent on gateways.
+Rule: Before you key a decoy false, find a source sentence that refutes it. If the docs are silent, or a sentence
+can be read as supporting it, replace the decoy with one the docs clearly refute.
+
+### 2026-10-30: The replacement decoy is refuted only by a page missing from `sources` (#42, judge_content round 2, accuracy)
+
+The new L4 option d ("WebFetch перестанет отправлять имя хоста на `api.anthropic.com`") with a local Ollama server is
+keyed false. The explanation says the check runs "куда бы ни шли запросы к модели" and that NONESSENTIAL_TRAFFIC does not
+affect it. The cited network-config names only Bedrock, Vertex, Foundry and the Claude apps gateway. Only data-usage
+("runs regardless of which model provider you use and is not affected by `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`")
+covers a local server, and it was not in lesson.yaml `sources`.
+Rule: The refuting sentence must be on a page listed in the lesson's `sources`, and it must cover the exact scenario of the
+question (here a local server, not a cloud provider). If it is on another page, add that page before you key the option.
+
 ### 2026-10-27: Grader environment and probe sets are part of the check (#15, design review)
 
 Found at #15 design review: python checks can be forced to exit 0 via a learner-written
@@ -106,3 +125,77 @@ stream, after which transformations). If you cannot reproduce that input exactly
 is stricter by construction (for example: any `@` not preceded by a letter or digit, anywhere in the
 file, every delimiter-cut prefix tried) and prove it covers the tool. Run the comparison on a corpus,
 not only on the cases from the FAIL. "Stricter only" is a claim that needs its own negative case.
+
+### 2026-10-30: A key layer that the lesson's own definitions reject (#42, judge_content round 1)
+
+L3 I04: the incident says the Stop hook runs only tests and A2 already exists in `make check`; task.md says "choose the fix
+that prevents the repeat, not what the repo already has" and "a Stop hook running `make check` is `hook`". The key
+(`failure_key.json`) accepts `check` and `code` and rejects `hook`, and the reference fix ("make the Stop hook run
+`make check`") is labelled `check`, so it fails rubric F1 on its own definitions. The key was carried from the design walk
+after the text around it changed.
+Rule: After any change to the printed ladder or its definitions, re-walk every key entry from the printed text alone and
+check that each reference fix sits at the layer it is labelled with under the rubric's definitions.
+
+### 2026-10-30: Probes that a stub can tell apart without doing the work (#42, judge_content round 1, assessment)
+
+L2 `arch-workspace-clean` item 8 ran `make -s check` on the copy as is and with one NEW planted file (an A1 import, a
+failing test). A `check` target that only compares the file list with a committed list, or only looks for an
+`m<6hex>.py` name, runs neither the suite nor the linter and passed on 3.11 and 3.12. Separately, the L2 and L3 suite
+ran the workspace's own test files: a regression in `/invoices` plus an edited starter-test assertion passed both
+checks with "стартовые тесты зелёные". The demo covered exactly the design's listed forms (`check: true`, `|| true`) and
+no neighbour.
+Rule: For every probe of learner machinery, write down what a stub would need to tell the variants apart, and add a
+must-pass variant that differs only in a harmless way plus a must-fail variant inside an existing file, so that only
+doing the real work separates them. Run graded tests from the pristine copy in `checks/data/` (or hash them) wherever the
+task does not ask the learner to edit them. Before the demo, build two stubs that are not on the design's list and show
+them failing.
+
+### 2026-10-30: Fixes that closed the named form and left its neighbour (#42, judge_content round 2, assessment)
+
+Round-1 B2 fix put pristine starter test files back, but learner-added test files still ran in the same process and are
+imported first: a new `tests/test_00_helpers.py` that rebinds `InvoiceListTest.test_filters_by_status` (or its `run`, or
+its `assertEqual`) hid a broken status filter in L1, L2 and L3 on 3.11 and 3.12. Round-1 B1 fix planted only A1, in three
+column-0 forms, so a `check` target running the real suite plus `! grep -rqE '^(import|from) +invoices' src/ledger`
+passed item 8 without running the linter.
+Rule: State each fix as the effect to observe ("no learner file runs in the process that runs the pristine tests";
+"`make check` passes only if the learner's linter ran"), and build it so that the effect holds by construction
+(separate child with only pristine files; require the linter's own line for the planted statement in make's output, and
+plant every rule in forms drawn from the hidden-root renderer). Then demo the one-line cheat a stubborn agent would
+write first (monkeypatch from a new test file, grep for the planted line) against the fix before handing it back.
+
+### 2026-10-30: A planted mutation that can break a correct project before the graded command runs (#42, judge_content round 3, pedagogy)
+
+C2 appends an A1 chunk, drawn from the `a1-forms` templates, to `src/ledger/accounts.py` and then requires the learner's
+own linter line in the output of `make -s check`. Four of the ten A1 chunks execute `import invoices.money` at module
+level. The task allows an A1 fix that moves `format_cents` to `src/shared/` and deletes `src/invoices/money.py`, and it
+allows added tests. If the learner also has a test that imports `ledger`, that test errors on the planted copy. The
+canonical target `check: test` (the reference Makefile's own shape) then stops before the linter, and item 8 fails with
+"цель check должна запускать линтер". That message is wrong for this project, and it fails about 40% of runs. The
+reference keeps `invoices/money.py` as a shim, so its 20/20 never reached this corner.
+Rule: A mutation the grader plants to observe one command (the linter) must not change the result of the commands that
+run before it on any solution the task allows. Either draw only forms that cannot fail at runtime (not executed, or
+importing only modules the task guarantees exist), or run the copy's tests after planting and redraw if they turn red.
+Demo with a correct solution that differs from the reference in every way the task leaves open: deleted shims, added
+tests, `check: test` ordering.
+
+### 2026-10-30: One drawn form per rule let a grep stub that forges the linter's lines pass 10% of runs (#42, judge_content round 3, assessment)
+
+The C2 fix in L2 item 8 plants one A1, one A2 and one A3 chunk per run and requires the learner's own linter line for
+each in the output of `make -s check`. A 12-line `grep -n` script printed `<rule> <path>:<line>: ` plus the reference
+linter's exact message, with fixed module names, and never ran the linter. It reproduced the line for 3 of 10 A1, 3 of
+5 A2 and 4 of 5 A3 chunks, so the real check passed it in 4 of 40 runs on 3.11 and on 3.12. With unlimited attempts that
+is a pass. The demo had tried only the two round-2 grep stubs.
+Rule: When a check samples one variant per run from a set, a stub only has to beat the sampled variant, and retries
+are free. Require the whole set in every run when it fits the budget. Before handing the fix back, demo the cheapest
+stub that targets the easiest member of the set, and report its pass rate over 40 runs, not one verdict.
+
+### 2026-10-30: Reworded task text describes the check from memory, not from its code (#42, judge_content round 4, accuracy)
+
+Two items in the round-3 fixes were reworded without reading the code they describe. L1 item 10 now says that deleting
+a starter test in `tests/test_statement.py` "ничего не меняют". But `verify_pokayoke.STATIC_TEST_FILES` includes
+`test_statement`, so stage 0 reports the missing name, and the same task.md says so two paragraphs later. L2 item 8
+now says that "все формы нарушения ... из скрытых проектов" are planted. But `planted_violations` takes only `files[0]`
+of each template: 10/5/5 of the 11/8/8 single-finding forms.
+Rule: Every sentence that says what a check does, or does not react to, is checked against the constant or function
+that implements it before hand-back: grep the file named, the list or constant that bounds the set, and the stage that
+reads it. Words like "все", "ничего", "всегда" need a pointer to the code line that makes them true.

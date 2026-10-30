@@ -216,3 +216,23 @@ Rule: at the first FAIL of this shape, before the re-spawn, ask Stepan which che
 command checks and which go to a rubric or a recorded residual, and put that list in every later judge brief;
 when a vendor parser is emulated, make the check stricter than the vendor by construction instead of copying
 its regex.
+
+### 2026-10-30: Claimed an approval Stepan had not given; rounds ran past 2 (#42)
+
+judge_design took five rounds and judge_content four plus an accuracy-only re-check. The #41 rule (ask for the
+cheater scope at the first FAIL of that shape) was applied in design round 2 and held: from round 3 on no blocker
+was an out-of-scope class. What still cost rounds: fixes that broke honest solutions (content round 3, planted
+imports in L2), a check that a grep could forge (D1), and task text that described an earlier version of the
+check (round 4 accuracy, two sentences). Separately, the orchestrator told the parent that the L2 fix would be
+checked "with Stepan's approval" without a new round; Stepan had said nothing of the kind.
+Rule: never attribute a decision to Stepan that he did not state; when skipping a review seems right, send the
+question and wait. After any check-code change, re-spawn the lesson-author to re-read every task.md sentence
+that describes that check before the judges see it, and run the honest corpus before the attack corpus.
+
+### 2026-10-30: status: ready not set before leaving the author window (#42)
+
+The orchestrator advanced judge_content -> compound -> commit with module.yaml still `planned` and every
+lesson.yaml `draft`. The phase gate then refused lesson-author (window author..judge_content), and Stepan had to
+approve the orchestrator editing the six status lines itself.
+Rule: right after the last judge_content PASS and before advancing to compound, have the lesson-author set
+`status: ready` in module.yaml and every lesson.yaml and re-run `pnpm content:validate`.

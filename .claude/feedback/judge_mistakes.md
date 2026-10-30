@@ -116,6 +116,14 @@ round 3, once `?tab=` made the reset visible in the URL.
 Rule: In judge_ux, run each state-changing control from every left-pane tab and compare the selected tab
 and URL before and after against the acceptance notes.
 
+### 2026-10-30: Pedagogy judge diffed task text against checks but not against the outcome verb (#42)
+In round 1 the pedagogy judge confirmed that L4's "Готово, когда" matched its check one to one and stopped there. It
+did not ask whether that text, together with the check's per-rule file and field messages, already handed over the
+answers the outcome "Находит" expects the learner to produce. The problem surfaced in round 2 and cost a round.
+Rule: After the 2.6 diff, read the task text and the check's message on the untouched starter as the learner sees
+them. For every outcome verb (find, choose, place), state what is still left to do. If the answer is "nothing", FAIL in
+round 1.
+
 ### 2026-10-30: A prescribed fix modelled the tool's regex but not its input (#41)
 
 Round-1 assessment FAIL on the L2 import resolver prescribed "tokenize exactly as Claude Code does:
@@ -125,3 +133,50 @@ eight glued forms (`**x:**@path`, `<!-- c -->@path`, ...) still passed in round 
 Rule: When prescribing "do what the tool does", read the whole function around the regex: what it is
 applied to, which tokens are skipped, what transformations happen first. Prefer prescribing a superset
 that is stricter by construction, and give a corpus to compare against, not only the cases found.
+
+### 2026-10-30: Round-1 fix targets prescribed forms, and round 2 found the neighbours (#42)
+
+Round-1 assessment B4 prescribed "no new top-level module or package under `src/`", and B3 prescribed a list of
+banned calls. The architect implemented both faithfully. A sourceless `.pyc`, a stub inside an existing module, a
+`sys.modules` alias and `runpy.run_path` then passed in round 2.
+Rule: A blocking item's fix target names the effect to observe: no stand-in for the package, no code of that
+package executed. A list of forms is at most an example. Before writing the fix, try two neighbouring forms against
+it. This applies the #41 lesson ("prefer a superset stricter by construction") to every evasion finding, not only
+to parsers.
+
+### 2026-10-30: Accepted a residual bound counted in lines without bounding line length or exempt line types (#42)
+
+Round-2 assessment prescribed "the residual paraphrase is bounded by 3 untagged lines plus 10 words per memory line".
+s4 counts untagged lines but neither their length nor `#` headings. So in round 3 one untagged line or one heading
+held a paraphrase of all ten moved rules, and the bound in 12.2 was not a bound.
+Rule: A bound stated in units (lines, files, calls) is a bound only when each unit is also bounded in size and no
+unit type is exempt. Before prescribing or accepting it, fill one unit with the whole forbidden payload and run it.
+
+### 2026-10-30: Round-1 variant list for `make check` named only one rule (#42, judge_content round 2, assessment)
+
+Round-1 assessment B1 stated the right effect ("a target that does not run both cannot pass") but its example variant
+set planted only A1 violations. The designer implemented it with three column-0 A1 lines, and in round 2 a target with
+the real suite plus a one-line `grep` for `^(import|from) invoices` passed. The B2 prescription ("run the pristine starter
+tests") likewise did not say "and nothing else in that process", and a new test file monkeypatching a starter class
+passed.
+Rule: When a prescription includes example variants or a construction, write the cheapest stand-in that would satisfy
+exactly those examples (grep for the planted line, monkeypatch from a sibling file) and run it against the prescription
+before sending the FAIL. If it passes, the examples are not the fix.
+
+### 2026-10-30: Accepted on paper that a message-forging grep would fail, without running it (#42, judge_content round 3, assessment)
+
+Round-2 C2 said a `grep -n | sed` stub that copies the learner's message "fails (2)/(3) unless it grows into an AST
+linter", and prescribed "plant A1, A2 and A3" without saying "every form". The designer planted one drawn form per rule.
+In round 3 a 12-line grep forger passed 10% of runs. The prescription was the gap, and so was the untested claim.
+Rule: Every "this stand-in would fail" in a FAIL is a test to run before sending it, not a judgement. When the
+construction samples from a set, state whether the whole set or one draw is required, and compute the stub's pass
+rate per run from the per-member results.
+
+### 2026-10-30: A non-blocking note diagnosed only one of the files its sentence covered (#42, judge_content round 3, accuracy)
+
+Round-3 accuracy note 3 said that "Правка, пропуск или удаление стартового теста ничего не меняют" was untrue only for
+`tests/test_late_fee.py`. It did not check `verify_pokayoke.STATIC_TEST_FILES`, which also lists `test_statement`.
+The designer narrowed the sentence to `test_statement.py` and `test_api.py`, which made it false for the very file the
+note had missed. That cost round 4.
+Rule: A note that says a sentence is wrong "only for X" is a claim about every other case. Before writing it, grep the
+constant or stage that decides each case, even when the note is non-blocking.

@@ -40,3 +40,32 @@ Rule: When a table row or summary uses a broader condition than the source sente
 X"), list every documented field that changes the outcome under that condition. When you quote a
 source, keep the quote attached to the subject the source attaches it to, and re-read the sentence
 just before it in the source.
+
+### 2026-10-30: Student ambiguity and time overrun left neither fixed nor recorded (#42, judge_content round 1)
+
+Student A flagged L1 R06 as readable as `code` at step 4 ("remove the misleading thing: delete a dead module"), against
+a `check` key with 3 binary submissions; no sentence was added and nothing recorded it as accepted. Student A also
+estimated L2 at 85-90 min against 75; the design's named fallback was not applied and the estimate was not changed.
+Rule: For every student "ambiguous" item on a capped binary check, add the sentence that decides it or record why it
+stays; for every time overrun, apply the design's fallback, change `estimatedMinutes` and the task.md breakdown, or record
+why the number stands.
+
+### 2026-10-30: Own examples presented as a cited author's examples (#42, judge_content round 1, accuracy)
+
+L1 theory.md:27-33 says Böckeler's guides are "файл памяти, документация, типы, понятные имена". Her article lists
+AGENTS.md, Skills, codemods (OpenRewrite), LSPs, architecture docs and how-tos as guides. She names type checking only
+as a computational sensor, and the lesson's own line 37 says so too.
+Rule: In a sentence that starts "<Author> делит/называет/пишет", give only examples the source gives. Put your own
+examples into a sentence the module owns ("В терминах этого модуля ...").
+
+### 2026-10-30: New round-1 fix text widened facts past the cited page and overstated a rule (#42, judge_content round 2, accuracy)
+
+L4 theory.md:185-187 says the WebFetch preflight runs "куда бы ни шли запросы к модели" and that
+`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` does not stop it. That is true, but only data-usage says so, and data-usage was
+not in `sources`. The cited network-config names only Bedrock, Vertex, Foundry and the Claude apps gateway. The quiz key
+then depended on the unlisted page. L4 theory.md:110-112 says excluded commands "всегда" run outside the sandbox "даже
+при false". The same sandboxing page says a `false` from managed settings or `--settings` makes the sandbox
+admin-required and ignores the repository's `excludedCommands`.
+Rule: When a fix adds a sentence, find the page that states it, add that page to `sources` if it is missing, and read
+the whole section of the cited page for exceptions before you write "всегда", "любой" or "куда бы ни". This matters most
+for scopes you named in the sentence before.
