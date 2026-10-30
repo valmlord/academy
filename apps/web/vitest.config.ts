@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["**/*.test.{ts,tsx}"],
-    exclude: ["**/node_modules/**", "**/.next/**", "e2e/**"],
+    // Integration tests need Docker and run through vitest.integration.config.ts.
+    exclude: ["**/node_modules/**", "**/.next/**", "e2e/**", "**/*.int.test.ts"],
     setupFiles: ["./test/setup.ts"],
   },
 });

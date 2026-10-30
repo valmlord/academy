@@ -16,12 +16,15 @@ import {
 
 const BROKEN_MIGRATIONS = fileURLToPath(new URL("./fixtures/broken-migrations", import.meta.url));
 const SCHEMA_TABLES = [
+  "accounts",
   "attempts",
   "check_results",
   "enrollments",
   "lesson_progress",
   "mentor_reviews",
+  "sessions",
   "users",
+  "verifications",
 ];
 const LOCK_WAIT_POLL_MS = 100;
 const LOCK_WAIT_LIMIT_MS = 10_000;
@@ -70,7 +73,7 @@ async function waitForLockWaiter(url: string): Promise<void> {
 }
 
 describe("migrateDatabase", () => {
-  it("I1 creates all six tables on an empty database and records every journal entry", async () => {
+  it("I1 creates every schema table on an empty database and records every journal entry", async () => {
     const url = await database();
 
     await migrateDatabase(url);

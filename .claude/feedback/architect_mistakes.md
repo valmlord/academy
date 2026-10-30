@@ -635,3 +635,65 @@ shell URL at a live db on 55432, root `.env` at 5432 -> root `pnpm dev` fails EC
 strict env drops `E2E_BASE_URL` and added `passThroughEnv` for `test:e2e`, but not for `dev`.
 Rule: Verify every env-precedence claim through the exact command the README documents, and for every turbo
 task list the variables the process reads and declare each in `env`/`passThroughEnv`.
+
+### 2026-10-30: Step order claimed "each leaves the repo green" without walking runtime gates (#29)
+Issue #29 design section 14: the startup secret check (step 6, commit 3) lands eight commits before
+compose and CI supply the secret (steps 31, 37), so the web container exits 1 and the e2e job and
+image check I2 are red in between. The default-deny proxy (step 19) lands before `/sign-in` exists
+(step 26), so `/` redirects to a 404 and the compose healthcheck never passes. `lib/courses.ts` is
+deleted (step 30) while `e2e/home.spec.ts`, which tsconfig includes, still imports it. The same
+design handed dashboard deviations to #30 although #30's body has no dashboard criterion and the
+progress ACs belong to #35. It also changed two ADR-0007 obligations (deletion owner, the single DB
+client) without amending ADR-0007, and marked modules server-only without saying how Vitest and the
+seed import them.
+Rule: For every step, walk the CI jobs that run on it (compose up + healthcheck, image checks, e2e,
+typecheck over every included file), not only the unit check in brackets. Introduce a new runtime
+requirement in the same step as whatever supplies it. Check each follow-up issue's body really covers
+what is deferred to it. Amend an accepted ADR wherever the design changes one of its obligations.
+
+### 2026-10-30: A host-side CLI that imports workspace packages built only to gitignored dist (#29, judge_design round 1, operations)
+Design 4.5/6.4 runs `pnpm seed` (`tsx scripts/seed.ts` via `pnpm --filter`) right after `compose up` in CI
+and on Stepan's machine. It imports `@academy/db` and, through it, `@academy/lesson-schema`; both export only
+`./dist/index.js`, `dist/` is git-ignored, and a plain `pnpm --filter` script runs no `^build`. In CI no host
+build has happened yet (ERR_MODULE_NOT_FOUND); on Stepan's machine `dist` predates the new tables.
+Rule: For every new host-side command, trace each workspace import to its package `exports` and state what
+builds it first (a turbo task with `dependsOn: ["^build"]`, or an explicit build), on a clean clone and on a
+machine with a stale build.
+
+### 2026-10-30: An isolation recipe that covered typed commands, not scripts, the shared image tag or the coder (#29, judge_design round 1, operations)
+Design 13.5 isolated the tester with `-p academy-t29`, but `check-image-migrations.sh` runs bare
+`docker compose` (it targets project `academy`), tester builds, including mutated ones, retag the shared
+`academy-web:local`, and the coder's `pnpm dev`/`pnpm seed` steps read the root `.env` (Stepan's db),
+so an unmerged migration could land in `academy_db-data`.
+Rule: Isolate by environment, not by flags: export `COMPOSE_PROJECT_NAME`, use a separate image tag and a
+DB port in a sourced helper, apply it to every role that runs anything, forbid writes to the root `.env`,
+and assert the owner's volume is unchanged at teardown.
+
+### 2026-10-30: A two-write seed whose rerun reports success on a half-written state (#29, judge_design round 1, operations)
+The seed creates the user, then links the credential account, without a transaction; the rerun branch
+"user exists -> update password" updates 0 rows when the account is missing and prints "updated".
+Rule: For every idempotent operator command, list the states a crash between its writes can leave, and make
+the rerun converge from each (or make the writes atomic), with a test that starts from the half-written state.
+
+### 2026-10-30: Mutation rows checked against the design's model of the library, not the library's condition (#29, judge_design round 1, security)
+I-dal's M14 precondition aged `updated_at`, but Better Auth refreshes on `expiresAt - expiresIn + updateAge <= now`
+(`session.mjs:178`), so the mutation stays green. U-log put its canary on line 2 of a message the logger truncates to
+line 1. I-host expected a response where `auth.handler` throws before the router. The secret rule "refuse short values
+everywhere" ignored `BETTER_AUTH_SECRETS`, which overrides `options.secret` (`create-context.mjs:76`). The seed's
+password re-key, the only recovery path, left existing sessions valid. The DAL guard scanned pages only, although
+server actions are public POST endpoints.
+Rule: For each mutation row, read the library's exact condition and the code path the test input takes (truncation,
+throw vs response), and state why the input crosses it. For every "refuse X" invariant, grep the library for every
+other source of X (env names, option aliases). A credential reset revokes sessions. An enforcement test covers every
+entry point kind the rule names (pages, server actions, route handlers), with an explicit allowlist.
+
+### 2026-10-30: A security property was tested only through a side effect that a fallback also produces (#29)
+
+Round-2 security FAIL. Sign-out was tested by "cookie gone, `/` redirects to sign-in", which the cookie
+deletion alone produces; Better Auth's `signOut` also swallows a DB delete failure itself
+(`sign-out.mjs:49-53`), so a sign-out that never revokes the server row stayed green everywhere. The design's
+failure-mode row assumed the library throws there without reading it. The same round found the DAL guard's
+allowlist keyed by file, so any later export in an allowlisted actions module was exempt.
+Rule: For every security property (revocation, authorization), assert the server-side state itself (the old
+token is rejected), read the library's error handling before claiming where a failure lands, and allowlist
+the narrowest unit the check can see (an export, not a file).
