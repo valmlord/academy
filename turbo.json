@@ -19,7 +19,7 @@
       "cache": false,
       "persistent": true,
       "dependsOn": ["^build"],
-      "passThroughEnv": ["DATABASE_URL", "PORT", "BETTER_AUTH_SECRET"]
+      "passThroughEnv": ["DATABASE_URL", "PORT", "BETTER_AUTH_SECRET", "COURSE_ROOT"]
     },
     "seed": {
       "dependsOn": ["^build"],

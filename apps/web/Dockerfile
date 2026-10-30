@@ -13,8 +13,13 @@ WORKDIR /repo
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 ENV NEXT_TELEMETRY_DISABLED=1
-# Builds @academy/lesson-schema and @academy/db first.
-RUN pnpm turbo run build --filter=@academy/web...
+# Builds @academy/lesson-schema and @academy/db first; the export below imports the schema.
+RUN pnpm turbo run build --filter=@academy/web^...
+# ADR-0009: copy exactly the learner-visible course files, then delete course/ before next build, so
+# output tracing can ship nothing from it (checks/, quiz.yaml, starter/ never reach the runner).
+RUN pnpm --filter @academy/web exec tsx scripts/export-course.ts export /repo/course /out/course \
+  && rm -rf /repo/course
+RUN pnpm turbo run build --filter=@academy/web
 
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
@@ -25,6 +30,9 @@ COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /repo/apps/web/public ./apps/web/public
 # migrateDatabase reads the SQL migrations at startup; standalone tracing does not include them (design 0.2).
 COPY --from=build /repo/packages/db/drizzle ./packages/db/drizzle
+# The pages read the course at request time (ADR-0009 item 1); root-owned like the code.
+COPY --from=build /out/course ./course
+ENV COURSE_ROOT=/app/course
 # The only path the server writes at runtime.
 RUN mkdir -p apps/web/.next/cache && chown node:node apps/web/.next/cache
 USER node
