@@ -1,0 +1,77 @@
+id: patterns-failure-analysis
+title: "Где и почему агент ошибается"
+type: artifact
+outcomes:
+  - "Разбирает сбои агента по записям сессий: называет класс причины и ступень, на которой исправление предотвратит повтор, формулирует конкретное исправление и реализует одно из них как проверку зависимостей."
+estimatedMinutes: 70
+status: ready
+prerequisites:
+  - patterns-architecture-checks
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Chroma: Context Rot (Hong, Troynikov, Huber, 2025-07-14; отвлекающие фрагменты)"
+    url: https://www.trychroma.com/research/context-rot
+    checkedAt: "2026-10-30"
+  - title: "Misra et al.: GitChameleon 2.0 (arXiv:2507.12367 v2; задачи с закреплёнными версиями библиотек)"
+    url: https://arxiv.org/abs/2507.12367
+    checkedAt: "2026-10-30"
+  - title: "Spracklen et al.: We Have a Package for You! (arXiv:2406.10279 v3, USENIX Security 2025; выдуманные пакеты)"
+    url: https://arxiv.org/abs/2406.10279
+    checkedAt: "2026-10-30"
+  - title: "METR: Recent Frontier Models Are Reward Hacking (2025-06-05)"
+    url: https://metr.org/blog/2025-06-05-recent-reward-hacking/
+    checkedAt: "2026-10-30"
+  - title: "Sharma et al.: Towards Understanding Sycophancy in Language Models (arXiv:2310.13548 v4)"
+    url: https://arxiv.org/abs/2310.13548
+    checkedAt: "2026-10-30"
+  - title: "METR: Time horizons (50% горизонт, страница больше не обновляется с 2026-09-08)"
+    url: https://metr.org/time-horizons/
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Best practices (четыре причины неудачной сессии)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-30"
+  - title: "Birgitta Böckeler: Harness engineering for coding agent users (2026-04-02; steering loop)"
+    url: https://martinfowler.com/articles/harness-engineering.html
+    checkedAt: "2026-10-30"
+  - title: "Mitchell Hashimoto: My AI Adoption Journey (2026-02-05; Engineer the Harness)"
+    url: https://mitchellh.com/writing/my-ai-adoption-journey
+    checkedAt: "2026-10-30"
+  - title: "Ryan Lopopolo, OpenAI: Harness engineering: leveraging Codex in an agent-first world (2026-02-11; сбой агента как сигнал)"
+    url: https://openai.com/index/harness-engineering/
+    checkedAt: "2026-10-30"
+  - title: "Gloaguen et al.: Evaluating AGENTS.md (arXiv:2602.11988 v3, 2026-09-29; инструкции хорошо исполняются)"
+    url: https://arxiv.org/abs/2602.11988
+    checkedAt: "2026-10-30"
+  - title: "Python: sys.stdlib_module_names (с версии 3.10, только пакеты верхнего уровня)"
+    url: https://docs.python.org/3/library/sys.html#sys.stdlib_module_names
+    checkedAt: "2026-10-30"
+checks:
+  - id: failure-log
+    title: "Разбор восьми сбоев: класс причины и ступень исправления"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_failure_log.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: deps-gate
+    title: "Проверка зависимостей: правило D1, коды выхода, проект чист без заглушек"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_deps.py"'
+    timeoutSec: 150
+    weight: 2
+  - id: failure-fix-rubric
+    title: "Исправления сбоев: конкретные, на названной ступени, предотвращают повтор (оценка ментора)"
+    kind: rubric
+    rubric: checks/rubric-failure-fix.md
+    artifacts:
+      - failure-log.json
+      - scripts/check_deps.py
+    passScore: 0.7
+    weight: 2
+  - id: failure-analysis-quiz
+    title: "Квиз: дубликаты, устаревшие API без интернета, выдуманные пакеты, угодничество, длинные задачи"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

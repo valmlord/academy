@@ -1,0 +1,125 @@
+{
+ "inputs": {
+  "entries": [
+   [
+    "1200",
+    10050,
+    0,
+    "2026-10-01",
+    "invoice-7"
+   ],
+   [
+    "4000",
+    0,
+    10050,
+    "2026-10-01",
+    "invoice-7"
+   ],
+   [
+    "1000",
+    999,
+    0,
+    "2026-10-12",
+    "payment-3"
+   ],
+   [
+    "1200",
+    0,
+    120000,
+    "2026-10-29",
+    "payment-11"
+   ]
+  ],
+  "statement": [
+   [
+    7,
+    10050,
+    5,
+    "EUR"
+   ],
+   [
+    12,
+    99,
+    0,
+    "USD"
+   ],
+   [
+    301,
+    1234567,
+    1001,
+    "EUR"
+   ],
+   [
+    5,
+    100,
+    7,
+    "USD"
+   ]
+  ],
+  "csv": [
+   {
+    "id": 7,
+    "customer": "Acme GmbH",
+    "currency": "EUR",
+    "status": "issued",
+    "lines": [
+     10000,
+     50
+    ]
+   },
+   {
+    "id": 19,
+    "customer": "Globex",
+    "currency": "USD",
+    "status": "paid",
+    "lines": [
+     1999
+    ]
+   },
+   {
+    "id": 230,
+    "customer": "Initech",
+    "currency": "EUR",
+    "status": "draft",
+    "lines": [
+     100,
+     200,
+     300
+    ]
+   }
+  ]
+ },
+ "entryLines": {
+  "value": [
+   "2026-10-01 1200 Dr 100.50 EUR Cr 0.00 EUR invoice-7",
+   "2026-10-01 4000 Dr 0.00 EUR Cr 100.50 EUR invoice-7",
+   "2026-10-12 1000 Dr 9.99 EUR Cr 0.00 EUR payment-3",
+   "2026-10-29 1200 Dr 0.00 EUR Cr 1200.00 EUR payment-11"
+  ]
+ },
+ "statement": [
+  {
+   "value": "#7: 100.50 EUR + fee 0.05 EUR"
+  },
+  {
+   "value": "#12: 0.99 USD + fee 0.00 USD"
+  },
+  {
+   "value": "#301: 12345.67 EUR + fee 10.01 EUR"
+  },
+  {
+   "value": "#5: 1.00 USD + fee 0.07 USD"
+  }
+ ],
+ "csv": [
+  {
+   "value": "7;Acme GmbH;EUR 100,50;issued"
+  },
+  {
+   "value": "19;Globex;USD 19,99;paid"
+  },
+  {
+   "value": "230;Initech;EUR 6,00;draft"
+  }
+ ]
+}

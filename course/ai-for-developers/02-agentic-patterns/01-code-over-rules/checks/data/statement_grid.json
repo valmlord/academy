@@ -1,0 +1,581 @@
+{
+ "today": "2026-10-30",
+ "invoices": [
+  {
+   "id": 101,
+   "customer": "Acme GmbH",
+   "currency": "EUR",
+   "amount": 1100,
+   "paid": 0,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#101 Acme GmbH: 11.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 102,
+   "customer": "Acme GmbH",
+   "currency": "USD",
+   "amount": 1100,
+   "paid": 0,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#102 Acme GmbH: 11.00 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 103,
+   "customer": "Acme GmbH",
+   "currency": "EUR",
+   "amount": 1100,
+   "paid": 0,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#103 Acme GmbH: 11.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 104,
+   "customer": "Acme GmbH",
+   "currency": "USD",
+   "amount": 1100,
+   "paid": 0,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#104 Acme GmbH: 11.00 USD + fee 0.01 USD"
+   }
+  },
+  {
+   "id": 105,
+   "customer": "Acme GmbH",
+   "currency": "EUR",
+   "amount": 1100,
+   "paid": 0,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#105 Acme GmbH: 11.00 EUR + fee 0.27 EUR"
+   }
+  },
+  {
+   "id": 106,
+   "customer": "Acme GmbH",
+   "currency": "USD",
+   "amount": 1100,
+   "paid": 0,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#106 Acme GmbH: 11.00 USD + fee 1.10 USD"
+   }
+  },
+  {
+   "id": 107,
+   "customer": "Acme GmbH",
+   "currency": "EUR",
+   "amount": 1100,
+   "paid": 550,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#107 Acme GmbH: 5.50 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 108,
+   "customer": "Acme GmbH",
+   "currency": "USD",
+   "amount": 1100,
+   "paid": 550,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#108 Acme GmbH: 5.50 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 109,
+   "customer": "Acme GmbH",
+   "currency": "EUR",
+   "amount": 1100,
+   "paid": 550,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#109 Acme GmbH: 5.50 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 110,
+   "customer": "Acme GmbH",
+   "currency": "USD",
+   "amount": 1100,
+   "paid": 550,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#110 Acme GmbH: 5.50 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 111,
+   "customer": "Acme GmbH",
+   "currency": "EUR",
+   "amount": 1100,
+   "paid": 550,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#111 Acme GmbH: 5.50 EUR + fee 0.13 EUR"
+   }
+  },
+  {
+   "id": 112,
+   "customer": "Acme GmbH",
+   "currency": "USD",
+   "amount": 1100,
+   "paid": 550,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#112 Acme GmbH: 5.50 USD + fee 0.55 USD"
+   }
+  },
+  {
+   "id": 113,
+   "customer": "Globex",
+   "currency": "EUR",
+   "amount": 10000,
+   "paid": 0,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#113 Globex: 100.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 114,
+   "customer": "Globex",
+   "currency": "USD",
+   "amount": 10000,
+   "paid": 0,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#114 Globex: 100.00 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 115,
+   "customer": "Globex",
+   "currency": "EUR",
+   "amount": 10000,
+   "paid": 0,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#115 Globex: 100.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 116,
+   "customer": "Globex",
+   "currency": "USD",
+   "amount": 10000,
+   "paid": 0,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#116 Globex: 100.00 USD + fee 0.10 USD"
+   }
+  },
+  {
+   "id": 117,
+   "customer": "Globex",
+   "currency": "EUR",
+   "amount": 10000,
+   "paid": 0,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#117 Globex: 100.00 EUR + fee 2.50 EUR"
+   }
+  },
+  {
+   "id": 118,
+   "customer": "Globex",
+   "currency": "USD",
+   "amount": 10000,
+   "paid": 0,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#118 Globex: 100.00 USD + fee 10.00 USD"
+   }
+  },
+  {
+   "id": 119,
+   "customer": "Globex",
+   "currency": "EUR",
+   "amount": 10000,
+   "paid": 5000,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#119 Globex: 50.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 120,
+   "customer": "Globex",
+   "currency": "USD",
+   "amount": 10000,
+   "paid": 5000,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#120 Globex: 50.00 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 121,
+   "customer": "Globex",
+   "currency": "EUR",
+   "amount": 10000,
+   "paid": 5000,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#121 Globex: 50.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 122,
+   "customer": "Globex",
+   "currency": "USD",
+   "amount": 10000,
+   "paid": 5000,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#122 Globex: 50.00 USD + fee 0.05 USD"
+   }
+  },
+  {
+   "id": 123,
+   "customer": "Globex",
+   "currency": "EUR",
+   "amount": 10000,
+   "paid": 5000,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#123 Globex: 50.00 EUR + fee 1.25 EUR"
+   }
+  },
+  {
+   "id": 124,
+   "customer": "Globex",
+   "currency": "USD",
+   "amount": 10000,
+   "paid": 5000,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#124 Globex: 50.00 USD + fee 5.00 USD"
+   }
+  },
+  {
+   "id": 125,
+   "customer": "Initech",
+   "currency": "EUR",
+   "amount": 10005,
+   "paid": 0,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#125 Initech: 100.05 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 126,
+   "customer": "Initech",
+   "currency": "USD",
+   "amount": 10005,
+   "paid": 0,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#126 Initech: 100.05 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 127,
+   "customer": "Initech",
+   "currency": "EUR",
+   "amount": 10005,
+   "paid": 0,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#127 Initech: 100.05 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 128,
+   "customer": "Initech",
+   "currency": "USD",
+   "amount": 10005,
+   "paid": 0,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#128 Initech: 100.05 USD + fee 0.10 USD"
+   }
+  },
+  {
+   "id": 129,
+   "customer": "Initech",
+   "currency": "EUR",
+   "amount": 10005,
+   "paid": 0,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#129 Initech: 100.05 EUR + fee 2.50 EUR"
+   }
+  },
+  {
+   "id": 130,
+   "customer": "Initech",
+   "currency": "USD",
+   "amount": 10005,
+   "paid": 0,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#130 Initech: 100.05 USD + fee 10.00 USD"
+   }
+  },
+  {
+   "id": 131,
+   "customer": "Initech",
+   "currency": "EUR",
+   "amount": 10005,
+   "paid": 5002,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#131 Initech: 50.03 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 132,
+   "customer": "Initech",
+   "currency": "USD",
+   "amount": 10005,
+   "paid": 5002,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#132 Initech: 50.03 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 133,
+   "customer": "Initech",
+   "currency": "EUR",
+   "amount": 10005,
+   "paid": 5002,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#133 Initech: 50.03 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 134,
+   "customer": "Initech",
+   "currency": "USD",
+   "amount": 10005,
+   "paid": 5002,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#134 Initech: 50.03 USD + fee 0.05 USD"
+   }
+  },
+  {
+   "id": 135,
+   "customer": "Initech",
+   "currency": "EUR",
+   "amount": 10005,
+   "paid": 5002,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#135 Initech: 50.03 EUR + fee 1.25 EUR"
+   }
+  },
+  {
+   "id": 136,
+   "customer": "Initech",
+   "currency": "USD",
+   "amount": 10005,
+   "paid": 5002,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#136 Initech: 50.03 USD + fee 5.00 USD"
+   }
+  },
+  {
+   "id": 137,
+   "customer": "Umbrella Ltd",
+   "currency": "EUR",
+   "amount": 250000,
+   "paid": 0,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#137 Umbrella Ltd: 2500.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 138,
+   "customer": "Umbrella Ltd",
+   "currency": "USD",
+   "amount": 250000,
+   "paid": 0,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#138 Umbrella Ltd: 2500.00 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 139,
+   "customer": "Umbrella Ltd",
+   "currency": "EUR",
+   "amount": 250000,
+   "paid": 0,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#139 Umbrella Ltd: 2500.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 140,
+   "customer": "Umbrella Ltd",
+   "currency": "USD",
+   "amount": 250000,
+   "paid": 0,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#140 Umbrella Ltd: 2500.00 USD + fee 2.50 USD"
+   }
+  },
+  {
+   "id": 141,
+   "customer": "Umbrella Ltd",
+   "currency": "EUR",
+   "amount": 250000,
+   "paid": 0,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#141 Umbrella Ltd: 2500.00 EUR + fee 62.50 EUR"
+   }
+  },
+  {
+   "id": 142,
+   "customer": "Umbrella Ltd",
+   "currency": "USD",
+   "amount": 250000,
+   "paid": 0,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#142 Umbrella Ltd: 2500.00 USD + fee 250.00 USD"
+   }
+  },
+  {
+   "id": 143,
+   "customer": "Umbrella Ltd",
+   "currency": "EUR",
+   "amount": 250000,
+   "paid": 125000,
+   "issuedOn": "2026-10-03",
+   "dueOn": "2026-11-02",
+   "expected": {
+    "value": "#143 Umbrella Ltd: 1250.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 144,
+   "customer": "Umbrella Ltd",
+   "currency": "USD",
+   "amount": 250000,
+   "paid": 125000,
+   "issuedOn": "2026-09-30",
+   "dueOn": "2026-10-30",
+   "expected": {
+    "value": "#144 Umbrella Ltd: 1250.00 USD + fee 0.00 USD"
+   }
+  },
+  {
+   "id": 145,
+   "customer": "Umbrella Ltd",
+   "currency": "EUR",
+   "amount": 250000,
+   "paid": 125000,
+   "issuedOn": "2026-09-25",
+   "dueOn": "2026-10-25",
+   "expected": {
+    "value": "#145 Umbrella Ltd: 1250.00 EUR + fee 0.00 EUR"
+   }
+  },
+  {
+   "id": 146,
+   "customer": "Umbrella Ltd",
+   "currency": "USD",
+   "amount": 250000,
+   "paid": 125000,
+   "issuedOn": "2026-09-24",
+   "dueOn": "2026-10-24",
+   "expected": {
+    "value": "#146 Umbrella Ltd: 1250.00 USD + fee 1.25 USD"
+   }
+  },
+  {
+   "id": 147,
+   "customer": "Umbrella Ltd",
+   "currency": "EUR",
+   "amount": 250000,
+   "paid": 125000,
+   "issuedOn": "2026-08-31",
+   "dueOn": "2026-09-30",
+   "expected": {
+    "value": "#147 Umbrella Ltd: 1250.00 EUR + fee 31.25 EUR"
+   }
+  },
+  {
+   "id": 148,
+   "customer": "Umbrella Ltd",
+   "currency": "USD",
+   "amount": 250000,
+   "paid": 125000,
+   "issuedOn": "2025-08-26",
+   "dueOn": "2025-09-25",
+   "expected": {
+    "value": "#148 Umbrella Ltd: 1250.00 USD + fee 125.00 USD"
+   }
+  }
+ ]
+}

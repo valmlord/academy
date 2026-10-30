@@ -1,0 +1,18 @@
+{
+  "tests": [
+    "tests.test_api.InvoiceListTest.test_lists_all_invoices_ordered_by_id",
+    "tests.test_api.InvoiceListTest.test_filters_by_status",
+    "tests.test_api.InvoiceListTest.test_rejects_unknown_status_with_400",
+    "tests.test_api.HealthTest.test_health_answers_ok",
+    "tests.test_late_fee.GracePeriodTest.test_no_fee_on_the_last_grace_day",
+    "tests.test_late_fee.GracePeriodTest.test_no_fee_before_the_due_date",
+    "tests.test_late_fee.GracePeriodTest.test_first_day_after_grace_is_charged",
+    "tests.test_late_fee.DailyRateTest.test_one_tenth_percent_per_day_after_grace",
+    "tests.test_late_fee.DailyRateTest.test_fraction_of_a_cent_is_dropped",
+    "tests.test_late_fee.DailyRateTest.test_cap_is_ten_percent_of_the_amount",
+    "tests.test_late_fee.DailyRateTest.test_cap_of_an_odd_amount_is_rounded_down",
+    "tests.test_late_fee.InvalidAmountTest.test_zero_amount_is_rejected",
+    "tests.test_late_fee.InvalidAmountTest.test_negative_amount_is_rejected_even_within_grace",
+    "tests.test_statement.StatementLineTest.test_invoice_within_grace_has_no_fee"
+  ]
+}

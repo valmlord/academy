@@ -1,0 +1,56 @@
+[
+  {
+    "file": "snapshot/CLAUDE.md",
+    "line": 7,
+    "category": "memory-bloat",
+    "why": "Раздел ## Project structure пересказывает дерево репозитория, которое агент читает сам; оно уже устарело (src/ledger/reports/ нет)."
+  },
+  {
+    "file": "snapshot/CLAUDE.md",
+    "line": 55,
+    "category": "memory-bloat",
+    "why": "Правило про двусмысленные требования переписано заглавными с !!! после того, как агент его пропустил."
+  },
+  {
+    "file": "snapshot/CLAUDE.md",
+    "line": 49,
+    "category": "prose-rule",
+    "why": "'ledger code never imports invoices' есть только в CLAUDE.md: make check его не проверяет, и report.py его уже нарушает."
+  },
+  {
+    "file": "snapshot/CLAUDE.md",
+    "line": 51,
+    "category": "prose-rule",
+    "why": "'Before you hand over, run make typecheck' стоит строкой в CLAUDE.md вместо Stop-хука, и агент её пропустил."
+  },
+  {
+    "file": "snapshot/.claude/hooks/no_print.py",
+    "line": 2,
+    "category": "over-harness",
+    "why": "PreToolUse-хук no_print.py блокирует любую правку с print(, хотя это предпочтение с законными исключениями."
+  },
+  {
+    "file": "snapshot/.claude/hooks/stop_import_review.py",
+    "line": 2,
+    "category": "over-harness",
+    "why": "Stop-хук stop_import_review.py спрашивает claude -p про направление импортов, хотя это проверяет детерминированный AST-линтер."
+  },
+  {
+    "file": "snapshot/scripts/review.sh",
+    "line": 2,
+    "category": "over-harness",
+    "why": "scripts/review.sh после каждой правки гоняет весь набор тестов и LLM-ревью всего diff, даже для правки в одну строку на сильной модели."
+  },
+  {
+    "file": "transcript.md",
+    "line": 98,
+    "category": "session-steering",
+    "why": "'Подумай над этим очень-очень тщательно' в сообщении вместо настройки усилия."
+  },
+  {
+    "file": "transcript.md",
+    "line": 120,
+    "category": "session-steering",
+    "why": "'Пожалуйста, ожидания в тестах оставь как есть' как единственная защита: ни deny на tests/, ни хука нет, и агент тут же правит ожидание."
+  }
+]

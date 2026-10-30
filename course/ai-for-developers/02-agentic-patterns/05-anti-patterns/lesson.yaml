@@ -1,0 +1,50 @@
+id: patterns-anti-patterns
+title: "Антипаттерны"
+type: bug-hunt
+outcomes:
+  - "Находит в снимке проекта и записи сессии антипаттерны работы с агентом (раздутая память, обязательное правило только в прозе, обвязка ради предпочтения или вместо дешёвой проверки, управление сессией уговорами) и отличает их от похожих хороших практик."
+estimatedMinutes: 50
+status: ready
+prerequisites:
+  - patterns-closed-environments
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: Best practices (What you can stop doing; акценты и хуки; строка про typecheck против Stop-хука; хуки для предпочтений; /clear после двух поправок)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: How Claude remembers your project (CLAUDE.md в подкаталогах загружается по требованию)"
+    url: https://code.claude.com/docs/en/memory
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Run Claude Code programmatically (claude -p)"
+    url: https://code.claude.com/docs/en/headless
+    checkedAt: "2026-10-30"
+  - title: "Birgitta Böckeler: Harness engineering for coding agent users (2026-04-02; вычислительные и инференсные сенсоры)"
+    url: https://martinfowler.com/articles/harness-engineering.html
+    checkedAt: "2026-10-30"
+  - title: "Birgitta Böckeler: Context Engineering for Coding Agents (2026-02-05; наращивать правила постепенно)"
+    url: https://martinfowler.com/articles/exploring-gen-ai/context-engineering-coding-agents.html
+    checkedAt: "2026-10-30"
+  - title: "Naresh Jain: Are Harnesses Worth the Cost? (2026-10-13)"
+    url: https://martinfowler.com/articles/are-harnesses-worth-the-cost.html
+    checkedAt: "2026-10-30"
+  - title: "METR: Recent Frontier Models Are Reward Hacking (2025-06-05; просьба не жульничать почти не помогла)"
+    url: https://metr.org/blog/2025-06-05-recent-reward-hacking/
+    checkedAt: "2026-10-30"
+  - title: "Chatlatanagulchai et al.: Agent READMEs, an empirical study of context files for agentic coding (arXiv:2511.12884 v2)"
+    url: https://arxiv.org/abs/2511.12884
+    checkedAt: "2026-10-30"
+  - title: "Gloaguen et al.: Evaluating AGENTS.md (arXiv:2602.11988 v3; обзоры репозитория не помогают)"
+    url: https://arxiv.org/abs/2602.11988
+    checkedAt: "2026-10-30"
+  - title: "Ryan Lopopolo, OpenAI: Harness engineering, leveraging Codex in an agent-first world (2026-02-11; promote the rule into code)"
+    url: https://openai.com/index/harness-engineering/
+    checkedAt: "2026-10-30"
+checks:
+  - id: anti-pattern-hunt
+    title: "Антипаттерны в снимке проекта и записи сессии"
+    kind: bug-hunt
+    answers: checks/bugs.yaml
+    minFound: 6
+    weight: 2

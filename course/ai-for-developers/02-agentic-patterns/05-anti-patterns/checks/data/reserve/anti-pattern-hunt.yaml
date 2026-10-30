@@ -1,0 +1,86 @@
+# Reserve item for the mentor review after anti-pattern-hunt is closed (design #42 2.5, as module 01 L6).
+# Mentor-review store, never on the command-check mount; never shown before the review.
+# Same decision rule, anchor rule and matching as bugs.yaml; one accepted range per item; line numbers are
+# physical lines of the excerpt. One look-alike decoy per planted category.
+version: 1
+check: anti-pattern-hunt
+report: findings-reserve.json
+minFound: 3
+maxReports: 5
+maxDecoyHits: 1
+passBar: "minFound 3 of 4 planted items, at most 5 reports, at most 1 report on a decoy range"
+file: excerpt-2.md
+categories: [memory-bloat, prose-rule, over-harness, session-steering]
+excerpt: |2
+     1 | # Фрагмент 2 (синтетический, учебный). Номер слева = физическая строка фрагмента.
+     2 | Три части одного другого репозитория: строки его CLAUDE.md, его хук и сообщения из сессии.
+     3 |
+     4 | ## Часть A: CLAUDE.md
+     5 |
+     6 | - Check the whole project: `make check` (tests, ruff and the import linter).
+     7 | - Tech stack: Python 3.12, unittest, sqlite3, ruff and mypy; the dependencies are in pyproject.toml.
+     8 | - Never commit `.env` files.
+     9 | - Treat the status "void" (left by the 2019 migration) as cancelled; nothing in the code says so.
+    10 |
+    11 | ## Часть B: .claude/hooks/short_files.py (PreToolUse для Write)
+    12 |
+    13 | import json, sys
+    14 | payload = json.loads(sys.stdin.read())
+    15 | content = payload.get("tool_input", {}).get("content", "")
+    16 | if content.count("\n") > 300:
+    17 |     print("Blocked: we prefer files under 300 lines. Split the module.", file=sys.stderr)
+    18 |     sys.exit(2)
+    19 |
+    20 | ## Часть C: .claude/settings.json
+    21 |
+    22 |   "permissions": {"deny": ["Bash(git push *)"]}
+    23 |
+    24 | ## Часть D: сообщения сессии
+    25 |
+    26 | > Сначала прочитай src/billing/ и предложи план в пять пунктов. Код пока не пиши.
+    27 | ● План: 1) ... 5) ...
+    28 | > Хорошо, делай пункты 1-2.
+    29 | ● Сделал пункт 1. Пункт 2 требует решения по формату даты, жду ответа.
+    30 | > Продолжай, не ленись, доделай всё до конца без вопросов.
+bugs:
+  - id: mb-tech-stack
+    file: excerpt-2.md
+    lines: [[7, 7]]
+    category: memory-bloat
+    title: "Список стека и зависимостей повторяет pyproject.toml и дерево: агент читает это сам."
+  - id: pr-env-files
+    file: excerpt-2.md
+    lines: [[8, 8]]
+    category: prose-rule
+    title: "'Never commit .env files' только прозой: это исполняет .gitignore, deny на чтение или pre-commit-хук."
+  - id: oh-short-files
+    file: excerpt-2.md
+    lines: [[16, 18]]
+    category: over-harness
+    title: "Хук блокирует любой файл длиннее 300 строк ради предпочтения, у которого есть законные исключения."
+  - id: ss-keep-going
+    file: excerpt-2.md
+    lines: [[30, 30]]
+    category: session-steering
+    title: "'Продолжай, не ленись' подталкивает к лишней работе и снимает вопрос о решении, которого ждал агент."
+decoys:
+  - id: mb-decoy-check-command
+    file: excerpt-2.md
+    lines: [[6, 6]]
+    lookalike: memory-bloat
+    note: "the whole-project check command"
+  - id: pr-decoy-void-status
+    file: excerpt-2.md
+    lines: [[9, 9]]
+    lookalike: prose-rule
+    note: "a fact the code does not show; no program can know it"
+  - id: oh-decoy-deny-push
+    file: excerpt-2.md
+    lines: [[22, 22]]
+    lookalike: over-harness
+    note: "deny git push: a boundary, settings-only"
+  - id: ss-decoy-plan-first
+    file: excerpt-2.md
+    lines: [[26, 26]]
+    lookalike: session-steering
+    note: "plan before code, the user decides"

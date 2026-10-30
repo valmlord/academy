@@ -1,0 +1,92 @@
+id: patterns-closed-environments
+title: "Закрытый контур"
+type: artifact
+outcomes:
+  - "Находит и исправляет в настройках Claude Code и окружения проекта дефекты закрытого контура (адрес шлюза, секрет в репозитории, необязательный трафик, веб-инструменты, песочница со строгим списком хостов, внутренний индекс пакетов, доверие корпоративному CA для каждого инструмента) и в сценариях со слабой локальной моделью выбирает изменения процесса: чаще запускать проверки, дробить задачи, закреплять версии и документацию."
+estimatedMinutes: 60
+status: ready
+prerequisites:
+  - patterns-failure-analysis
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: Environment variables (флаги вкл/выкл, переменные по факту наличия, NONESSENTIAL_TRAFFIC, DISABLE_WEB_FETCH, провайдеры, SIMPLE_SYSTEM_PROMPT, env поверх оболочки)"
+    url: https://code.claude.com/docs/en/env-vars
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Settings files and precedence (порядок настроек, env ждёт доверия к папке)"
+    url: https://code.claude.com/docs/en/settings
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Settings reference (env и оболочка, Desktop и self-hosted раннеры, apiKeyHelper, allowedProviders, skipWebFetchPreflight)"
+    url: https://code.claude.com/docs/en/settings-reference
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Configure permissions (голое имя в deny, шаблоны имён только с *, WebFetch(domain:*), deny сильнее allow во всех областях)"
+    url: https://code.claude.com/docs/en/permissions
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Sandboxing (список хостов, режимы для хоста не из списка, strictAllowlist, allowManagedDomainsOnly, блокировки, повтор без песочницы, allowUnsandboxedCommands, excludedCommands)"
+    url: https://code.claude.com/docs/en/sandboxing
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Connect Claude Code to an LLM gateway (проверка через /v1/messages, ключ не в .claude/settings.json, apiKeyHelper, ANTHROPIC_CUSTOM_HEADERS, фоновые агенты)"
+    url: https://code.claude.com/docs/en/llm-gateway-connect
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Other LLM gateways (модели не Claude не поддерживаются, allowedProviders и закреплённый ANTHROPIC_BASE_URL)"
+    url: https://code.claude.com/docs/en/llm-gateway
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Enterprise network configuration (NODE_EXTRA_CA_CERTS, SOCKS не поддерживается, NTLM и Kerberos, настройки доходят до фоновых сессий, WebFetch preflight)"
+    url: https://code.claude.com/docs/en/network-config
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Data usage (проверка домена WebFetch работает при любом провайдере и не зависит от CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC)"
+    url: https://code.claude.com/docs/en/data-usage
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Changelog (2.1.312: короткий системный промпт на Bedrock, Vertex, Foundry и Mantle)"
+    url: https://code.claude.com/docs/en/changelog
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: CLI reference (--setting-sources: какие источники настроек загружать)"
+    url: https://code.claude.com/docs/en/cli-reference
+    checkedAt: "2026-10-30"
+  - title: "uv: Environment variables (UV_DEFAULT_INDEX, UV_INDEX, UV_INDEX_URL, UV_EXTRA_INDEX_URL, UV_FIND_LINKS, SSL_CERT_FILE, SSL_CERT_DIR, UV_SYSTEM_CERTS)"
+    url: https://docs.astral.sh/uv/reference/environment/
+    checkedAt: "2026-10-30"
+  - title: "uv: Package indexes (индекс по умолчанию остаётся последним при добавлении индексов)"
+    url: https://docs.astral.sh/uv/concepts/indexes/
+    checkedAt: "2026-10-30"
+  - title: "GitHub Docs: Remediating a leaked secret (отозвать секрет; удаление из кода не убирает его из истории)"
+    url: https://docs.github.com/en/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/remediating-a-leaked-secret
+    checkedAt: "2026-10-30"
+  - title: "Naresh Jain: Are Harnesses Worth the Cost? (2026-10-13; один эксперимент, Codex, GPT-6 Sol и GPT-6 Luna)"
+    url: https://martinfowler.com/articles/are-harnesses-worth-the-cost.html
+    checkedAt: "2026-10-30"
+  - title: "Spracklen et al.: We Have a Package for You! (arXiv:2406.10279; выдуманные пакеты у коммерческих и open-source моделей)"
+    url: https://arxiv.org/abs/2406.10279
+    checkedAt: "2026-10-30"
+  - title: "Misra et al.: GitChameleon 2.0 (arXiv:2507.12367; код под конкретную версию библиотеки)"
+    url: https://arxiv.org/abs/2507.12367
+    checkedAt: "2026-10-30"
+  - title: "Ollama: Claude Code integration"
+    url: https://docs.ollama.com/integrations/claude-code
+    checkedAt: "2026-10-30"
+  - title: "vLLM: Claude Code integration (Anthropic Messages API)"
+    url: https://docs.vllm.ai/en/latest/serving/integrations/claude_code.html
+    checkedAt: "2026-10-30"
+  - title: "Hugging Face blog: Anthropic Messages API in llama.cpp (2026-01-19)"
+    url: https://huggingface.co/blog/ggml-org/anthropic-messages-api-in-llamacpp
+    checkedAt: "2026-10-30"
+  - title: "Codex CLI: Configuration reference (model_providers, wire_api, oss_provider, web_search, network_access, analytics)"
+    url: https://learn.chatgpt.com/docs/config-file/config-reference.md
+    checkedAt: "2026-10-30"
+  - title: "npm registry: @openai/codex, текущая версия 0.166.0"
+    url: https://registry.npmjs.org/@openai/codex/latest
+    checkedAt: "2026-10-30"
+checks:
+  - id: contour-config
+    title: "Настройки Claude Code и окружения выполняют требования брифа закрытого контура"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_contour.py"'
+    timeoutSec: 30
+    weight: 3
+  - id: closed-environments-quiz
+    title: "Квиз: флаги по факту наличия, веб-инструменты, strictAllowlist, локальная модель, SOCKS, слабая модель"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

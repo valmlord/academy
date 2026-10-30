@@ -1,0 +1,374 @@
+{
+ "roots": [
+  {
+   "name": "stdlib-and-first-party",
+   "theme": "стандартная библиотека и свои модули",
+   "expect": "clean",
+   "raw": {
+    "allowed-imports.txt": "# third-party modules src/ may import\n"
+   },
+   "files": [
+    {
+     "path": "src/%m1%/%m2%.py",
+     "chunks": [
+      {
+       "text": "from __future__ import annotations",
+       "findings": [],
+       "future": true
+      },
+      {
+       "text": "import json",
+       "findings": []
+      },
+      {
+       "text": "import importlib.metadata",
+       "findings": []
+      },
+      {
+       "text": "from xml.etree import ElementTree",
+       "findings": []
+      },
+      {
+       "text": "import zoneinfo, graphlib",
+       "findings": []
+      },
+      {
+       "text": "import ipaddress, fractions, statistics",
+       "findings": []
+      },
+      {
+       "text": "from invoices import models",
+       "findings": []
+      },
+      {
+       "text": "import %m1%",
+       "findings": []
+      },
+      {
+       "text": "import shared_util",
+       "findings": []
+      },
+      {
+       "text": "from . import %m3%",
+       "findings": []
+      },
+      {
+       "text": "from .%m3% import helper",
+       "findings": []
+      },
+      {
+       "text": "DOC = \"\"\"\nimport requests\nimport yaml\n\"\"\"",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/%m1%/__init__.py",
+     "chunks": [
+      {
+       "text": "VERSION = 1",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/%m1%/%m3%.py",
+     "chunks": [
+      {
+       "text": "def helper():\n    return 1",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/invoices/__init__.py",
+     "chunks": [
+      {
+       "text": "VALUE = 1",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/shared_util.py",
+     "chunks": [
+      {
+       "text": "import os",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "allowlist",
+   "theme": "список разрешённых модулей",
+   "expect": "findings",
+   "raw": {
+    "allowed-imports.txt": "# HTTP client, approved 2026-10\nhttpx\n\ntyping_extensions\n"
+   },
+   "files": [
+    {
+     "path": "src/%m1%.py",
+     "chunks": [
+      {
+       "text": "import httpx",
+       "findings": []
+      },
+      {
+       "text": "from httpx.auth import BasicAuth",
+       "findings": []
+      },
+      {
+       "text": "import typing_extensions",
+       "findings": []
+      },
+      {
+       "text": "import Httpx",
+       "findings": [
+        [
+         "D1",
+         0,
+         "Httpx"
+        ]
+       ]
+      },
+      {
+       "text": "import requests, yaml",
+       "findings": [
+        [
+         "D1",
+         0,
+         "requests"
+        ],
+        [
+         "D1",
+         0,
+         "yaml"
+        ]
+       ]
+      },
+      {
+       "text": "import fastjsonx.core",
+       "findings": [
+        [
+         "D1",
+         0,
+         "fastjsonx"
+        ]
+       ]
+      },
+      {
+       "text": "from fastjsonx.core import dumps",
+       "findings": [
+        [
+         "D1",
+         0,
+         "fastjsonx"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "hidden-places",
+   "theme": "импорты в непривычных местах",
+   "expect": "findings",
+   "raw": {
+    "allowed-imports.txt": "# third-party modules src/ may import\n"
+   },
+   "files": [
+    {
+     "path": "src/%m1%/%m2%.py",
+     "chunks": [
+      {
+       "text": "try:\n    import ujson\nexcept ImportError:\n    ujson = None",
+       "findings": [
+        [
+         "D1",
+         1,
+         "ujson"
+        ]
+       ]
+      },
+      {
+       "text": "def %f1%():\n    import orjsonx\n    return orjsonx",
+       "findings": [
+        [
+         "D1",
+         1,
+         "orjsonx"
+        ]
+       ]
+      },
+      {
+       "text": "import os, simplejsonx",
+       "findings": [
+        [
+         "D1",
+         0,
+         "simplejsonx"
+        ]
+       ]
+      },
+      {
+       "text": "x = 1; import msgpackx",
+       "findings": [
+        [
+         "D1",
+         0,
+         "msgpackx"
+        ]
+       ]
+      },
+      {
+       "text": "import os, \\\n    yamlx",
+       "findings": [
+        [
+         "D1",
+         0,
+         "yamlx"
+        ]
+       ]
+      },
+      {
+       "text": "from rapidjsonx import (\n    loads,\n    dumps,\n)",
+       "findings": [
+        [
+         "D1",
+         0,
+         "rapidjsonx"
+        ]
+       ]
+      },
+      {
+       "text": "if False:\n    import tomlx",
+       "findings": [
+        [
+         "D1",
+         1,
+         "tomlx"
+        ]
+       ]
+      },
+      {
+       "text": "import cbor2x; import cbor2x",
+       "findings": [
+        [
+         "D1",
+         0,
+         "cbor2x"
+        ],
+        [
+         "D1",
+         0,
+         "cbor2x"
+        ]
+       ]
+      },
+      {
+       "text": "from .%m3% import helper",
+       "findings": []
+      }
+     ]
+    },
+    {
+     "path": "src/%m1%/%m3%.py",
+     "chunks": [
+      {
+       "text": "def helper():\n    return 1",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "bad-allowlist",
+   "theme": "строка списка разрешённых не по формату",
+   "expect": "error",
+   "raw": {
+    "allowed-imports.txt": "httpx==0.28.1\n"
+   },
+   "files": [
+    {
+     "path": "src/%m1%.py",
+     "chunks": [
+      {
+       "text": "import httpx",
+       "findings": []
+      },
+      {
+       "text": "import requests",
+       "findings": [
+        [
+         "D1",
+         0,
+         "requests"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "no-allowlist",
+   "theme": "нет allowed-imports.txt",
+   "expect": "error",
+   "files": [
+    {
+     "path": "src/%m1%.py",
+     "chunks": [
+      {
+       "text": "import requests",
+       "findings": [
+        [
+         "D1",
+         0,
+         "requests"
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "syntax-error",
+   "theme": "файл, который не разбирается",
+   "expect": "error",
+   "raw": {
+    "allowed-imports.txt": "# third-party modules src/ may import\n"
+   },
+   "files": [
+    {
+     "path": "src/%m1%.py",
+     "chunks": [
+      {
+       "text": "import requests",
+       "findings": [
+        [
+         "D1",
+         0,
+         "requests"
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "path": "src/%m2%.py",
+     "chunks": [
+      {
+       "text": "def %f1%(:\n    pass",
+       "findings": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
