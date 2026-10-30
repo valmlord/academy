@@ -124,3 +124,15 @@ export const lessonTextErrorTitle = "Не удалось загрузить те
 // design/pages/lesson/acceptance.md, Copy "outcomes toggle".
 export const showAllOutcomesLabel = "Показать все";
 export const collapseOutcomesLabel = "Свернуть";
+
+// design/flows/ia.md, copy register "dashboard (F4, F18)": the Card, its button and the first-run course
+// line; "N из M уроков" for a module row and "N из M" as the course bar's value text.
+export const nextLessonHeading = "Следующий урок";
+export const startLessonLabel = "Начать";
+export const noPassedLessonsMessage = "Пока нет пройденных уроков";
+export function moduleProgressLabel(passed: number, total: number): string {
+  return `${passed} из ${total} уроков`;
+}
+export function progressValueText(passed: number, total: number): string {
+  return `${passed} из ${total}`;
+}

@@ -62,6 +62,28 @@ describe("RetryButton and FocusOnMount", () => {
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "error" }));
   });
 
+  it("focuses another element that takes the success target's place", async () => {
+    function EmptyPage(): ReactElement {
+      const [isLoaded, setIsLoaded] = useState(false);
+      refreshOutcome = () => setIsLoaded(true);
+      if (isLoaded) {
+        return (
+          <main id="main-target" tabIndex={-1}>
+            <FocusOnMount id="main-target" retryTargetId="success-target" />
+          </main>
+        );
+      }
+      return <RetryButton successTargetId="success-target" errorTargetId="error-target" />;
+    }
+    render(<EmptyPage />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: retryLabel }));
+    });
+
+    expect(document.activeElement).toBe(screen.getByRole("main"));
+  });
+
   it("leaves focus alone when a target mounts without a retry", () => {
     render(
       <>

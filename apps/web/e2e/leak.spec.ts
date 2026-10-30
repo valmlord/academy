@@ -1,7 +1,7 @@
 import { expect, type Page, type Response, type Route, test } from "@playwright/test";
 import { breadcrumbLabel, courseLinkLabel, notFoundTitle, taskTabLabel } from "../lib/copy";
 import { catalogPath, lessonPath } from "../lib/routes";
-import { repoCatalog } from "./course";
+import { repoCatalog, repoDashboard } from "./course";
 import { useOwnBucket } from "./fixtures";
 import { FragmentScanner, forbiddenFragments, sha256 } from "./leak-fragments";
 
@@ -223,5 +223,21 @@ test("the not-found page serves no grader fragment", async ({ page, baseURL }) =
   await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).toBeVisible();
   await capture.settle(page);
 
+  expectNoLeak(capture);
+});
+
+test("the dashboard serves no grader fragment", async ({ page, baseURL }) => {
+  test.setTimeout(TEST_TIMEOUT_MS);
+  const { next } = await repoDashboard();
+  if (next === null) throw new Error("the course needs a visible lesson");
+  const capture = await startCapture(page, baseURL);
+
+  const response = await page.goto("/");
+  const html = (await response?.text()) ?? "";
+  await capture.settle(page);
+
+  expect(html.includes(next.title), "positive control: the next lesson's title in the HTML").toBe(
+    true,
+  );
   expectNoLeak(capture);
 });

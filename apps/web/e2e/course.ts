@@ -4,9 +4,11 @@ import { type CourseTree, readCourse } from "../lib/course/read";
 import { readLessonText } from "../lib/course/text";
 import {
   type CatalogView,
+  type DashboardView,
   findLesson,
   type LessonView,
   toCatalogView,
+  toDashboardView,
   toLessonView,
 } from "../lib/course/view";
 
@@ -24,6 +26,10 @@ export function repoCourse(): Promise<CourseTree> {
 
 export async function repoCatalog(): Promise<CatalogView> {
   return toCatalogView(await repoCourse());
+}
+
+export async function repoDashboard(): Promise<DashboardView> {
+  return toDashboardView(await repoCourse());
 }
 
 export interface RepoLesson {
