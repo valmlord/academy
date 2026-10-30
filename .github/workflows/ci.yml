@@ -12,6 +12,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+
 jobs:
   checks:
     name: lint, typecheck, test, build
@@ -29,6 +32,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: fail if the build changed tracked files
+        run: |
+          changes=$(git status --porcelain)
+          if [ -n "$changes" ]; then echo "$changes"; git --no-pager diff; exit 1; fi
 
   content:
     name: lesson contract
@@ -129,17 +136,45 @@ jobs:
             echo "design/system/tokens.css not present yet: token checks skipped"
           fi
 
-  compose:
-    name: docker compose stack
+  e2e:
+    name: compose stack and Playwright e2e
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The job never pushes; the token would otherwise sit in .git/config while images build and run.
+          persist-credentials: false
       - run: cp .env.example .env
       - run: docker compose config --quiet
-      - run: docker compose up -d --build --wait
+      - run: docker compose up -d --build --wait --wait-timeout 180
       - run: docker compose ps
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: migrations run inside the built image
+        run: bash apps/web/scripts/check-image-migrations.sh
+      - run: pnpm --filter @academy/web exec playwright install --with-deps --only-shell chromium
+      - run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3080
+      - if: failure()
+        run: |
+          docker compose ps -a > compose-ps.txt
+          docker compose logs --no-color > compose.log
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            compose.log
+            compose-ps.txt
+          retention-days: 7
+      # Safe here only: the runner is ephemeral and this job created the volume.
       - if: always()
         run: docker compose down -v
-
-  # e2e (Playwright) job is added together with apps/web (backlog: web bootstrap).

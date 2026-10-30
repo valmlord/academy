@@ -12,11 +12,18 @@ import {
 } from "./errors.js";
 
 /**
- * The generated `drizzle/` folder of this package, absolute. Right under plain Node from `src/` and
- * from `dist/` (same depth). A bundler (Next.js without `serverExternalPackages`) rewrites
- * `import.meta.url`, so a bundled consumer passes its own absolute `migrationsFolder` instead.
+ * The generated `drizzle/` folder of this package, absolute. Plain Node resolves it from `src/` and
+ * from `dist/` (same depth). Not `new URL("../drizzle", import.meta.url)`: Next.js 16 with Turbopack
+ * bundles this package even when it is listed in `serverExternalPackages`, and fails the build on a
+ * `new URL()` of a directory. Turbopack evaluates `import.meta.url` to the module's path under the
+ * tracing root, so a bundled consumer ships `packages/db/drizzle` at `<root>/packages/db/drizzle`
+ * (ADR-0007 amendment).
  */
-export const MIGRATIONS_FOLDER: string = fileURLToPath(new URL("../drizzle", import.meta.url));
+export const MIGRATIONS_FOLDER: string = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "drizzle",
+);
 
 /**
  * Key of the session-level advisory lock that serializes concurrent migrateDatabase calls

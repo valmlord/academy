@@ -12,6 +12,9 @@
       "!**/dist",
       "!**/.next",
       "!**/.turbo",
+      "!**/next-env.d.ts",
+      "!**/playwright-report",
+      "!**/test-results",
       "!packages/db/drizzle/meta/**",
       "!course/**/starter/**",
       "!course/**/checks/**"

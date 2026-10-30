@@ -1,0 +1,231 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* design-tokens:start */
+/*
+ * Design tokens v1 (#50). The single source of tokens, ADR-0006 section 1.
+ * Base: the shadcn/ui default neutral theme (ui.shadcn.com/docs/theming, fetched 2026-10-29), reordered
+ * to @custom-variant, :root, .dark, @theme inline. Every value that differs from the shadcn default, and
+ * every token shadcn does not have, is listed with its reason and its measured contrast in
+ * design/system/README.md ("Token decisions" and "Contrast runs"). Dev copies this file verbatim into
+ * apps/web/app/globals.css between the design-tokens markers.
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.53 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.55 0.2 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.62 0 0);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.646 0.192 41.116);
+  --chart-2: oklch(0.6 0.102 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.164 84.429);
+  --chart-5: oklch(0.769 0.161 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.556 0 0);
+  --success: oklch(0.5 0.13 150);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.5 0.11 60);
+  --warning-foreground: oklch(0.985 0 0);
+  --info: oklch(0.5 0.15 255);
+  --info-foreground: oklch(0.985 0 0);
+  --terminal: oklch(0.18 0 0);
+  --terminal-foreground: oklch(0.92 0 0);
+  --terminal-ansi-black: #2e3436;
+  --terminal-ansi-red: #e05252;
+  --terminal-ansi-green: #0dbc79;
+  --terminal-ansi-yellow: #e5e510;
+  --terminal-ansi-blue: #3b8eea;
+  --terminal-ansi-magenta: #c84fc8;
+  --terminal-ansi-cyan: #11a8cd;
+  --terminal-ansi-white: #e5e5e5;
+  --terminal-ansi-bright-black: #8c8c8c;
+  --terminal-ansi-bright-red: #f14c4c;
+  --terminal-ansi-bright-green: #23d18b;
+  --terminal-ansi-bright-yellow: #f5f543;
+  --terminal-ansi-bright-blue: #6cb0f5;
+  --terminal-ansi-bright-magenta: #d670d6;
+  --terminal-ansi-bright-cyan: #29b8db;
+  --terminal-ansi-bright-white: #ffffff;
+  --terminal-cursor: #e5e5e5;
+  --terminal-cursor-accent: oklch(0.18 0 0);
+  --terminal-selection: #264f78;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.182 22.216);
+  --destructive-foreground: oklch(0.145 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(0.52 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.147 162.48);
+  --chart-3: oklch(0.769 0.161 70.08);
+  --chart-4: oklch(0.627 0.242 303.9);
+  --chart-5: oklch(0.645 0.236 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+  --success: oklch(0.75 0.17 150);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.8 0.15 80);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.75 0.12 240);
+  --info-foreground: oklch(0.145 0 0);
+  --terminal: oklch(0.18 0 0);
+  --terminal-foreground: oklch(0.92 0 0);
+  --terminal-ansi-black: #2e3436;
+  --terminal-ansi-red: #e05252;
+  --terminal-ansi-green: #0dbc79;
+  --terminal-ansi-yellow: #e5e510;
+  --terminal-ansi-blue: #3b8eea;
+  --terminal-ansi-magenta: #c84fc8;
+  --terminal-ansi-cyan: #11a8cd;
+  --terminal-ansi-white: #e5e5e5;
+  --terminal-ansi-bright-black: #8c8c8c;
+  --terminal-ansi-bright-red: #f14c4c;
+  --terminal-ansi-bright-green: #23d18b;
+  --terminal-ansi-bright-yellow: #f5f543;
+  --terminal-ansi-bright-blue: #6cb0f5;
+  --terminal-ansi-bright-magenta: #d670d6;
+  --terminal-ansi-bright-cyan: #29b8db;
+  --terminal-ansi-bright-white: #ffffff;
+  --terminal-cursor: #e5e5e5;
+  --terminal-cursor-accent: oklch(0.18 0 0);
+  --terminal-selection: #264f78;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-terminal: var(--terminal);
+  --color-terminal-foreground: var(--terminal-foreground);
+  --color-terminal-ansi-black: var(--terminal-ansi-black);
+  --color-terminal-ansi-red: var(--terminal-ansi-red);
+  --color-terminal-ansi-green: var(--terminal-ansi-green);
+  --color-terminal-ansi-yellow: var(--terminal-ansi-yellow);
+  --color-terminal-ansi-blue: var(--terminal-ansi-blue);
+  --color-terminal-ansi-magenta: var(--terminal-ansi-magenta);
+  --color-terminal-ansi-cyan: var(--terminal-ansi-cyan);
+  --color-terminal-ansi-white: var(--terminal-ansi-white);
+  --color-terminal-ansi-bright-black: var(--terminal-ansi-bright-black);
+  --color-terminal-ansi-bright-red: var(--terminal-ansi-bright-red);
+  --color-terminal-ansi-bright-green: var(--terminal-ansi-bright-green);
+  --color-terminal-ansi-bright-yellow: var(--terminal-ansi-bright-yellow);
+  --color-terminal-ansi-bright-blue: var(--terminal-ansi-bright-blue);
+  --color-terminal-ansi-bright-magenta: var(--terminal-ansi-bright-magenta);
+  --color-terminal-ansi-bright-cyan: var(--terminal-ansi-bright-cyan);
+  --color-terminal-ansi-bright-white: var(--terminal-ansi-bright-white);
+  --color-terminal-cursor: var(--terminal-cursor);
+  --color-terminal-cursor-accent: var(--terminal-cursor-accent);
+  --color-terminal-selection: var(--terminal-selection);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* design-tokens:end */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* design/system/README.md "Focus ring": 2px solid ring outside the element, not shadcn's 50 % halo,
+     which halves the measured 3:1 contrast. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Elements focused programmatically (main as the skip-link target) span the viewport, so an outside
+     ring would be clipped: draw it inset. */
+  [tabindex="-1"]:focus-visible {
+    outline-offset: -2px;
+  }
+}
