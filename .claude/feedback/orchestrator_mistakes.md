@@ -228,3 +228,13 @@ Rule: when a finding is "vendored component defaults differ from the design syst
 class and state of every vendored component against `proto.css` and the README and return a state table, and brief
 the tester to compare computed styles for every state, in round 1. In every judge brief, repeat that the final report
 must end with the bare PASS or FAIL line.
+
+### 2026-10-30: Architect brief named the hidden link, not the hidden class (#79)
+
+judge_design usability failed round 1 because my architect brief said "grep for the hidden item" and named the
+top-bar "Курс" link, while the rule the architect wrote hides every `/courses/...` control (Card button, module
+rows, "Открыть курс", breadcrumbs). The grep followed my wording, so five dashboard ACs describing the other
+hidden controls stayed unconditional. Round 2 passed once the brief named the class.
+Rule: when a DESIGN brief asks for a release or visibility rule, ask the architect to list every member of the
+class the rule hides first (labels, routes, flow step ids, components), then grep each member and scope every
+acceptance check, table row and AC that describes one.
