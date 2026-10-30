@@ -1,0 +1,91 @@
+# Reserve pool for the mentor review after ontology-quiz is closed (design #41 2.5, 00 2.5.6).
+# Mentor-review store, never on the command-check mount; never shown before the review. Same format and authoring rules as quiz.yaml.
+version: 1
+check: ontology-quiz
+passBar: "at least 5 of 6 correct (passScore 0.8), exact set match per question"
+questions:
+  - id: customer-is-entity
+    type: single
+    prompt: |
+      Customer сменил название и адрес. Остаётся ли это тот же Customer?
+    options:
+      - { id: a, text: "Нет: изменились атрибуты, значит, это новый объект" }
+      - { id: b, text: "Да: Customer - сущность, его определяет идентичность, а не атрибуты" }
+      - { id: c, text: "Да, но только если адрес остался в той же стране" }
+      - { id: d, text: "Нет: сущность после изменения атрибутов нужно пересоздать с новым id" }
+    correct: [b]
+    explanation: |
+      Сущность сохраняет идентичность при смене атрибутов. Объект-значение, наоборот, заменяют
+      целиком.
+
+  - id: cross-aggregate-change
+    type: single
+    prompt: |
+      После Payment нужно уменьшить Outstanding Balance по Invoice и сделать Entry в Ledger. Как это
+      устроить при правиле "транзакция не пересекает границу агрегата"?
+    options:
+      - { id: a, text: "Одной транзакцией по обеим таблицам сразу, чтобы суммы в отчётах точно сошлись" }
+      - { id: b, text: "Сначала Entry в Ledger, потом Invoice, обе в одной транзакции" }
+      - { id: c, text: "Изменить Invoice и опубликовать `PaymentReceived`; Ledger сделает Entry по событию" }
+      - { id: d, text: "Запретить частичные Payment, тогда согласовывать нечего" }
+    correct: [c]
+    explanation: |
+      Каждая транзакция меняет свой агрегат; согласованность между агрегатами и контекстами держат
+      доменные события.
+
+  - id: definition-without-implementation
+    type: single
+    prompt: |
+      Какое определение Credit Note подходит для глоссария?
+    options:
+      - { id: a, text: "Документ, который уменьшает сумму к оплате по выставленному Invoice" }
+      - { id: b, text: "Строка таблицы credit_notes со ссылкой на invoice_id" }
+      - { id: c, text: "Объект класса CreditNote из модуля billing, который создаётся сервисом" }
+      - { id: d, text: "То же, что refund, только для бухгалтерии" }
+    correct: [a]
+    explanation: |
+      Определение говорит, что вещь значит в предметной области, без таблиц и классов, и не
+      подменяет термин запрещённым синонимом.
+
+  - id: event-stays-inside
+    type: single
+    prompt: |
+      В интервью сказано: `ReminderSent` остаётся внутри Billing, Ledger его не видит. Что писать в
+      Relationships карты глоссария?
+    options:
+      - { id: a, text: "Строку \"Billing publishes `ReminderSent`; Ledger books it\" в разделе Relationships" }
+      - { id: b, text: "Строку с `ReminderSent` без указания контекстов" }
+      - { id: c, text: "Отдельный контекст Reminders со своим событием" }
+      - { id: d, text: "Ничего про `ReminderSent`: в Relationships только события между контекстами" }
+    correct: [d]
+    explanation: |
+      Relationships описывают связи контекстов. Событие, которое не пересекает границу, туда не
+      входит.
+
+  - id: grilling-rules
+    type: multiple
+    prompt: |
+      Какие правила относятся к grilling? Выберите все верные.
+    options:
+      - { id: a, text: "Вопросы по одному, к каждому рекомендуемый ответ" }
+      - { id: b, text: "Решения принимает пользователь, агент рекомендует" }
+      - { id: c, text: "Агент действует по решению сразу, не дожидаясь подтверждения" }
+      - { id: d, text: "Факты из кода агент ищет сам, а не спрашивает у пользователя" }
+    correct: [a, b, d]
+    explanation: |
+      Grilling идёт по дереву решений: вопрос, рекомендация, решение пользователя; ничего не делать
+      до подтверждения; искать факты - работа агента.
+
+  - id: why-avoid-list
+    type: multiple
+    prompt: |
+      Зачем в глоссарии строка `_Avoid_` у термина? Выберите все верные.
+    options:
+      - { id: a, text: "Агент и люди видят, каких слов для этого понятия не писать" }
+      - { id: b, text: "Claude Code сам блокирует правки, в которых встречаются слова из `_Avoid_`" }
+      - { id: c, text: "По ней можно детерминированно проверить спецификацию и имена тестов" }
+      - { id: d, text: "Она заменяет определение термина, если оно длинное" }
+    correct: [a, c]
+    explanation: |
+      `_Avoid_` - часть словаря для людей и агента, и по нему пишут линтер; сам Claude Code глоссарий
+      не применяет, определение строка не заменяет.

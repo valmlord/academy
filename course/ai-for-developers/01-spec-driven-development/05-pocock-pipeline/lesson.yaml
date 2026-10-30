@@ -1,0 +1,59 @@
+id: sdd-pocock-pipeline
+title: "Реальный кейс: конвейер скиллов Matt Pocock, реализация через TDD"
+type: project
+outcomes:
+  - "Реализует задачи из готовой спецификации через TDD вместе с агентом так, что код проходит скрытые приёмочные тесты, а каждое требование покрыто тестом с его идентификатором, и находит в записи сессии агента подмену проверки: правку теста, тавтологичный тест, пропущенный красный шаг, заявление без вывода команды, горизонтальную задачу, действие до подтверждения решения."
+estimatedMinutes: 65
+status: ready
+prerequisites:
+  - sdd-spec-adr-tasks
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Matt Pocock: skills, README v1.3.2 (четыре режима отказа, user-invoked и model-invoked скиллы, установка, плагин обновляется сам)"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/README.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skills, CHANGELOG v1.3.2 (to-prd -> to-spec, to-issues -> to-tickets, CONTEXT.md -> GLOSSARY.md)"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/CHANGELOG.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skill grill-with-docs, SKILL.md v1.3.2"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/grill-with-docs/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skill to-spec, SKILL.md v1.3.2"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/to-spec/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skill to-tickets, SKILL.md v1.3.2"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/to-tickets/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skill implement, SKILL.md v1.3.2"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/implement/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skill tdd, SKILL.md v1.3.2 (публичные интерфейсы, согласованные швы, red before green, тавтологии)"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/tdd/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: setup-matt-pocock-skills/domain.md v1.3.2 (термины глоссария в заголовках задач и именах тестов)"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/setup-matt-pocock-skills/domain.md
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Extend Claude with skills (disable-model-invocation, кто вызывает скилл)"
+    url: https://code.claude.com/docs/en/skills
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Hooks reference (Stop, stop_hook_active)"
+    url: https://code.claude.com/docs/en/hooks
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Best practices (проверка, которую агент может запустить; доказательство вместо заявления)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-29"
+  - title: "Birgitta Böckeler: TDD inside the agent loop, theater or actual value? (2026-08-10)"
+    url: https://martinfowler.com/articles/exploring-gen-ai/tdd-in-the-agent-loop.html
+    checkedAt: "2026-10-29"
+  - title: "Gabor, Lynch, Rosenfeld: EvilGenie, a reward hacking benchmark (arXiv:2511.21654 v2)"
+    url: https://arxiv.org/abs/2511.21654
+    checkedAt: "2026-10-29"
+checks:
+  - id: reminders-accepted
+    title: "Напоминания: скрытые приёмочные тесты, ваши тесты против верных и сломанных версий, метки требований, задачи и словарь"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_reminders.py"'
+    timeoutSec: 600
+    weight: 3

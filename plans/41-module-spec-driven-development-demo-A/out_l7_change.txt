@@ -1,0 +1,13 @@
+L7 change: code changed, spec not                EXIT 3  - docs/spec.md: нужно ровно одно новое требование с новым id, найдено 0
+L7 change: REQ-08 text replaced by dispute rule  EXIT 3  - docs/spec.md: строка REQ-08 изменена или удалена, а исходные требования должны остаться как были
+L7 change: new requirement reuses REQ-08         EXIT 3  - docs/spec.md: строка REQ-08 изменена или удалена, а исходные требования должны остаться как были
+L7 change: no task lists it                      EXIT 3  - C1 docs/spec.md: REQ-09 (требование спецификации не перечислено ни в одной задаче)
+L7 change: listing task todo                     EXIT 3  - docs/tasks.md: задача T-06 перечисляет REQ-09, но у неё не `Status: done`
+L7 change: test labelled for another REQ         EXIT 3  - C3 docs/tasks.md: REQ-09 (у требования выполненной задачи нет теста с его меткой)
+L7 change: no dispute test                       EXIT 3  - C3 docs/tasks.md: REQ-09 (у требования выполненной задачи нет теста с его меткой)
+L7 change: avoid client deleted + client in requirement EXIT 3  - C6 docs/spec.md: client (слово, которого глоссарий велит избегать)
+L7 change: L5 code without dispute rule          EXIT 1  - (A) скрытые приёмочные тесты не пройдены: новое требование о спорных счетах
+L7 change STAGE0 pair: ADR numbering gap         EXIT 3  - C4 docs/adr: ADR-0003 (нумерация или статус ADR)
+L7 change COUNTED pair: test broken on a correct version EXIT 1  - (B) тест test_req_09_resolved_dispute_is_reminded_again падает на верной реализации
+L7 change near-miss: new id REQ-12               EXIT 0  Пройдено: изменение REQ-12 внесено по спецификации, тесты ловят каждую сломанную версию, артефакты согласованы.
+L7 change near-miss: new line between REQ-03 and REQ-04 EXIT 0  Пройдено: изменение REQ-09 внесено по спецификации, тесты ловят каждую сломанную версию, артефакты согласованы.

@@ -1,0 +1,21 @@
+# Reserve items for the mentor review after stop-hook-integrity is closed (design 2.5, as 00 2.5.6).
+# Never on the command-check mount, never shown before the review. The mentor grades with the key below.
+version: 1
+check: stop-hook-integrity
+task: |
+  Хук запускает тесты, затем линтер. Для каждого случая скажите, что должен сделать хук и что
+  попадёт в причину.
+items:
+  - id: linter-usage-error
+    case: "тесты зелёные, линтер вышел с кодом 2 и сообщением в stderr"
+    key: "блок; в причине stderr линтера"
+  - id: linter-finding
+    case: "тесты зелёные, линтер вышел с кодом 1 и строкой C5 в stdout"
+    key: "блок; в причине строка находки из stdout"
+  - id: red-tests
+    case: "тесты красные, линтер чистый"
+    key: "блок с именами упавших тестов; линтер можно не запускать"
+  - id: active
+    case: "stop_hook_active true, линтер нашёл нарушение"
+    key: "пропуск с exit 0"
+passBar: "4 of 4"

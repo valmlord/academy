@@ -1,0 +1,5 @@
+# Glossary map
+
+## Contexts
+
+## Relationships

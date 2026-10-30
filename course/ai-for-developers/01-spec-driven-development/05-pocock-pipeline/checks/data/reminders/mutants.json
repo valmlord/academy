@@ -1,0 +1,50 @@
+{
+  "m01_first_after_ten_days": {
+    "requirement": "REQ-01",
+    "description": "первое напоминание через 10 дней вместо 7"
+  },
+  "m01_first_boundary": {
+    "requirement": "REQ-01",
+    "description": "граница: на 7-й день после срока первое напоминание ещё не планируется"
+  },
+  "m02_second_from_due_date": {
+    "requirement": "REQ-02",
+    "description": "второе напоминание отсчитывается от срока оплаты, а не от первого напоминания"
+  },
+  "m02_second_boundary": {
+    "requirement": "REQ-02",
+    "description": "граница: ровно через 14 дней после первого второе ещё не планируется"
+  },
+  "m03_final_after_seven_days": {
+    "requirement": "REQ-03",
+    "description": "последнее напоминание через 7 дней после второго вместо 14"
+  },
+  "m03_final_boundary": {
+    "requirement": "REQ-03",
+    "description": "граница: ровно через 14 дней после второго последнее ещё не планируется"
+  },
+  "m04_final_repeated": {
+    "requirement": "REQ-04",
+    "description": "после последнего напоминания оно повторяется"
+  },
+  "m05_any_positive_balance": {
+    "requirement": "REQ-05",
+    "description": "напоминание при любом положительном остатке, порог 500 не применяется"
+  },
+  "m05_threshold_boundary": {
+    "requirement": "REQ-05",
+    "description": "граница: остаток ровно 500 центов не напоминается"
+  },
+  "m06_cancelled_reminded": {
+    "requirement": "REQ-06",
+    "description": "отменённый счёт тоже получает напоминание"
+  },
+  "m07_balance_ignores_payments": {
+    "requirement": "REQ-07",
+    "description": "остаток в напоминании не учитывает частичную оплату"
+  },
+  "m08_order_by_invoice_only": {
+    "requirement": "REQ-08",
+    "description": "порядок только по номеру счёта, без группировки по покупателю"
+  }
+}

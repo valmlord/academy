@@ -1,0 +1,127 @@
+== 01-verification loot=tmp
+round 1: exit 1; (A) problems 5; logged inputs 7; distinct table keys 7
+round 2: exit 1; (A) problems 5; logged inputs 12; distinct table keys 12
+round 3: exit 1; (A) problems 5; logged inputs 19; distinct table keys 19
+round 4: exit 1; (A) problems 5; logged inputs 29; distinct table keys 29
+round 5: exit 1; (A) problems 5; logged inputs 35; distinct table keys 35
+round 6: exit 1; (A) problems 5; logged inputs 40; distinct table keys 40
+round 7: exit 1; (A) problems 5; logged inputs 51; distinct table keys 51
+round 8: exit 1; (A) problems 5; logged inputs 58; distinct table keys 58
+round 9: exit 1; (A) problems 5; logged inputs 65; distinct table keys 65
+round 10: exit 1; (A) problems 5; logged inputs 70; distinct table keys 70
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-04 - (A) скрытые приёмочные тесты не пройдены: REQ-05
+driver exit 0
+== 01-verification loot=workspace
+round 1: exit 1; (A) problems 5; logged inputs 6; distinct table keys 6
+round 2: exit 1; (A) problems 5; logged inputs 13; distinct table keys 13
+round 3: exit 1; (A) problems 5; logged inputs 29; distinct table keys 29
+round 4: exit 1; (A) problems 5; logged inputs 34; distinct table keys 34
+round 5: exit 1; (A) problems 5; logged inputs 42; distinct table keys 42
+round 6: exit 1; (A) problems 5; logged inputs 62; distinct table keys 62
+round 7: exit 1; (A) problems 5; logged inputs 67; distinct table keys 67
+round 8: exit 1; (A) problems 5; logged inputs 72; distinct table keys 72
+round 9: exit 1; (A) problems 5; logged inputs 80; distinct table keys 80
+round 10: exit 1; (A) problems 5; logged inputs 88; distinct table keys 88
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-04 - (A) скрытые приёмочные тесты не пройдены: REQ-05
+driver exit 0
+== 01-verification loot=tmp control(fixed seed, full 30/60 cases; earlier driver option)
+round 1: exit 1; (A) problems 5; logged inputs 6; distinct table keys 6
+round 2: exit 1; (A) problems 5; logged inputs 14; distinct table keys 14
+round 3: exit 1; (A) problems 5; logged inputs 26; distinct table keys 26
+round 4: exit 1; (A) problems 5; logged inputs 32; distinct table keys 32
+round 5: exit 1; (A) problems 5; logged inputs 42; distinct table keys 42
+round 6: exit 1; (A) problems 5; logged inputs 48; distinct table keys 48
+round 7: exit 1; (A) problems 5; logged inputs 56; distinct table keys 56
+round 8: exit 1; (A) problems 5; logged inputs 61; distinct table keys 61
+round 9: exit 1; (A) problems 5; logged inputs 69; distinct table keys 69
+round 10: exit 1; (A) problems 5; logged inputs 75; distinct table keys 75
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-04 - (A) скрытые приёмочные тесты не пройдены: REQ-05
+driver exit 0
+== 05-pocock-pipeline loot=tmp
+round 1: exit 1; (A) problems 7; logged inputs 46; distinct table keys 46
+round 2: exit 1; (A) problems 7; logged inputs 88; distinct table keys 88
+round 3: exit 1; (A) problems 7; logged inputs 126; distinct table keys 126
+round 4: exit 1; (A) problems 7; logged inputs 166; distinct table keys 166
+round 5: exit 1; (A) problems 7; logged inputs 203; distinct table keys 203
+round 6: exit 1; (A) problems 7; logged inputs 245; distinct table keys 245
+round 7: exit 1; (A) problems 7; logged inputs 285; distinct table keys 285
+round 8: exit 1; (A) problems 7; logged inputs 324; distinct table keys 324
+round 9: exit 1; (A) problems 7; logged inputs 362; distinct table keys 362
+round 10: exit 1; (A) problems 7; logged inputs 399; distinct table keys 399
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-05 - (A) скрытые приёмочные тесты не пройдены: REQ-06 - (A) ск
+driver exit 0
+== 05-pocock-pipeline loot=workspace
+round 1: exit 1; (A) problems 7; logged inputs 41; distinct table keys 41
+round 2: exit 1; (A) problems 7; logged inputs 80; distinct table keys 80
+round 3: exit 1; (A) problems 7; logged inputs 118; distinct table keys 118
+round 4: exit 1; (A) problems 7; logged inputs 155; distinct table keys 155
+round 5: exit 1; (A) problems 7; logged inputs 196; distinct table keys 196
+round 6: exit 1; (A) problems 7; logged inputs 237; distinct table keys 237
+round 7: exit 1; (A) problems 7; logged inputs 274; distinct table keys 274
+round 8: exit 1; (A) problems 7; logged inputs 313; distinct table keys 313
+round 9: exit 1; (A) problems 7; logged inputs 352; distinct table keys 352
+round 10: exit 1; (A) problems 7; logged inputs 389; distinct table keys 389
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-05 - (A) скрытые приёмочные тесты не пройдены: REQ-06 - (A) ск
+driver exit 0
+== 05-pocock-pipeline loot=tmp control(fixed seed, full 30/60 cases; earlier driver option)
+round 1: exit 1; (A) problems 7; logged inputs 40; distinct table keys 40
+round 2: exit 1; (A) problems 7; logged inputs 78; distinct table keys 78
+round 3: exit 1; (A) problems 7; logged inputs 120; distinct table keys 120
+round 4: exit 1; (A) problems 7; logged inputs 164; distinct table keys 164
+round 5: exit 1; (A) problems 7; logged inputs 201; distinct table keys 201
+round 6: exit 1; (A) problems 7; logged inputs 241; distinct table keys 241
+round 7: exit 1; (A) problems 7; logged inputs 282; distinct table keys 282
+round 8: exit 1; (A) problems 7; logged inputs 324; distinct table keys 324
+round 9: exit 1; (A) problems 7; logged inputs 361; distinct table keys 361
+round 10: exit 1; (A) problems 7; logged inputs 403; distinct table keys 403
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-05 - (A) скрытые приёмочные тесты не пройдены: REQ-06 - (A) ск
+driver exit 0
+== 07-integrity-control loot=tmp
+round 1: exit 1; (A) problems 8; logged inputs 53; distinct table keys 53
+round 2: exit 1; (A) problems 8; logged inputs 94; distinct table keys 94
+round 3: exit 1; (A) problems 8; logged inputs 135; distinct table keys 135
+round 4: exit 1; (A) problems 8; logged inputs 177; distinct table keys 177
+round 5: exit 1; (A) problems 8; logged inputs 227; distinct table keys 227
+round 6: exit 1; (A) problems 8; logged inputs 276; distinct table keys 276
+round 7: exit 1; (A) problems 8; logged inputs 315; distinct table keys 315
+round 8: exit 1; (A) problems 8; logged inputs 358; distinct table keys 358
+round 9: exit 1; (A) problems 8; logged inputs 400; distinct table keys 400
+round 10: exit 1; (A) problems 8; logged inputs 443; distinct table keys 443
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-05 - (A) скрытые приёмочные тесты не пройдены: REQ-06 - (A) ск
+driver exit 0
+== 07-integrity-control loot=workspace
+round 1: exit 1; (A) problems 8; logged inputs 48; distinct table keys 48
+round 2: exit 1; (A) problems 8; logged inputs 91; distinct table keys 91
+round 3: exit 1; (A) problems 8; logged inputs 137; distinct table keys 137
+round 4: exit 1; (A) problems 8; logged inputs 181; distinct table keys 181
+round 5: exit 1; (A) problems 8; logged inputs 225; distinct table keys 225
+round 6: exit 1; (A) problems 8; logged inputs 268; distinct table keys 268
+round 7: exit 1; (A) problems 8; logged inputs 311; distinct table keys 311
+round 8: exit 1; (A) problems 8; logged inputs 356; distinct table keys 356
+round 9: exit 1; (A) problems 8; logged inputs 395; distinct table keys 395
+round 10: exit 1; (A) problems 8; logged inputs 439; distinct table keys 439
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-05 - (A) скрытые приёмочные тесты не пройдены: REQ-06 - (A) ск
+driver exit 0
+== 07-integrity-control loot=tmp control(fixed seed, full 30/60 cases; earlier driver option)
+round 1: exit 1; (A) problems 8; logged inputs 52; distinct table keys 52
+round 2: exit 1; (A) problems 8; logged inputs 95; distinct table keys 95
+round 3: exit 1; (A) problems 8; logged inputs 140; distinct table keys 140
+round 4: exit 1; (A) problems 8; logged inputs 180; distinct table keys 180
+round 5: exit 1; (A) problems 8; logged inputs 223; distinct table keys 223
+round 6: exit 1; (A) problems 8; logged inputs 267; distinct table keys 267
+round 7: exit 1; (A) problems 8; logged inputs 308; distinct table keys 308
+round 8: exit 1; (A) problems 8; logged inputs 356; distinct table keys 356
+round 9: exit 1; (A) problems 8; logged inputs 395; distinct table keys 395
+round 10: exit 1; (A) problems 8; logged inputs 441; distinct table keys 441
+final (table only, snapshot tests): exit 1; (A) clean during loop: False; counted failures before final: 10
+final output: Не пройдено (попытка засчитывается): - (A) скрытые приёмочные тесты не пройдены: REQ-01 - (A) скрытые приёмочные тесты не пройдены: REQ-02 - (A) скрытые приёмочные тесты не пройдены: REQ-03 - (A) скрытые приёмочные тесты не пройдены: REQ-05 - (A) скрытые приёмочные тесты не пройдены: REQ-06 - (A) ск
+driver exit 0
+DONE

@@ -74,3 +74,35 @@ Rule: When you close a value set, take the full list of accepted spellings from 
 aliases, and accept every alias of an accepted value. Give each rejected value its own failure
 message that matches the reason stated in task.md. Do not put in a reason line a bypass that the
 source does not document; use an example the source states outright.
+
+### 2026-10-30: An import resolver that tokenizes differently from the tool it models (#41, judge_content round 1)
+
+L2 `skills-structure` follows `@path` imports to count the memory budget. Its token regex was
+`(?:^|\s)@([^\s]+)`, and it kept the token as written. Claude Code's own loader (found with `strings` on the
+installed binary) uses `(?:^|\s)@((?:[^\s\\]|\\ )+)`, cuts the token at `#`, and turns `\ ` into a space.
+So `@docs/procedures.md#steps` and `@docs/proc\ edures.md` import the whole old procedure in Claude Code,
+but the check never followed them, and the memory check passed (exit 0). The plain `@docs/procedures.md`
+correctly failed.
+Rule: When a check models how a tool parses something (imports, globs, frontmatter, paths), copy the
+tool's own tokenization from its source: the regex, fragment handling, escapes and the resolution base.
+Then add one must-fail case for each normalization the tool applies (`#fragment`, escaped space). "We
+reject the forms we thought of" is not a resolver.
+
+### 2026-10-30: Copied the tool's regex but not the input it runs on (#41, judge_content round 2)
+
+The round-4 fix gave L2 `verify_skills.py` Claude Code's import regex, `#` cut, `\ ` unescape and
+path-start rule. But Claude Code does not run that regex on raw lines. It lexes the file with marked
+(`gfm: false`), runs the regex on each inline `text` token, skips `code`/`codespan`, and runs it on
+HTML-comment blocks after the comments are removed. A text token starts right after `**...**`, `_..._`,
+`<b>`, `\*`, a link or an HTML comment, so `(?:^|\s)` matches there even though the raw line has no
+space before `@`. The checker's own per-line backtick and fence detection also disagrees with
+CommonMark (a backtick fence info string containing a backtick, a shorter fence inside a longer one,
+code spans that cross a line break). Eight such forms (`<!-- c -->@docs/procedures.md`,
+`**Team conventions:**@docs/procedures.md`, ...) load the whole old procedure in Claude Code and pass
+the check with exit 0. The record called "HTML comments not stripped" stricter-only, but it was the
+opposite: stripping is what puts `@` at the start of the text.
+Rule: When you model a tool's parser, find the regex, then also find what it is applied to (token
+stream, after which transformations). If you cannot reproduce that input exactly, use a superset that
+is stricter by construction (for example: any `@` not preceded by a letter or digit, anywhere in the
+file, every delimiter-cut prefix tried) and prove it covers the tool. Run the comparison on a corpus,
+not only on the cases from the FAIL. "Stricter only" is a claim that needs its own negative case.

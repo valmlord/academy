@@ -1,0 +1,41 @@
+L1 reg fail_async                                EXIT 3  - (а) регистрация: ключ `async` отклонён: фоновый хук не может блокировать ("Async hooks can't block or control Claude's behavior")
+L1 reg fail_async_rewake                         EXIT 3  - (а) регистрация: ключ `asyncRewake` отклонён: хук работает в фоне и будит Claude после выхода, а не держит остановку
+L1 reg fail_disable_all_hooks                    EXIT 3  - (а) регистрация: .claude/settings.json: disableAllHooks со значением True выключает все хуки
+L1 reg fail_exec_bare_var                        EXIT 3  - (а) регистрация: голый $CLAUDE_PROJECT_DIR в exec form не подставляется: хук не стартует
+L1 reg fail_exec_command_with_space              EXIT 3  - (а) регистрация: exec form не совпадает ни с одной из форм E1-E3 (command и args сравниваются точно)
+L1 reg fail_exec_quoted                          EXIT 3  - (а) регистрация: кавычки при наличии args: в exec form нет оболочки, кавычки уходят в запуск буквально, хук не стартует
+L1 reg fail_if                                   EXIT 3  - (а) регистрация: ключ `if` отклонён: на Stop хук с `if` никогда не запускается
+L1 reg fail_matcher_star                         EXIT 3  - (а) регистрация: ключ `matcher` на группе отклонён: вне упражнения, на Stop Claude Code его молча игнорирует
+L1 reg fail_no_hooks                             EXIT 3  - (а) регистрация: .claude/settings.json: в hooks.Stop нет группы с хуком
+L1 reg fail_on_failure_bad                       EXIT 3  - (а) регистрация: onFailure должен быть "continue" или "block"
+L1 reg fail_once                                 EXIT 3  - (а) регистрация: ключ `once` отклонён: в файлах настроек `once` игнорируется
+L1 reg fail_relative_path                        EXIT 3  - (а) регистрация: относительный путь: хук запускается в текущем каталоге Claude, его сдвигают cd и worktree
+L1 reg fail_shell_bash                           EXIT 3  - (а) регистрация: ключ `shell` отклонён: при `args` игнорируется, а без `args` меняет интерпретатор принятых строк
+L1 reg fail_timeout_5                            EXIT 3  - (а) регистрация: timeout 5: нужно число не меньше 30 (порог упражнения: проба ждёт хук до 20 с) или ключ без значения убрать
+L1 reg fail_two_groups                           EXIT 3  - (а) регистрация: .claude/settings.json: в hooks.Stop должна быть ровно одна группа, найдено 2
+L1 reg fail_type_agent                           EXIT 3  - (а) регистрация: type 'agent' отклонён: решает другая модель; для настоящего контроля нужен хук типа command
+L1 reg fail_type_http                            EXIT 3  - (а) регистрация: type 'http' отклонён: вне упражнения
+L1 reg fail_type_prompt                          EXIT 3  - (а) регистрация: type 'prompt' отклонён: решает другая модель; для настоящего контроля нужен хук типа command
+L1 reg fail_typo_path_exec                       EXIT 3  - (а) регистрация: опечатка в пути: файл хука называется stop_tests.py
+L1 reg fail_typo_path_shell                      EXIT 3  - (а) регистрация: опечатка в пути: файл хука называется stop_tests.py; python3 с неверным путём завершится с кодом 2 и "No such file or directory", и
+L1 reg fail_unknown_key                          EXIT 3  - (а) регистрация: ключ `retries` отклонён: ключ вне упражнения
+L1 reg fail_unquoted_var                         EXIT 3  - (а) регистрация: незакавыченный $CLAUDE_PROJECT_DIR в shell form: путь с пробелом развалится на два аргумента
+L1 reg pass_disable_all_hooks_false              EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_e1                                   EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_e3                                   EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_on_failure_continue                  EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_bare_0                         EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_bare_1                         EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_bare_2                         EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_bare_3                         EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3I_0                     EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3I_1                     EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3I_2                     EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3I_3                     EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3_0                      EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3_1                      EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3_2                      EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_shell_python3_3                      EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg pass_timeout_30_status_onfailure          EXIT 0  Пройдено: хук зарегистрирован в принятой форме, блокирует на красных тестах и на нуле тестов, пропускает на зелёных и при stop_hook_active.
+L1 reg local settings with a second Stop hook    EXIT 3  - (а) регистрация: .claude/settings.local.json: других Stop-хуков быть не должно, здесь их нет места
+L1 reg local disableAllHooks                     EXIT 3  - (а) регистрация: .claude/settings.local.json: disableAllHooks со значением True выключает все хуки

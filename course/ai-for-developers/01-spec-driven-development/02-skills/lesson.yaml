@@ -1,0 +1,87 @@
+id: sdd-skills
+title: "Скиллы: устройство и жизненный цикл в проекте"
+type: artifact
+outcomes:
+  - "Оформляет повторяемую процедуру как скилл (SKILL.md по открытому стандарту Agent Skills, с полями Claude Code только там, где они нужны), решает, может ли модель вызывать его сама, и оставляет в постоянно загружаемой памяти проекта только то, что нужно в каждой сессии."
+estimatedMinutes: 50
+status: ready
+prerequisites:
+  - sdd-verification
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Agent Skills: Specification (agentskills.io)"
+    url: https://agentskills.io/specification
+    checkedAt: "2026-10-29"
+  - title: "Agent Skills: репозиторий стандарта и skills-ref"
+    url: https://github.com/agentskills/agentskills
+    checkedAt: "2026-10-29"
+  - title: "Anthropic: Equipping agents for the real world with Agent Skills (обновление 2025-12-18: открытый стандарт)"
+    url: https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Extend Claude with skills (поля, вызов, расположение, verify перед коммитом, frontmatter вне Claude Code, /skill-doctor)"
+    url: https://code.claude.com/docs/en/skills
+    checkedAt: "2026-10-29"
+  - title: "Anthropic: Skill authoring best practices (ссылки на один уровень, скрипты)"
+    url: https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices
+    checkedAt: "2026-10-29"
+  - title: "Anthropic: Agent Skills overview (безопасность чужих скиллов)"
+    url: https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Features overview (CLAUDE.md, скилл, хук, субагент)"
+    url: https://code.claude.com/docs/en/features-overview
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Best practices (процедуры команды в скиллах)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: How Claude remembers your project (память, @-импорты, .claude/rules/)"
+    url: https://code.claude.com/docs/en/memory
+    checkedAt: "2026-10-29"
+  - title: "OpenAI Codex: Build skills (.agents/skills, allow_implicit_invocation)"
+    url: https://learn.chatgpt.com/docs/build-skills
+    checkedAt: "2026-10-29"
+  - title: "Cursor: Agent Skills"
+    url: https://cursor.com/docs/context/skills
+    checkedAt: "2026-10-29"
+  - title: "Gemini CLI: Agent Skills"
+    url: https://geminicli.com/docs/cli/skills
+    checkedAt: "2026-10-29"
+  - title: "GitHub Copilot: About agent skills"
+    url: https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
+    checkedAt: "2026-10-29"
+  - title: "anthropics/skills: публичный репозиторий скиллов"
+    url: https://github.com/anthropics/skills
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skills v1.3.2 (README: плагин обновляется сам)"
+    url: https://github.com/mattpocock/skills/tree/v1.3.2
+    checkedAt: "2026-10-29"
+checks:
+  - id: skills-structure
+    title: "Скиллы verify и release, перенос скрипта, память проекта без процедур"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_skills.py"'
+    timeoutSec: 30
+    weight: 3
+  - id: skills-rubric
+    title: "Перенос процедур, одна копия скрипта, ничего не грузится в каждую сессию (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric-skills.md
+    artifacts:
+      - .claude/**
+      - CLAUDE.md
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - scripts/**
+      - docs/**
+      - "**/*.py"
+      - "**/*.txt"
+      - "*"
+    passScore: 0.7
+    weight: 2
+  - id: skills-quiz
+    title: "Квиз: загрузка и вызов скиллов, allowed-tools, выбор механизма, риски, переносимость"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

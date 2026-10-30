@@ -1,0 +1,50 @@
+{
+  "m01_grace_four_days": {
+    "requirement": "REQ-01",
+    "description": "льготный период 4 дня вместо 5"
+  },
+  "m01_negative_days_charged": {
+    "requirement": "REQ-01",
+    "description": "отрицательные дни просрочки дают отрицательную пеню"
+  },
+  "m01_grace_six_days": {
+    "requirement": "REQ-01",
+    "description": "граница льготного периода: 6-й день ещё без пени"
+  },
+  "m02_one_percent_rate": {
+    "requirement": "REQ-02",
+    "description": "дневная ставка 1% вместо 0,1%"
+  },
+  "m02_days_from_due_date": {
+    "requirement": "REQ-02",
+    "description": "дни считаются от срока оплаты, а не после льготного периода"
+  },
+  "m03_round_half_up": {
+    "requirement": "REQ-03",
+    "description": "округление к ближайшему вместо округления вниз"
+  },
+  "m03_round_up": {
+    "requirement": "REQ-03",
+    "description": "округление вверх вместо округления вниз"
+  },
+  "m04_no_cap": {
+    "requirement": "REQ-04",
+    "description": "потолок не применяется"
+  },
+  "m04_twenty_percent_cap": {
+    "requirement": "REQ-04",
+    "description": "потолок 20% вместо 10%"
+  },
+  "m04_cap_rounded_up": {
+    "requirement": "REQ-04",
+    "description": "граница потолка: потолок округлён вверх"
+  },
+  "m05_zero_amount_accepted": {
+    "requirement": "REQ-05",
+    "description": "нулевая сумма принимается без ошибки"
+  },
+  "m05_checked_after_grace": {
+    "requirement": "REQ-05",
+    "description": "неположительная сумма проверяется только после льготного периода"
+  }
+}

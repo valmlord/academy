@@ -1,0 +1,26 @@
+{
+  "contextFiles": ["docs/billing/GLOSSARY.md", "docs/ledger/GLOSSARY.md"],
+  "requiredTerms": {
+    "docs/billing/GLOSSARY.md": {
+      "Invoice": ["bill"],
+      "Customer": ["client", "account"],
+      "Payment": ["settlement"],
+      "Credit Note": ["refund"],
+      "Reminder": ["dunning"],
+      "Dispute": ["complaint"],
+      "Outstanding Balance": ["debt"]
+    },
+    "docs/ledger/GLOSSARY.md": {
+      "Account": [],
+      "Entry": ["posting"]
+    }
+  },
+  "polyseme": {
+    "word": "account",
+    "avoidedUnder": {"file": "docs/billing/GLOSSARY.md", "term": "Customer"},
+    "neverAvoidedIn": "docs/ledger/GLOSSARY.md"
+  },
+  "maxTermsPerContext": 12,
+  "maxAvoidWords": 4,
+  "minRelationships": 2
+}

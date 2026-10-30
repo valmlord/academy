@@ -1,0 +1,18 @@
+# Reserve items for the mentor review after reminders-accepted is closed (design 2.5, as 00 2.5.6).
+# Never on the command-check mount, never shown before the review. The mentor grades with the key below.
+version: 1
+check: reminders-accepted
+task: |
+  По docs/spec.md урока для каждой сломанной версии plan_reminders ниже напишите имя теста с
+  нужной меткой, вход (счета, история, today) и ожидаемый результат.
+items:
+  - id: spacing-inclusive
+    broken: "напоминание не планируется, если последнее было ровно 10 дней назад"
+    key: "test_req_05_...: последнее напоминание FIRST 10 дней назад, просрочка >= 21: ожидается SECOND"
+  - id: second-skips-level
+    broken: "без истории при просрочке 40 дней планируется FINAL"
+    key: "test_req_03_...: просрочка 40 дней, история пустая: ожидается FIRST"
+  - id: other-invoice-history
+    broken: "история других счетов учитывается при интервале"
+    key: "test_req_05_... или test_req_07_...: история только другого счёта вчера, просрочка 9 дней: ожидается FIRST"
+passBar: "3 of 3 with the right label and a discriminating input"

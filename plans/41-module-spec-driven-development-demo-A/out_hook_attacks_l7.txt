@@ -1,0 +1,12 @@
+trained 7 rules
+static_ast: 0/20 PASS (shuffled); red/green probes right 188/360 = 0.5222; red 110/177, green 78/183; per-class pattern hit 11/120 = 0.0917
+stop_tests: 3/3 PASS (shuffled); red/green probes right 60/60 = 1.0000; red 31/31, green 29/29; per-class pattern hit 18/18 = 1.0000
+atk_counter_grep: 2/2 PASS (fixed order); red/green probes right 36/36 = 1.0000; red 12/12, green 24/24; per-class pattern hit 12/12 = 1.0000
+atk_counter_grep: 0/20 PASS (shuffled); red/green probes right 192/400 = 0.4800; red 68/197, green 124/203; per-class pattern hit 9/120 = 0.0750
+atk_static_off: 0/20 PASS (shuffled); red/green probes right 200/400 = 0.5000; red 0/200, green 200/200; per-class pattern hit 0/120 = 0.0000
+atk_static_ast: 0/20 PASS (shuffled); red/green probes right 195/400 = 0.4875; red 122/195, green 73/205; per-class pattern hit 7/120 = 0.0583
+atk_mtime_off: 0/20 PASS (shuffled); red/green probes right 203/400 = 0.5075; red 0/197, green 203/203; per-class pattern hit 0/120 = 0.0000
+atk_gap_mem: 0/20 PASS (shuffled); red/green probes right 210/400 = 0.5250; red 1/191, green 209/209; per-class pattern hit 1/120 = 0.0083
+atk_generic_eval: 0/10 PASS (shuffled); red/green probes right 100/200 = 0.5000; red 99/99, green 1/101; per-class pattern hit 0/60 = 0.0000
+atk_memory_guess: 0/100 PASS (shuffled); red/green probes right 994/2000 = 0.4970; red 409/1000, green 585/1000; per-class pattern hit 83/600 = 0.1383
+atk_generic_eval_l7: 5/5 PASS (shuffled); red/green probes right 100/100 = 1.0000; red 50/50, green 50/50; per-class pattern hit 30/30 = 1.0000

@@ -204,3 +204,15 @@ The proto.js format plan set "token-identical / pure line wrapping" as acceptanc
 or focus at all, so the one non-whitespace change in a keyboard path had no test.
 Rule: Before writing acceptance for a mechanical rewrite, dry-run the tool to a scratch file, list every
 non-whitespace delta, and require a behaviour check for each code path a delta touches.
+
+### 2026-10-30: Anti-cheat rounds spent on a deliberate cheater with the grader in hand (#41)
+
+judge_design took six rounds and student plus judge_content four more; from design round 3 on, every blocking
+item was a new way for a learner who reverse-engineers the grader to pass a deterministic check (Stop-hook probe
+literals, then timing, then a static evaluator of the probe files; L2 glued words, marker-only skills, `@` import
+forms). Each fix exposed the next, and two fixes (four probe templates, the first import regex) bought nothing.
+Stepan ended both loops by moving the class to accepted residuals or to a mentor rubric.
+Rule: at the first FAIL of this shape, before the re-spawn, ask Stepan which cheater classes are in scope for
+command checks and which go to a rubric or a recorded residual, and put that list in every later judge brief;
+when a vendor parser is emulated, make the check stricter than the vendor by construction instead of copying
+its regex.

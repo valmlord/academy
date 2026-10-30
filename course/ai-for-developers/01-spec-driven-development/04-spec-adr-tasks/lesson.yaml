@@ -1,0 +1,72 @@
+id: sdd-spec-adr-tasks
+title: "SDD: от фичи к спецификации, ADR и задачам"
+type: artifact
+outcomes:
+  - "Превращает описание фичи и протокол интервью в спецификацию с проверяемыми требованиями, один ADR для решения, которое трудно отменить, и список вертикальных задач, где каждая задача ссылается на требования и команду проверки."
+estimatedMinutes: 70
+status: ready
+prerequisites:
+  - sdd-domain-ontology
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Birgitta Böckeler: Understanding Spec-Driven-Development: Kiro, spec-kit, and Tessl (2025-10-15)"
+    url: https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html
+    checkedAt: "2026-10-29"
+  - title: "GitHub Spec Kit (README v1.2.5)"
+    url: https://github.com/github/spec-kit
+    checkedAt: "2026-10-29"
+  - title: "GitHub Spec Kit: Agentic SDD reference (команды, независимые точки входа)"
+    url: https://github.github.io/spec-kit/reference/agentic-sdd.html
+    checkedAt: "2026-10-29"
+  - title: "Kiro: Specs (requirements, design, tasks; EARS)"
+    url: https://kiro.dev/docs/specs/
+    checkedAt: "2026-10-29"
+  - title: "Kiro: Feature specs (Requirements-First и Design-First)"
+    url: https://kiro.dev/docs/specs/feature-specs/
+    checkedAt: "2026-10-29"
+  - title: "OpenSpec v1.15.0 (README, docs/cli.md)"
+    url: https://github.com/Fission-AI/OpenSpec
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Best practices (интервью в SPEC.md, затем свежая сессия)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-29"
+  - title: "Alistair Mavin: EARS (шаблоны требований)"
+    url: https://alistairmavin.com/ears/
+    checkedAt: "2026-10-29"
+  - title: "Michael Nygard: Documenting Architecture Decisions (2011-11-15)"
+    url: https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions
+    checkedAt: "2026-10-29"
+  - title: "MADR (Markdown Architectural Decision Records), релиз 4.0.0"
+    url: https://github.com/adr/madr
+    checkedAt: "2026-10-29"
+  - title: "MADR 4.0.0: шаблон adr-template.md"
+    url: https://raw.githubusercontent.com/adr/madr/4.0.0/template/adr-template.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skills v1.3.2 (to-spec, to-tickets, ADR-FORMAT, README)"
+    url: https://github.com/mattpocock/skills/tree/v1.3.2
+    checkedAt: "2026-10-29"
+checks:
+  - id: sdd-artifacts
+    title: "Форма спецификации, ADR и задач, связь задач с требованиями, словарь глоссария (фильтр формы; смысл оценивает рубрика)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_sdd.py"'
+    timeoutSec: 30
+    weight: 3
+  - id: sdd-rubric
+    title: "Качество спецификации, ADR и задач (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric-sdd.md
+    artifacts:
+      - docs/spec.md
+      - docs/tasks.md
+      - docs/adr/*.md
+    passScore: 0.7
+    weight: 3
+  - id: sdd-quiz
+    title: "Квиз: уровни SDD, проверяемые требования, когда нужен ADR, вертикальные задачи"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
