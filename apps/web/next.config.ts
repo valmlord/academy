@@ -1,6 +1,6 @@
-import { existsSync } from "node:fs";
 import path from "node:path";
 import type { NextConfig } from "next";
+import { loadRootEnv } from "./lib/root-env.ts";
 
 const repositoryRoot = path.join(import.meta.dirname, "../../");
 
@@ -11,10 +11,12 @@ const repositoryRoot = path.join(import.meta.dirname, "../../");
 // passThroughEnv.
 // Any NEXT_PUBLIC_* variable in the root .env is inlined into the client bundle of a local next dev or
 // next build, so the root .env never holds a secret under that prefix.
-const rootEnvFile = path.join(repositoryRoot, ".env");
-if (existsSync(rootEnvFile)) {
-  process.loadEnvFile(rootEnvFile);
-}
+// ACADEMY_SKIP_ROOT_ENV=1 skips the file for isolated runs (lib/root-env.ts).
+loadRootEnv({
+  env: process.env,
+  file: path.join(repositoryRoot, ".env"),
+  log: (line) => console.error(line),
+});
 
 const nextConfig: NextConfig = {
   output: "standalone",
