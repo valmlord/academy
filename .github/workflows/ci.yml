@@ -162,6 +162,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: migrations run inside the built image
         run: bash apps/web/scripts/check-image-migrations.sh
+      # No host dist/ exists yet, so a green step also proves the seed task builds its workspace imports.
+      # 127.0.0.1, not .env's localhost: compose publishes on 127.0.0.1 only and Node may try ::1 first.
+      - name: seed the e2e user
+        timeout-minutes: 3
+        run: |
+          pw=$(openssl rand -hex 24)
+          echo "::add-mask::$pw"
+          { echo "SEED_EMAIL=learner@example.com"; echo "SEED_PASSWORD=$pw"; } >> "$GITHUB_ENV"
+          DATABASE_URL=postgres://academy:academy@127.0.0.1:5432/academy SEED_EMAIL=learner@example.com SEED_PASSWORD="$pw" pnpm seed | tee seed.log
+          grep -qF 'seed: created' seed.log
       - run: pnpm --filter @academy/web exec playwright install --with-deps --only-shell chromium
       - run: pnpm test:e2e
         env:

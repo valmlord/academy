@@ -16,6 +16,11 @@
       "dependsOn": ["^build"],
       "passThroughEnv": ["DATABASE_URL", "PORT", "BETTER_AUTH_SECRET"]
     },
+    "seed": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL", "BETTER_AUTH_SECRET", "SEED_*"]
+    },
     "@academy/web#test": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/design/system/tokens.css"]

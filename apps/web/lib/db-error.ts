@@ -27,6 +27,11 @@ export function describeDbError(error: unknown): string {
   return `${name} (${coded.code}${constraint})`;
 }
 
+/** The first SQLSTATE or Node error code in the cause chain, for choosing a hint. */
+export function dbErrorCode(error: unknown): string | undefined {
+  return firstCode(error)?.code;
+}
+
 function firstCode(error: unknown): CodedError | undefined {
   let current: unknown = error;
   for (let depth = 0; depth <= MAX_CAUSE_DEPTH; depth += 1) {
