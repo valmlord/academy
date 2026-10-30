@@ -697,3 +697,102 @@ allowlist keyed by file, so any later export in an allowlisted actions module wa
 Rule: For every security property (revocation, authorization), assert the server-side state itself (the old
 token is rejected), read the library's error handling before claiming where a failure lands, and allowlist
 the narrowest unit the check can see (an export, not a file).
+
+### 2026-10-30: Isolation recipe checked compose only; node entry points and turbo strict mode load the root .env (#30)
+
+Issue #30 design 13.6 / V8: with a root `.env` now present, the architect rehearsed that `docker compose
+--env-file /dev/null` ignores it and claimed "exported values win" everywhere else. But `next.config.ts`,
+`scripts/seed.ts` and `playwright.config.ts` each call `process.loadEnvFile(<repo>/.env)`, and turbo 2's strict
+env mode drops shell variables a task does not list: `build` lists none, so `[B]` (`env -u BETTER_AUTH_SECRET
+-u DATABASE_URL pnpm build`) loads Stepan's real secret and DATABASE_URL into every coder build; `test:e2e`
+passes only `E2E_BASE_URL`/`SEED_*`, so Playwright loads them too. The image scripts call bare `docker compose`
+(reads `.env`; `COMPOSE_ENV_FILES=/dev/null` stops it, verified) and the teardown runs `cksum .env`. Separately,
+yaml 2.9.1 `parse()` prints warnings with the quoted source line via `process.emitWarning` (reproduced), which
+the typed-error rule for thrown errors did not cover, and the M-leak-rsc mutation added an undeclared prop, so
+`next build`'s type check would fail before the leak test could run.
+Rule: For "never read file X", grep every entry point for loaders of X (`loadEnvFile`, dotenv, compose) and
+trace each command of the recipe through the task runner's env filtering, then state per process why X is
+not read. For "no content in logs", cover every output channel of each parser (warnings, emitWarning,
+console), not only thrown errors. Every mutation that runs through a build must type-check.
+
+### 2026-10-30: Cross-commit string supply, mutations that miss the shipped code, drift listed by example (#30, judge_design round 1, architecture)
+Design rev 1: commit 5's copy button needs lesson strings added in commit 7; E-cat-2 (commit 6) clicks dashboard
+rows that arrive in commit 8. E-les-2 fulfils `get-session` after the tab change, the order in which today's
+`notifications.tsx` (reads `window.location` on resolve) already passes, so step 36 is unguarded. E-les-3's
+"`data-region` on `main`" leaves F6 landing on the same breadcrumb (`region-cycle.tsx` focuses the first
+focusable). U-read's M-msg "use `issue.message`" cannot leak the canary: zod 4 messages never echo the input
+(run live). 8.4 named a few shadcn differences; the radix-nova registry shows `outline-none`/`ring-[3px]` on
+Item, TabsTrigger and TabsContent overriding the design focus ring, the dark `border-input` active tab,
+`BreadcrumbPage role="link" aria-disabled`, Badge `rounded-4xl h-5`. `listLearnerFiles` throws
+`CourseExportError` while the ADR says the server uses the same listing.
+Rule: For every step, list the constants, components and routes it imports or asserts and the step that
+supplies each, across commits. Before naming a mutation, read the code the test runs against today and the
+library's real output (run it), and state why the assertion goes red under it and was red before the change.
+Write the vendored-component table from the registry source in the design, every class, every state.
+
+### 2026-10-30: A tester command the design's own wrapper refuses; a log check that cannot see one-off containers (#30, judge_design round 1, operations)
+T-err prescribed `t30 run -d --rm --no-deps -p 127.0.0.1:3231:3000 ...`, but the `t30` wrapper refuses every
+`-p` argument (rc 97, rehearsed), the log assertion used `docker compose logs`, which never shows `run`
+one-off containers, and nothing stopped the detached container, so `t30 down -v` left it running ("Resource is
+still in use") and `docker image rm academy-web:t30` would fail. The same recipe claimed compose never reads
+the root `.env` while the image scripts call bare `docker compose` (fixed by `COMPOSE_ENV_FILES=/dev/null`).
+Also: `COURSE_ROOT` was not added to `.env.example`, `@academy/web#test` inputs ignored the `course/` files a
+unit test reads, and E-leak left fragment trimming, the body-capture race and its runtime unspecified
+(6,794 fragments; two already occur in today's server bundle).
+Rule: Run every prescribed tester command through the wrapper it must use, once, against a scratch compose
+file. Give each detached container a name, a log command and a stop step before teardown. Every new env var
+goes into `.env.example`. Every turbo task that reads files outside its package declares them in `inputs`.
+
+### 2026-10-30: A mutation that triggers the forbidden read; a library's "never logs" tested on one call of two (#30, judge_design round 2, security)
+Revision 2 isolated the root `.env` behind `ACADEMY_SKIP_ROOT_ENV` and turbo `globalPassThroughEnv`, then named
+M-env-turbo "remove the passthrough entry and run [B]": that build loads Stepan's real `.env` (secret and
+DATABASE_URL unset by `env -u`), or, on a turbo cache hit, replays the skip line and stays green. The flag's
+arrival was also proven only after the fact, by a skip line in a process that could already have read the file.
+Separately, V15 "`parseDocument` never logs" spied on parsing only; yaml 2.9.1 `toJS()` logs a collection key
+through `process.emitWarning` at the default `logLevel` (`addPairToJSMap.js:57`), so the chosen `"error"` was
+right by accident and no test pinned it.
+Rule: A mutation of a guard must never perform the act the guard forbids on the real asset: check it statically
+or against a canary copy, and prove a protective setting before the first run that depends on it. When claiming
+"library X never logs", spy on every call the code makes (parse and convert), and pin each protective option
+with its own mutation.
+
+### 2026-10-30: A mutation that defeats the isolation it guards; a closed error set missing a case its ADR promises (#30, judge_design round 2, architecture)
+Design rev 2: M-env-turbo removes `ACADEMY_SKIP_ROOT_ENV` from turbo's `globalPassThroughEnv` and expects the
+skip line to vanish from `pnpm build`; under that mutation `loadRootEnv` sees the flag unset and loads Stepan's
+real root `.env` into the coder's build, the read Q11 forbids. M-env-flag and M-env-site do the same if anything
+beyond the unit file runs while they are applied (`pnpm typecheck` loads `next.config.ts`). Separately, Q8 and
+ADR-0009 item 7 promise "unreadable" files give the designed error states, but the "closed" reason set of
+`CourseFileError` has no reason for `EACCES`/`EIO`, so the coder must either misreport it as `missing` or let a
+raw error become a 500. And step 6 (`node-fs.ts`) used `LEARNER_FILES` from `files.ts`, created at step 9.
+Rule: For every mutation, state what else the mutated code does when the commands of its step run, and confine
+mutations that weaken an isolation or security guard to the one test file, or to a scratch copy without the
+protected resource. For every "closed set" of error reasons, map every failure the call can raise (errno codes
+included) and check it against each promise in the ADR. The step-level supply walk covers modules within a commit.
+
+### 2026-10-30: A mutation that switches off the isolation it proves; a widened check run as the wrong user (#30, judge_design round 2, operations)
+M-env-turbo removed `ACADEMY_SKIP_ROOT_ENV` from `globalPassThroughEnv` and expected the skip line to vanish
+from [B]. With the flag gone, `loadRootEnv` loads the existing root `.env`, and the `turbo.json` change forces a
+cache miss, so the coder's real `next build` would read Stepan's secrets: the very read revision 2 removed.
+Rehearsed in a scratch turbo 2.11.10 workspace (`flag=UNSET` in build and seed without the entry). C2 was
+widened to `find / -xdev -type f -exec sha256sum {} +`, but the runner is `USER node`: `/root`,
+`/lib/apk/db/lock` and `/etc/crontabs/root` are unreadable and `find` returns 1 (rc 0 with `--user 0`). That
+means a red CI on correct code, or a partial scan if the errors are suppressed.
+Rule: A mutation of a safety guard must not run the guarded entry point where the protected resource exists;
+prove it in a scratch copy instead. When a check's scope widens, run it once as the user it will run as, and
+make it compare the count it covered with the count it should cover.
+
+### 2026-10-30: Widened a source walk to a directory that exists only locally (#30, judge_design round 3)
+Revision 3 widened U-env-sites to walk `apps/`, `packages/`, `services/`. `services/` is an empty, untracked
+directory in the main checkout; git does not store empty directories, so CI's checkout has none and a plain
+`readdir` per root throws `ENOENT`: green on the coder's machine, red in CI on correct code at commit 1.
+Rule: Every path a test walks or reads must be tracked (`git ls-files <path>` non-empty) or explicitly optional in
+the design; when widening a scan, add a positive control per root.
+
+### 2026-10-31: Prescribed `transition-colors` for focusable rows, which animates the focus ring (#30, judge_code round 1, architecture)
+Design 8.4 gave `Item` and `BreadcrumbLink` `transition-colors duration-150` "as button.tsx does", but `button.tsx`
+uses `transition-[background-color]`, and Tailwind 4's `transition-colors` includes `outline-color`. Every catalog
+row, dashboard row and breadcrumb link fades its focus ring from `currentColor` to `ring` over 150 ms (tester F2);
+`proto.css` has no transition on `.item` or `.breadcrumb a`, and the README's `duration-fast` is for hover only. The
+8.4 tables were read against proto.css property by property, but not against what the prescribed utility expands to.
+Rule: When a design prescribes a Tailwind utility, check what it compiles to (property list included) against the
+prototype rule and the global focus rule; transitions name only the properties the prototype animates.

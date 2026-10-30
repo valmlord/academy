@@ -177,3 +177,33 @@ because `aria-disabled:` already sorts after `hover:`. A unit test then pinned t
 Rule: Before writing "as in X" or "so it is listed", check the claim against computed values (prototype in a browser,
 a mutation on the app); when the app intentionally differs from the prototype, the comment says so and names the
 DESIGN note, and a class that changes no computed value is deleted, not asserted on.
+
+### 2026-10-31: A missing course root is logged with an empty file name (#30, judge_code round 1)
+`nodeCourseFs.listDirs(root, "")` turns ENOENT into `CourseFileError("", "missing")`, so a wrong `COURSE_ROOT`
+or an image without `/app/course` logs `web: course read failed: : missing`, and the image build would stop with
+`export-course: CourseExportError: : missing`. The most likely misconfiguration of the feature produces the one
+log line that does not say what is missing, while the empty-course case of the same reader already says `"."`.
+The tester saw the line (F1) but every unit test exercised only files below the root.
+Rule: For every error path that carries a "relative file" field, test the root itself (missing, empty, unreadable)
+and check that the printed line names something an operator can act on; never let an empty string reach a log.
+
+### 2026-10-31: A vendored component's link styles became reachable and were not walked (#30, judge_code round 1, architecture)
+`components/lesson/prerequisite-alert.tsx` puts the prerequisite links inside `AlertTitle`, the first links any
+Alert in the app holds. Design 8.4 "Links" says prerequisite links use `inlineLinkClassName`; they got a bare
+`<Link>` instead, so the registry's `[&_a]:underline-offset-3 [&_a]:hover:text-foreground` on `AlertTitle` styles
+them: 3px offset and no 2px underline on hover, where the prototype (`proto.css:117-118`) has 0.2em and 2px. Adding
+`inlineLinkClassName` alone would not fix it: `.x a` (0,1,1) beats `.underline-offset-[0.2em]` (0,1,0). The catalog's
+note links were done right, so the rule was known and applied to one of two call sites.
+Rule: When new markup puts an element type inside a vendored component for the first time (a link in an Alert, an
+icon in a Badge), read that component's descendant utilities (`[&_a]:*`, `*:[svg]:*`) against the design row for the
+element, every state, and check the compiled selector's specificity against the class you add.
+
+### 2026-10-31: A test-infra fix for specs of earlier commits landed in a later feature commit (#30, judge_code round 1, architecture)
+The 429 flake from Better Auth's limiter comes from the many page loads of the catalog, not-found, lesson and leak
+specs (commits 7 and 8), but their `useOwnBucket` `beforeEach` blocks were added in commit 9 (dashboard), found by
+commit 9's three back-to-back runs. Commits 7 and 8 therefore leave a suite that is red on a rerun, and commit 9 mixes
+the dashboard with a fix to four other specs; its body also says every page load "now" reads the session endpoint,
+which has been true since #29.
+Rule: A fix found late goes into the commit that introduced the failing code (fixup and rebase while the branch is
+unpushed, with the author's approval of the rewritten history); run the multi-run check at every commit that adds e2e
+load, not only at the last.
