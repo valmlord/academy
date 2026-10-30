@@ -37,7 +37,8 @@ module link to its section.
   найдена" with "Открыть курс". A non-`ready` lesson is never visible (#30 AC), so it is reported as not
   found rather than "not ready yet", because a "coming soon" page would show that it exists. Not-found is
   an app-shell state with the top bar; it is not prototyped in #50 (design file §3), this copy is its
-  spec.
+  spec. It ships with the catalog in #30, with the "from #30" top bar (`ia.md` R6, "Before the catalog
+  ships"); its `F6` stop `main` lands on "Открыть курс".
 - Progress cannot be read: lessons show no learner status and no prerequisite note (whether a
   prerequisite is passed is progress data, F6 error states), and a muted line "Прогресс недоступен" once
   at the top; lessons stay openable.
