@@ -8,6 +8,10 @@ export function catalogPath(courseId: string): string {
   return `/courses/${courseId}`;
 }
 
+export function moduleAnchorPath(courseId: string, moduleId: string): string {
+  return `${catalogPath(courseId)}#${moduleId}`;
+}
+
 export function lessonPath(courseId: string, lessonId: string): string {
   return `${catalogPath(courseId)}/lessons/${lessonId}`;
 }

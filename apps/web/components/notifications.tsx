@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleXIcon } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactElement, useEffect, useState } from "react";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,20 +17,29 @@ const HEADING_ID = "notifications-heading";
 //
 // The session read on mount also extends the session: GET /api/auth/get-session is a route handler,
 // where Better Auth can move the row's expiry and the cookie together (ADR-0008 item 8).
+//
+// The sign-in-again link is built during render from the current path and query, not when the read
+// resolves, so it follows a lesson tab selected while the alert is shown (history.replaceState updates
+// useSearchParams; lesson AC17).
 export function Notifications(): ReactElement {
-  const [signInAgainHref, setSignInAgainHref] = useState<string | null>(null);
+  const [isSessionGone, setIsSessionGone] = useState(false);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     let isMounted = true;
     readSessionIsGone().then((isGone) => {
-      if (!isGone || !isMounted) return;
-      setSignInAgainHref(signInPath(window.location.pathname + window.location.search));
+      if (isGone && isMounted) setIsSessionGone(true);
     });
     return () => {
       isMounted = false;
     };
   }, []);
 
+  const query = searchParams.toString();
+  const signInAgainHref = isSessionGone
+    ? signInPath(query === "" ? pathname : `${pathname}?${query}`)
+    : null;
   const hasAlert = signInAgainHref !== null;
   return (
     <div

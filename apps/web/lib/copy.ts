@@ -96,3 +96,31 @@ export const lessonNotStartedLabel = "Не начат";
 
 // design/pages/catalog/acceptance.md, Copy "prerequisite note": the prefix before the lesson links.
 export const prerequisiteNotePrefix = "Сначала пройдите: ";
+
+// design/flows/ia.md, vocabulary "page region": the visually hidden heading of the lesson region.
+export const lessonRegionHeading = "Урок";
+
+// design/pages/lesson/acceptance.md, Copy: the breadcrumb's and the tab list's accessible names.
+export const breadcrumbLabel = "Навигация";
+export const lessonTabsLabel = "Разделы урока";
+
+// design/flows/ia.md, vocabulary "theory", "task"; design/pages/lesson/acceptance.md, Copy "left tabs".
+export const theoryTabLabel = "Теория";
+export const taskTabLabel = "Задание";
+
+// design/flows/ia.md, copy register "lesson (F6-F13, F19)": the M0 line under the lesson header.
+export const m0LessonNote = "Окружение и проверки появятся в следующей версии платформы";
+
+// design/flows/ia.md, copy register "lesson (F6-F13, F19)": table of contents and sources.
+export const tableOfContentsHeading = "Содержание";
+export const sourcesHeading = "Источники";
+export function sourceCheckedLabel(date: string): string {
+  return `проверено ${date}`;
+}
+
+// design/flows/ia.md, copy register "lesson (F6-F13, F19)": a tab whose text cannot be read.
+export const lessonTextErrorTitle = "Не удалось загрузить текст урока";
+
+// design/pages/lesson/acceptance.md, Copy "outcomes toggle".
+export const showAllOutcomesLabel = "Показать все";
+export const collapseOutcomesLabel = "Свернуть";
