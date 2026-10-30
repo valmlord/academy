@@ -1,0 +1,14 @@
+{
+  "R01": "delete",
+  "R02": "delete",
+  "R03": "memory",
+  "R04": "code",
+  "R05": "check",
+  "R06": "check",
+  "R07": "check",
+  "R08": "hook",
+  "R09": "delete",
+  "R10": "hook",
+  "R11": "memory",
+  "R12": "code"
+}

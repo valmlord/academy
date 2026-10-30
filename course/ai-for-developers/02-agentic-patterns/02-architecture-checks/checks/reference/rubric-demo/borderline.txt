@@ -1,0 +1,3 @@
+A2 src/invoices/handlers.py:4: sqlite3 is used outside src/invoices/repository.py, which owns database access. Fix: use the repository layer
+A3 src/invoices/receipt.py:3: invoices.legacy_format is reserved for the partner CSV export. Fix: see docs/money-formatting.md for the formatter to use
+A1 src/ledger/summary.py:3: ledger imports invoices.models, so accounting depends on billing. Fix: move the shared code to src/shared/ and import it from there

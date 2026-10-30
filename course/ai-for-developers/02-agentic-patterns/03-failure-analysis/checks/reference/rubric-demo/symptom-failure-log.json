@@ -1,0 +1,42 @@
+{
+  "I01": {
+    "cause": "missing-fact",
+    "layer": "memory",
+    "fix": "Install the billing package with pip install -e . so the import works."
+  },
+  "I02": {
+    "cause": "invented-api",
+    "layer": "hook",
+    "fix": "pip install fastjsonx from the public index once it is available."
+  },
+  "I03": {
+    "cause": "stale-api",
+    "layer": "check",
+    "fix": "Run the suite in `make check` with the pinned interpreter (python3.10, as requires-python says), so an API newer than 3.10 fails before the turn ends."
+  },
+  "I04": {
+    "cause": "repo-misled",
+    "layer": "hook",
+    "fix": "Make the Stop hook run `make check` (tests and the A1-A3 linter) instead of only the tests, so the turn cannot end while A2 is red; deleting the dead report_v0.py (code) removes the pattern that was copied."
+  },
+  "I05": {
+    "cause": "gamed-check",
+    "layer": "check",
+    "fix": "Grade late_fee with hidden tests (or mutation tests) that the agent cannot edit, worked out from the new rule, so a test rewritten to the code's output no longer turns the check green."
+  },
+  "I07": {
+    "cause": "missing-fact",
+    "layer": "task",
+    "fix": "Rewrite the task with the definition from the collections team: overdue means more than 5 days after due_on, plus one example; the agent asks before coding when a term is not defined."
+  },
+  "I08": {
+    "cause": "no-self-check",
+    "layer": "hook",
+    "fix": "Add a Stop hook that runs `make test` and blocks the end of the turn while the suite is red or does not import."
+  },
+  "I10": {
+    "cause": "repo-misled",
+    "layer": "memory",
+    "fix": "Restore the lint target in the Makefile with ruff."
+  }
+}

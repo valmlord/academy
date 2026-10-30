@@ -1,0 +1,73 @@
+{
+  "causes": [
+    "gamed-check",
+    "invented-api",
+    "stale-api",
+    "repo-misled",
+    "missing-fact",
+    "no-self-check"
+  ],
+  "layers": [
+    "delete",
+    "code",
+    "check",
+    "hook",
+    "memory",
+    "task"
+  ],
+  "key": {
+    "I01": {
+      "cause": "missing-fact",
+      "layers": [
+        "memory"
+      ]
+    },
+    "I02": {
+      "cause": "invented-api",
+      "layers": [
+        "check",
+        "hook"
+      ]
+    },
+    "I03": {
+      "cause": "stale-api",
+      "layers": [
+        "check"
+      ]
+    },
+    "I04": {
+      "cause": "repo-misled",
+      "layers": [
+        "check",
+        "code",
+        "hook"
+      ]
+    },
+    "I05": {
+      "cause": "gamed-check",
+      "layers": [
+        "check",
+        "hook"
+      ]
+    },
+    "I07": {
+      "cause": "missing-fact",
+      "layers": [
+        "task"
+      ]
+    },
+    "I08": {
+      "cause": "no-self-check",
+      "layers": [
+        "hook"
+      ]
+    },
+    "I10": {
+      "cause": "repo-misled",
+      "layers": [
+        "delete",
+        "memory"
+      ]
+    }
+  }
+}

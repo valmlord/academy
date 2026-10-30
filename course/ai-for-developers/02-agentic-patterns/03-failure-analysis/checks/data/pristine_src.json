@@ -1,0 +1,23 @@
+{
+ "files": [
+  "src/invoices/__init__.py",
+  "src/invoices/api.py",
+  "src/invoices/export_csv.py",
+  "src/invoices/export_json.py",
+  "src/invoices/generated/__init__.py",
+  "src/invoices/generated/invoice_schema.py",
+  "src/invoices/late_fee.py",
+  "src/invoices/legacy_format.py",
+  "src/invoices/models.py",
+  "src/invoices/money.py",
+  "src/invoices/repository.py",
+  "src/invoices/service.py",
+  "src/invoices/statement.py",
+  "src/ledger/__init__.py",
+  "src/ledger/accounts.py",
+  "src/ledger/posting.py",
+  "src/ledger/report.py",
+  "src/shared/__init__.py",
+  "src/shared/money.py"
+ ]
+}

@@ -33,3 +33,20 @@ findings under "Исследования это подтверждают".
 Rule: For a cited paper, read the current arXiv version (note vN and its date) and the
 publisher/author page for the venue; never record findings "from snippets" as verified, and mark
 a hypothesis as a hypothesis.
+
+### 2026-10-30: Config findings that dropped scope limits, aliases and enumerations (#42, design round 1, accuracy)
+
+The #42 research got four config findings wrong:
+- C1 named three provider modes. The env-vars page lists five (also `CLAUDE_CODE_USE_ANTHROPIC_AWS` and
+  `_MANTLE`), plus their provider base URLs.
+- C1 stated the 2.1.312 shorter-prompt change for unrecognised names as general. The changelog limits it to
+  Bedrock, Vertex, Foundry and Mantle.
+- C5 said `strictAllowlist` "refuses non-listed hosts in every mode". It omitted that it works only in user,
+  managed or `--settings` scope, and that plain `allowedDomains` only pre-allows (other hosts prompt). It
+  also missed that `WebFetch(domain:)` allow rules feed the sandbox allowlist.
+- C6 omitted `UV_INDEX_URL` (a deprecated equivalent) and `SSL_CERT_FILE` (uv's CA bundle).
+
+The architect built a closed-set check on these summaries.
+Rule: For every config key or env var a lesson may grade, record its scope limits, its parsing rule (boolean,
+presence-only, exact), every documented alias or deprecated equivalent, and the complete enumeration, with
+row counts. A changelog entry is quoted with its stated scope, never generalised.

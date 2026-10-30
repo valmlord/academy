@@ -1,0 +1,256 @@
+{
+ "points": [
+  {
+   "amount": -100,
+   "days": -3,
+   "expected": {
+    "raises": "ValueError",
+    "message": "amount_cents must be positive"
+   }
+  },
+  {
+   "amount": -100,
+   "days": 0,
+   "expected": {
+    "raises": "ValueError",
+    "message": "amount_cents must be positive"
+   }
+  },
+  {
+   "amount": -100,
+   "days": 5,
+   "expected": {
+    "raises": "ValueError",
+    "message": "amount_cents must be positive"
+   }
+  },
+  {
+   "amount": -100,
+   "days": 6,
+   "expected": {
+    "raises": "ValueError",
+    "message": "amount_cents must be positive"
+   }
+  },
+  {
+   "amount": -100,
+   "days": 15,
+   "expected": {
+    "raises": "ValueError",
+    "message": "amount_cents must be positive"
+   }
+  },
+  {
+   "amount": -100,
+   "days": 400,
+   "expected": {
+    "raises": "ValueError",
+    "message": "amount_cents must be positive"
+   }
+  },
+  {
+   "amount": -100,
+   "days": 500,
+   "expected": {
+    "raises": "ValueError",
+    "message": "amount_cents must be positive"
+   }
+  },
+  {
+   "amount": 1100,
+   "days": -3,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 1100,
+   "days": 0,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 1100,
+   "days": 5,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 1100,
+   "days": 6,
+   "expected": {
+    "value": 1
+   }
+  },
+  {
+   "amount": 1100,
+   "days": 15,
+   "expected": {
+    "value": 11
+   }
+  },
+  {
+   "amount": 1100,
+   "days": 400,
+   "expected": {
+    "value": 110
+   }
+  },
+  {
+   "amount": 1100,
+   "days": 500,
+   "expected": {
+    "value": 110
+   }
+  },
+  {
+   "amount": 10000,
+   "days": -3,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 10000,
+   "days": 0,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 10000,
+   "days": 5,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 10000,
+   "days": 6,
+   "expected": {
+    "value": 10
+   }
+  },
+  {
+   "amount": 10000,
+   "days": 15,
+   "expected": {
+    "value": 100
+   }
+  },
+  {
+   "amount": 10000,
+   "days": 400,
+   "expected": {
+    "value": 1000
+   }
+  },
+  {
+   "amount": 10000,
+   "days": 500,
+   "expected": {
+    "value": 1000
+   }
+  },
+  {
+   "amount": 10005,
+   "days": -3,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 10005,
+   "days": 0,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 10005,
+   "days": 5,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 10005,
+   "days": 6,
+   "expected": {
+    "value": 10
+   }
+  },
+  {
+   "amount": 10005,
+   "days": 15,
+   "expected": {
+    "value": 100
+   }
+  },
+  {
+   "amount": 10005,
+   "days": 400,
+   "expected": {
+    "value": 1000
+   }
+  },
+  {
+   "amount": 10005,
+   "days": 500,
+   "expected": {
+    "value": 1000
+   }
+  },
+  {
+   "amount": 200000,
+   "days": -3,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 200000,
+   "days": 0,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 200000,
+   "days": 5,
+   "expected": {
+    "value": 0
+   }
+  },
+  {
+   "amount": 200000,
+   "days": 6,
+   "expected": {
+    "value": 200
+   }
+  },
+  {
+   "amount": 200000,
+   "days": 15,
+   "expected": {
+    "value": 2000
+   }
+  },
+  {
+   "amount": 200000,
+   "days": 400,
+   "expected": {
+    "value": 20000
+   }
+  },
+  {
+   "amount": 200000,
+   "days": 500,
+   "expected": {
+    "value": 20000
+   }
+  }
+ ]
+}

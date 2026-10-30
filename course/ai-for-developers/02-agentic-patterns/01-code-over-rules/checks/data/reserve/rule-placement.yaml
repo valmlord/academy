@@ -1,0 +1,62 @@
+# Reserve cards for the mentor review after rule-placement is closed (design #42 2.5, as 00 2.5.6).
+# Mentor-review store, never on the command-check mount; never copied to the workspace, never shown before the review.
+# Each card is a memory-file line of the same invoice-service repository as the lesson starter (its hooks: the
+# PreToolUse protect_generated.py and the Stop stop_tests.py; its Makefile: test, codegen). The walk follows the
+# seven questions of the placement ladder (design 2.7); Y = first yes, n = no with the reason.
+version: 1
+check: rule-placement
+passBar: "5 of 6 cards placed on the key layer, each with the step where the walk stopped and its reason"
+cards:
+  - id: C1
+    text: "The shared staging database is wiped every night at 02:00; data you add there is gone the next day."
+    key: memory
+    walk:
+      - "1 n: a fact, not a command"
+      - "2 n: no hook or check knows the staging schedule"
+      - "3 n: an agent that ignores it plans work on data that disappears"
+      - "4 n: the schedule lives outside the repo; no source change removes it"
+      - "5 n: no moment of the turn where stopping helps"
+      - "6 n: no program in the repo can detect the misunderstanding"
+      - "7 Y: a fact the repo cannot show"
+  - id: C2
+    text: "Use 4 spaces for indentation in Python files."
+    key: delete
+    walk:
+      - "1 n: not a command"
+      - "2 n: no formatter hook or lint target exists"
+      - "3 Y: every Python file in the repo shows it; an agent copies the existing style"
+  - id: C3
+    text: "Do not end your turn while any test is red."
+    key: hook
+    walk:
+      - "1 n: a rule about when, not the command"
+      - "2 Y: the Stop hook stop_tests.py in .claude/settings.json runs the suite and blocks the end of the turn"
+  - id: C4
+    text: "The functions `money_str_v1` and `money_str_v2` in legacy_format.py both exist; always use v2."
+    key: code
+    walk:
+      - "1 n: not a command"
+      - "2 n: nothing checks which one is called"
+      - "3 n: an agent that picks v1 produces the wrong format"
+      - "4 Y: delete v1 or make it call v2, unless the partner contract documents v1; here only money_str is under contract"
+  - id: C5
+    text: "Payments of the customer Initech are booked by hand by the finance team; never post them in ledger code."
+    key: memory
+    walk:
+      - "1 n: not a command"
+      - "2 n: no hook or check knows about Initech"
+      - "3 n: an agent that posts them books them twice"
+      - "4 n: a code change would hardcode a business arrangement the repo does not document; the reason lives outside the repo"
+      - "5 n: no moment of the turn where stopping helps more than the line"
+      - "6 n: no program can tell a hand-booked payment from another"
+      - "7 Y: a fact the repo cannot show"
+  - id: C6
+    text: "src/shared/ must not import from src/ledger/ or src/invoices/."
+    key: check
+    walk:
+      - "1 n: not a command"
+      - "2 n: in this reserve's repository no import check exists yet (as in L1)"
+      - "3 n: a forbidden import is the harm"
+      - "4 n: no source change makes an import impossible"
+      - "5 n: found after the turn it costs one edit"
+      - "6 Y: an AST import check"

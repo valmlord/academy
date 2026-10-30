@@ -1,0 +1,50 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "sk-corp-7Qm2Vx9LkP4tR8nW3zY6bH1dJ5"
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "network": {
+      "strictAllowlist": true,
+      "allowedDomains": [
+        "pypi.corp.local",
+        "pypi.org"
+      ]
+    }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/protect_generated.py"]
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_tests.py"],
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -262,3 +262,122 @@ Rule: When a check entry says "all of (X)", expand (X) rule by rule in task.md, 
 borrowed from another lesson. Then diff both ways: every rule in the check appears in the text, and every rule
 in the text appears in the check. The "counted" list names every hidden-run rule, including regression on
 what the starter already passed.
+
+### 2026-10-30: An "ordered rule, first yes wins" key never walked literally, behind binary feedback (#42, design round 1, pedagogy)
+
+Revision 1 of #42 L1 claimed that the placement ladder (2.7) "leaves one answer" per card and graded 12 cards with
+binary "не пройдено" (tolerance 1, mentor barred from per-item hints). Read literally, step 2 ("can the agent learn
+it by reading the repo: code, config ...") already says yes for R04 (the signature `late_fee(amount_cents,
+days_late)` states the order), R08 and R10 (the hooks are in `.claude/settings.json`) and R12 (dead code imported
+by nothing). The ladder never said whether a rule an existing hook enforces is `hook` or `delete`. R07 and R08
+pointed at `legacy_format.py`, `money.py` and `make codegen`, which the L1 starter did not ship. An honest
+learner applying the printed rule could be 4-5 cards off with no feedback channel.
+Rule: For every ordered decision rule used as a key, add a per-item table that shows the answer of each step in
+order, with each "no" justified from a file the starter actually ships. Walk it as a literal reader would. Any card
+where an earlier step is a defensible yes gets reworded or its key widened. Every file or command a card names
+must exist in that lesson's starter.
+
+### 2026-10-30: Task text promised a self-run that the check replaced with its own implementation (#42, design round 1, pedagogy)
+
+L2 "Готово, когда" said "your linter finds nothing in your workspace". The check runs the grader's `arch_rules.py`
+on `src/`. L3 said "the allowlist stays empty", but the check reads the pristine allowlist and never the
+workspace's.
+Rule: When a check substitutes its own implementation or pristine data for the learner's, task.md says so in those
+words (as 01 L7 item 4 does). It never states a condition on a file the check does not read.
+
+### 2026-10-30: A closed-set config check graded from the research summary, not from the vendor pages (#42, design round 1, accuracy)
+
+L4 `contour-config` revision 1 did not hold against the docs in five places:
+- It failed `CLAUDE_CODE_DISABLE_WEB_FETCH=true`. The env-vars page parses on/off variables as `1|true|yes|on`
+  in any case.
+- It attributed "any non-empty value" to that variable. That wording comes from a different variable's row.
+- It rejected documented deny forms (tool-name globs) and called `WebFetch(domain:*)` semantics "not in R". The
+  permissions page documents them.
+- It graded only project `allowedDomains`, which pre-allows hosts and does not deny the others, while O4 claimed
+  "only internal hosts".
+- The fiction (CA not in the OS store, HTTPS mirror) needed `SSL_CERT_FILE` for uv. The closed key list
+  rejected it, so the reference contour could not reach its own mirror.
+
+Rule: For every graded key or env var, open its vendor row and copy the parsing rule, every documented
+alias and form, and the scope limits into the alternatives column. Then walk the reference config end to
+end: every tool the brief names must reach every host it needs under the graded settings alone.
+
+### 2026-10-30: Checks graded the form of a fix, not the fix, and binary meant "not enumerable" (#42, design round 1, assessment)
+
+Five paths passed revision 1 without the skill:
+- L1 `poka-yoke-applied` graded callers only by named-argument form and a learner-editable suite. Swapped named
+  arguments in `statement.py` passed, either with one test expectation edited or with a `unittest/` shadow package.
+- L1 `rule-placement` graded "removed from memory" by `[Rnn]` tags. Stripping the tags and keeping every rule's
+  text passed.
+- L2 `arch-workspace-clean` reused import-statement rules on the workspace. `importlib.import_module` and
+  `__import__` hid A1 and A2.
+- L3 `deps-gate` took first-party names from the workspace. Vendoring a stub `src/fastjsonx.py` passed; that stub
+  is incident I02 itself.
+- L1's binary, uncapped 12-card key lets a learner sure of 9 of 12 pass within 14 submissions.
+
+Rule:
+- For every outcome verb, name the wrong state the check must reject and probe behaviour, not form: every caller,
+  not only the callee.
+- Take every "is it ours" set (first-party names, memory files, test bodies) from `checks/data/`, never from the
+  workspace.
+- When the workspace check reuses the learner's rules, list the ways around those rules (dynamic import, another
+  memory file) and close them on the workspace side.
+- Binary feedback is enumerable on a fixed small-domain key. Compute the partial-knowledge search (sure of n-2,
+  n-3) and cap the check unless that figure is acceptable.
+
+### 2026-10-30: "Task text equals the checks" applied by printing the answer key (#42, design round 2, pedagogy)
+
+L4 was reshaped to "find and repair seven planted defects", but task.md printed the grader's "Gone when / Accepted
+forms" columns. Those columns name the key, the file and the trap for every defect, for example `SSL_CERT_FILE` in
+`launcher.env` and `strictAllowlist` in user settings. The uncapped check also reported each failing rule with its file
+and field. One run on the starter listed all seven defects, so the outcome verb "Находит" had no practice left, and the
+"find 7 defects" time line was fiction.
+Rule: 2.6 requires that no checked rule is hidden. It does not require printing the grader's spec. When the outcome is
+to find something, state each rule as the requirement it protects, in the brief's terms. Give the general acceptance
+rule once ("any documented form with this effect"). Make check messages name the requirement, not the file, the key or
+the value. Keep the per-item table for the grader and the mentor. Before finalising, ask of every lesson: "after reading
+task.md and running the check once on the starter, what is left for the learner to find?"
+
+### 2026-10-30: Round-1 evasions closed by listing forms, not by observing the effect (#42, design round 2, assessment)
+
+Revision 2 closed each round-1 attack with a rule against the form that was shown, and three neighbouring forms passed.
+- L1: the `@` import regex required whitespace before `@`, so `**Rules:**@docs/rules.md` and `<!-- c -->@...` passed.
+  Tagged lines were unbounded, and s5 matched raw characters. All ten moved rules passed when written with
+  zero-width spaces or homoglyphs, or as one paraphrased `[R03]` line.
+- L2: w2 checked `sys.modules`, so `runpy.run_path(".../invoices/money.py")` passed. So did `exec` of the file text.
+- L3: "no new `.py`" let three stubs pass: a sourceless `.pyc`, a `fastjsonx` class in an existing module, and a
+  `sys.modules` alias.
+
+Rule:
+- Write the check against the effect the outcome names: code from that package executed, a stand-in for the invented
+  package exists, the rule text is loaded.
+- Prefer a superset that is stricter by construction, and reuse a closure the course already demonstrated. Module 01
+  L2's `IMPORT_TOKEN` was available.
+- Before claiming a residual bound (12.2 "s4 bounds it"), try to exceed it with the cheapest form.
+
+### 2026-10-30: A name ban checked `ast.Name` only; the import alias of the same builtin passed (#42, design round 3, assessment)
+
+Revision 3 closed "plain `exec`" with "no name `exec`" in L2 w1. `from builtins import exec as run_source` binds the
+builtin under another name, so every call site passes a Name-only check. w2 does not see it either: no module is
+registered. It is still the in-scope "plain exec with a literal name".
+Rule: When a check bans a callable by name, ban every way to bind that name without strings. That covers import
+aliases (`from builtins import x as y`), the attribute form and the module that provides it. Prefer banning the
+provider (`import builtins`, the name `__builtins__`), which honest code never needs. Before claiming the closure,
+run the alias neighbour of every listed must-fail.
+
+### 2026-10-30: A runtime probe keyed on a module name, and a tamper snapshot that never ran honest suites (#42, design round 4, assessment)
+
+Revision 4 w2 asked "is a module named `invoices...` loaded". `sys.path.insert(0, ".../invoices")` followed by a plain
+`from money import format_cents` loads the same file under the name `money` and passes (a), w1 and w2. That is plain
+Python with a literal name, so it is in scope. In 2.3, "tampered = any `vars()` of a unittest module or class changed"
+was demonstrated only on `mock.patch`, `MagicMock` and `IsolatedAsyncioTestCase`. `assertLogs`, `mock_open`, a file left
+open in a test (the ResourceWarning `__warningregistry__`) and a test returning a value are all green suites, and all of
+them are reported as tampered.
+Rule:
+- A runtime probe identifies code by where it comes from (`__file__` under the forbidden directory), never by the name
+  it was imported under.
+- A tamper detector compares what an attacker must change (callables and descriptors, by identity), not data the
+  library fills lazily.
+- Before shipping either, run an honest corpus against it, not only the attack corpus: the common idioms of the API
+  under test (for unittest: `assertLogs`, `mock_open`, `subTest`, class and module fixtures, async tests, warnings,
+  unclosed resources).

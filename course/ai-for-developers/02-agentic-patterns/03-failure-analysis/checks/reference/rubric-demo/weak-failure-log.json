@@ -1,0 +1,42 @@
+{
+  "I01": {
+    "cause": "missing-fact",
+    "layer": "memory",
+    "fix": "Be more careful with the environment."
+  },
+  "I02": {
+    "cause": "invented-api",
+    "layer": "hook",
+    "fix": "Tell the agent to only use real packages."
+  },
+  "I03": {
+    "cause": "stale-api",
+    "layer": "check",
+    "fix": "Remember the Python version."
+  },
+  "I04": {
+    "cause": "repo-misled",
+    "layer": "hook",
+    "fix": "Do not copy old code."
+  },
+  "I05": {
+    "cause": "gamed-check",
+    "layer": "check",
+    "fix": "Add to the prompt: never edit tests."
+  },
+  "I07": {
+    "cause": "missing-fact",
+    "layer": "task",
+    "fix": "Ask better questions."
+  },
+  "I08": {
+    "cause": "no-self-check",
+    "layer": "hook",
+    "fix": "Always run the tests."
+  },
+  "I10": {
+    "cause": "repo-misled",
+    "layer": "memory",
+    "fix": "Fix CLAUDE.md."
+  }
+}
