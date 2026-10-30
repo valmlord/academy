@@ -46,7 +46,10 @@ docker compose up -d --build --wait
 ## Web app
 
 `apps/web` applies the database migrations at startup and exits if the database is down or a migration
-fails, so start the database first.
+fails, so start the database first. It also exits when `BETTER_AUTH_SECRET` is missing, shorter than 32
+characters or Better Auth's public default. Append a generated one to the root `.env` without printing
+it: `printf 'BETTER_AUTH_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env`. Every compose command that reads
+the file needs it, including `docker compose up -d --wait db`, and so does `pnpm dev`.
 
 ```bash
 docker compose up -d --wait db   # the database alone

@@ -146,6 +146,11 @@ jobs:
           # The job never pushes; the token would otherwise sit in .git/config while images build and run.
           persist-credentials: false
       - run: cp .env.example .env
+      - name: generate the auth secret
+        run: |
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::$secret"
+          printf 'BETTER_AUTH_SECRET=%s\n' "$secret" >> .env
       - run: docker compose config --quiet
       - run: docker compose up -d --build --wait --wait-timeout 180
       - run: docker compose ps

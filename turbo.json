@@ -14,7 +14,7 @@
       "cache": false,
       "persistent": true,
       "dependsOn": ["^build"],
-      "passThroughEnv": ["DATABASE_URL", "PORT"]
+      "passThroughEnv": ["DATABASE_URL", "PORT", "BETTER_AUTH_SECRET"]
     },
     "@academy/web#test": {
       "dependsOn": ["^build"],

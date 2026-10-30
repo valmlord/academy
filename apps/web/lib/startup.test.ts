@@ -11,9 +11,19 @@ class ExitCalled extends Error {
   }
 }
 
-function fakeDeps(databaseUrl: string | undefined, migrate: StartupDeps["migrate"]) {
+const VALID_AUTH_ENV = {
+  BETTER_AUTH_SECRET: "canary-auth-secret-u".padEnd(32, "x"),
+  BETTER_AUTH_SECRETS: undefined,
+};
+
+function fakeDeps(
+  databaseUrl: string | undefined,
+  migrate: StartupDeps["migrate"],
+  authEnv: StartupDeps["authEnv"] = VALID_AUTH_ENV,
+) {
   const deps = {
     databaseUrl,
+    authEnv,
     migrate: vi.fn(migrate),
     exit: vi.fn((code: number): never => {
       throw new ExitCalled(code);
@@ -148,5 +158,22 @@ describe("migrateOnStartup", () => {
     expect(deps.exit).not.toHaveBeenCalled();
     expect(printed(deps)).not.toContain("canary-pass-u3");
     expect(deps.logInfo).toHaveBeenCalledWith("web: database migrations applied");
+  });
+
+  it.each([
+    { kind: "missing", secret: undefined },
+    { kind: "short", secret: "canary-short-secret-u" },
+  ])("exits with 1 before migrating when BETTER_AUTH_SECRET is $kind", async ({ secret }) => {
+    const deps = fakeDeps("postgres://academy:secret@db:5432/academy", async () => {}, {
+      BETTER_AUTH_SECRET: secret,
+      BETTER_AUTH_SECRETS: undefined,
+    });
+
+    await run(deps);
+
+    expect(deps.migrate).not.toHaveBeenCalled();
+    expect(deps.exit.mock.calls).toEqual([[1]]);
+    expect(errorLine(deps)).toContain("InvalidAuthSecretError");
+    expect(printed(deps)).not.toContain("canary-");
   });
 });

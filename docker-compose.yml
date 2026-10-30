@@ -35,6 +35,9 @@ services:
     # Explicit, never env_file: .env, whose DATABASE_URL points at localhost (web itself in here).
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-academy}:${POSTGRES_PASSWORD:-academy}@db:5432/${POSTGRES_DB:-academy}
+      # Required: compose refuses every command without it (ADR-0008 item 9). BETTER_AUTH_SECRETS is
+      # never passed: the app refuses it.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env, see .env.example}
     # Loopback only; 3080 so pnpm dev (3000) runs alongside.
     ports:
       - "127.0.0.1:${WEB_PORT:-3080}:3000"
