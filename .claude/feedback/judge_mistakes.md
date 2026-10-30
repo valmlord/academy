@@ -96,6 +96,26 @@ not: 403). The flaw surfaced only in code review.
 Rule: For every "Stepan does X after merge" step, run the read-only check of X against the real
 repo/host during design review.
 
+### 2026-10-29: Accessibility judge missed 2.5.7 on the pane split in rounds 1-2 (#50)
+F9.3 "drag, or focus the handle and use arrow keys" was in the design from round 1; the accessibility
+judge reviewed keyboard paths only and did not check WCAG 2.2's new pointer criteria, so the gap surfaced
+in round 3 and cost a review round.
+Rule: In judge_design, check every WCAG 2.2 addition (2.4.11, 2.5.7, 2.5.8, 3.2.6, 3.3.7, 3.3.8) against
+every flow in round 1, not only the checklist's design items.
+
+### 2026-10-29: Usability judge checked `?tab=` on arrival only (#50, judge_ux round 1)
+Round 1 U3 asked the lesson to honour `?tab=` on arrival but did not check the other half of the same
+control row ("`?tab=` updated" when a tab is selected), which F2.4 depends on. It surfaced in round 2.
+Rule: When a finding concerns URL state, check every control row that reads or writes it, and click the
+control to see the URL change, in the same round.
+
+### 2026-10-29: Usability judge never ran simulated actions from a non-default tab (#50, judge_ux rounds 1-2)
+Rounds 1-2 clicked "Проверить" and the status actions only from the default Теория state, so nobody saw
+that every `data-goto-state` transition resets the left tab to Теория, against A17 and AC7. It surfaced in
+round 3, once `?tab=` made the reset visible in the URL.
+Rule: In judge_ux, run each state-changing control from every left-pane tab and compare the selected tab
+and URL before and after against the acceptance notes.
+
 ### 2026-10-30: A prescribed fix modelled the tool's regex but not its input (#41)
 
 Round-1 assessment FAIL on the L2 import resolver prescribed "tokenize exactly as Claude Code does:

@@ -1,0 +1,31 @@
+# Build context of apps/web/Dockerfile: the repository root. Never exclude apps, packages or services
+# (the frozen install needs every importer), and never packages/db/drizzle (shipped in the image).
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/playwright-report
+**/test-results
+**/*.tsbuildinfo
+**/next-env.d.ts
+.git
+# Docker anchors patterns at the context root, and standalone output copies apps/web/.env* into the
+# image, so root-only patterns would ship app-level env files.
+**/.env
+**/.env.*
+# A registry token or a key file must never reach the build context.
+**/.npmrc
+**/*.pem
+**/*.key
+.claude
+backlog
+plans
+pipeline
+learner
+docs
+design
+scripts
+tests
+# #30 removes course from this list and copies it into the runner.
+course

@@ -499,3 +499,139 @@ gave a FAIL template whose items follow the verdict line. With the theme `:root`
 verdict-shaped line, so a FAIL report with the validator output pasted below it is recorded as a PASS vote.
 Rule: Any text a judge is told to quote in its report must be checked against VERDICT_RE; tool output lines never
 start with a bare PASS or FAIL token.
+
+### 2026-10-29: Security constraints described in words, tests that a naive version passes (#28, round 1, security)
+Design rev 1, 4.5 describes `attempts_transcript_path_check` as "no `..` segment" without the SQL, and I11 tests only
+`../etc/passwd` and `/abs/path`: `NOT LIKE '../%'` passes both and accepts `a/../../x`. 4.7 says "`SET lock_timeout`"
+from a public `lockTimeoutMs` option, but `SET` takes no bind parameters, so the natural implementation interpolates
+an unvalidated value with `sql.raw`. 4.6 justifies CASCADE as "one path removes everything" while the learner's
+transcripts live outside Postgres and survive account deletion. A default `console.error` "with context" and new error
+types came with no rule keeping the connection string (password) out of messages.
+Rule: Every security-relevant constraint is written as the exact expression, with reject cases for each spelling the
+rule targets (start, middle, end, bare) and a mutation that a naive version fails. Any value that reaches SQL where
+parameters are impossible (SET, DDL) is either passed via `set_config($1)` or validated with a named error. A deletion
+or retention claim lists every store holding the user's data, not only the DB. Every new log or error path states what
+it must never contain and has a test with a canary secret.
+
+### 2026-10-29: A coupling justified by an unverified tool diff; plain-Node path logic assumed for a bundled consumer; semantics left to four writers (#28, round 1, architecture)
+Design rev 1 derives `CHECK_KINDS` from lesson-schema "so a new kind turns the drift step red". That only
+holds if drizzle-kit 0.31 regenerates a named CHECK whose body changed. Nothing verified this, and T-drift's
+only negative run adds a column, which exercises a different diff path. The design also called
+`MIGRATIONS_FOLDER = new URL("../drizzle", import.meta.url)` reliable for "consumers from any cwd". The
+first consumer is Next.js, which bundles workspace packages, and bundlers rewrite that expression. The
+`migrationsFolder` escape hatch was labelled "only for a test fixture". `MigrationError` said "transaction
+rolled back" for lock-timeout and connect failures as well. And the progress-model ADR defined attempt
+aggregation, but not what an attempt covers or when a lesson becomes `completed`, although four separate
+writers (#8, #10, #11, #13) must agree on both.
+Rule: Every guard that justifies a design choice gets a negative run that changes exactly the thing the
+guard claims to catch (here, a CHECK value). Path resolution is checked against how the first real
+consumer loads the package (bundler or plain Node). Error messages name the failing stage. A data-model ADR
+defines every status transition that more than one writer performs.
+
+### 2026-10-29: A drift guard that exits 0 on drift; a lockfile check that cannot pass (#28, round 1, operations)
+Design rev 1 said a drizzle-kit rename prompt "hangs" in non-TTY CI and that a step timeout turns it red.
+Run live, drizzle-kit 0.31.11 does something else: it prints "Interactive prompts require a TTY terminal",
+writes nothing and exits 0. The drift step (exit code plus `git status` empty) therefore passes on a renamed
+column that has no migration. The design's only negative run (adding a column) never takes that code
+path. T-install also required "only additions" in the lockfile diff. But the committed `pnpm-lock.yaml`
+is not in pnpm's native format, so any dependency change rewrites the whole file (2612+/985-), and the
+check could never pass on correct work.
+Rule: A CI guard asserts the tool's positive success output (e.g. "No schema changes, nothing to
+migrate"), not just exit 0 and a clean tree. Each class of input the guard claims to catch (add, rename,
+constraint change) gets its own negative run. Before prescribing a diff-shape check on a generated file,
+run the generator on the committed file once and look at the real diff.
+
+### 2026-10-29: Tester commands written for a clean machine, not for the state the pipeline leaves behind (#28, round 2, operations)
+Revision 2 prescribed exact tester commands, but four of them fail on correct work when run in the order
+the design itself sets. T-install expects no "Ignored build scripts" line, but step 0's frozen install
+(and this worktree's existing `node_modules`) recorded `esbuild@0.28.2` as ignored, and pnpm keeps
+reprinting it, so the negative run cannot fire either. Git's default Myers diff shows 24 "deletions" that
+are moved, unchanged entries (`histogram` shows 0). The first resolving install prints a drizzle-kit
+deprecation `WARN`. T-sep's negative uses `DOCKER_HOST=unix:///nonexistent`, but testcontainers 12.2.1
+falls back to `/var/run/docker.sock`. And vitest 5.0.5 replaces every globalSetup error with
+`TypeError: code.charCodeAt is not a function`, so F9's message is never shown. The I11 mutations claimed
+"exactly" the listed cases go red, but each mutation accepts more cases. Section 6 left the drift
+script's green output open, while T-drift positive greps that output.
+Rule: Every prescribed check states its starting state (fresh `node_modules`, which installs already
+ran, the diff algorithm) and is traced against the state the earlier steps leave behind. A negative run
+names a failure the tester can actually cause on a machine where Docker is running. An expected set of
+test results says "exactly" only after every case has been evaluated.
+
+### 2026-10-29: A schema mutation that cannot be applied alone, because a foreign key depends on the key it removes (#28, judge_code round 1, architecture)
+Design section 7 I7 prescribed two mutations: "drop `course_id` from the `lesson_progress` PK" and "drop
+the PK". Neither can be applied by itself. `attempts_lesson_progress_fk` references
+`lesson_progress (user_id, course_id, lesson_id)`, and Postgres needs a unique key on exactly those
+columns. So the regenerated `0000` fails with `42830`, I1-I4 go red with `MigrationError` stage `apply`, and
+the whole schema test file is skipped in `beforeAll`. I7 went red for the wrong reason, and the coder had
+to invent its own variants (confirmed live by the tester). The design's own section 5 shows that FK, so a
+look at the key/FK chain would have caught it. The working mutations keep a unique key on the three columns:
+PK `(user_id, lesson_id)` plus a unique on the three columns (isolates the other-course assertion), or a
+separately named unique in place of the PK (red at the constraint-name assertion).
+Rule: A prescribed mutation must be applicable alone, with every other test still able to run. Before
+prescribing one that removes or narrows a key, constraint, column or table, list every dependent object
+(FKs that reference the key, indexes, CHECKs, views, other tests' fixtures) and keep or replace what they
+need. Then state which test goes red, at which assertion, and which tests stay green.
+
+### 2026-10-29: A redaction rule with no test that fails when it is broken (#1, judge_design rev 2, security)
+Design 4.2 item 3 says the startup log prints `message` only for `MigrationError`,
+`InvalidConnectionStringError` and the two option errors, and only the name for any other value. U1-U3 and
+mutations 8b (i)-(iii) never hand `migrateOnStartup` an unlisted error, so code that prints `message` for
+every error passes them all; the rule that protects against a raw driver or import error carrying the URL
+is unguarded. Check 7b's leak grep was the literal `academy:academy@`, which finds nothing whenever the root
+`.env` uses another password, so it cannot fail in that state either.
+Rule: For every "never log X" rule, add a test whose input carries a canary in exactly the place the rule
+covers (here: the `message` of an unlisted error), assert the canary is absent from every log sink, and
+prescribe the mutation that breaks the rule. A leak grep searches for the secret actually in use, read
+from its source, never a hard-coded default.
+
+### 2026-10-29: A "stays empty" guard that matches the verbatim copy it requires (#1, judge_design rev 2, architecture)
+Design 2.1 (row ADR-0006 item 3) and tester Call 5-6 say `rg -n "design/" apps/ -g '!**/*.test.ts'` stays
+empty, while 3.1 copies `design/system/tokens.css` byte for byte into `apps/web/app/globals.css`. Line 6 of
+tokens.css is a comment naming `design/system/README.md`, so the grep matches globals.css on correct work and
+the tester has to stop and report a design defect (the same class as the dropped filesystem-access guard).
+`lib/copy.ts` comments citing `design/flows/ia.md` would match too.
+Rule: Before declaring a grep "stays empty", run it against every file the design itself copies or
+prescribes (verbatim blocks, comments it asks for), and narrow the pattern to what the ADR forbids (a
+runtime import), not the bare substring.
+
+### 2026-10-29: Took a design-system rule without its exceptions (#1, judge_design rev 2, architecture)
+Design 2.1 and 3.1 adopt the `design/system/README.md` focus ring as one global rule (`:focus-visible`, 2px
+`ring`, offset 2px outside) and add `main#main tabIndex={-1}` as the skip-link target, but the README's
+"Focus ring" section says elements focused programmatically with `tabindex="-1"` (`main`, headings) draw
+the ring inset. After the skip link, `main` spans the viewport, so an outside outline is clipped at the
+page edges.
+Rule: When a design adopts a rule from the design system, quote the whole rule including its exceptions
+and check each exception against the elements the design itself builds.
+
+### 2026-10-29: One recovery hint appended to every startup failure (#1, judge_design rev 2, operations)
+Design 4.2 item 3 ends every migration failure line with "is the database running? (docker compose up -d
+--wait db)". Run live in a scratch image without the drizzle COPY (tester check 9e), web logged
+"MigrationError stage apply: applying migrations from /app/packages/db/drizzle failed (unknown) ...; is the
+database running?" while db was healthy: the hint sends the 3 AM reader to the wrong layer.
+Rule: Attach a recovery hint only to the failure class it is true for (here: stage connect); for every
+other branch of an error formatter, run one failure of that branch and read the line it prints.
+
+### 2026-10-29: A mutation command written for the unformatted line (#1, judge_design rev 2, operations)
+Tester check 8d replaces the single line starting `export const MIGRATIONS_FOLDER`, but the new
+declaration is 113 characters and biome (lineWidth 100) wraps it to 5 lines, so the prescribed awk leaves
+four dangling lines and the red run fails on a syntax error instead of "Can't resolve '../drizzle'".
+Rule: Write mutation commands against the code as the formatter will leave it (run the formatter on the
+prescribed snippet first) and make them replace the whole statement.
+
+### 2026-10-29: Reused tester calls that wipe the owner's database volume (#1, judge_design rev 2, operations)
+Revision 2 reuses 3fea0fe Calls 14-16, 17 and 20 verbatim, each with `docker compose down -v`. When they
+were written compose had no stateful service; now `db` keeps the named volume `academy_db-data`, which
+exists on Stepan's machine, and the tester runs in the main checkout, so the run deletes his local database.
+Rule: When reusing a procedure, re-check every destructive command against the current stack; record at
+setup what pre-existed (volumes, images, `.env`) and tear down only what the run created.
+
+### 2026-10-29: Verified an env override on a path the README does not document (#1, judge_code, operations)
+Design 0.7 and 3.x prescribe the `next.config.ts` comment "a variable already set in the shell wins over the
+file", verified with `pnpm --filter @academy/web dev`. The README documents root `pnpm dev` = `turbo run dev`,
+and turbo 2 strict env mode drops undeclared variables: the `dev` task has no `env`/`passThroughEnv`, so a
+shell `DATABASE_URL` never reaches next and the root `.env` value is used instead. Run in a scratch clone:
+shell URL at a live db on 55432, root `.env` at 5432 -> root `pnpm dev` fails ECONNREFUSED (the `.env` URL),
+`pnpm --filter @academy/web dev` with the same shell applies the migrations. The same design already knew
+strict env drops `E2E_BASE_URL` and added `passThroughEnv` for `test:e2e`, but not for `dev`.
+Rule: Verify every env-precedence claim through the exact command the README documents, and for every turbo
+task list the variables the process reads and declare each in `env`/`passThroughEnv`.

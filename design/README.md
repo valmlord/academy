@@ -29,3 +29,7 @@ address bar shows a named state.
 
 | Slug | Status | Prototype |
 |------|--------|-----------|
+| sign-in | ready | [pages/sign-in/prototype.html](pages/sign-in/prototype.html) |
+| dashboard | ready | [pages/dashboard/prototype.html](pages/dashboard/prototype.html) |
+| catalog | ready | [pages/catalog/prototype.html](pages/catalog/prototype.html) |
+| lesson | ready | [pages/lesson/prototype.html](pages/lesson/prototype.html) |

@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en" data-theme-fixed>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design system v1: component gallery</title>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="proto.css">
+  <style>
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 36rem), 1fr)); }
+    .gallery-col { padding: var(--space-6) var(--space-4); background: var(--background); color: var(--foreground); }
+    .gallery-col > h2 { margin-bottom: var(--space-6); }
+    .gallery-section { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-8); }
+    .gallery-section > h3 { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.04em; }
+    .gallery-note { font-size: var(--text-xs); line-height: var(--text-xs-line); color: var(--muted-foreground); }
+    .demo-layout { height: 30rem; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+    .demo-layout-short { height: 26rem; }
+    .demo-narrow { max-width: 20rem; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    /* The page h1 at its own size, inside the gallery's heading outline (h2 column, h3 section). */
+    .gallery-h1 { font-size: var(--text-2xl); line-height: var(--text-2xl-line); }
+  </style>
+</head>
+<body>
+<header class="page stack" data-gap="2">
+  <h1>Design system v1: component gallery</h1>
+  <p class="muted">Every component of the inventory in <code>design/system/README.md</code> and the seven compositions, light on the left (or on top), dark on the right. Russian text is UI copy. Opens by double-click; nothing loads from the network.</p>
+</header>
+
+<div class="gallery">
+  <section class="gallery-col" data-gallery-col="light" aria-labelledby="col-light"><h2 id="col-light">Light</h2></section>
+  <section class="gallery-col dark" data-gallery-col="dark" aria-labelledby="col-dark"><h2 id="col-dark">Dark</h2></section>
+</div>
+
+<template id="gallery-content">
+  <div class="gallery-section">
+    <h3>Button</h3>
+    <div class="row" lang="ru">
+      <button class="button" type="button">Войти</button>
+      <button class="button" type="button" data-variant="secondary">Повторить</button>
+      <button class="button" type="button" data-variant="outline">Отмена</button>
+      <button class="button" type="button" data-variant="ghost">Подробности</button>
+      <button class="button" type="button" data-variant="link">Открыть курс</button>
+      <button class="button" type="button" data-variant="destructive">Сбросить</button>
+      <button class="button" type="button" data-size="sm">Проверить</button>
+    </div>
+    <div class="row" lang="ru">
+      <button class="button" type="button" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Входим...</button>
+      <button class="button" type="button" aria-disabled="true" aria-describedby="g-reason-check">Проверить</button>
+      <span class="disabled-reason" id="g-reason-check">Окружение запускается, проверка станет доступна после запуска</span>
+    </div>
+    <p class="gallery-note">Variants: default, secondary, outline, ghost, link, destructive; sizes default, sm, icon. Disabled is always aria-disabled with a visible reason (R1), never the native attribute.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Card, Field, Label, Input</h3>
+    <form class="card" lang="ru" novalidate onsubmit="return false">
+      <div class="card-header">
+        <h4 class="card-title">Вход</h4>
+        <p class="card-description">Вы вышли</p>
+      </div>
+      <div class="field">
+        <label class="label" for="g-email">Почта</label>
+        <input class="input" id="g-email" type="email" autocomplete="username">
+      </div>
+      <div class="field">
+        <label class="label" for="g-password">Пароль</label>
+        <input class="input" id="g-password" type="password" aria-invalid="true" aria-describedby="g-password-error">
+        <p class="field-error" id="g-password-error">Введите пароль</p>
+      </div>
+      <div class="card-footer"><button class="button" type="submit">Войти</button></div>
+    </form>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Alert</h3>
+    <div class="alert" lang="ru">
+      <span class="status-icon" data-status="info" aria-hidden="true"></span>
+      <p class="alert-title">Окружение остановится через 5 мин без активности. Файлы сохранятся.</p>
+      <div class="alert-actions"><button class="button" type="button" data-size="sm">Продолжить работу</button></div>
+    </div>
+    <div class="alert" data-variant="destructive" role="group" tabindex="-1" aria-labelledby="g-msg-nouser-title" aria-describedby="g-msg-nouser-description" lang="ru">
+      <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+      <p class="alert-title" id="g-msg-nouser-title">Неверная почта или пароль</p>
+      <p class="alert-description" id="g-msg-nouser-description">Пользователя создаёт скрипт seed, см. README</p>
+    </div>
+    <div class="alert" data-variant="warning" lang="ru">
+      <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+      <p class="alert-title">Сначала пройдите: <a href="#g-prereq">Как устроен агент</a></p>
+    </div>
+    <p class="gallery-note">Variants: default, destructive (border and title in --destructive), warning (border in --warning, text in --foreground). A message that receives focus instead of a live region (sign-in, ia.md R2) is a div with role="group", tabindex="-1" and aria-labelledby on its title (aria-describedby on its description): a name on a div without a role is not exposed.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Badge and status icon</h3>
+    <div class="row" lang="ru">
+      <span class="badge" data-variant="outline" data-tone="muted">Не начат</span>
+      <span class="badge" data-variant="secondary">В процессе</span>
+      <span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройден</span>
+      <span class="badge" data-variant="outline" data-tone="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройден</span>
+    </div>
+    <div class="row" lang="ru">
+      <span class="badge" data-variant="secondary">Доступен</span>
+      <span class="badge" data-variant="outline" data-tone="muted">Готовится</span>
+      <span class="badge" data-variant="outline">теория</span>
+      <span class="badge" data-variant="outline">артефакт</span>
+    </div>
+    <p class="gallery-note">Check-status badges, deferred: no v1 page draws them (the check rows of Проверки show the status icon and the word, F13.3); they serve recent attempts (F18.3, D4 in ia.md).</p>
+    <div class="row" lang="ru">
+      <span class="badge" data-variant="muted"><span class="status-icon" data-status="muted" aria-hidden="true"></span>Не запускалась</span>
+      <span class="badge" data-variant="info"><span class="status-icon" data-status="queued" aria-hidden="true"></span>В очереди</span>
+      <span class="badge" data-variant="info"><span class="status-icon" data-status="running" aria-hidden="true"></span>Идёт</span>
+      <span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройдено</span>
+      <span class="badge" data-variant="outline" data-tone="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройдено</span>
+      <span class="badge" data-variant="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Время вышло</span>
+      <span class="badge" data-variant="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Ошибка формата, попытка не засчитана</span>
+    </div>
+    <div class="row" lang="ru">
+      <span class="status-icon" data-status="success" aria-hidden="true"></span>
+      <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+      <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+      <span class="status-icon" data-status="info" aria-hidden="true"></span>
+      <span class="status-icon" data-status="queued" aria-hidden="true"></span>
+      <span class="status-icon" data-status="running" aria-hidden="true"></span>
+      <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+    </div>
+    <p class="gallery-note">Lesson and module status sets of ia.md (v1), check status set (deferred, above). Fail is the outline badge with the destructive icon and word, never filled. Status icons differ in shape, not only in colour.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>DropdownMenu</h3>
+    <div class="row" lang="ru">
+      <div class="dropdown">
+        <button class="button" type="button" data-variant="ghost" data-size="sm" id="g-user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="g-user-menu"><span class="user-email">learner@example.com</span></button>
+        <div class="dropdown-menu" id="g-user-menu" role="menu" aria-labelledby="g-user-menu-trigger" data-align="start">
+          <div role="group" aria-labelledby="g-user-menu-label">
+            <p class="dropdown-label" id="g-user-menu-label" role="presentation">learner@example.com</p>
+            <div class="dropdown-separator" role="separator"></div>
+            <a class="dropdown-item" role="menuitem" href="#g-sign-in">Выйти</a>
+          </div>
+        </div>
+      </div>
+      <div class="dropdown">
+        <button class="button" type="button" data-variant="outline" data-size="sm" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="g-actions-menu">Действия</button>
+        <div class="dropdown-menu" id="g-actions-menu" role="menu" aria-label="Действия" data-align="start">
+          <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="g-actions-reason-1"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="g-actions-reason-1">Дождитесь окончания проверки</span></span></button>
+          <button class="dropdown-item" type="button" role="menuitem" data-dialog-open="g-reset-dialog"><span class="dropdown-item-body">Сбросить рабочую папку</span></button>
+          <div class="dropdown-separator" role="separator"></div>
+          <button class="dropdown-item" type="button" role="menuitemcheckbox" aria-checked="false"><span class="dropdown-check" aria-hidden="true"></span>Режим для экранного диктора</button>
+        </div>
+      </div>
+    </div>
+    <p class="gallery-note">The user menu is named by its trigger (aria-labelledby, the email); a menu owns only items, groups and separators, so .dropdown-label is role="presentation" and names a role="group" around the items it heads. "Выйти" navigates, so it is a link item (a.dropdown-item, no underline). The focused item keeps the 2px ring inset, disabled items included. Disabled items are aria-disabled with the reason as a visible second line, aria-hidden inside the item so the name stays the label alone, and tied to it by aria-describedby only (R1). Arrow keys, Home, End, Esc returns focus to the trigger.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>AlertDialog</h3>
+    <div class="row" lang="ru">
+      <button class="button" type="button" data-variant="outline" data-dialog-open="g-reset-dialog">Сбросить рабочую папку</button>
+    </div>
+    <dialog class="alert-dialog" id="g-reset-dialog" role="alertdialog" aria-labelledby="g-reset-title" aria-describedby="g-reset-description" lang="ru">
+      <h4 class="alert-dialog-title" id="g-reset-title">Сбросить рабочую папку?</h4>
+      <p class="alert-dialog-description" id="g-reset-description">Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.</p>
+      <div class="alert-dialog-footer">
+        <button class="button" type="button" data-variant="outline" data-dialog-close autofocus>Отмена</button>
+        <button class="button" type="button" data-variant="destructive" data-dialog-close>Сбросить</button>
+      </div>
+    </dialog>
+    <p class="gallery-note">Focus starts on "Отмена"; Esc cancels; focus returns to the opener (for a menu item, to the menu trigger).</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Breadcrumb</h3>
+    <nav class="breadcrumb" aria-label="Навигация" lang="ru">
+      <ol>
+        <li><a href="#g-course">Курс</a></li>
+        <li><a href="#g-module">Основы работы с агентом</a></li>
+        <li><span aria-current="page">Как устроен агент</span></li>
+      </ol>
+    </nav>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Tabs</h3>
+    <div class="tabs" lang="ru">
+      <div class="tabs-list" role="tablist" aria-label="Разделы урока">
+        <button class="tabs-trigger" type="button" role="tab" id="g-tab-theory" aria-controls="g-panel-theory" aria-selected="true">Теория</button>
+        <button class="tabs-trigger" type="button" role="tab" id="g-tab-task" aria-controls="g-panel-task" aria-selected="false">Задание</button>
+        <button class="tabs-trigger" type="button" role="tab" id="g-tab-checks" aria-controls="g-panel-checks" aria-selected="false">Проверки<span class="status-icon" data-status="running" aria-hidden="true"></span><span class="sr-only">, идёт проверка</span></button>
+      </div>
+      <div class="tabs-content" role="tabpanel" id="g-panel-theory" aria-labelledby="g-tab-theory" tabindex="0"><p>Текст теории.</p></div>
+      <div class="tabs-content" role="tabpanel" id="g-panel-task" aria-labelledby="g-tab-task" tabindex="0"><p>Текст задания.</p></div>
+      <div class="tabs-content" role="tabpanel" id="g-panel-checks" aria-labelledby="g-tab-checks" tabindex="0"><p>Список проверок.</p></div>
+    </div>
+    <p class="gallery-note">Roving tabindex, arrows, Home, End, automatic activation. The selected pill carries a 1px muted-foreground border, not only its surface. The running badge is an icon plus visually hidden text in the tab name.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Progress</h3>
+    <div class="stack" data-gap="2" lang="ru">
+      <p class="text-sm" id="g-progress-heading">Пройдено уроков: 2 из 6</p>
+      <div class="progress" role="progressbar" aria-labelledby="g-progress-heading" aria-valuemin="0" aria-valuemax="6" aria-valuenow="2" aria-valuetext="2 из 6" style="--progress-value: 33%"><span class="progress-indicator"></span></div>
+    </div>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Item</h3>
+    <ul class="item-group" lang="ru">
+      <li><a class="item" href="#g-lesson-1"><span class="item-content"><span class="item-title">Как устроен агент</span><span class="item-description">теория, около 20 мин</span></span><span class="item-actions"><span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройден</span></span></a></li>
+      <li><a class="item" href="#g-lesson-2"><span class="item-content"><span class="item-title">Первый запуск</span><span class="item-description">артефакт, около 30 мин</span></span><span class="item-actions"><span class="badge" data-variant="secondary">В процессе</span></span></a></li>
+      <li><a class="item" href="#g-lesson-3"><span class="item-content"><span class="item-title">Контекст и планирование</span><span class="item-description">поиск багов, около 40 мин</span></span><span class="item-actions"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+        <p class="item-note">Сначала пройдите: <a href="#g-lesson-1">Как устроен агент</a></p></li>
+    </ul>
+    <p class="gallery-note">.item-note sits under the row, a sibling of the row link in the same li (catalog prerequisite note F6.1).</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Icon note</h3>
+    <div class="stack" data-gap="2" lang="ru">
+      <p class="icon-note"><span class="status-icon" data-status="info" aria-hidden="true"></span><span>Прогресс недоступен, показан первый урок</span></p>
+      <h4 class="icon-note" tabindex="-1"><span class="status-icon" data-status="info" aria-hidden="true"></span><span>Прогресс недоступен</span></h4>
+    </div>
+    <p class="gallery-note">A muted text-sm line with a leading status icon, on a p or a heading (the heading keeps its level, not its weight). The icon stays on the first line when the text wraps. Dashboard and catalog.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Collapsible</h3>
+    <div class="outcomes" lang="ru">
+      <h4>Чему научитесь</h4>
+      <div class="stack" data-gap="2">
+        <ul><li>Запускать агента в терминале</li></ul>
+        <ul id="g-outcomes-more" hidden><li>Останавливать агента клавишей Esc</li><li>Читать план агента</li></ul>
+        <button class="button collapsible-trigger" type="button" data-variant="link" data-collapsible aria-expanded="false" aria-controls="g-outcomes-more" data-label-collapsed="Показать все" data-label-expanded="Свернуть"><span data-collapsible-label>Показать все</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Spinner, Kbd, Tooltip, Skeleton, Separator</h3>
+    <div class="row" lang="ru">
+      <span class="spinner" aria-hidden="true"></span><span class="text-sm">Создаём окружение</span>
+      <hr class="separator" data-orientation="vertical">
+      <span class="text-sm"><kbd class="kbd">F6</kbd> или <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd class="kbd">.</kbd> (клавиша Ю): следующая область</span>
+    </div>
+    <div class="row" lang="ru">
+      <span class="tooltip-anchor">
+        <button class="button" type="button" data-variant="outline" data-size="icon" aria-label="Копировать" data-tooltip="g-tip-copy" aria-describedby="g-tip-copy"><span aria-hidden="true">&#x2398;</span></button>
+        <span class="tooltip" role="tooltip" id="g-tip-copy">Копировать</span>
+      </span>
+    </div>
+    <div class="stack" data-gap="2" aria-hidden="true">
+      <span class="skeleton" style="width: 60%"></span>
+      <span class="skeleton" style="width: 90%"></span>
+      <span class="skeleton" style="width: 75%"></span>
+    </div>
+    <hr class="separator">
+  </div>
+
+  <div class="gallery-section">
+    <h3>Empty</h3>
+    <div class="empty" lang="ru">
+      <p class="empty-title">Уроки модуля готовятся</p>
+      <p class="empty-description">Новые модули появятся в каталоге</p>
+    </div>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: top bar and "Уведомления"</h3>
+    <div class="demo-layout demo-layout-short" lang="ru">
+      <header class="topbar" data-region>
+        <a class="topbar-brand" href="#g-home">Академия</a>
+        <nav class="topbar-nav"><a href="#g-home" aria-current="page">Главная</a><a href="#g-course">Курс</a></nav>
+        <div class="topbar-end">
+          <div class="dropdown">
+            <button class="button" type="button" data-variant="ghost" data-size="sm" id="g-topbar-user-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="g-topbar-user-menu"><span class="user-email">learner@example.com</span></button>
+            <div class="dropdown-menu" id="g-topbar-user-menu" role="menu" aria-labelledby="g-topbar-user-trigger">
+              <div role="group" aria-labelledby="g-topbar-user-label">
+                <p class="dropdown-label" id="g-topbar-user-label" role="presentation">learner@example.com</p>
+                <div class="dropdown-separator" role="separator"></div>
+                <a class="dropdown-item" role="menuitem" href="#g-sign-in">Выйти</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div class="notifications" role="region" aria-labelledby="g-notifications-heading">
+        <h2 class="sr-only" id="g-notifications-heading">Уведомления</h2>
+        <div class="live" role="alert"><div class="alert" data-variant="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p><div class="alert-actions"><a class="button" data-size="sm" href="#g-sign-in">Войти снова</a></div></div></div>
+        <div class="live" role="status"></div>
+      </div>
+      <div class="page"><p class="muted text-sm">main</p></div>
+    </div>
+    <p class="gallery-note">Static here. On pages the containers are filled by proto.js from templates (data-live-key, data-live-source) and the wrapper is a region only while one holds content (R2). The bar is the pages' markup: header data-region with no aria-label on every page (the banner role names it), the only nav without a label, the user menu with data-menu-trigger.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: top bar at 320px</h3>
+    <div class="demo-narrow" lang="ru">
+      <header class="topbar" data-region>
+        <a class="topbar-brand" href="#g-home">Академия</a>
+        <nav class="topbar-nav"><a href="#g-home" aria-current="page">Главная</a><a href="#g-course">Курс</a></nav>
+        <div class="topbar-end">
+          <div class="dropdown">
+            <button class="button" type="button" data-variant="ghost" data-size="sm" id="g-narrow-user-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="g-narrow-user-menu"><span class="user-email">a.very.long.learner.address@example.com</span></button>
+            <div class="dropdown-menu" id="g-narrow-user-menu" role="menu" aria-labelledby="g-narrow-user-trigger">
+              <div role="group" aria-labelledby="g-narrow-user-label">
+                <p class="dropdown-label" id="g-narrow-user-label" role="presentation">a.very.long.learner.address@example.com</p>
+                <div class="dropdown-separator" role="separator"></div>
+                <a class="dropdown-item" role="menuitem" href="#g-sign-in">Выйти</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+    </div>
+    <p class="gallery-note">The bar wraps when its row does not fit: the user button moves to a second row, right-aligned; the nav never wraps inside. Below a 480px viewport the gaps tighten and the email is cut at 6rem with an ellipsis (14rem above); the accessible name stays the full email and the menu label shows it in full.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: environment status bar and terminal frame</h3>
+    <div class="stack" data-gap="2" lang="ru">
+      <div class="env-statusbar">
+        <div class="env-status"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="env-status-text"><span role="status">Окружение работает</span><span class="env-status-note">Рабочая папка сброшена</span></span></div>
+        <div class="env-actions"><button class="button" type="button" data-variant="outline" data-size="sm">Действия</button></div>
+        <p class="env-hint" id="g-env-hint"><kbd class="kbd">F6</kbd> или Ctrl+Shift+. (клавиша Ю): следующая область</p>
+      </div>
+      <div class="terminal-frame" tabindex="0" aria-label="Терминал" aria-describedby="g-env-hint">
+<pre class="terminal-output"><span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ ls
+<span class="ansi-blue">src</span>  README.md  <span class="ansi-green">run.sh</span>
+<span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ claude
+<span class="ansi-bright-black">&gt; Ready. What should I do?</span>
+<span class="ansi-red">error</span> <span class="ansi-yellow">warning</span> <span class="ansi-magenta">magenta</span> <span class="ansi-cyan">cyan</span> <span class="ansi-white">white</span> <span class="ansi-black">black</span>
+<span class="ansi-bright-red">red</span> <span class="ansi-bright-green">green</span> <span class="ansi-bright-yellow">yellow</span> <span class="ansi-bright-blue">blue</span> <span class="ansi-bright-magenta">magenta</span> <span class="ansi-bright-cyan">cyan</span> <span class="ansi-bright-white">white</span> <span class="terminal-selection">selected</span>
+<span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ <span class="terminal-cursor"> </span></pre>
+      </div>
+      <div class="env-statusbar">
+        <div class="env-status"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="env-status-text"><span role="status">Соединение с терминалом потеряно. Переподключаемся...</span></span></div>
+      </div>
+      <div class="env-statusbar">
+        <div class="env-status"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="env-status-text" role="status"><span>Окружение работает</span><span class="env-status-note" data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу.</span></span></div>
+      </div>
+      <div class="terminal-frame" data-connection="lost" aria-label="Терминал"><pre class="terminal-output">learner@academy:~/work$ <span class="terminal-cursor"> </span></pre></div>
+      <div class="env-statusbar">
+        <div class="env-status"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="env-status-text" role="status"><span>Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".</span></span></div>
+        <div class="env-actions">
+          <button class="button" type="button" data-size="sm">Повторить</button>
+          <button class="button collapsible-trigger" type="button" data-variant="ghost" data-size="sm" data-collapsible aria-expanded="true" aria-controls="g-env-details">Подробности</button>
+        </div>
+        <pre class="env-details" id="g-env-details">Cannot connect to the Docker daemon. Is the docker daemon running?</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: check bar and check rows</h3>
+    <div class="stack" lang="ru">
+      <div class="check-bar">
+        <div class="check-bar-controls">
+          <button class="button" type="button" aria-disabled="true" aria-describedby="g-check-reason">Проверить</button>
+          <button class="button" type="button" data-variant="outline">К окружению</button>
+          <button class="button" type="button" data-variant="ghost">Открыть результаты</button>
+        </div>
+        <div class="check-bar-status"><span role="status">Пройдено: 2 из 3</span></div>
+        <p class="disabled-reason" id="g-check-reason">Сначала запустите окружение</p>
+      </div>
+      <div class="check-bar">
+        <div class="check-bar-controls"><button class="button" type="button" aria-disabled="true" aria-describedby="g-check-reason-2">Проверить</button></div>
+        <div class="check-bar-status"><span class="spinner" aria-hidden="true"></span><span role="status">Идёт проверка</span><span class="timer" role="timer">0:42</span></div>
+        <p class="disabled-reason" id="g-check-reason-2">Дождитесь окончания проверки</p>
+      </div>
+      <ul class="check-list">
+        <li>
+          <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-row-1">
+            <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+            <span class="check-row-title">Отчёт находит три бага</span>
+            <span class="check-row-status">Не пройдено</span>
+          </button>
+          <div class="check-row-panel" id="g-row-1">
+            <pre class="check-row-message">findings[2].line: expected integer</pre>
+            <p class="text-sm muted">Неудачных попыток: 3</p>
+          </div>
+        </li>
+        <li>
+          <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="g-row-2">
+            <span class="status-icon" data-status="running" aria-hidden="true"></span>
+            <span class="check-row-title">Тесты проходят</span>
+            <span class="check-row-status">Идёт</span>
+            <span class="check-row-meta"><span class="timer" role="timer">0:42 из 2:00</span></span>
+          </button>
+          <div class="check-row-panel" id="g-row-2" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
+        </li>
+        <li>
+          <button class="check-row-trigger" type="button" data-collapsible aria-expanded="false" aria-controls="g-row-3">
+            <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+            <span class="check-row-title">Формат отчёта</span>
+            <span class="check-row-status">Время вышло</span>
+            <span class="check-row-meta"><span>лимит 2:00</span></span>
+          </button>
+          <div class="check-row-panel" id="g-row-3" hidden><p class="text-sm muted">Неудачных попыток: 1</p></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: lesson header and "Содержание"</h3>
+    <div lang="ru">
+      <div class="lesson-header">
+        <h4 class="gallery-h1">Как устроен агент</h4>
+        <p class="lesson-meta"><span class="badge" data-variant="outline">теория</span><span>около 20 мин</span></p>
+      </div>
+      <nav class="toc" aria-labelledby="g-toc-heading">
+        <h4 id="g-toc-heading">Содержание</h4>
+        <ol>
+          <li><a href="#g-sec-loop">Как агент читает задачу</a></li>
+          <li><a href="#g-sec-keys">Клавиши</a></li>
+        </ol>
+      </nav>
+    </div>
+    <p class="gallery-note">On the lesson page the title is the h1 and "Содержание" an h2; .toc sizes its heading text-sm at any level.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: page column and "Чему научитесь"</h3>
+    <div class="column" lang="ru">
+      <div class="outcomes">
+        <h4>Чему научитесь</h4>
+        <ul>
+          <li>Выбирает модель и уровень ризонинга под задачу.</li>
+          <li>Оценивает стоимость сессии агента по логу токенов.</li>
+        </ul>
+      </div>
+      <p class="muted text-sm">Следующая секция колонки, через space-8.</p>
+    </div>
+    <p class="gallery-note">.column: one column inside .page (dashboard, catalog), children space-8 apart, max --column-max. .outcomes: div.outcomes &gt; heading + ul; the heading takes the page's level (h3 in a catalog module, h2 in the lesson header) and is set text-sm; lists indent space-6.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: prose</h3>
+    <article class="prose" lang="ru">
+      <h2 id="g-sec-loop" tabindex="-1">Как агент читает задачу</h2>
+      <p>Агент получает задачу и <code>CLAUDE.md</code> из рабочей папки. Строка не длиннее 70 знаков, поэтому длинный текст читается без усталости.</p>
+      <ul><li>Сначала план</li><li>Потом изменения</li></ul>
+      <h3 id="g-sec-keys" tabindex="-1">Клавиши</h3>
+      <div class="table-wrap"><table><thead><tr><th>Клавиша</th><th>Действие</th></tr></thead><tbody><tr><td><kbd class="kbd">Esc</kbd></td><td>Остановить агента</td></tr></tbody></table></div>
+      <div class="code-block">
+        <div class="code-block-header"><button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#g-code" data-copy-denied="Не скопировано, выделите текст вручную">Копировать</button></div>
+        <pre><code id="g-code">claude --help</code></pre>
+      </div>
+      <blockquote>Цитата из задания.</blockquote>
+    </article>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: lesson layout, two panes, split handle with tooltip</h3>
+    <div class="demo-layout" lang="ru">
+      <div class="lesson-layout" data-force-layout="two-pane" data-active-pane="lesson">
+        <section class="pane" data-pane="lesson" aria-labelledby="g2-lesson-h">
+          <h2 class="sr-only" id="g2-lesson-h">Урок</h2>
+          <div class="scroll-area"><div class="prose"><p>Теория урока.</p></div></div>
+        </section>
+        <section class="check-bar" aria-labelledby="g2-check-h">
+          <h2 class="sr-only" id="g2-check-h">Проверка</h2>
+          <div class="check-bar-controls"><button class="button" type="button">Проверить</button></div>
+          <div class="check-bar-status"><span role="status"></span></div>
+        </section>
+        <div class="resizable-handle tooltip-anchor" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Граница панелей" aria-valuemin="25" aria-valuemax="75" aria-valuenow="50" data-presets="50 35 65" data-tooltip="g2-tip-handle" aria-describedby="g2-tip-handle">
+          <span class="resizable-handle-grip" aria-hidden="true"></span>
+          <span class="tooltip" role="tooltip" id="g2-tip-handle" data-side="right">Перетащите или щёлкните, чтобы сменить ширину</span>
+        </div>
+        <section class="pane" data-pane="environment" aria-labelledby="g2-env-h">
+          <h2 class="sr-only" id="g2-env-h">Окружение</h2>
+          <div class="env-statusbar"><div class="env-status"><span class="spinner" aria-hidden="true"></span><span role="status">Запускаем окружение</span><span class="timer" role="timer">0:07</span></div></div>
+          <div class="env-tabs"><div class="terminal-placeholder">Запускаем окружение</div></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: lesson layout without an environment</h3>
+    <div class="demo-layout demo-layout-short" lang="ru">
+      <div class="lesson-layout" data-environment="none" data-active-pane="lesson">
+        <section class="pane" data-pane="lesson" aria-labelledby="g0-lesson-h">
+          <h2 class="sr-only" id="g0-lesson-h">Урок</h2>
+          <div class="scroll-area"><p class="muted text-sm">Окружение и проверки появятся в следующей версии платформы</p><div class="prose"><p>Теория урока.</p></div></div>
+        </section>
+        <div class="resizable-handle" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Граница панелей" aria-valuemin="25" aria-valuemax="75" aria-valuenow="50"><span class="resizable-handle-grip" aria-hidden="true"></span></div>
+        <section class="pane" data-pane="environment" aria-labelledby="g0-env-h">
+          <h2 class="sr-only" id="g0-env-h">Окружение</h2>
+        </section>
+      </div>
+    </div>
+    <p class="gallery-note">data-environment="none" (M0, no workspace; no check bar either): the handle and the environment pane stay in the markup but are not drawn, so they are no Tab or F6 stop; the lesson pane takes the full width at every size.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: lesson layout, one pane with the switch</h3>
+    <div class="demo-layout" lang="ru">
+      <div class="lesson-layout" data-force-layout="one-pane" data-active-pane="lesson">
+        <section class="pane" data-pane="lesson" aria-labelledby="g1-lesson-h">
+          <h2 class="sr-only" id="g1-lesson-h">Урок</h2>
+          <div class="pane-switch"><div class="tabs-list" role="tablist" aria-label="Область" data-pane-switch>
+            <button class="tabs-trigger" type="button" role="tab" data-show-pane="lesson">Урок</button>
+            <button class="tabs-trigger" type="button" role="tab" data-show-pane="environment">Окружение<span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="sr-only"> остановлено</span></button>
+          </div></div>
+          <div class="scroll-area"><div class="prose"><p>Теория урока.</p></div></div>
+        </section>
+        <section class="check-bar" aria-labelledby="g1-check-h">
+          <h2 class="sr-only" id="g1-check-h">Проверка</h2>
+          <div class="check-bar-controls">
+            <button class="button" type="button" aria-disabled="true" aria-describedby="g1-reason">Проверить</button>
+            <button class="button" type="button" data-variant="outline" data-show-pane="environment" data-focus="#g1-restart">К окружению</button>
+          </div>
+          <div class="check-bar-status"><span role="status"></span></div>
+          <p class="disabled-reason" id="g1-reason">Сначала запустите окружение</p>
+        </section>
+        <section class="pane" data-pane="environment" aria-labelledby="g1-env-h">
+          <h2 class="sr-only" id="g1-env-h">Окружение</h2>
+          <div class="pane-switch"><div class="tabs-list" role="tablist" aria-label="Область" data-pane-switch>
+            <button class="tabs-trigger" type="button" role="tab" data-show-pane="lesson">Урок</button>
+            <button class="tabs-trigger" type="button" role="tab" data-show-pane="environment">Окружение<span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="sr-only"> остановлено</span></button>
+          </div></div>
+          <div class="env-statusbar">
+            <div class="env-status"><span class="status-icon" data-status="muted" aria-hidden="true"></span><span role="status">Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены.</span></div>
+            <div class="env-actions"><button class="button" type="button" data-size="sm" id="g1-restart">Запустить снова</button></div>
+          </div>
+          <div class="env-tabs"><div class="terminal-placeholder">Окружение остановлено</div></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  /* Gallery only: copies the template into both columns and suffixes every id and id reference,
+     so the light and dark copies never share an id. */
+  (function () {
+    var template = document.getElementById("gallery-content");
+    var idAttributes = ["aria-controls", "aria-labelledby", "aria-describedby", "for", "data-tooltip", "data-dialog-open"];
+    var selectorAttributes = ["data-copy", "data-focus"];
+    document.querySelectorAll("[data-gallery-col]").forEach(function (column) {
+      var suffix = "-" + column.getAttribute("data-gallery-col");
+      var copy = template.content.cloneNode(true);
+      copy.querySelectorAll("[id]").forEach(function (el) { el.id += suffix; });
+      idAttributes.forEach(function (name) {
+        copy.querySelectorAll("[" + name + "]").forEach(function (el) {
+          el.setAttribute(name, el.getAttribute(name).trim().split(" ").filter(Boolean).map(function (id) { return id + suffix; }).join(" "));
+        });
+      });
+      selectorAttributes.forEach(function (name) {
+        copy.querySelectorAll("[" + name + "]").forEach(function (el) { el.setAttribute(name, el.getAttribute(name) + suffix); });
+      });
+      column.appendChild(copy);
+    });
+  })();
+</script>
+<script src="proto.js"></script>
+</body>
+</html>

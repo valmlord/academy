@@ -4,7 +4,21 @@
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
     "typecheck": { "dependsOn": ["^build"] },
     "test": { "dependsOn": ["^build"] },
-    "test:integration": { "dependsOn": ["^build"], "cache": false },
-    "test:e2e": { "dependsOn": ["^build"], "cache": false }
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["DOCKER_*", "TESTCONTAINERS_*"]
+    },
+    "test:e2e": { "dependsOn": ["^build"], "cache": false, "passThroughEnv": ["E2E_BASE_URL"] },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["DATABASE_URL", "PORT"]
+    },
+    "@academy/web#test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/design/system/tokens.css"]
+    }
   }
 }

@@ -12,6 +12,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+
 jobs:
   checks:
     name: lint, typecheck, test, build
@@ -29,6 +32,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: fail if the build changed tracked files
+        run: |
+          changes=$(git status --porcelain)
+          if [ -n "$changes" ]; then echo "$changes"; git --no-pager diff; exit 1; fi
 
   content:
     name: lesson contract
@@ -43,6 +50,41 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm content:validate
+
+  # No path filter: a lesson-schema PR that adds a check kind must turn the drift step red (ADR-0007).
+  db:
+    name: db migrations and integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # The runner VM is discarded after the job, so the reaper has nothing to clean up.
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The PR merge commit plus both parents, for the append-only step.
+          fetch-depth: 2
+          # The job runs PR code (drizzle-kit loads schema.ts); nothing after checkout needs the token.
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: applied migrations are append-only
+        if: github.event_name == 'pull_request'
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash packages/db/scripts/check-append-only.sh
+      # drizzle-kit loads schema.ts, which imports lesson-schema's dist/.
+      - run: pnpm exec turbo run build --filter='@academy/db^...'
+      - run: pnpm --filter @academy/db run db:check
+      - name: migrations match the schema
+        # A backstop only: drizzle-kit without a TTY exits instead of waiting for a prompt.
+        timeout-minutes: 3
+        run: bash packages/db/scripts/check-drift.sh
+      - run: pnpm test:integration
 
   pipeline:
     name: agent pipeline hooks
@@ -94,17 +136,45 @@ jobs:
             echo "design/system/tokens.css not present yet: token checks skipped"
           fi
 
-  compose:
-    name: docker compose stack
+  e2e:
+    name: compose stack and Playwright e2e
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The job never pushes; the token would otherwise sit in .git/config while images build and run.
+          persist-credentials: false
       - run: cp .env.example .env
       - run: docker compose config --quiet
-      - run: docker compose up -d --build --wait
+      - run: docker compose up -d --build --wait --wait-timeout 180
       - run: docker compose ps
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: migrations run inside the built image
+        run: bash apps/web/scripts/check-image-migrations.sh
+      - run: pnpm --filter @academy/web exec playwright install --with-deps --only-shell chromium
+      - run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3080
+      - if: failure()
+        run: |
+          docker compose ps -a > compose-ps.txt
+          docker compose logs --no-color > compose.log
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            compose.log
+            compose-ps.txt
+          retention-days: 7
+      # Safe here only: the runner is ephemeral and this job created the volume.
       - if: always()
         run: docker compose down -v
-
-  # e2e (Playwright) job is added together with apps/web (backlog: web bootstrap).
