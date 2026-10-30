@@ -3,13 +3,15 @@ import type { ReactElement } from "react";
 import { CourseList } from "@/components/course-list";
 import { homeTitle } from "@/lib/copy";
 import { stubCourses } from "@/lib/courses";
+import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: homeTitle,
 };
 
 // A scaffold placeholder, not an implementation of design/pages/dashboard: #29 builds the dashboard.
-export default function HomePage(): ReactElement {
+export default async function HomePage(): Promise<ReactElement> {
+  await requireSession("/");
   return (
     <main id="main" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="text-2xl font-semibold">{homeTitle}</h1>

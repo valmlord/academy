@@ -9,7 +9,11 @@
       "cache": false,
       "passThroughEnv": ["DOCKER_*", "TESTCONTAINERS_*"]
     },
-    "test:e2e": { "dependsOn": ["^build"], "cache": false, "passThroughEnv": ["E2E_BASE_URL"] },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["E2E_BASE_URL", "SEED_*"]
+    },
     "dev": {
       "cache": false,
       "persistent": true,
