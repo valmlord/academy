@@ -6,9 +6,7 @@
           {
             "type": "command",
             "command": "python3",
-            "args": [
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_tests.py"
-            ],
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_tests.py"],
             "onFailure": "retry"
           }
         ]
