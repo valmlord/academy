@@ -1,0 +1,38 @@
+id: sdd-pipeline-bug-hunt
+title: "Разбор сессии: где агент подменил проверку"
+type: bug-hunt
+outcomes:
+  - "Реализует задачи из готовой спецификации через TDD вместе с агентом так, что код проходит скрытые приёмочные тесты, а каждое требование покрыто тестом с его идентификатором, и находит в записи сессии агента подмену проверки: правку теста, тавтологичный тест, пропущенный красный шаг, заявление без вывода команды, горизонтальную задачу, действие до подтверждения решения."
+estimatedMinutes: 45
+status: ready
+prerequisites:
+  - sdd-pocock-pipeline
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Matt Pocock: skill tdd, SKILL.md v1.3.2 (тавтологии, red before green, горизонтальная нарезка)"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/tdd/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skill to-tickets, SKILL.md v1.3.2 (вертикальные задачи)"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/engineering/to-tickets/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skill grilling, SKILL.md v1.3.2 (решения принимает пользователь, не действовать до подтверждения)"
+    url: https://github.com/mattpocock/skills/blob/v1.3.2/skills/productivity/grilling/SKILL.md
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Best practices (доказательство: команда и её вывод)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-29"
+  - title: "Birgitta Böckeler: TDD inside the agent loop, theater or actual value? (2026-08-10)"
+    url: https://martinfowler.com/articles/exploring-gen-ai/tdd-in-the-agent-loop.html
+    checkedAt: "2026-10-29"
+  - title: "Gabor, Lynch, Rosenfeld: EvilGenie, a reward hacking benchmark (arXiv:2511.21654 v2)"
+    url: https://arxiv.org/abs/2511.21654
+    checkedAt: "2026-10-29"
+checks:
+  - id: pipeline-bug-hunt
+    title: "Подмена проверки в записи сессии агента"
+    kind: bug-hunt
+    answers: checks/bugs.yaml
+    minFound: 5
+    weight: 2

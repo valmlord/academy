@@ -1,0 +1,96 @@
+# Reserve pool for the mentor review after skills-quiz is closed (design #41 2.5, 00 2.5.6).
+# Mentor-review store, never on the command-check mount; never shown before the review. Same format and authoring rules as quiz.yaml.
+version: 1
+check: skills-quiz
+passBar: "at least 5 of 6 correct (passScore 0.8), exact set match per question"
+questions:
+  - id: user-invocable-false
+    type: single
+    prompt: |
+      Claude Code 2.1.312. У скилла `glossary-lookup` стоит `user-invocable: false`. Кто может его
+      вызвать?
+    options:
+      - { id: a, text: "Только вы через `/glossary-lookup`; модель его вообще не видит" }
+      - { id: b, text: "Только модель: в меню `/` его нет, но описание в контексте" }
+      - { id: c, text: "Никто: скилл выключен, пока поле не вернут в true" }
+      - { id: d, text: "И вы, и модель, но только в субагенте с `context: fork`" }
+    correct: [b]
+    explanation: |
+      С `user-invocable: false` скилл скрыт из меню `/`, а описание остаётся в контексте, и Claude
+      вызывает его сам. Это поле не мешает модели, оно мешает человеку.
+
+  - id: references-one-level
+    type: single
+    prompt: |
+      SKILL.md ссылается на `references/api.md`, а тот - на `references/errors.md`, которого
+      SKILL.md не называет. Почему это плохая структура?
+    options:
+      - { id: a, text: "Модель может прочитать вложенный файл частично; ссылки стоит давать из SKILL.md" }
+      - { id: b, text: "Claude Code не открывает файлы, которые лежат глубже одного каталога от SKILL.md" }
+      - { id: c, text: "Справочные файлы скилла не могут лежать в подкаталоге `references/`" }
+      - { id: d, text: "Ссылки между справочными файлами создают цикл загрузки при старте" }
+    correct: [a]
+    explanation: |
+      Рекомендация: все справочные файлы связаны прямо из SKILL.md, без цепочек; файлы, на которые
+      ссылается другой справочный файл, Claude может прочитать частично. Ссылка на скрипт допустима:
+      его запускают, а не читают.
+
+  - id: project-skill-location
+    type: single
+    prompt: |
+      Claude Code 2.1.312. Вы положили скилл проекта в `.agents/skills/deploy/SKILL.md`. Что важно
+      знать?
+    options:
+      - { id: a, text: "Это основной каталог скиллов Claude Code, другие каталоги проекта он вообще не читает" }
+      - { id: b, text: "Claude Code читает его только при запуске с флагом `--add-dir .agents` и больше никак" }
+      - { id: c, text: "Страница скиллов Claude Code этот каталог не называет; для него нужен `.claude/skills/`" }
+      - { id: d, text: "Каталог читается, но только для скиллов с полем `compatibility`" }
+    correct: [c]
+    explanation: |
+      `.agents/skills/` - переносимое место для других агентов (Codex, Cursor и др.). Страница скиллов
+      Claude Code его не называет; скиллы проекта для Claude Code лежат в `.claude/skills/`.
+
+  - id: verify-name-bridge
+    type: single
+    prompt: |
+      Claude Code 2.1.312. В проекте появился скилл `verify`, который запускает unit-тесты. Что
+      изменилось?
+    options:
+      - { id: a, text: "Ничего: встроенный `/verify` всегда важнее скилла проекта" }
+      - { id: b, text: "Харнесс теперь не даёт сделать коммит, пока скилл не пройдёт зелёным до конца" }
+      - { id: c, text: "Скилл удалил встроенные проверки типов и линтер из проекта" }
+      - { id: d, text: "Скилл проекта заменил встроенный, и указание перед коммитом теперь про тесты" }
+    correct: [d]
+    explanation: |
+      Скилл проекта с именем `verify` заменяет встроенный, и инструкции к коммиту просят модель
+      запустить его. Это указание модели, а не барьер харнесса: детерминированную проверку держат
+      Stop-хук и CI.
+
+  - id: what-belongs-in-memory
+    type: multiple
+    prompt: |
+      Что стоит оставить в постоянно загружаемой памяти проекта (CLAUDE.md), а не выносить в скилл?
+      Выберите все верные.
+    options:
+      - { id: a, text: "Команду тестов и почему у неё нет флага `-I`" }
+      - { id: b, text: "Пошаговую процедуру ежемесячного релиза на 40 строк" }
+      - { id: c, text: "Что деньги в проекте - целые центы, без float" }
+      - { id: d, text: "Справочник по редкой интеграции с банком на 200 строк" }
+    correct: [a, c]
+    explanation: |
+      В памяти - то, что нужно в каждой сессии и не выводится из кода. Редкая процедура и редкая
+      справка - скиллы: процедура с `disable-model-invocation: true`, справка обычным скиллом.
+
+  - id: evaluate-a-skill
+    type: multiple
+    prompt: |
+      Какие шаги относятся к проверке и доводке скилла после того, как он написан? Выберите все верные.
+    options:
+      - { id: a, text: "Прогнать одни и те же задачи со скиллом и без него и сравнить результат" }
+      - { id: b, text: "Поправить описание, если скилл срабатывает не на те запросы" }
+      - { id: c, text: "Считать скилл проверенным, раз он хоть раз сработал в своей тестовой сессии" }
+      - { id: d, text: "Удалить скилл, если с ним результат не лучше, чем без него" }
+    correct: [a, b, d]
+    explanation: |
+      Срабатывание доказывает только, что скилл нашли. Жизненный цикл: сравнение с базовой линией,
+      настройка описания, удаление бесполезного.

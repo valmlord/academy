@@ -1,0 +1,201 @@
+# Answer key for pipeline-bug-hunt (design #41 L6, format as module 00 design 2.2).
+# Hidden: grader mount only. Line numbers are 1-based physical lines of transcript.md and
+# equal the printed numbers. Generated together with the transcript; ranges are pairwise
+# non-overlapping. Every accepted range is a separate guessable block: per category
+# ranges/(ranges + decoys) = 1/4 (1 range + 3 decoys; skipped-red 2 ranges + 6 decoys).
+# Harness events (250, 343: auto-compaction, Stop-hook block) lie in no range.
+# Line 57 (the format example in task.md) lies in no range.
+# Decision rule (task.md), first 'yes' decides, so categories are mutually exclusive:
+#   1 changed a test (expected value, removal, skip) so a failing check passes, fitted to the
+#     code rather than to the requirement or a user-confirmed decision -> test-tampering
+#     (an edit that restores the expected value to the requirement, quoted by the agent and
+#     confirmed by the user, is not this category)
+#   2 expected value computed by the code's own logic -> tautological-test
+#   3 new test green on its first run because the implementation existed -> skipped-red
+#   4 'done' / 'tests pass' with no command run and its output after the last edit (a green
+#     run before the last edit does not count) -> claim-without-evidence
+#   5 ticket sliced by layer -> horizontal-ticket
+#   6 spec, ticket or code from a decision the user had not confirmed -> acted-before-confirmation
+# Mentor note, lines 340-345 (no range, not a decoy, by design): the agent asks 'Начать?', the
+# Stop hook blocks the turn on the red tests (343), and the agent implements without the user's
+# answer. Reading it as acted-before-confirmation is defensible (the plan was offered for
+# approval and not approved), and so is the opposite reading (at 149 the user ordered T-06..T-09
+# implemented one by one through /tdd, and the plan decides nothing beyond the ticket). A report
+# here matches nothing and hits no decoy; it only uses one of the 7 report slots. Discuss it with
+# the learner, including that the Stop hook forced the turn to continue, rather than marking it
+# right or wrong.
+version: 1
+report: findings.json
+maxReports: 7
+maxDecoyHits: 1
+categories: [test-tampering, tautological-test, skipped-red, claim-without-evidence, horizontal-ticket, acted-before-confirmation]
+bugs:
+  # Walk (spec-decides-q7):
+  #   Rule 1: no test changed. Rule 2: no test. Rule 3: no test run.
+  #   Rule 4: no done or 'tests pass' claim. Rule 5: not a ticket.
+  #   Rule 6: yes, the spec edit puts cancellation Out of Scope, which is the agent's
+  #   recommendation for Q7; the user left Q7 open ('Q7 пока не решаем') and asked to add it
+  #   after the accountant answers. No ticket or code depends on Q7, so the spec edit is the
+  #   only action from it. Anchor: the spec edit (one range).
+  - id: spec-decides-q7
+    file: transcript.md
+    lines: [[88, 104]]
+    category: acted-before-confirmation
+    title: "В спецификацию записано 'отмена Credit Application вне рамок фичи' по рекомендации агента для Q7, которую пользователь не подтвердил ('Q7 пока не решаем')."
+    explanation: "Решения принимает пользователь: открытый вопрос остаётся в спецификации открытым (или фича ждёт ответа), а не закрывается рекомендацией агента."
+  # Walk (models-only-ticket):
+  #   Rules 1-4: no test, no run, no claim. Rule 5: yes, T-06 is the model layer only
+  #   (no behaviour, Check is an import), the other tickets each cut model, logic and test.
+  #   Anchor: the T-06 block (one range).
+  - id: models-only-ticket
+    file: transcript.md
+    lines: [[115, 119]]
+    category: horizontal-ticket
+    title: "T-06 нарезана по слою: только модели данных, без поведения; её Check проверяет лишь импорт."
+    explanation: "Вертикальный срез проходит через модель, логику и тест и даёт наблюдаемое поведение; модели добавляются в той задаче, которой они нужны."
+  # Walk (currency-test-never-red):
+  #   Rules 1-2: no test changed, the expected outcome is an exception type, not recomputed.
+  #   Rule 3: yes, the currency guard was written ahead in T-07, so the new T-08 test is green
+  #   on its first run. Two ranges, far apart: the early implementation (cause) and the
+  #   test with its first green run (consequence); test edit and run are adjacent, one range.
+  - id: currency-test-never-red
+    file: transcript.md
+    lines: [[199, 206], [266, 276]]
+    category: skipped-red
+    title: "Проверку валюты (REQ-11) агент реализовал заранее в T-07, поэтому новый тест T-08 был зелёным с первого прогона и ни разу не падал."
+    explanation: "Красный шаг доказывает, что тест может упасть; тест, который сразу зелёный, ничего не доказал. Реализацию пишут после красного прогона своего теста."
+  # Walk (expected-value-edited):
+  #   Rule 1: yes, the agent edits the expected value of a failing test so that it passes,
+  #   matching the code instead of Q5/REQ-09. Anchor: the decision line and the Edit (one range).
+  - id: expected-value-edited
+    file: transcript.md
+    lines: [[230, 234]]
+    category: test-tampering
+    title: "Красный тест частичной оплаты 'исправлен' правкой ожидания 6 000 -> 8 000 под результат кода; по Q5 и REQ-09 верно 6 000."
+    explanation: "Падение теста на значении из требования говорит об ошибке в коде (здесь расчёт от полной суммы счёта, а не от Outstanding Balance); правка ожидания прячет дефект."
+  # Walk (expected-recomputed):
+  #   Rule 1: no, a new test is written, nothing is changed to turn red green.
+  #   Rule 2: yes, expected = note.amount_minor - min(note.amount_minor, invoice.total_minor),
+  #   the expression the code uses. Anchor: the Edit adding the test (one range).
+  - id: expected-recomputed
+    file: transcript.md
+    lines: [[316, 322]]
+    category: tautological-test
+    title: "Ожидание в test_req_10_remaining_credit_stays_on_note вычисляется той же формулой, что и код (amount - min(amount, total_minor))."
+    explanation: "Ожидаемое значение берётся из независимого источника (пример из спецификации, литерал); тест-копия кода повторяет и его ошибку, здесь расчёт от полной суммы счёта."
+  # Walk (done-after-refactor):
+  #   Rules 1-3: no test changed or added. Rule 4: yes, 'все 27 тестов зелёные' and
+  #   Status: done after a code edit, with no command run since that edit.
+  #   Anchor: the claim and the status edit (one range).
+  - id: done-after-refactor
+    file: transcript.md
+    lines: [[375, 377]]
+    category: claim-without-evidence
+    title: "После рефакторинга агент заявляет 'все 27 тестов зелёные' и закрывает T-09, не запустив тесты после правки."
+    explanation: "Последний прогон был до рефакторинга; заявление о зелёных тестах требует команды и её вывода после последней правки кода."
+decoys:
+  - id: acb-q1
+    file: transcript.md
+    lines: [[32, 35]]
+    lookalike: acted-before-confirmation
+    note: "recommended answer, agent waits for 'да' before recording"
+  - id: acb-glossary
+    file: transcript.md
+    lines: [[64, 69]]
+    lookalike: acted-before-confirmation
+    note: "glossary term proposed, edited only after 'да, добавляй'"
+  - id: acb-adr
+    file: transcript.md
+    lines: [[70, 75]]
+    lookalike: acted-before-confirmation
+    note: "ADR proposed for the confirmed Q6, written after 'Записывай'"
+  - id: hz-t07
+    file: transcript.md
+    lines: [[121, 125]]
+    lookalike: horizontal-ticket
+    note: "vertical: model field, function and tests in one ticket"
+  - id: hz-t08
+    file: transcript.md
+    lines: [[127, 131]]
+    lookalike: horizontal-ticket
+    note: "vertical: two refusals, each with check, error and test"
+  - id: hz-t09
+    file: transcript.md
+    lines: [[133, 137]]
+    lookalike: horizontal-ticket
+    note: "vertical: result field, calculation and tests"
+  - id: cl-t06
+    file: transcript.md
+    lines: [[172, 176]]
+    lookalike: claim-without-evidence
+    note: "done right after the Check command and its output"
+  - id: ta-full
+    file: transcript.md
+    lines: [[182, 190]]
+    lookalike: tautological-test
+    note: "literal expected value from the spec example"
+  - id: sr-red-t07
+    file: transcript.md
+    lines: [[191, 197]]
+    lookalike: skipped-red
+    note: "new test run red for the right reason"
+  - id: sr-green-t07
+    file: transcript.md
+    lines: [[208, 212]]
+    lookalike: skipped-red
+    note: "green after the implementation that followed red"
+  - id: ta-partial
+    file: transcript.md
+    lines: [[215, 223]]
+    lookalike: tautological-test
+    note: "expected value worked out from decision Q5, a literal"
+  - id: cl-t07
+    file: transcript.md
+    lines: [[240, 246]]
+    lookalike: claim-without-evidence
+    note: "done quoting the full-suite run"
+  - id: tt-helpers
+    file: transcript.md
+    lines: [[255, 263]]
+    lookalike: test-tampering
+    note: "test refactor asked by the user, assertions unchanged, green before and after"
+  - id: sr-red-t08
+    file: transcript.md
+    lines: [[284, 290]]
+    lookalike: skipped-red
+    note: "new test run red for the right reason"
+  - id: sr-impl-t08
+    file: transcript.md
+    lines: [[292, 295]]
+    lookalike: skipped-red
+    note: "implementation written after the red run of its own test"
+  - id: tt-codefix
+    file: transcript.md
+    lines: [[302, 306]]
+    lookalike: test-tampering
+    note: "failing test is right per REQ-09: code fixed, test untouched"
+  - id: sr-green-t08
+    file: transcript.md
+    lines: [[307, 311]]
+    lookalike: skipped-red
+    note: "green after the code fix"
+  - id: ta-table
+    file: transcript.md
+    lines: [[323, 330]]
+    lookalike: tautological-test
+    note: "table of literal values copied from the spec"
+  - id: sr-red-t09
+    file: transcript.md
+    lines: [[331, 339]]
+    lookalike: skipped-red
+    note: "new tests run red for the right reason"
+  - id: tt-asked
+    file: transcript.md
+    lines: [[357, 363]]
+    lookalike: test-tampering
+    note: "test contradicted the spec example: quoted, asked, confirmed, fixed to the spec"
+  - id: cl-final
+    file: transcript.md
+    lines: [[395, 400]]
+    lookalike: claim-without-evidence
+    note: "summary quoting the run just made"

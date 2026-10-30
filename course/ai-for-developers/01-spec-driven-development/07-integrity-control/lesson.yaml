@@ -1,0 +1,77 @@
+id: sdd-integrity-control
+title: "Автоматический контроль целостности и обновление артефактов"
+type: artifact
+outcomes:
+  - "Автоматизирует контроль целостности артефактов: пишет детерминированную проверку согласованности спецификации, задач, тестов, ADR и глоссария, подключает её к Stop-хуку и вносит изменение требований так, что проверка остаётся зелёной."
+estimatedMinutes: 66
+status: ready
+prerequisites:
+  - sdd-pipeline-bug-hunt
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Michael Nygard: Documenting Architecture Decisions (2011-11-15; статусы, superseded, номера не переиспользуются)"
+    url: https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions
+    checkedAt: "2026-10-29"
+  - title: "MADR 4.0.0: шаблон ADR (раздел Confirmation)"
+    url: https://github.com/adr/madr/blob/4.0.0/template/adr-template.md
+    checkedAt: "2026-10-29"
+  - title: "OpenSpec v1.15.0: CLI (openspec validate, --strict, --archived)"
+    url: https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md
+    checkedAt: "2026-10-29"
+  - title: "GitHub Spec Kit v1.2.5: README (analyze, converge)"
+    url: https://github.com/github/spec-kit
+    checkedAt: "2026-10-29"
+  - title: "GitHub Spec Kit: Agentic SDD reference (analyze только читает, implement и converge повторяют вручную)"
+    url: https://github.github.io/spec-kit/reference/agentic-sdd.html
+    checkedAt: "2026-10-29"
+  - title: "Birgitta Böckeler: Understanding Spec-Driven-Development (2025-10-15; spec-first, spec-anchored, spec-as-source)"
+    url: https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html
+    checkedAt: "2026-10-29"
+  - title: "Birgitta Böckeler: Harness Engineering, first thoughts (2026-02-17; детерминированные линтеры и структурные тесты)"
+    url: https://martinfowler.com/articles/exploring-gen-ai/harness-engineering-memo.html
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Best practices (ревью по спецификации, кто говорит последнее слово)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Extend Claude with skills (/doctor prompt-audit)"
+    url: https://code.claude.com/docs/en/skills
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Manage Claude's memory (/doctor prompt-audit, требует v2.1.283 или новее)"
+    url: https://code.claude.com/docs/en/memory
+    checkedAt: "2026-10-30"
+  - title: "Claude Code: Hooks reference (Stop, коды выхода, stdout и stderr, лимит восьми продолжений)"
+    url: https://code.claude.com/docs/en/hooks
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Automate actions with hooks (guide)"
+    url: https://code.claude.com/docs/en/hooks-guide
+    checkedAt: "2026-10-29"
+  - title: "GitHub: About protected branches (обязательные проверки перед слиянием)"
+    url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+    checkedAt: "2026-10-29"
+checks:
+  - id: artifact-linter
+    title: "Линтер артефактов: правила C1-C6, коды выхода, по одной строке на нарушение"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_linter.py"'
+    timeoutSec: 180
+    weight: 3
+  - id: change-request-applied
+    title: "Изменение требований внесено: спецификация, задача, тест и код согласованы"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_change.py"'
+    timeoutSec: 600
+    weight: 2
+  - id: stop-hook-integrity
+    title: "Stop-хук запускает тесты, затем линтер, и блокирует с выводом линтера"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_stop_integrity.py"'
+    timeoutSec: 600
+    weight: 2
+  - id: integrity-quiz
+    title: "Квиз: детерминированный и модельный контроль, ADR и id требований, Stop-хук и CI"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

@@ -1,0 +1,63 @@
+id: sdd-domain-ontology
+title: "Онтология проекта: глоссарий, контексты, события"
+type: artifact
+outcomes:
+  - "Составляет глоссарий предметной области в формате, который читает агент: термины с определениями без деталей реализации, запрещённые синонимы и связи контекстов через доменные события, разводит по контекстам слово, которое в разных частях системы значит разное, и отличает сущность от объекта-значения и границу агрегата."
+estimatedMinutes: 50
+status: ready
+prerequisites:
+  - sdd-skills
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Martin Fowler: Ubiquitous Language (2006-10-31)"
+    url: https://martinfowler.com/bliki/UbiquitousLanguage.html
+    checkedAt: "2026-10-29"
+  - title: "Martin Fowler: Bounded Context (2014-01-15)"
+    url: https://martinfowler.com/bliki/BoundedContext.html
+    checkedAt: "2026-10-29"
+  - title: "Martin Fowler: DDD Aggregate (2013-04-23)"
+    url: https://martinfowler.com/bliki/DDD_Aggregate.html
+    checkedAt: "2026-10-29"
+  - title: "Martin Fowler: Value Object (2016-11-14)"
+    url: https://martinfowler.com/bliki/ValueObject.html
+    checkedAt: "2026-10-29"
+  - title: "Eric Evans: DDD Reference"
+    url: https://www.domainlanguage.com/ddd/reference/
+    checkedAt: "2026-10-29"
+  - title: "EventStorming (Alberto Brandolini)"
+    url: https://www.eventstorming.com/
+    checkedAt: "2026-10-29"
+  - title: "Matt Pocock: skills v1.3.2 (domain-modeling, GLOSSARY-FORMAT, grilling)"
+    url: https://github.com/mattpocock/skills/tree/v1.3.2
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: How Claude remembers your project (@-импорты, .claude/rules/ с paths:)"
+    url: https://code.claude.com/docs/en/memory
+    checkedAt: "2026-10-29"
+  - title: "Claude Code: Extend Claude with skills (загрузка описания и тела скилла)"
+    url: https://code.claude.com/docs/en/skills
+    checkedAt: "2026-10-29"
+checks:
+  - id: glossary-structure
+    title: "Структура глоссариев и карты контекстов (фильтр формы; смысл оценивает рубрика)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_glossary.py"'
+    timeoutSec: 30
+    weight: 2
+  - id: glossary-rubric
+    title: "Качество глоссария (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric-glossary.md
+    artifacts:
+      - GLOSSARY-MAP.md
+      - docs/billing/GLOSSARY.md
+      - docs/ledger/GLOSSARY.md
+    passScore: 0.7
+    weight: 2
+  - id: ontology-quiz
+    title: "Квиз: объект-значение, агрегат, многозначное слово, глоссарий для агента"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1

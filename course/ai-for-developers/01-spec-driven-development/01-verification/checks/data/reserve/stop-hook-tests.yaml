@@ -1,0 +1,21 @@
+# Reserve items for the mentor review after stop-hook-tests is closed (design 2.5, as 00 2.5.6).
+# Never on the command-check mount, never shown before the review. The mentor grades with the key below.
+version: 1
+check: stop-hook-tests
+task: |
+  Для каждого вывода Stop-хука ниже скажите, что сделает Claude Code 2.1.312 (блок, пропуск,
+  неблокирующая ошибка) и почему.
+items:
+  - id: json-block-exit-1
+    output: 'exit 1, stdout {"decision": "block", "reason": "FAIL: test_x"}'
+    key: "блок с причиной из reason: при валидном JSON с decision block решают поля, код выхода не важен"
+  - id: exit2-missing-file
+    output: "exit 2, stdout пустой, stderr содержит FileNotFoundError: [Errno 2] No such file or directory"
+    key: "неблокирующая ошибка: на Stop exit 2 с пустым stdout и фразой о ненайденном файле не блокирует"
+  - id: continue-false
+    output: 'exit 0, stdout {"continue": false, "stopReason": "red"}'
+    key: "Claude останавливается целиком: continue false важнее решения; хук должен держать агента в работе, а не останавливать"
+  - id: active-true
+    output: "stdin stop_hook_active true, тесты красные; хук печатает JSON-блок"
+    key: "блок ещё раз, риск цикла; хук должен пропускать при stop_hook_active true"
+passBar: "4 of 4 outcomes with the reason"

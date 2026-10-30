@@ -1,0 +1,20 @@
+# Reserve items for the mentor review after late-fee-verified is closed (design 2.5, as 00 2.5.6).
+# Never on the command-check mount, never shown before the review. The mentor grades with the key below.
+version: 1
+check: late-fee-verified
+task: |
+  Функция `discount(amount_cents, items)`: скидка 5% от суммы при items >= 10, 10% при items >= 50,
+  округление вниз до цента; amount_cents <= 0 поднимает ValueError("amount_cents must be positive").
+  Для каждой сломанной версии ниже назовите один вход и ожидаемое значение, на котором ваш тест её
+  поймает, и объясните, почему ожидаемое значение взято из правила, а не из кода.
+items:
+  - id: threshold-off-by-one
+    broken: "скидка 5% начинается с items > 10"
+    key: "вход с items == 10, например (10_000, 10): ожидается 500, сломанная версия даёт 0"
+  - id: rounding-half-up
+    broken: "округление к ближайшему"
+    key: "вход, где 5% даёт дробь >= 0.5 цента, например (1_010, 10): 50.5 -> ожидается 50, сломанная даёт 51"
+  - id: zero-accepted
+    broken: "amount_cents == 0 возвращает 0"
+    key: "(0, 10): ожидается ValueError с точным сообщением"
+passBar: "3 of 3 items with a discriminating input and an expected value derived from the rule"

@@ -1,0 +1,110 @@
+# invoice-service
+
+## About this project
+
+invoice-service is a small internal service of our company. It stores invoices and serves them over
+HTTP. It was started in 2024 by the payments team and is now maintained by the billing team.
+We care about quality, readability and maintainability. Please write clean, idiomatic code.
+Always think step by step before you change anything. Be careful and thorough.
+
+## Repository layout
+
+- `src/invoices/api.py`: the HTTP handler.
+- `src/invoices/repository.py`: database access.
+- `src/invoices/models.py`: dataclasses.
+- `src/invoices/service.py`: validation and serialization.
+- `src/invoices/late_fee.py`: late fee calculation.
+- `tests/`: unit tests.
+- `docs/`: policies.
+
+## Commands
+
+- Tests: `PYTHONPATH=src python3 -m unittest discover -s tests -t .` from the repository root.
+- The Stop hook in `.claude/settings.json` runs the same command before you end a turn.
+
+## Code style
+
+- Use type hints everywhere.
+- Prefer dataclasses for data.
+- Keep functions short.
+- Use descriptive names.
+- Follow PEP 8.
+- Line length is 100 characters (see `pyproject.toml`).
+- Do not use global state.
+- Write docstrings for public functions.
+
+## How to verify a change
+
+Follow these steps every time you change code, before you say the work is done.
+
+1. Make sure you are in the repository root, the directory that contains `pyproject.toml`.
+2. Run the whole suite, not a single test file: a change in one module can break another one.
+3. Use exactly this invocation: PYTHONPATH=src python3 -m unittest discover -s tests -t .
+4. Do not add `-I` to that python3 call: isolated mode ignores PYTHONPATH and every test module fails to import.
+5. Read the last line of the output: it must say OK.
+6. If the output says "Ran 0 tests", treat it as a failure: nothing was checked.
+7. If a test fails, read the traceback from the top, not only the last line.
+8. Fix the code, not the test, unless the requirement in docs/ changed.
+9. Never edit an expected value just to make a red test green.
+10. Never add skip, skipIf, skipUnless or expectedFailure to get a green run.
+11. If you believe a test is wrong, quote the requirement and ask the user before changing it.
+12. Re-run the whole suite after the fix, not only the test that failed.
+13. When you report the result, paste the exact command you ran.
+14. Paste the last lines of its output, including the "Ran N tests" line and OK or FAILED.
+15. Do not write "tests pass" without that output in the same message.
+16. If the run takes longer than a minute, say so in the report.
+17. If you added a test, say which requirement it covers.
+18. If you added a test, make sure you saw it fail before the fix.
+19. Mention any test you could not run and why.
+20. Keep the report short: command, output, what changed.
+
+Only after these steps is the change verified.
+
+## Release procedure
+
+We release about once a month. Only a human starts a release; never start one on your own.
+
+1. Make sure the working tree is clean: git status shows nothing to commit.
+2. Make sure you are on the main branch and it is up to date with origin.
+3. Run the whole test suite as described in the verification section.
+4. The suite must be green; never release from a red build.
+5. Decide the version part to bump with the release manager.
+6. Bump the patch version for bug fixes only.
+7. Bump the minor version for new features that keep the API compatible.
+8. Bump the major version for any breaking change of the HTTP API.
+9. Run the release script with the chosen part: python3 scripts/release.py patch (or minor, major).
+10. The script rewrites the version line in pyproject.toml.
+11. It prints the new version and the git commands for the commit and the tag.
+12. Check the diff: only the version line in pyproject.toml may change.
+13. Run the printed commit and tag commands exactly as printed.
+14. Push the branch and the tag: git push origin main --follow-tags.
+15. Open the CI pipeline for the tag and wait until it is green.
+16. If CI fails on the tag, do not delete the tag; tell the release manager.
+17. Write the release notes in the team channel.
+18. Release notes list every merged pull request since the previous tag.
+19. Group the notes into Features, Fixes and Internal.
+20. Mention breaking changes first, in bold.
+21. Link the CI run of the tag in the notes.
+22. Tell the support team about any change in the HTTP responses.
+23. Update the version in the internal service catalogue.
+24. Close the release milestone in the tracker.
+25. Move unfinished issues of the milestone to the next one.
+26. Check the error dashboard one hour after the deploy.
+27. If the error rate doubled, start the rollback procedure.
+28. Rollback: redeploy the previous tag from CI.
+29. Never roll back by reverting commits on main during an incident.
+30. After a rollback, open an incident ticket.
+31. Describe what was released, what broke and when it was rolled back.
+32. Add the incident ticket to the release notes.
+33. The next release must include a test for the incident.
+34. Keep the release manager informed at every step.
+35. Releases are not made on Fridays.
+36. Releases are not made during the last week of the quarter.
+37. If unsure about any step, stop and ask the release manager.
+
+## Notes
+
+- Be polite in commit messages.
+- Use English for code and comments.
+- Remember that the service handles money; mistakes are expensive.
+- Ask if something is unclear.
