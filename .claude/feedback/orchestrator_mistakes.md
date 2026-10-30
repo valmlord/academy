@@ -216,3 +216,15 @@ Rule: at the first FAIL of this shape, before the re-spawn, ask Stepan which che
 command checks and which go to a rubric or a recorded residual, and put that list in every later judge brief;
 when a vendor parser is emulated, make the check stricter than the vendor by construction instead of copying
 its regex.
+
+### 2026-10-30: Design-system drift reviewed by example, fixed by example (#29)
+
+judge_code needed four rounds for #29, and rounds 2-4 were all about vendored shadcn styles. Round 1 named three
+differences the tester saw (heights, card shadow, dark fill); the coder fixed exactly those; round 2 found `md:text-sm`
+and the Button states; round 3 found a why-comment the round-2 fix made false. My briefs passed the judges' examples
+straight to the coder instead of the class of problem. A separate cost: the operations judge's round-3 design verdict
+was not recorded because its final report did not end with the verdict line, which stalled the gate.
+Rule: when a finding is "vendored component defaults differ from the design system", brief the coder to walk every
+class and state of every vendored component against `proto.css` and the README and return a state table, and brief
+the tester to compare computed styles for every state, in round 1. In every judge brief, repeat that the final report
+must end with the bare PASS or FAIL line.
