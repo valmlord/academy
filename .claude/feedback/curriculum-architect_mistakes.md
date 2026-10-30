@@ -122,3 +122,143 @@ NBSP/VT, so ` "$CLAUDE_PROJECT_DIR"/...` matches yet `sh` exits 127 (verified).
 Rule: When a check claims "exactly one accepted form", allowlist every key of the object (and the
 settings keys that switch the mechanism off), give allowed values for each, and trim only the
 characters the consuming shell also ignores.
+
+### 2026-10-29: Fixed commands and named formats not run against the real layout and template (#41, design round 1)
+
+Revision 1 of #41 pinned `python3 -m unittest discover -s tests -t .` while the module 00 starter has no
+`tests/__init__.py` and keeps the package under `src/`. CPython's `discover()` then raises "Start directory is not
+importable", so every run would error, and the "wrong directory prints No such file or directory" trap was false.
+The design also claimed to accept "the MADR 4.0.0 shape" with `## Consequences`, but the template has
+`### Consequences` under `## Decision Outcome` and a quoted, optional status. Its skill chain rule banned a reference
+file citing `scripts/`, which PBP shows as correct. And it narrowed S's "packaging or upload fails" (claude.ai,
+Skills API, package_skill.py) to "a hard error outside Claude Code", although R 2.3 says Cursor reads
+`disable-model-invocation`.
+Rule: Every command a check or hook runs is run once on the starter layout before the design pins it, and its
+output is quoted. A design that names an external format ("MADR 4.0.0 shape") copies its headings from the template
+file, levels included. A vendor restriction keeps the surface list the source gives.
+
+### 2026-10-29: Outcome verbs the starter makes impossible; size ignoring measured evidence; task and check out of step (#41, design round 1)
+
+O5 said the learner "проводит фичу по конвейеру интервью, спецификация, задачи, TDD" and "принимает
+результат по скрытым тестам", but the L5 starter shipped the finished spec and tasks, no lesson had
+the learner run an interview, and hidden tests are run by the grader, not the learner. L5 put a
+five-task TDD loop and a 450-500-line, 21-decoy bug-hunt into 90 min although module 00 had already
+measured a smaller bug-hunt at a 70-min lesson; the split was deferred to the student run. L2 task
+asked for `verify` body rules no check reads, while L2-L4 checks enforced numeric limits (CLAUDE.md
+<= 20 lines, <= 12 terms, 6-12 REQ, 3-8 tasks) the task text was not required to state.
+Rule: For each outcome verb, confirm the lesson's starter leaves that step to the learner and that
+the learner, not the grader, performs it; size each lesson from the measured time of the closest
+past exercise; require task.md to list every constraint its checks enforce and nothing they do not.
+
+### 2026-10-29: Anti-gaming claims that ignored the check's own feedback channel and free-form fields (#41, design round 1, assessment)
+
+Revision 1 called 2.6 mutation grading "pass probability 0 without a behavioural test" because equivalents
+defeat source pinning, but the failure message names every test that fails on a correct variant, so two
+submissions learn the equivalents' source hashes and a hash-pinning test passes (reproduced in a toy grader).
+Traceability let one test name carry every `req_NN`, so one catch-all test satisfied every label. The 2.3 YAML
+subset accepted `description: Use when: x`, which YAML rejects, so CC would load the `release` skill with no fields.
+The CLAUDE.md check ignored `@` imports and `.claude/rules/`, which module 00 L5 already resolves. Grader C6 read
+the editable workspace glossary.
+Rule: For every check, list what its failure messages reveal and run the attacker that learns from them across
+uncapped submissions; bound every free-form field a rule matches on (label counts, scalar forms); reuse the
+resolver an earlier module already built for the same surface; read every expected value, glossary included,
+from pristine `checks/data/`.
+
+### 2026-10-29: A sizing rule applied to the lesson the judge named, not to every lesson (#41, design round 2)
+
+Revision 2 sized the new L6 bug-hunt from 00 L4's measured budget, as round 1 required, and its self-review
+claimed the rule applied. L1 was left at 65 min / 40 hands-on although its closest shipped analogue, 00 L6 (one
+PreToolUse path hook plus settings), took 80 min / 50 hands-on, and L1 asks for more: mutant-killing tests, a
+code fix and a Stop hook that runs and parses unittest under 13 probes, after the densest theory of the module,
+which revision 2 made longer.
+Rule: When a judge's rule fixes one lesson, apply it to every lesson and show the work: for each lesson name its
+closest shipped analogue with that analogue's minutes, and give per-part minutes wherever the lesson asks for
+more than the analogue did.
+
+### 2026-10-29: An isolation claim tested from one side of the boundary only (#41, design round 2, assessment)
+
+Revision 2 moved mutation variants behind an out-of-process seam and claimed no structural fingerprint was
+observable, citing a toy run of the round-1 attack, which only inspected the test process's own proxy module. The
+same toy, attacked from outside the proxy, passed with zero behavioural assertions in two ways. The server's argv
+named the variant copy, and the leftover `__pycache__` bytecode was a stable fingerprint. A `/tmp` counter keyed by
+the grader pid read the fixed variant order. Out-of-domain `TypeError` messages named each variant's operator. The
+same revision ran acceptance tests in-process with the learner's module, so a forged record or a patched
+`assertEqual` passed a `return 0` implementation.
+Rule: For every isolation boundary, attack it from the untrusted side through every channel a same-uid process
+has: argv/`ps`, files next to anything imported (bytecode caches), shared writable dirs across runs, run order,
+error text on out-of-domain input, and the record fd. Never run grader assertions in a process that imports
+learner code. Shuffle run and probe order per run, and state the residual guess probability.
+
+### 2026-10-29: An indistinguishability rule stated in words, then broken by its own generator (#41, design round 3, assessment)
+
+Revision 3 required that red and green Stop-hook probe projects "differ only in values that are visible only
+after evaluating `sha256` expressions". It also rested a 1/46656 non-running guess rate on a prototype harness.
+That harness wrote the red/green flag as a literal offset (`+ 1` on red, `+ 0` on green). A 15-line hook that
+grepped for it, with no test run and no hashing, passed the shuffled probes 5/5. The planned guard, "diff red and
+green of one seed", would read `+ 1` vs `+ 0` as a computed value and pass it.
+Rule: When a check depends on two generated states being indistinguishable without doing the skill, specify the
+generator, not only the property. Use one template and fresh random values. Pick the state only by rejection
+sampling, and write no flag literal. Then attack the generated files statically: grep, diff with random names
+masked, and compare literal distributions over many seeds. Do this before citing any rate measured on it.
+
+### 2026-10-29: An irreversible attempt cap whose counted/uncounted boundary no check defines (#41, design round 4, pedagogy)
+
+Revision 5 capped five checks at 10 failed submissions (never reset, nothing reopens). It said only failures
+that "reached the hidden runs" count, so "honest iteration on the static parts is free". The task.md cap
+items then promised specific free failures. But only L7 `change-request-applied` defined a static stage that
+runs first. L1 task.md called "item 1 import rules" free, yet the L1 check enforced imports only through the
+proxy inside the variant runs, and it read skips and the test count from the run record. So the untouched
+starter's skipped test was a counted failure. L5's check listed (A), (B), (C) with no order, so a `todo`
+task or a bad test name might burn an irreversible attempt. L7's cap item understated its own free stage.
+Rule: When a cap separates counted from uncounted failures, give every capped check an explicit stage 0: the
+static rules it runs before any counted run, listed in the check entry. Copy exactly that list into task.md.
+Put every rule that can be checked statically into stage 0, and have the demo show that a stage 0 failure
+leaves the counter unchanged.
+
+### 2026-10-29: Diversity of syntax counted as diversity of secret (#41, design round 4, accuracy)
+
+Revision 5 drew Stop-hook probes from K = 4 "structurally different" templates. It claimed that an evaluator
+written for one template "is left with a guess" on the others, and that copying 1-2 templates gives 1.07% or
+18.3% within the cap. All four templates compute the same `h(seed)`. All four put `j` in plain digits in the
+fixture file name, and the seed as a 16-hex literal in the files. So one template-agnostic hook ("hash every
+hex literal, compare with the `f<j>.json` number") decides every template after one copy. The S-rates were
+also labelled "exact, best strategy". In fact they were the non-causal bound: they assumed the hook sees a
+class's three probes before deciding the first.
+Rule: Before citing a rate for a variant-diversity defence, write the cheapest attacker that ignores the
+variation. Look at what the variants share: the decision function, the plain-text carriers of the secret, and
+the file layout. Only syntax that is actually different counts. Label every attack rate with its information
+model (sequential or all-at-once).
+
+### 2026-10-29: Rejection sampling whose cost depends on the secret leaks it through time (#41, design round 4, assessment)
+
+Revision 5 chose the probe state only by rejection-sampling seeds. A green probe needs about 10^4 draws per seed;
+a red one about 1. The prototype created P's directories before the draw and wrote the files after it, so
+`mtime(tests/__init__.py) - mtime(src)` was under 0.3 ms on red and 5-100 ms on green. A 20-line hook that only
+calls `os.stat` (no test run, no hash, no template knowledge, no memory) passed 20/20 on macOS. Drawing first moved
+the cost into the gap between probes, which a hook with a hard-coded `/tmp` timestamp still read (7/10). The
+text-only generator guard could not see either channel.
+Rule: When a secret is chosen by sampling, make the sampler's work independent of the secret: sample every
+outcome every time and select afterwards. Draw everything before creating any file the attacker can stat.
+Guard the generator on the artefact as it lands on disk (timestamps, inode order, wall and CPU time between
+probes), not only on the text it renders.
+
+### 2026-10-29: A changelog claimed a withdrawn design was removed everywhere; one lesson entry kept it (#41, design round 5, accuracy)
+
+Revision 6 replaced the four probe templates with one (Stepan's K = 1). Section 18 said they were "removed
+from 2.8, L1, L7, section 6 and 11.13". L7 `stop-hook-integrity` still said "The test-state P of every probe
+come from the 4-template 2.8 generator (revision 5)". The practice-designer implements from that entry.
+Rule: When a decision withdraws a design element, grep the whole design for every name and number of the old
+element (`4-template`, `K = 4`, `T1`-`T4`, its rates). Fix every hit outside a labelled historical record
+before writing "removed from X" in the changelog. List the grep and its remaining hits in the changelog.
+
+### 2026-10-29: A stage-0 list paraphrased into task.md instead of copied (#41, design round 5, pedagogy)
+
+Revision 6 gave each capped check a stage 0 and copied it into task.md. Four of the five copies were exact.
+For L7 `change-request-applied`, task.md summarised "all of (C)" as "the L5 consistency and vocabulary rules"
+(C1-C3, C6). But (C) runs grader C1-C6, so C4 and C5 were missing. The list also added "the new task has
+`Status: done`", which no rule in (C) checks. Its "what counts" list named only the dispute test, although (B)
+re-runs all 14 mutants and the 6 correct runs over the learner's edited tests.
+Rule: When a check entry says "all of (X)", expand (X) rule by rule in task.md, and do not swap in a summary
+borrowed from another lesson. Then diff both ways: every rule in the check appears in the text, and every rule
+in the text appears in the check. The "counted" list names every hidden-run rule, including regression on
+what the starter already passed.

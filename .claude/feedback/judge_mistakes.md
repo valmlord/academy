@@ -95,3 +95,13 @@ checks", without checking that the private free-plan repo supports branch protec
 not: 403). The flaw surfaced only in code review.
 Rule: For every "Stepan does X after merge" step, run the read-only check of X against the real
 repo/host during design review.
+
+### 2026-10-30: A prescribed fix modelled the tool's regex but not its input (#41)
+
+Round-1 assessment FAIL on the L2 import resolver prescribed "tokenize exactly as Claude Code does:
+the regex, cut at `#`, `\ ` to space". The same `strings` dump showed the regex runs on marked `text`
+tokens and on HTML comments after stripping. The designer applied the prescription faithfully, and
+eight glued forms (`**x:**@path`, `<!-- c -->@path`, ...) still passed in round 2.
+Rule: When prescribing "do what the tool does", read the whole function around the regex: what it is
+applied to, which tokens are skipped, what transformations happen first. Prefer prescribing a superset
+that is stricter by construction, and give a corpus to compare against, not only the cases found.
