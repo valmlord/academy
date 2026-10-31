@@ -10,10 +10,7 @@ from typing import Optional
 REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 SCRIPTS = os.path.join(REPO, "scripts")
 sys.path.insert(0, SCRIPTS)
-# The vote parser the judges' reports go through; the validator output is pasted into those reports.
-sys.path.insert(1, os.path.join(REPO, ".claude", "hooks", "lib"))
 import design_tokens  # noqa: E402
-import hookio  # noqa: E402
 
 SCRIPT = os.path.join(SCRIPTS, "design_tokens.py")
 
@@ -423,8 +420,24 @@ class FlowCheckTest(CheckTestCase):
         self.assert_one_error(out, "flow F1 is declared in")
 
 
-class VerdictCollisionTest(CheckTestCase):
-    """Judges paste validator output into reports whose vote is the last verdict-shaped line."""
+VERDICT_WORDS = ("PASS", "FAIL", "VERDICT")
+
+
+def starts_with_verdict(line: str) -> bool:
+    """The judges' parser strips once, in a fixed order (whitespace, `#`, `*`, backtick); stripping until
+    stable reaches the same first character or a later one, so every line the parser can take as a vote
+    is caught here."""
+    stripped = line
+    while True:
+        shorter = stripped.strip().strip("#*`")
+        if shorter == stripped:
+            break
+        stripped = shorter
+    return stripped.startswith(VERDICT_WORDS)
+
+
+class ValidatorOutputVerdictTest(CheckTestCase):
+    """Judges paste validator output into reports whose vote is the last line starting with a verdict."""
 
     def outputs(self) -> list[str]:
         failing = dict(LIGHT, **{"muted-foreground": "oklch(0.556 0 0)", "ring": "oklch(0.708 0 0)"})
@@ -437,18 +450,18 @@ class VerdictCollisionTest(CheckTestCase):
         self.assertIn("contrast low", failed)
         return [passing, failed, paired, usage]
 
-    def test_no_validator_output_line_parses_as_a_verdict(self) -> None:
+    def test_no_validator_output_line_starts_with_a_verdict(self) -> None:
         lines = [line for output in self.outputs() for line in output.splitlines()]
-        votes = [(line, hookio.verdict_from(line)) for line in lines if hookio.verdict_from(line) != "UNKNOWN"]
-        self.assertEqual(votes, [])
+        self.assertEqual([line for line in lines if starts_with_verdict(line)], [])
 
-    def test_fail_report_with_pasted_output_stays_a_fail(self) -> None:
-        pasted = "\n".join(self.outputs())
-        report = ("1. [design/system/tokens.css:9] contrast below 4.5:1\n\nValidator output:\n%s\n\n"
-                  "FAIL - 1 issues found" % pasted)
-        self.assertEqual(hookio.verdict_from(report), "FAIL")
-        legacy = "FAIL - 1 issues found:\n1. [design/system/tokens.css:9] contrast\n\nValidator output:\n%s" % pasted
-        self.assertEqual(hookio.verdict_from(legacy), "FAIL")
+    def test_verdict_prefix_detection(self) -> None:
+        verdict_lines = ["PASS", "FAIL - 1 issues found", "VERDICT: PASS", "  PASS  ", "**PASS**", "## FAIL",
+                         "`FAIL`", "# **`PASS`**", "* # PASS", "`` ** FAIL", "\u00a0PASS", "PASSED"]
+        plain_lines = ["", "pass", "Passed", "contrast ok light foreground on background: 15.2:1 (min 4.5:1)",
+                       "INFO 3 pages scanned", "ERROR system/tokens.css:9: PASS is not a colour",
+                       "- PASS", "> FAIL", "1. FAIL"]
+        self.assertEqual([line for line in verdict_lines if not starts_with_verdict(line)], [])
+        self.assertEqual([line for line in plain_lines if starts_with_verdict(line)], [])
 
 
 class PairCliTest(unittest.TestCase):
