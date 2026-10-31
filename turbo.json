@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["ACADEMY_SKIP_ROOT_ENV"],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
     "typecheck": { "dependsOn": ["^build"] },
@@ -18,7 +19,7 @@
       "cache": false,
       "persistent": true,
       "dependsOn": ["^build"],
-      "passThroughEnv": ["DATABASE_URL", "PORT", "BETTER_AUTH_SECRET"]
+      "passThroughEnv": ["DATABASE_URL", "PORT", "BETTER_AUTH_SECRET", "COURSE_ROOT"]
     },
     "seed": {
       "dependsOn": ["^build"],
@@ -27,7 +28,11 @@
     },
     "@academy/web#test": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/design/system/tokens.css"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/design/system/tokens.css",
+        "$TURBO_ROOT$/course/**"
+      ]
     }
   }
 }

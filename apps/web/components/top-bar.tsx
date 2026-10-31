@@ -1,17 +1,20 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
-import { brandName, homeTitle } from "@/lib/copy";
+import { brandName } from "@/lib/copy";
+import { TopBarNav } from "./top-bar-nav";
 import { UserMenu } from "./user-menu";
 
 export interface TopBarProps {
   email: string;
   signOut: () => Promise<never>;
+  /** The course of `course.yaml`, or undefined when even its id could not be read. */
+  courseId: string | undefined;
 }
 
-// design/pages/dashboard top bar (the banner, first F6 stop). The course link waits for #30's catalog:
-// a link to a page that does not exist yet would be a dead end (ia.md R6; PR "Design deviations").
-// One row down to 375px; below that the user menu wraps to a second row, right-aligned.
-export function TopBar({ email, signOut }: TopBarProps): ReactElement {
+// The top bar of every signed-in page (the banner, first F6 stop), "from #30" in ia.md R6: brand, home
+// link, course link, user menu. One row down to 375px; below that the user menu wraps to a second row,
+// right-aligned.
+export function TopBar({ email, signOut, courseId }: TopBarProps): ReactElement {
   return (
     <header
       data-region
@@ -20,15 +23,7 @@ export function TopBar({ email, signOut }: TopBarProps): ReactElement {
       <Link href="/" className="font-semibold text-foreground no-underline">
         {brandName}
       </Link>
-      <nav className="flex flex-nowrap gap-1">
-        <Link
-          href="/"
-          aria-current="page"
-          className="rounded-md px-2 py-1.5 text-sm text-foreground no-underline hover:bg-accent"
-        >
-          {homeTitle}
-        </Link>
-      </nav>
+      <TopBarNav courseId={courseId} />
       <div className="ml-auto flex items-center gap-2">
         <UserMenu email={email} signOut={signOut} />
       </div>

@@ -28,5 +28,5 @@ docs
 design
 scripts
 tests
-# #30 removes course from this list and copies it into the runner.
-course
+# course/ is in the context on purpose: the build stage exports the learner-visible files with
+# apps/web/scripts/export-course.ts and deletes course/ before next build (ADR-0009).

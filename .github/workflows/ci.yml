@@ -32,6 +32,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: the build traced nothing from course/
+        run: bash apps/web/scripts/check-build-course.sh
       - name: fail if the build changed tracked files
         run: |
           changes=$(git status --porcelain)
@@ -172,6 +174,8 @@ jobs:
           { echo "SEED_EMAIL=learner@example.com"; echo "SEED_PASSWORD=$pw"; } >> "$GITHUB_ENV"
           DATABASE_URL=postgres://academy:academy@127.0.0.1:5432/academy SEED_EMAIL=learner@example.com SEED_PASSWORD="$pw" pnpm seed | tee seed.log
           grep -qF 'seed: created' seed.log
+      - name: the image holds only the learner-visible course files
+        run: bash apps/web/scripts/check-image-course.sh
       - run: pnpm --filter @academy/web exec playwright install --with-deps --only-shell chromium
       - run: pnpm test:e2e
         env:

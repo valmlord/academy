@@ -1,22 +1,45 @@
 import { expect, type Response, type Route, test } from "@playwright/test";
 import {
   brandName,
+  courseLinkLabel,
+  durationLabel,
   homeTitle,
-  noReadyLessonsMessage,
+  lessonTypeLabels,
+  modulePreparingLabel,
+  moduleProgressLabel,
+  nextLessonHeading,
+  noPassedLessonsMessage,
   notificationsHeading,
+  progressValueText,
   sessionExpiredMessage,
   signInAgainLabel,
   skipLinkLabel,
+  startLessonLabel,
 } from "../lib/copy";
-import { credentials } from "./fixtures";
+import { catalogPath, lessonPath } from "../lib/routes";
+import { repoCatalog, repoDashboard } from "./course";
+import { credentials, useOwnBucket } from "./fixtures";
+
+// Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
+// exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
+test.beforeEach(async ({ page }) => {
+  await useOwnBucket(page);
+});
 
 const PHONE_WIDTH = 375;
 
-test("the dashboard shows the shell and the empty state for the signed-in user", async ({
+test("the dashboard shows the first-run Card, course line and module rows (AC1, AC3, AC4)", async ({
   page,
   baseURL,
 }) => {
   if (baseURL === undefined) throw new Error("baseURL is not configured in playwright.config.ts");
+  const dashboard = await repoDashboard();
+  // The expected Card comes from the catalog view, not from toDashboardView, so a wrong choice of the next
+  // lesson in the dashboard view cannot also move the expectation (AC1: the first visible lesson).
+  const catalog = await repoCatalog();
+  const firstModule = catalog.modules.find((module) => module.lessons.length > 0);
+  const next = firstModule?.lessons[0];
+  if (firstModule === undefined || next === undefined) throw new Error("the course needs a lesson");
   const origin = new URL(baseURL).origin;
   const responses: Response[] = [];
   // Registered before goto, so the document and every asset it loads are seen.
@@ -29,8 +52,30 @@ test("the dashboard shows the shell and the empty state for the signed-in user",
 
   expect(documentResponse?.ok()).toBe(true);
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
-  await expect(page.getByText(noReadyLessonsMessage)).toBeVisible();
-  await expect(page.getByRole("listitem")).toHaveCount(0);
+  const card = page.getByRole("region", { name: nextLessonHeading });
+  await expect(card.getByText(next.title, { exact: true })).toBeVisible();
+  await expect(card.getByText(firstModule.title, { exact: true })).toBeVisible();
+  await expect(card.getByText(lessonTypeLabels[next.type], { exact: true })).toBeVisible();
+  await expect(card.getByText(durationLabel(next.estimatedMinutes), { exact: true })).toBeVisible();
+  await expect(card.getByRole("link", { name: startLessonLabel })).toHaveAttribute(
+    "href",
+    lessonPath(dashboard.courseId, next.id),
+  );
+  await expect(page.getByRole("heading", { level: 2, name: noPassedLessonsMessage })).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: noPassedLessonsMessage })).toHaveAttribute(
+    "aria-valuetext",
+    progressValueText(0, dashboard.totalLessons),
+  );
+  const rows = page.locator("main ul > li");
+  await expect(rows).toHaveCount(dashboard.modules.length);
+  for (const [index, module] of dashboard.modules.entries()) {
+    const link = rows.nth(index).getByRole("link");
+    await expect(link).toHaveAttribute("href", `${catalogPath(dashboard.courseId)}#${module.id}`);
+    await expect(link).toContainText(module.title);
+    await expect(link).toContainText(
+      module.isAvailable ? moduleProgressLabel(0, module.lessonCount) : modulePreparingLabel,
+    );
+  }
   await expect(page.getByRole("button", { name: credentials().email, exact: true })).toBeVisible();
   const staticResponses = responses.filter((r) =>
     new URL(r.url()).pathname.startsWith("/_next/static/"),
@@ -45,16 +90,56 @@ test("the dashboard shows the shell and the empty state for the signed-in user",
   expect(horizontalOverflow, "horizontal scroll at 375").toBeLessThanOrEqual(0);
 });
 
-test("F6 cycles the top bar and main, Shift+F6 goes back (AC12)", async ({ page }) => {
+test("Tab order runs through the top bar, the start button and the module rows", async ({
+  page,
+}) => {
+  const dashboard = await repoDashboard();
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
+  const expected = [
+    skipLinkLabel,
+    brandName,
+    homeTitle,
+    courseLinkLabel,
+    credentials().email,
+    startLessonLabel,
+    ...dashboard.modules.map((module) => module.title),
+  ];
+
+  const visited: string[] = [];
+  for (const name of expected) {
+    await page.keyboard.press("Tab");
+    const label = await page.evaluate(() => document.activeElement?.textContent ?? "");
+    visited.push(label.includes(name) ? name : label);
+  }
+
+  expect(visited).toEqual(expected);
+});
+
+test("F6 cycles the top bar and the start button, Shift+F6 goes back (AC12)", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
 
   await page.keyboard.press("F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
   await page.keyboard.press("F6");
-  await expect(page.locator("main#main")).toBeFocused();
+  await expect(page.getByRole("link", { name: startLessonLabel })).toBeFocused();
   await page.keyboard.press("Shift+F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
+});
+
+test("a ready module row opens its catalog section with the heading focused (AC5)", async ({
+  page,
+}) => {
+  const dashboard = await repoDashboard();
+  const module = dashboard.modules.find((candidate) => candidate.isAvailable);
+  if (module === undefined) throw new Error("the course needs an available module");
+
+  await page.goto("/");
+  await page.locator("main ul > li").filter({ hasText: module.title }).getByRole("link").click();
+
+  await expect(page.locator(`#${module.id}-heading`)).toBeFocused();
+  expect(new URL(page.url()).hash).toBe(`#${module.id}`);
 });
 
 test("a rejected session fills the existing alert container without moving focus (AC10)", async ({

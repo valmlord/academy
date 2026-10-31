@@ -60,6 +60,27 @@ docker compose up -d --build --wait   # the whole stack, web on http://127.0.0.1
 Always pass `--build` after a change: compose tags the image `academy-web:local`, and `up` without
 `--build` reuses a stale one.
 
+### Course content
+
+The catalog and lesson pages read `course/` at request time (ADR-0009). The image carries a copy of the
+learner-visible files only, in `/app/course`: `course.yaml`, every listed `module.yaml`, and `lesson.yaml`,
+`theory.md`, `task.md` of every listed lesson; never `checks/`, `starter/` or `quiz.yaml`. So a content change
+shows up in the compose stack only after `docker compose up -d --build`; `pnpm dev` shows it on reload.
+`bash apps/web/scripts/check-image-course.sh` checks the image against the current `course/` and prints the
+lines `C1 OK` to `C4 OK`.
+
+`COURSE_ROOT` names the directory that holds the course, as an absolute path. Unset, `pnpm dev` reads the
+repository's `course/`; the image sets `/app/course`; a relative path puts the course pages into their course
+error state and logs `web: course read failed: COURSE_ROOT: must be an absolute path`. The line
+`web: course read failed: .: missing` means the course root itself does not exist: `COURSE_ROOT` points
+nowhere, or the image was built without `/app/course`.
+
+`ACADEMY_SKIP_ROOT_ENV` is for isolated test runs that must not read the root `.env`. Unset, which is the
+normal case, `pnpm dev`, `pnpm build`, `pnpm seed` and `pnpm test:e2e` load the root `.env` exactly as
+before. Exported as `1`, they skip it and print `root .env not loaded: ACADEMY_SKIP_ROOT_ENV=1` on stderr;
+any other value stops startup with an error naming the variable. `COMPOSE_ENV_FILES=/dev/null` is the
+compose counterpart. Export both in the shell, never in `.env`.
+
 ### Signing in
 
 The platform has one user, created by a seed script; there is no sign-up. From the repository root:
