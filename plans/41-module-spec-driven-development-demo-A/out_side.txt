@@ -1,1 +1,0 @@
-side channel, 40 runs per variant: reference median cheap 13906.25 ns, heavy 14104.0 ns; best single-threshold accuracy 0.650 (m01_grace_four_days:heavy) (threshold learned on the first half, accuracy on the second); 4-sd band 0.816; within band

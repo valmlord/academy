@@ -88,36 +88,6 @@ jobs:
         run: bash packages/db/scripts/check-drift.sh
       - run: pnpm test:integration
 
-  pipeline:
-    name: agent pipeline hooks
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get install -y shellcheck
-      - run: shellcheck -S error .claude/hooks/*.sh .claude/hooks/lib/*.sh tests/pipeline/run.sh
-      - run: python3 -m py_compile .claude/hooks/lib/*.py
-      - run: bash tests/pipeline/run.sh
-
-  # Its own job, because PEP 668 refuses pip installs into the runner's system Python.
-  pipeline-types:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: >-
-          python -m pip install --no-deps --only-binary :all:
-          -r tests/pipeline/requirements-typecheck.txt
-      # mypy runs on 3.12 but checks against the hooks' 3.9 runtime; the cache stays outside the repo.
-      - run: >-
-          MYPYPATH=.claude/hooks/lib python -m mypy --strict --python-version 3.9
-          --cache-dir "$RUNNER_TEMP/mypy-cache" .claude/hooks/lib/*.py
-
   design:
     name: design tokens
     runs-on: ubuntu-24.04

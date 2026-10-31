@@ -1,6 +1,0 @@
-01-verification/verify_late_fee.py: (4a) usercustomize without -I exit 0, with -I exit 3; (4b) PATH shim exit 0, fixed PATH exit 3; (4d) hidden dirs in the mount: none
-01-verification/verify_stop_hook.py: (4a) usercustomize without -I exit 0, with -I exit 3; (4b) PATH shim exit 0, fixed PATH exit 3; (4d) hidden dirs in the mount: none
-05-pocock-pipeline/verify_reminders.py: (4a) usercustomize without -I exit 0, with -I exit 3; (4b) PATH shim exit 0, fixed PATH exit 3; (4d) hidden dirs in the mount: none
-07-integrity-control/verify_change.py: (4a) usercustomize without -I exit 0, with -I exit 3; (4b) PATH shim exit 0, fixed PATH exit 3; (4d) hidden dirs in the mount: none
-07-integrity-control/verify_stop_integrity.py: (4a) usercustomize without -I exit 0, with -I exit 1; (4b) PATH shim exit 0, fixed PATH exit 1; (4d) hidden dirs in the mount: none
-07-integrity-control/verify_linter.py: (4a) usercustomize without -I exit 0, with -I exit 1; (4b) PATH shim exit 0, fixed PATH exit 1; (4d) hidden dirs in the mount: none

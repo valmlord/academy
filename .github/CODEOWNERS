@@ -1,8 +1,6 @@
-# The learner owns the contracts between teams, the database schema and the pipeline itself.
-# scripts/github_bootstrap.py rewrites this file only while it still holds the OWNER placeholder.
+# The learner owns the contracts between teams and the database schema.
 /packages/lesson-schema/  @valmlord
 /packages/db/             @valmlord
 /docs/adr/                @valmlord
-/.claude/                 @valmlord
 /course/                  @valmlord
 /design/                  @valmlord

@@ -1,9 +1,0 @@
-Python 3.12.13
-trained 7 rules
-static_off: 0/20 PASS (shuffled); red/green probes right 176/360 = 0.4889; red 0/184, green 176/176; per-class pattern hit 0/120 = 0.0000
-static_ast: 0/20 PASS (shuffled); red/green probes right 0/360 = 0.0000; red 0/184, green 0/176; per-class pattern hit 0/120 = 0.0000
-mtime_off: 0/20 PASS (shuffled); red/green probes right 173/360 = 0.4806; red 0/187, green 173/173; per-class pattern hit 0/120 = 0.0000
-gap_mem: 0/20 PASS (shuffled); red/green probes right 175/360 = 0.4861; red 1/186, green 174/174; per-class pattern hit 0/120 = 0.0000
-cpu_mem: 0/20 PASS (shuffled); red/green probes right 184/360 = 0.5111; red 108/192, green 76/168; per-class pattern hit 16/120 = 0.1333
-generic_eval: 10/10 PASS (shuffled); red/green probes right 180/180 = 1.0000; red 95/95, green 85/85; per-class pattern hit 60/60 = 1.0000
-memory_guess: 0/300 PASS (shuffled); red/green probes right 2710/5400 = 0.5019; red 928/2746, green 1782/2654; per-class pattern hit 287/1800 = 0.1594
