@@ -258,3 +258,12 @@ hidden controls stayed unconditional. Round 2 passed once the brief named the cl
 Rule: when a DESIGN brief asks for a release or visibility rule, ask the architect to list every member of the
 class the rule hides first (labels, routes, flow step ids, components), then grep each member and scope every
 acceptance check, table row and AC that describes one.
+
+### 2026-10-31: One coder spawn for a 47-step design ran out of context (#30)
+
+The first #30 coder stopped after commit 6 of 10 when its context ran low; a second spawn finished. It stopped
+cleanly only because the brief asked for a clean commit boundary. The fix rounds also rebased onto
+`origin/main`, which a background fetch had moved, and the coder had to move the branch back by hand.
+Rule: for a design over about 25 steps, brief the coder in commit ranges from the start (one spawn per 4-5
+commits, each with the resume notes of the previous one), and name the base commit explicitly in every rebase
+instruction instead of `origin/main`.

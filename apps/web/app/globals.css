@@ -238,3 +238,75 @@
     outline-offset: -2px;
   }
 }
+
+/* Lesson prose (theory.md, task.md), mirroring design/system/proto.css "Composition: prose". Tailwind's
+   preflight resets heading sizes, list bullets and link underlines, so each is set here. h4 is one step
+   below h3 because proto.css has no `.prose h4` and two task.md files use ### (design D3). Programmatic
+   focus on a section h2 (tabindex -1) uses the global inset ring: the README's rule for headings wins over
+   proto.css's outside offset (#83). */
+@layer components {
+  .prose {
+    max-width: 70ch;
+    overflow-wrap: break-word;
+    @apply text-base/[1.7];
+  }
+  .prose > * + * {
+    @apply mt-4;
+  }
+  .prose h2 {
+    @apply mt-10 text-2xl font-semibold;
+  }
+  .prose h3 {
+    @apply mt-8 text-xl font-semibold;
+  }
+  .prose h4 {
+    @apply mt-6 text-lg font-semibold;
+  }
+  .prose ul,
+  .prose ol {
+    @apply pl-6;
+  }
+  .prose ul {
+    @apply list-disc;
+  }
+  .prose ol {
+    @apply list-decimal;
+  }
+  .prose li + li {
+    @apply mt-1;
+  }
+  .prose blockquote {
+    @apply mx-0 border-l-2 border-border pl-4 text-muted-foreground;
+  }
+  .prose a {
+    @apply text-foreground underline underline-offset-[0.2em] hover:decoration-2;
+  }
+  .prose code {
+    @apply rounded-sm bg-muted px-1 py-0.5 font-mono text-sm text-foreground;
+  }
+  .prose .table-wrap {
+    @apply overflow-x-auto;
+  }
+  .prose table {
+    @apply w-full border-collapse text-sm;
+  }
+  .prose th,
+  .prose td {
+    @apply border-b border-border px-3 py-2 text-left align-top;
+  }
+  .prose th {
+    @apply font-semibold;
+  }
+  .code-block {
+    @apply relative rounded-md border border-border bg-muted;
+  }
+  .code-block pre {
+    @apply m-0 overflow-x-auto px-4 py-3 font-mono text-sm;
+  }
+  .code-block pre code {
+    @apply bg-transparent p-0 text-[length:inherit];
+  }
+  .code-block-header {
+    @apply flex flex-wrap justify-end gap-2 border-b border-border px-2 py-1;
+  }
+}

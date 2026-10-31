@@ -1,13 +1,15 @@
-import { existsSync } from "node:fs";
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
+import { loadRootEnv } from "./lib/root-env.ts";
 
 // The specs read SEED_EMAIL / SEED_PASSWORD from the root .env when it exists, like pnpm dev and the
-// seed; a variable already set in the shell wins over the file.
-const rootEnvFile = path.join(import.meta.dirname, "../../.env");
-if (existsSync(rootEnvFile)) {
-  process.loadEnvFile(rootEnvFile);
-}
+// seed; a variable already set in the shell wins over the file. ACADEMY_SKIP_ROOT_ENV=1 skips the file for
+// isolated runs (lib/root-env.ts).
+loadRootEnv({
+  env: process.env,
+  file: path.join(import.meta.dirname, "../../.env"),
+  log: (line) => console.error(line),
+});
 
 // The compose web service's default WEB_PORT; E2E_BASE_URL points the run at any other server.
 const defaultBaseUrl = "http://127.0.0.1:3080";

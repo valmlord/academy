@@ -2,7 +2,9 @@
  * Status vocabularies (ADR-0007, decision 4). Each array is the single source of both the TS column
  * type and the values of the named CHECK constraint, so a new value needs a generated migration.
  */
-import { Check } from "@academy/lesson-schema";
+// The schema-only entry point: the package index also re-exports the validator, whose node:fs walks make
+// Turbopack trace the whole project into the web build.
+import { Check } from "@academy/lesson-schema/schema";
 import { type SQL, sql } from "drizzle-orm";
 import { InvalidVocabularyValueError } from "./errors.js";
 
