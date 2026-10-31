@@ -54,7 +54,7 @@ direct explanation ("скажи прямо") by name.
 ## 4. Dashboard and course adaptation
 
 The dashboard shows progress by module, attempt history, mentor remarks and weak topics. Weak
-topics go to `learner/journal.md` (later to the database). The methodologists read the journal
+topics go to the learner journal, kept with the agent process files (later to the database). The methodologists read the journal
 when they design the next module and add practice where you stumble. The course is built for one
 person, not "for everyone".
 

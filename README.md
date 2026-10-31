@@ -22,6 +22,17 @@ scripts/                  design token validator (ADR-0006)
 tests/design/             tests of the design token validator
 ```
 
+### Citations of working notes
+
+Designs, research notes and judge reviews are working notes kept on the author's machine; they are not
+published. Comments and docs cite them by short ids: "design 4.Q5", "design §3", "(design 0.2)",
+"decision A5", "deviation D1", "assumption A15", "(Arch A4)", "O N2", "research §2", "round-4 advisory",
+"judge_ux round 1", or a bare id such as "(A17)" or "(U1)" that the file does not define. Such an id cites
+the notes of the pull request that first added it to that file:
+`git log --reverse --format=%s -S '<id>' -- <file> | head -1` prints that commit, whose subject ends with
+the pull request number; the pull request names its issue. A citation that names its issue ("the #50 design
+notes") says so itself. F, R and AC ids are defined in `design/flows/` and `design/pages/*/acceptance.md`.
+
 ## Getting started
 
 Requirements: Node 22, pnpm 10, Docker, git, gh, python3.

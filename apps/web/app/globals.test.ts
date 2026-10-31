@@ -9,7 +9,7 @@ const endMarker = "/* design-tokens:end */";
 // ADR-0006 item 1: dev copies design/system/tokens.css verbatim into globals.css between the markers.
 const recopyProcedure =
   "re-copy design/system/tokens.css between the design-tokens markers of apps/web/app/globals.css " +
-  "via a dev HOTFIX branch cut from the DESIGN branch (plans/1-web-bootstrap-design.md section 5)";
+  "via a dev HOTFIX branch cut from the DESIGN branch (README, Web app: re-copy of the token block)";
 
 // Read at test time, never imported: the app must not depend on design/ at runtime (ADR-0006 item 3).
 const repositoryRoot = path.join(import.meta.dirname, "../../..");

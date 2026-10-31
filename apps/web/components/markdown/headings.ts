@@ -11,7 +11,7 @@ import type { LessonTextKind } from "@/lib/course/text";
 // start at h2:
 //   theory: a leading "# <title>" repeats the page h1 and is dropped; any other depth 1 or 2 is h2, 3 is
 //           h3, 4-6 are h4; every h2 gets id "sec-<n>" and tabIndex -1 as a focus target of the contents;
-//   task:   1 is h2, 2 is h3, 3-6 are h4 (design D3).
+//   task:   1 is h2, 2 is h3, 3-6 are h4 (#30 design notes, D3).
 
 export interface Section {
   id: string;

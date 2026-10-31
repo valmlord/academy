@@ -54,7 +54,7 @@ export async function generateMetadata(props: LessonPageProps): Promise<Metadata
 // design/pages/lesson `#state-m0`: the lesson region alone, full width: breadcrumb, header, the M0 line,
 // the prerequisite Alert, the theory and task tabs. `main` is no F6 stop of its own (ia.md R3: the
 // region is), so the second F6 lands on the breadcrumb's course link. A course that cannot be read uses
-// the catalog's error composition (design D2); an unknown, foreign or invisible lesson is not found.
+// the catalog's error composition (#30 design notes, D2); an unknown, foreign or invisible lesson is not found.
 export default async function LessonPage(props: LessonPageProps): Promise<ReactElement> {
   await requireSession(await returnPath(props));
   const { courseId, lessonId } = await props.params;

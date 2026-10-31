@@ -6,7 +6,7 @@ left (research open question 9). Sources: learning-process §3 (Socratic review;
 transcript; hint ladder question -> direction -> skeleton -> direct explanation; "подсказка", "скелет",
 "скажи прямо"), #37 (rubric grading, Socratic answer, score, budget per call, cost logging), #38
 (transcripts), task.md "Попытки и подсказки" (levels "скелет" and "скажи прямо" open after a check is
-closed), `learner/profile.md` "Format". Prototypes deferred (D3 in the design file). Nothing of these
+closed), the learner profile, "Format". Prototypes deferred (D3 in the #50 design notes). Nothing of these
 flows is shown before #37 ships: no "Разобрать с ментором", no "Попросить подсказку", no review block
 (rule R6 in `ia.md`).
 
@@ -59,7 +59,7 @@ costs money (#37).
 
 **Goal:** get unstuck one level at a time without receiving the answer. Source: learning-process §3 (hint
 levels on request); task.md (levels "скелет" and "скажи прямо" only after the check is closed);
-`learner/profile.md` "Format"; G4, G7.
+the learner profile, "Format"; G4, G7.
 
 **Entry:** "Попросить подсказку" on any check row (F13.6), on the Задание tab's "Попытки и подсказки"
 section, or in the review (F16).

@@ -24,8 +24,8 @@ without comment; every changed or added value is here, with the reason.
 | `destructive` | dark | `oklch(0.704 0.191 22.216)` | `oklch(0.704 0.182 22.216)` | the default is outside sRGB; same lightness and hue, chroma reduced into gamut |
 | `destructive-foreground` | both | absent | light `oklch(0.985 0 0)`, dark `oklch(0.145 0 0)` | see below |
 | `chart-1` .. `chart-5` | both | several outside sRGB | each out-of-gamut value: chroma reduced to 97 % of the sRGB maximum at the same lightness and hue; in-gamut ones kept | the validator rejects out-of-gamut colours; no v1 page draws a chart, the tokens stay for shadcn parity |
-| `success`, `warning`, `info` (+ `-foreground`) | both | absent | see `tokens.css` | check statuses of `checks.md` (design section 2); light fills are dark with near-white text, dark fills are light with near-black text |
-| `terminal`, `terminal-foreground` | both, same value | absent | `oklch(0.18 0 0)`, `oklch(0.92 0 0)` | the terminal is dark in both themes because xterm's ANSI palette is tuned for a dark background (design section 2) |
+| `success`, `warning`, `info` (+ `-foreground`) | both | absent | see `tokens.css` | check statuses of `checks.md` (#50 design notes §2); light fills are dark with near-white text, dark fills are light with near-black text |
+| `terminal`, `terminal-foreground` | both, same value | absent | `oklch(0.18 0 0)`, `oklch(0.92 0 0)` | the terminal is dark in both themes because xterm's ANSI palette is tuned for a dark background (#50 design notes §2) |
 | `terminal-ansi-*` (16), `terminal-cursor`, `terminal-cursor-accent`, `terminal-selection` | both, same value | absent | hex, see `tokens.css` | passed to xterm's `theme` by #32, which takes hex; based on xterm's defaults with red, blue, magenta and bright black lightened to reach 4.5:1 on `terminal`; `bright-blue` lightened to stay brighter than `blue`; selection is opaque because a translucent surface has no defined contrast |
 
 Unchanged defaults the validator also measured (output under "Validator output"): `border` stays
@@ -48,7 +48,7 @@ Rules for dev and the prototypes:
   `destructive` mixed 90 % with `foreground` (measured below), not `/90` alpha, which drops light hover
   to 4.214:1.
 - Fail statuses ("Не пройден", "Не пройдено") stay the outline Badge with the `destructive` icon and word
-  (design section 2), never a filled `destructive` badge: filled colour is reserved for the one
+  (#50 design notes §2), never a filled `destructive` badge: filled colour is reserved for the one
   destructive action on the page.
 - `destructive` as text (field errors, the destructive Alert title, the fail badge) sits only on
   `background` or `card`: measured in both themes.

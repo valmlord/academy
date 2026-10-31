@@ -8,8 +8,8 @@
 #30 builds the catalog and the M0 lesson page, the first pages that show `course/`. ADR-0001 fixes the lesson
 format (item 1: the platform imports its types from `@academy/lesson-schema`; item 4: the learner sees only
 `ready`; item 5: grader material never reaches the browser). ADR-0002 mounts `checks/` only into the grader
-process of the workspace container. Facts, with sources: `plans/30-catalog-lesson-page-research.md` and
-section 0 of `plans/30-catalog-lesson-page-design.md`.
+process of the workspace container. Facts, with sources: the #30 research notes and
+section 0 of the #30 design (PR #85), working notes that are not published.
 
 - A lesson directory holds more than the learner may see: `checks/` (277 files in the course today, grader
   scripts and answer keys), `starter/` (copied by the workspace service, #31), and in 10 of 13 lessons a

@@ -6,7 +6,6 @@ Closes #
 
 - Tier: <!-- HOTFIX | TASK | PROJECT | PIPELINE | LEARN | MODULE | LESSON | DESIGN | RESEARCH | RELEASE -->
 - Judges: <!-- e.g. design 3/3 PASS, code 3/3 PASS -->
-- Plan: <!-- plans/<issue>-*.md -->
 
 ## How it was verified
 

@@ -1,7 +1,7 @@
 # Journey: progress
 
 Pages: dashboard (F18), lesson, tab Проверки (F19). Progress is not a page of its own (decision A7 in the
-design file), because learning-process §4 puts "progress by module, attempt history, mentor remarks and
+#50 design notes), because learning-process §4 puts "progress by module, attempt history, mentor remarks and
 weak topics" on the dashboard, and the history of one lesson belongs where its next attempt happens.
 Sources: learning-process §2 ("the cost of an attempt is shown on the dashboard") and §4; #35 (attempt
 history per lesson, lesson and module status, course percentage, weak topics); #28 (attempts,
