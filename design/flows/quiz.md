@@ -5,7 +5,7 @@ on the lesson page, not on a route of its own, because it is one of the lesson's
 belongs next to the other check results, and leaving the route would drop the terminal session view.
 Sources: #36 (render quiz.yaml, server scoring, explanations after submission), quiz.yaml format
 (`questions[] {id, type: single | multiple, prompt, options[], correct[], explanation}`), task.md
-"Попытки и подсказки" in L1, L2, L3, L5, L6 (research §3, §4). Prototype deferred (D2 in the design file).
+"Попытки и подсказки" in L1, L2, L3, L5, L6 (research §3, §4). Prototype deferred (D2 in the #50 design notes).
 Nothing of this flow is shown before #36 ships: no Квиз tab, no quiz check row, no "Пройти квиз" (rule R6
 in `ia.md`).
 

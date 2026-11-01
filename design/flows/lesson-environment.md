@@ -11,7 +11,7 @@ required), research §3, §5, §8. Checks are in `checks.md`, the quiz in `quiz.
 `mentor.md`.
 
 "Окружение" (English: environment) is the running container, "рабочая папка" is its files (decision A1 in
-the design file). A lesson without the `workspace` field in `lesson.yaml` has no environment and no
+the #50 design notes). A lesson without the `workspace` field in `lesson.yaml` has no environment and no
 "Окружение" region; the left pane takes the full width.
 
 ## Layout by width (decision A8)
@@ -184,7 +184,7 @@ session); research §8 (keys the agent needs); G2, G6.
   pane's smallest / largest size; Enter cycles the same presets as a click (the library's Enter collapse
   toggle does nothing here, because neither pane is `collapsible`). The library's own `F6` (next
   separator) never fires: the page's capture-phase `F6` listener handles the key first (R3; verified by
-  the #32 acceptance test, design file P2).
+  the #32 acceptance test, #50 design notes P2).
 - Name and hint: accessible name "Граница панелей"; on hover and on focus a Tooltip "Перетащите или
   щёлкните, чтобы сменить ширину", tied with `aria-describedby`. Tab order: R4.
 
@@ -205,16 +205,16 @@ session); research §8 (keys the agent needs); G2, G6.
   element, so a screen reader reads the way out when focus enters the terminal (WCAG 2.2 SC 2.1.2 No
   Keyboard Trap).
 - Not verified: whether `F6` reaches the page's listener before the browser in Chrome, Firefox and Safari.
-  This is an acceptance test of #32 (design file, P2): from the focused terminal, `F6`, Shift+`F6`,
+  This is an acceptance test of #32 (#50 design notes, P2): from the focused terminal, `F6`, Shift+`F6`,
   Ctrl+Shift+. and Ctrl+Shift+, each move focus to the expected region in the latest stable Chrome,
   Firefox and Safari on macOS and in Chrome and Firefox on Linux or Windows. A key that fails in a
   browser is dropped from the hint in that browser, and the fallback chord must pass everywhere. The
   matrix also runs every key with the Russian layout active and with a Ctrl+Shift layout switch turned on
   (Linux, Windows), and in Firefox with Multi-Account Containers installed, because those may take
-  Ctrl+Shift+. or the Ctrl+Shift press (design file, P2).
+  Ctrl+Shift+. or the Ctrl+Shift press (#50 design notes, P2).
 
 **Terminal surface:** dark in both themes (tokens `terminal` / `terminal-foreground`, the ANSI palette
-and the cursor and selection tokens, design file §2), because xterm's default ANSI colours are tuned for a dark background and the
+and the cursor and selection tokens, #50 design notes §2), because xterm's default ANSI colours are tuned for a dark background and the
 learner's agent output uses them. The focus ring of the terminal frame is checked at 3:1 against both the
 page background and `terminal`.
 
@@ -287,7 +287,7 @@ for a warning and at least 20 seconds to extend with a simple action). When #31 
 alert is shown and F10 starts at F10.3. Activity means terminal input, a check run or "Продолжить работу"
 (#31 decides the server-side signal). Terminal output is not activity in this definition, so an agent
 working alone for longer than the limit can be stopped mid-run; #31 should count a running foreground
-process or recent output as activity (design file, P2). A countdown of the session lifetime is not shown
+process or recent output as activity (#50 design notes, P2). A countdown of the session lifetime is not shown
 (F2).
 
 ## F11: Reset the working folder or restart the environment
@@ -329,7 +329,7 @@ Recreate fails: F8 error states.
 cancels.
 
 **Time limits:** none. The course text's "сброс урока" and "сброс рабочей папки" are one UI action,
-"Сбросить рабочую папку" (assumption A11 in the design file).
+"Сбросить рабочую папку" (assumption A11 in the #50 design notes).
 
 ## F12: Edit files in the editor (M4)
 
@@ -356,6 +356,6 @@ the environment is stopped: F10.
 
 **Keyboard path:** not settled: code-server in an iframe keeps its own key handling (research §8, not
 verified), so neither `F6` nor the fallback chord may reach the page from inside it. The follow-up DESIGN
-issue for the editor tab resolves the leave key before #40 starts (design file, deferred D5).
+issue for the editor tab resolves the leave key before #40 starts (#50 design notes, deferred D5).
 
 **Time limits:** the environment idle stop (F10) applies; editor activity should count as activity (#40).

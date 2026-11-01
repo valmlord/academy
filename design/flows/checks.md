@@ -10,7 +10,7 @@ timeout marked as timeout, concurrent checks do not collide, saved as an attempt
 timeout and budget); task.md "Как проверяется" and "Попытки и подсказки" in all six module 00 lessons
 (research §4); `packages/lesson-schema` check fields (research §3).
 
-Status set of one check (closed set, `ia.md` vocabulary; tokens in the design file §2; colour is never the
+Status set of one check (closed set, `ia.md` vocabulary; tokens in the #50 design notes §2; colour is never the
 only signal, every status has an icon and a word):
 
 | Status | Russian label | Token | In v1 prototype |
@@ -125,7 +125,7 @@ result is there on return (F19).
 
 ## F14: Reach the attempt limit of a check
 
-Prototype deferred (D1 in the design file).
+Prototype deferred (D1 in the #50 design notes).
 
 **Goal:** know that a check is closed, why, and what comes next. Source: task.md "Попытки и подсказки"
 (L1 `model-routing` and L3 `cost-estimate`: at most 10 failed checks, then closed as "не пройдено";
@@ -147,7 +147,7 @@ Prototype deferred (D1 in the design file).
 **Success:** the learner knows the check is closed and goes to the mentor review.
 
 **Error states:** the limit is unknown to the UI (it lives in task.md prose only, not in `lesson.yaml`;
-contract gap, dev follow-up P1 in the design file): no "Осталась 1 попытка" and no "из N"; the closed state
+contract gap, dev follow-up P1 in the #50 design notes): no "Осталась 1 попытка" and no "из N"; the closed state
 appears only when the server reports it.
 
 **Empty states:** a check with unlimited attempts never reaches F14.

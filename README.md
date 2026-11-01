@@ -11,15 +11,6 @@ while the agents design and review.
 ## Where things are
 
 ```
-CLAUDE.md                 orchestrator instructions: how any task runs
-.claude/pipeline.json     state machine: task tiers, phases, judges (source of truth)
-.claude/agents/dev/       dev team: researcher, architect, coder, tester, mentor, 3 judges
-.claude/agents/content/   methodologists: content-researcher, curriculum-architect, lesson-author,
-                          practice-designer, student, 3 judges
-.claude/agents/design/    design team (UX/UI): ux-researcher, product-designer, ui-designer, 3 judges
-.claude/hooks/            hooks that keep the process from being broken
-.claude/feedback/         role mistakes: every judge FAIL appends a lesson, the role reads it before work
-pipeline/                 state machine description and shared rules for agents
 docs/learning-process.md  how learning works (start here)
 docs/architecture.md      platform components
 docs/adr/                 architecture decisions
@@ -27,18 +18,28 @@ docs/course-reference.md  reference course program
 packages/lesson-schema/   lesson contract between the teams + validator
 course/                   course content (written by the methodologists)
 design/                   flows, design system and page prototypes (written by the design team, ADR-0006)
-learner/                  learner profile and journal (the course adapts to it)
-backlog/                  drafts of the first tasks, imported into GitHub Issues
-tests/pipeline/           self-test of the pipeline hooks
+scripts/                  design token validator (ADR-0006)
+tests/design/             tests of the design token validator
 ```
+
+### Citations of working notes
+
+Designs, research notes and judge reviews are working notes kept on the author's machine; they are not
+published. Comments and docs cite them by short ids: "design 4.Q5", "design §3", "(design 0.2)",
+"decision A5", "deviation D1", "assumption A15", "(Arch A4)", "O N2", "research §2", "round-4 advisory",
+"judge_ux round 1", or a bare id such as "(A17)" or "(U1)" that the file does not define. Such an id cites
+the notes of the pull request that first added it to that file:
+`git log --reverse --format=%s -S '<id>' -- <file> | head -1` prints that commit, whose subject ends with
+the pull request number; the pull request names its issue. A citation that names its issue ("the #50 design
+notes") says so itself. F, R and AC ids are defined in `design/flows/` and `design/pages/*/acceptance.md`.
 
 ## Getting started
 
-Requirements: Node 22, pnpm 10, Docker, git, gh, python3, a recent Claude Code (the hooks use SubagentStop with `agent_transcript_path`).
+Requirements: Node 22, pnpm 10, Docker, git, gh, python3.
 
 ```bash
 pnpm install
-pnpm lint && pnpm typecheck && pnpm test && pnpm content:validate && pnpm test:pipeline
+pnpm lint && pnpm typecheck && pnpm test && pnpm content:validate
 cp .env.example .env
 docker compose up -d --build --wait
 ```
@@ -114,22 +115,3 @@ branch and whose PR targets it (`gh pr create --base <design-branch>`). The code
 the markers and nothing else. GitHub does not close an issue from a PR into a non-default branch, so that
 issue is closed by hand after the DESIGN PR merges. A re-copy that changes more than 5 lines runs as
 TASK, not HOTFIX.
-
-## Connecting GitHub
-
-```bash
-gh repo create academy --private --source . --push
-python3 scripts/github_bootstrap.py --dry-run   # show the plan
-python3 scripts/github_bootstrap.py             # labels, milestones and 20 issues from backlog/
-```
-The script also replaces `@OWNER` in `.github/CODEOWNERS` with your login. Commit that change
-through a branch and a PR, like any other.
-
-## Running a task
-
-Open Claude Code in the repository and write, for example, "take #1". The orchestrator reads the
-issue, picks the tier, announces `[PROJECT #1] pipeline: ...`, creates a branch and drives the task
-through the phases up to the PR. Details in `CLAUDE.md`.
-
-Suggested order: #1 (web skeleton) and the module "Introduction to AI-assisted development" in
-parallel, then M0, then the LEARN tasks of M1.

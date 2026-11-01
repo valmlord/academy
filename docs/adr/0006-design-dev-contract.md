@@ -11,7 +11,7 @@ fixed hand-over, the teams drift the way ADR-0001 describes for lessons: designe
 app never reads, dev re-types colours by eye, and nobody can say whether a page is finished. shadcn/ui
 keeps its theme as CSS custom properties in `app/globals.css`: light values in `:root`, dark values in
 `.dark`, mapped to Tailwind v4 through `@theme inline` (ui.shadcn.com/docs/theming). Facts and the
-full design: `plans/27-design-team-research.md`, `plans/27-design-team-design.md`.
+full design: the #27 research notes and the #27 design (PR #47), working notes that are not published.
 
 ## Decision
 1. **Single source of tokens**: `design/system/tokens.css`, containing exactly, in this order,

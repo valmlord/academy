@@ -6,7 +6,7 @@ of modules and lessons, `ready` only; e2e "open a module, open a lesson, see the
 
 Module sections, not module pages, because the course has six modules of which five are `planned` with
 no lessons (research §3): five module pages would be empty, and one page with six sections shows the
-whole course at once (decision A6 in the design file). "Open a module" in #30's e2e means following the
+whole course at once (decision A6 in the #50 design notes). "Open a module" in #30's e2e means following the
 module link to its section.
 
 ## F5: Find a lesson in the catalog
@@ -36,7 +36,7 @@ module link to its section.
 - Unknown lesson or module in the URL, or a lesson that is not `ready`: the not-found state "Страница не
   найдена" with "Открыть курс". A non-`ready` lesson is never visible (#30 AC), so it is reported as not
   found rather than "not ready yet", because a "coming soon" page would show that it exists. Not-found is
-  an app-shell state with the top bar; it is not prototyped in #50 (design file §3), this copy is its
+  an app-shell state with the top bar; it is not prototyped in #50 (#50 design notes §3), this copy is its
   spec. It ships with the catalog in #30, with the "from #30" top bar (`ia.md` R6, "Before the catalog
   ships"); its `F6` stop `main` lands on "Открыть курс".
 - Progress cannot be read: lessons show no learner status and no prerequisite note (whether a

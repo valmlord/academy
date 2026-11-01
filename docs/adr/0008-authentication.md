@@ -9,8 +9,8 @@ The platform has one learner, who is also its operator, on a stack published onl
 (`127.0.0.1`, plain HTTP; `docker-compose.yml`). ADR-0003 chose Better Auth with email and password;
 ADR-0007 item 2 made `users` Better Auth's user table and left #29 three checks. The designs
 (`design/flows/auth.md`, `design/pages/sign-in`, `design/pages/dashboard`) have no sign-up and no password
-reset: a seed creates the only user. Facts, with sources: `plans/29-sign-in-dashboard-research.md` and
-section 0 of `plans/29-sign-in-dashboard-design.md` (Better Auth 1.7.14 source, file:line).
+reset: a seed creates the only user. Facts, with sources: the #29 research notes and section 0 of the
+#29 design (PR #81; Better Auth 1.7.14 source, file:line), working notes that are not published.
 
 - Better Auth's rate limiter runs only on its HTTP router (`dist/api/index.mjs:173`); server-side
   `auth.api.*` calls are never limited. It is off by default outside `NODE_ENV=production`.

@@ -19,11 +19,11 @@
 **/.npmrc
 **/*.pem
 **/*.key
+# Agent process files and working notes: on disk, never in the build context.
 .claude
-backlog
 plans
-pipeline
-learner
+CLAUDE.md
+
 docs
 design
 scripts

@@ -1,14 +1,10 @@
-# Pipeline runtime state — mutates every phase; must not be tracked or pulled into task commits.
-.claude/pipeline_state*
+# Agent process files: a separate repository cloned into .claude/, and local working notes.
+# Root-anchored, so the course's own .claude/ and CLAUDE.md starters stay tracked.
+/.claude/
+/CLAUDE.md
+/plans/
 
-# Worktrees live inside the repo; a fresh clone must not see them as untracked (dirty-tree gates).
-.claude/worktrees/
-
-# Stepan's machine-local files: the hook kill switch and the pipeline grant must never dirty the tree.
-.claude/settings.local.json
-.claude/settings.pipeline-grant.json
-
-# Hook backups and Python caches.
+# Backups and Python caches.
 *.bak
 **/__pycache__/
 

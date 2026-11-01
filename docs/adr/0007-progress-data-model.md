@@ -6,7 +6,7 @@
 
 ## Context
 The platform needs to store learners, enrollments, lesson progress, attempts, check results and mentor
-reviews (#28, `backlog/02-db-schema.md`). Forces, with sources:
+reviews (#28). Forces, with sources:
 
 - Lessons live in git, not in the database (ADR-0001). Lesson ids are unique only per course
   (`packages/lesson-schema/src/validate.ts`); check ids are unique per lesson; the validator does not check
@@ -22,8 +22,8 @@ reviews (#28, `backlog/02-db-schema.md`). Forces, with sources:
   a value can never be dropped.
 - `docs/architecture.md`: Postgres lives under `apps/web`; the workspace service is the only Docker client.
 
-Sources: `plans/28-db-schema-research.md`, `plans/28-db-schema-design.md` (revision 3), the operations
-reviews `plans/28-db-schema-design-review-1-operations.md` and `-2-operations.md`.
+Sources: the #28 research notes, the #28 design (revision 3) and the operations reviews of PR #59,
+working notes that are not published.
 
 ## Decision
 Each item can be accepted or overturned on its own.
@@ -58,7 +58,7 @@ Each item can be accepted or overturned on its own.
 
    The attempt status above is the aggregation rule over its check results; it is a writer rule, not a
    constraint, because it spans rows.
-5. **Progress semantics.** Every writer (backlog 08, 10, 11, 13) and the reader (backlog 09) follow these
+5. **Progress semantics.** Every writer (#34, #36, #37, #39) and the reader (#35) follow these
    rules.
    - *Attempt scope.* An attempt is one grading run started by one learner action over a non-empty subset
      of the lesson's current checks; its `check_results` are exactly that subset, one per check id. A
@@ -101,13 +101,13 @@ Each item can be accepted or overturned on its own.
    (attempt_id, check_id)`), uuid keys for the event rows (`attempts`, `mentor_reviews`). Every constraint
    and index is named. The cascade covers **Postgres rows in these six tables only**: account deletion
    first collects every `attempts.transcript_path` of the user, then deletes the user, then deletes those
-   transcript files (#78 owns the flow, backlog 12 the store's delete operation; moved from #29 on
+   transcript files (#78 owns the flow, #38 the store's delete operation; moved from #29 on
    2026-10-30). #29's `sessions` and `accounts` FKs to `users` are `ON DELETE CASCADE`.
 7. **Transcript reference** = `attempts.transcript_path`, a path relative to the transcript store root,
    NULL when there is none, constrained by the allowlist
    `^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*/?$` (every segment starts with a letter or
    digit, so no `.` or `..` segment anywhere; both anchors are load-bearing). The constraint is defence in
-   depth: the reader (backlog 12) still resolves `realpath(root + path)` and refuses anything outside the
+   depth: the reader (#38) still resolves `realpath(root + path)` and refuses anything outside the
    root. No length cap; a `char_length` CHECK is additive later.
 8. **Database clients.** `apps/web` is the only process that connects to Postgres and the only writer. It
    calls `migrateDatabase` at startup and exits non-zero if it rejects. One-shot operator commands that
@@ -116,7 +116,7 @@ Each item can be accepted or overturned on its own.
    migrations and never run beside a request path; a command in another package, or a long-running one,
    is a second client and needs this item changed first. Every route or API that takes an
    attempt id checks `attempts.user_id` against the session user. Requirement on the workspace API
-   (backlog 05): it returns per-check results, mentor output and cost, and the transcript path to
+   (#31): it returns per-check results, mentor output and cost, and the transcript path to
    `apps/web`, and the stream the browser sees ends in, or is relayed by, `apps/web`. `architecture.md`
    does not draw that relay yet; this ADR is where it is required. A service writing to the database
    directly needs the workspace-API ADR and an update of this one first.
@@ -190,12 +190,12 @@ Each item can be accepted or overturned on its own.
   2026-10-30; #29 ships only the `sessions` and `accounts` cascade. Item 8: one-shot operator commands of
   the `apps/web` package (the host-side `pnpm seed`, ADR-0008 item 10) count as `apps/web`; before this
   amendment the item could be read as forbidding the seed's connection. No other decision changes.
-- Residual risks of the append-only guard: a direct push to `main` bypasses it (no branch protection,
-  ADR-0004); an edited `when` of an existing `_journal.json` entry is unguarded (U1 only checks that the
-  values increase); a migration applied locally before it was merged may later differ, so Stepan resets
+- Residual risks of the append-only guard: a direct push to `main` bypasses it (no branch protection
+  on the private free plan); an edited `when` of an existing `_journal.json` entry is unguarded (U1 only
+  checks that the values increase); a migration applied locally before it was merged may later differ, so Stepan resets
   his local database (`docker compose down -v`) in that case.
 
-### Follow-ups for backlog 08 (the finish transaction and the stale-attempt sweep)
+### Follow-ups for #34 (the finish transaction and the stale-attempt sweep)
 - If two web processes overlap (a dev restart), the new process's startup sweep can mark the old
   process's in-flight attempt `error` before the old process finishes it. Decide whether the finish
   update overwrites `error` (the more accurate outcome) or is guarded by `status = 'running'`. Either

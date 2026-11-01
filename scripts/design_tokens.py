@@ -8,8 +8,8 @@ Exit codes: 0 clean; 1 findings (a missing tokens.css included); 2 usage error, 
 `pair`, or a tokens.css that cannot be parsed (unterminated comment, unbalanced braces).
 
 Output lines: "contrast ok|contrast low <theme> <fg> on <bg>: <ratio>:1 (min <m>:1)", "INFO ...",
-"ERROR <path>:<line>: <message>". No line starts with a bare PASS or FAIL: judges paste this output into
-reports whose vote is the last verdict-shaped line (hookio.VERDICT_RE).
+"ERROR <path>:<line>: <message>". No line starts with PASS, FAIL or VERDICT: judges paste this output into
+review reports whose vote is the last line starting with one of them.
 
 Known limits: named colour keywords (red, white) are not scanned, the judge-consistency agent reads for
 them; a "--x:" declared in any .css file under the design dir counts as visible on every page, while

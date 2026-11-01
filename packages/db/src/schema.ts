@@ -188,7 +188,7 @@ export const attempts = pgTable(
     courseId: text("course_id").notNull(),
     lessonId: text("lesson_id").notNull(),
     status: text("status", { enum: ATTEMPT_STATUSES }).notNull().default("running"),
-    /** Relative to the transcript store root (backlog 12); NULL means no transcript. */
+    /** Relative to the transcript store root (#38); NULL means no transcript. */
     transcriptPath: text("transcript_path"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),

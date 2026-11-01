@@ -276,7 +276,7 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
 .badge[data-variant="secondary"] { background: var(--secondary); color: var(--secondary-foreground); }
 .badge[data-variant="outline"] { background: transparent; color: var(--foreground); border-color: var(--border); }
 .badge[data-variant="outline"][data-tone="muted"] { color: var(--muted-foreground); }
-/* The fail badge: outline with the destructive icon and word (design section 2). */
+/* The fail badge: outline with the destructive icon and word (#50 design notes §2). */
 .badge[data-variant="outline"][data-tone="destructive"] { color: var(--destructive); border-color: var(--destructive); }
 .badge[data-variant="success"] { background: var(--success); color: var(--success-foreground); }
 .badge[data-variant="warning"] { background: var(--warning); color: var(--warning-foreground); }

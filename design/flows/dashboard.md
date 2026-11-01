@@ -1,7 +1,7 @@
 # Journey: dashboard, "what next"
 
 Page: dashboard (`/`). Sources: `docs/learning-process.md` §4 and §6 ("you open the next lesson on the
-dashboard"), #29 (dashboard "with courses and progress (empty for now)"), `learner/profile.md` "Known
+dashboard"), #29 (dashboard "with courses and progress (empty for now)"), the learner profile, "Known
 weak spots" (freezing on "build the whole thing": the dashboard names one next step), research §1 G1, G7.
 Progress sections of the dashboard are F18 in `progress.md`.
 
@@ -24,11 +24,11 @@ Progress sections of the dashboard are F18 in `progress.md`.
 
 **Rule for "next lesson":** the first `ready` lesson in catalog order that is not finished. A lesson is
 passed when every one of its checks is passed, and finished when every check is passed or closed (F14);
-a closed lesson does not block the queue (assumption A9 in the design file). Prerequisites do not
+a closed lesson does not block the queue (assumption A9 in the #50 design notes). Prerequisites do not
 change the order, because the catalog order already respects them in module 00
 (`course/ai-for-developers/00-introduction/*/lesson.yaml`).
 
-Why Задание for "Продолжить" (assumption A18 in the design file): the button reads "Продолжить" only for
+Why Задание for "Продолжить" (assumption A18 in the #50 design notes): the button reads "Продолжить" only for
 a started lesson (R5: an attempt or terminal input), so the learner has practised, not only opened the
 page; the last open tab lives only in the lesson URL's query and the dashboard cannot know it. Until #31
 or #34 ships no lesson can be started, so the card always reads "Начать" (R5).

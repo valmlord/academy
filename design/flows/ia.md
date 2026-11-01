@@ -1,7 +1,8 @@
 # Information architecture: learner journey
 
-Issue #50, architect phase. Facts behind every decision: `plans/50-learner-flows-design-system-research.md`
-(cited below as "research §n"). Scope of this PR: `plans/50-learner-flows-design-system-design.md`.
+Issue #50 (PR #67), architect phase. "research §n" cites the #50 research notes; "the #50 design notes"
+(decisions An, Dn, Pn and sections §n) cites the #50 design. Both are working notes, kept on the author's
+machine and not published.
 
 Notation: `F6` in backticks is the keyboard key; F6 without backticks is the flow "Open a lesson whose
 prerequisites are not passed". R1-R6 are the interaction rules below; flows refer to them by id instead
@@ -20,7 +21,7 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 | theory | theory | теория | |
 | task | task | задание | |
 | working folder (the files) | working folder | рабочая папка | the files from `starter/`, kept in a volume |
-| environment (the running container) | environment | окружение | decision A1 in the design file. `workspace` appears only as the `lesson.yaml` field name (and in the image name `academy-workspace` it holds); docs never call the container a "workspace" |
+| environment (the running container) | environment | окружение | decision A1 in the #50 design notes. `workspace` appears only as the `lesson.yaml` field name (and in the image name `academy-workspace` it holds); docs never call the container a "workspace" |
 | check | check | проверка | |
 | attempt | attempt | попытка | |
 | quiz | quiz | квиз | |
@@ -39,7 +40,7 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 Every status the UI shows comes from exactly one of these sets. A set holds base labels plus named
 variants; a variant is listed here verbatim (with `N`, `M`, `$N`, `<...>` as placeholders) or it does not
 exist. "When" says which release shows it: v1 (this PR's prototypes), or the deferred design that owns it
-(D1-D5 in the design file).
+(D1-D5 in the #50 design notes).
 
 | Set | Labels (Russian, exact) | Where | When |
 |-----|-------------------------|-------|------|
@@ -171,7 +172,7 @@ reason as a second line inside the item, with the same `aria-describedby`.
 
 ### R3: the `F6` cycle and where focus lands
 
-This is the only statement of the region order; every flow refers to it. Decision A2 in the design file.
+This is the only statement of the region order; every flow refers to it. Decision A2 in the #50 design notes.
 
 Regions on the lesson page, each a `region` landmark with a heading (except "Верхняя панель", the
 `banner`), in `F6` order:
@@ -255,7 +256,7 @@ below) is no stop.
 
 A lesson is **started** when the server has an attempt for it (a check run or a sent quiz) or has
 recorded terminal input in its environment (the activity signal of F10, owned by #31, kept as a durable
-per-lesson flag, design file P2). Opening the page, reading, and the automatic environment start
+per-lesson flag, #50 design notes P2). Opening the page, reading, and the automatic environment start
 (decision A10) do not start a lesson. One rule drives both places that need it:
 - lesson status: "Не начат" = not started; "В процессе" = started and not finished; "Пройден" when every
   counted check (R6) is passed; "Не пройден" when every counted check is passed or closed and at least one
@@ -274,7 +275,7 @@ every quiz control (#36), "Разобрать с ментором", "Попро�
 budget confirmation (#39), recent attempts, weak topics and attempt history (#35). A check whose kind has
 no shipped runner is not listed, not run and not counted in "Пройдено: N из M" or in the lesson status
 (assumption A19): v1 runs `command` checks only (#34); `quiz` arrives with #36, `rubric` with #37,
-`hidden-task` with #39, `bug-hunt` with an issue not yet filed (P3 in the design file). A lesson with no
+`hidden-task` with #39, `bug-hunt` with an issue not yet filed (P3 in the #50 design notes). A lesson with no
 check the platform runs renders as a lesson with no checks: no check bar, no Проверки tab. Release states
 of the lesson page (the M0 lesson, v1): `lesson-environment.md`, "Lesson page by release".
 
@@ -359,7 +360,7 @@ Flows column: every flow whose Entry line or steps happen on the page.
 | sign-in | `/sign-in` | "Вход" | email and password for the single local user | F1, F2 (F2.2-F2.3), F3 (F3.3) | yes |
 | dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts, weak topics, cost | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, D4) | yes: F4 and F18.1-F18.2 only; F18.3-F18.4 are D4 and not drawn (R6) |
 | catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков" | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
-| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the design file |
+| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes |
 | not-found | any unknown route, unknown or not-`ready` lesson | "Страница не найдена" | explains and links to the catalog | F3, F5 | no: an app-shell state, copy in `catalog.md` F5, prototyped with the app shell later |
 
 Every page is reachable from the catalog: the catalog links to every `ready` lesson and, through the

@@ -30,7 +30,6 @@
 - Lesson format: ADR-0001
 - Workspace runtime: ADR-0002
 - Stack: ADR-0003
-- Development process: ADR-0004
 - Design/dev contract: ADR-0006
 - DB schema and progress data model: ADR-0007
 - Workspace service API, authentication: their ADRs will come with the corresponding tasks.

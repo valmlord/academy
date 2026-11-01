@@ -12,7 +12,7 @@ const LINK_CLASS_NAME =
 // design/flows/ia.md R6, "Top bar by release" (from #30): the home link is the current page only on the
 // dashboard and the course link only on the catalog itself; the lesson page and not-found mark neither.
 // Without a known course id (course.yaml unreadable) the course link is left out rather than linked to a
-// guess (design D2).
+// guess (#30 design notes, D2).
 // The links sit directly in the nav, as in the prototypes' `.topbar-nav`.
 export function TopBarNav({ courseId }: { courseId: string | undefined }): ReactElement {
   const pathname = usePathname();

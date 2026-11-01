@@ -16,8 +16,7 @@
     "test:e2e": "turbo run test:e2e",
     "build": "turbo run build",
     "seed": "turbo run seed --filter=@academy/web",
-    "content:validate": "pnpm --filter @academy/lesson-schema run validate ../../course",
-    "test:pipeline": "bash tests/pipeline/run.sh"
+    "content:validate": "pnpm --filter @academy/lesson-schema run validate ../../course"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.3",
