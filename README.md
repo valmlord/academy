@@ -168,9 +168,10 @@ docker ps -q --filter label=academy.workspace.managed=true --filter label=academ
   | xargs -r docker stop
 ```
 
-Rollback (a `git revert` of the #31 commits): the `workspace` container becomes a compose orphan, so run
-`docker compose up -d --remove-orphans`, then the stop command above for the workspaces it leaves running.
-Their volumes stay for a later return.
+Rollback (a `git revert` of the #31 commits): first run the stop command above, because the reverted compose
+publishes db on the host again and running workspaces would reach it. Then `docker compose up -d --remove-orphans`
+removes the orphaned `workspace` container. It leaves the network `academy_workspace-api` behind; remove it with
+`docker network rm academy_workspace-api`. The workspaces' volumes stay for a later return.
 
 ### Sweep of test leftovers
 

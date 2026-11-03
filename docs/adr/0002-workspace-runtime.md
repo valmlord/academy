@@ -223,5 +223,7 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
 - Of the stop causes F8's copy lists, "processes" and "CPU" cannot occur: a pids limit makes `fork` fail and a
   CPU limit throttles, neither stops a container; only memory can.
 - Rollback (a `git revert` of the #31 commits): the `workspace` service and `academy_workspace-api` become compose
-  orphans and `wks-local-*` containers keep running; run `docker compose up -d --remove-orphans` and the README
-  stop-by-label command (volumes stay for a later return).
+  orphans and `wks-local-*` containers keep running. First run the README stop-by-label command, because the
+  reverted compose publishes db on the host again (residual 2 of item 6); then
+  `docker compose up -d --remove-orphans`, which removes the `workspace` container but leaves the network
+  `academy_workspace-api`, removed with `docker network rm academy_workspace-api` (volumes stay for a later return).
