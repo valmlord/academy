@@ -37,6 +37,8 @@ export const containerInspectSchema = z.object({
     OOMKilled: z.boolean(),
   }),
   Config: z.object({ Image: z.string(), Labels: labelsSchema }),
+  /** The memory pair I-limits compares (swap equal to memory means no swap, design 4.5). */
+  HostConfig: z.object({ Memory: z.number().int(), MemorySwap: z.number().int() }),
 });
 export type ContainerInspect = z.infer<typeof containerInspectSchema>;
 

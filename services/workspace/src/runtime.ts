@@ -22,6 +22,17 @@ export interface WorkspaceExit {
   reason: "memory-limit" | "exited";
 }
 
+/** 128 + SIGKILL (9): how a process the OOM killer ended exits. */
+const SIGKILL_EXIT_CODE = 137;
+
+/**
+ * Both conditions, because Docker may set `OOMKilled` after the OOM killer took a non-init process while the
+ * container ran on; a later graceful stop (143) of that container is no memory stop (design 4.1).
+ */
+export function exitReasonOf(oomKilled: boolean, exitCode: number): WorkspaceExit["reason"] {
+  return oomKilled && exitCode === SIGKILL_EXIT_CODE ? "memory-limit" : "exited";
+}
+
 /** One workspace from its container and volume. A volume without a container is `stopped` with no image. */
 export interface WorkspaceInfo {
   /** The derived workspace id (design 4.2), not a Docker Id. */

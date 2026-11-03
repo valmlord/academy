@@ -30,8 +30,8 @@ const OOM_SCORE_ADJ = 500;
  * `noexec` would add no boundary and would break tools that run build steps from `/tmp`.
  */
 const TMP_MOUNT_OPTIONS = "rw,nosuid,nodev,exec,size=256m,mode=1777";
-/** Seconds between Docker's SIGTERM and SIGKILL on a stop: lets an agent flush its transcript. */
-const STOP_TIMEOUT_SECONDS = 10;
+/** Seconds between SIGTERM and SIGKILL on a stop, the container's and the service's: lets an agent flush its transcript. */
+export const STOP_TIMEOUT_SECONDS = 10;
 /** Keeps the container alive; every process comes from exec (#32). */
 const KEEPER_COMMAND = ["sleep", "infinity"];
 

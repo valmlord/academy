@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import type { WorkspaceLimits } from "../../src/config.js";
 import type { DockerEngine } from "../../src/docker/engine.js";
 import { buildContainerSpec, type ContainerCreateBody } from "../../src/docker/spec.js";
@@ -10,6 +11,7 @@ import {
   workspaceLabels,
   workspaceNames,
 } from "../../src/identity.js";
+import type { WorkspaceSpec } from "../../src/runtime.js";
 import { TEST_IMAGE } from "./docker-cli.js";
 
 /** Small enough for any test daemon; the configured limits are I-limits' concern (S24). */
@@ -61,4 +63,12 @@ export function fulfilledValue<T>(result: PromiseSettledResult<T>): T {
   const reason: unknown = result.reason;
   const kind = reason instanceof Error ? reason.constructor.name : typeof reason;
   throw new Error(`expected every concurrent call fulfilled, one rejected with ${kind}`);
+}
+
+/** The fixture course (S7) and its one lesson with a workspace, for runtime-level tests. */
+export const FIXTURE_COURSE_ROOT = fileURLToPath(new URL("../fixtures/course", import.meta.url));
+export const FIXTURE_LESSON_DIR = "sample-course/01-basics/01-with-workspace";
+
+export function fixtureSpec(key: WorkspaceKey): WorkspaceSpec {
+  return { key, image: TEST_IMAGE, starter: { lessonDir: FIXTURE_LESSON_DIR, relPath: "starter" } };
 }

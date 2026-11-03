@@ -78,6 +78,7 @@ class ReservedNameEngine extends DockerEngine {
         OOMKilled: false,
       },
       Config: { Image: INPUT.image, Labels: { ...this.#labels } },
+      HostConfig: { Memory: INPUT.limits.memoryBytes, MemorySwap: INPUT.limits.memoryBytes },
     };
   }
 }

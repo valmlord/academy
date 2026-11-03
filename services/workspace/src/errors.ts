@@ -161,6 +161,28 @@ export class WorkspaceIdentityMismatchError extends Error {
   }
 }
 
+/** Neither container nor volume exists for the key (HTTP 404 `workspace-not-found`). `id` is the derived id. */
+export class WorkspaceNotFoundError extends Error {
+  readonly id: string;
+
+  constructor(id: string) {
+    super(`workspace not found: ${id}`);
+    this.name = "WorkspaceNotFoundError";
+    this.id = id;
+  }
+}
+
+/** Docker refused to remove the volume because a container still uses it (HTTP 409 `workspace-busy`). */
+export class WorkspaceBusyError extends Error {
+  readonly id: string;
+
+  constructor(id: string) {
+    super(`workspace busy: ${id}: its volume is still in use`);
+    this.name = "WorkspaceBusyError";
+    this.id = id;
+  }
+}
+
 /**
  * A container create answered 409 (the name is taken), yet no container of that name became inspectable within
  * the bounded re-inspects (HTTP 502 `docker-error`, design amendment 1). Deliberately not a `DockerApiError`: no `statusCode === 409`

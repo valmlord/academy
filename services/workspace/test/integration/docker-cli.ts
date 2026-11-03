@@ -40,6 +40,29 @@ export async function docker(args: readonly string[]): Promise<string> {
   }
 }
 
+export interface CliResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+const exitedSchema = z.object({ code: z.number().int(), stdout: z.string(), stderr: z.string() });
+
+/** For a command whose non-zero exit is the result under test (an OOM kill, a failed fork), not a failure. */
+export async function dockerResult(args: readonly string[]): Promise<CliResult> {
+  try {
+    const { stdout, stderr } = await run("docker", [...args], { maxBuffer: MAX_OUTPUT_BYTES });
+    return { exitCode: 0, stdout, stderr };
+  } catch (error: unknown) {
+    const exited = exitedSchema.safeParse(error);
+    if (exited.success) {
+      const { code, stdout, stderr } = exited.data;
+      return { exitCode: code, stdout, stderr };
+    }
+    throw new DockerCliError(args, String(error));
+  }
+}
+
 function lines(output: string): string[] {
   return output.split("\n").filter((line) => line.trim() !== "");
 }
