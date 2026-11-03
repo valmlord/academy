@@ -13,3 +13,14 @@ export class InvalidConfigError extends Error {
     this.rule = rule;
   }
 }
+
+/** One part of a workspace key breaks its rule. Names the field only: the value is request input. */
+export class InvalidWorkspaceKeyError extends Error {
+  readonly field: string;
+
+  constructor(field: string) {
+    super(`invalid workspace key: ${field}`);
+    this.name = "InvalidWorkspaceKeyError";
+    this.field = field;
+  }
+}
