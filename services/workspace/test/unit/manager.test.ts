@@ -47,7 +47,13 @@ interface Setup {
   logged: string[];
 }
 
-function setup(options: { imageOverride?: string | null; courseThrows?: boolean } = {}): Setup {
+function setup(
+  options: {
+    imageOverride?: string | null;
+    courseThrows?: boolean;
+    courseGate?: Promise<void>;
+  } = {},
+): Setup {
   const clock = { now: T0 };
   const now = (): number => clock.now;
   const runtime = new FakeRuntime(INSTANCE);
@@ -62,6 +68,7 @@ function setup(options: { imageOverride?: string | null; courseThrows?: boolean 
     runtime,
     readCourse: async () => {
       courseReads.count += 1;
+      if (options.courseGate !== undefined) await options.courseGate;
       if (options.courseThrows === true) throw new Error("the course must not be read here");
       return COURSE;
     },
@@ -186,6 +193,21 @@ describe("WorkspaceManager.stop, remove and activity", () => {
     manager.activity(KEY);
 
     expect((await manager.get(KEY)).idle?.stopAt).toBe(T0 + 40 * MINUTE);
+  });
+
+  it("runs a delete that arrives after an ensure only once that ensure is done, however slow the course read", async () => {
+    let releaseCourse = (): void => {};
+    const courseGate = new Promise<void>((resolve) => {
+      releaseCourse = resolve;
+    });
+    const { manager, runtime } = setup({ courseGate });
+
+    const ensured = manager.ensure(KEY);
+    const removed = manager.remove(KEY);
+    releaseCourse();
+    await Promise.all([ensured, removed]);
+
+    expect(runtime.calls).toEqual([`ensureRunning ${ID}`, `remove ${ID}`]);
   });
 
   it("never reads the course for get, stop and delete", async () => {

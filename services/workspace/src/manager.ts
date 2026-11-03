@@ -56,14 +56,18 @@ export class WorkspaceManager {
     return workspaceNames(instance, workspaceId(instance, key)).container;
   }
 
+  /**
+   * The lock is taken before the course read, so a stop or delete that arrives later on the same key waits
+   * for this ensure instead of overtaking it during the read (ADR-0010 item 8).
+   */
   async ensure(key: WorkspaceKey): Promise<EnsureView> {
     const { runtime, readCourse, imageOverride, tracker, mutex } = this.#options;
-    const lesson = (await readCourse()).lesson(key.courseId, key.lessonId);
-    if (lesson.workspace === null) {
-      throw new LessonHasNoWorkspaceError(key.courseId, key.lessonId);
-    }
-    const { image, starter } = lesson.workspace;
     return mutex.run(this.lockKey(key), async () => {
+      const lesson = (await readCourse()).lesson(key.courseId, key.lessonId);
+      if (lesson.workspace === null) {
+        throw new LessonHasNoWorkspaceError(key.courseId, key.lessonId);
+      }
+      const { image, starter } = lesson.workspace;
       const result = await runtime.ensureRunning({
         key,
         image: imageOverride ?? image,
