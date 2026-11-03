@@ -61,6 +61,17 @@ describe("the root auth hook", () => {
     expect([response.statusCode, response.json()]).toEqual([200, { ok: true }]);
   });
 
+  it("writes no request line for /healthz, which compose's healthcheck calls every few seconds", async () => {
+    const built = openApp();
+
+    await built.app.inject({ method: "GET", url: "/healthz" });
+    await built.app.inject({ method: "GET", url: UNKNOWN_ROUTE, headers: AUTHORIZED });
+
+    // The second request is the control: request lines do reach the captured log.
+    expect(built.logs()).toContain(UNKNOWN_ROUTE);
+    expect(built.logs()).not.toContain("/healthz");
+  });
+
   it("never writes the secret to the log, whether it is right or wrong", async () => {
     const built = openApp();
 

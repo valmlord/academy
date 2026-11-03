@@ -66,7 +66,8 @@ export function buildApp(deps: AppDeps): BuiltApp {
       error: { code: "unauthorized", message: "missing or invalid credentials" },
     });
   });
-  app.get("/healthz", async () => ({ ok: true }));
+  // Compose's healthcheck calls it every 5 s: at info level its request lines would bury the real events.
+  app.get("/healthz", { logLevel: "warn" }, async () => ({ ok: true }));
   registerRoutes(app, deps);
   installErrorHandling(app);
   return { app, routes };
