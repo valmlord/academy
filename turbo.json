@@ -30,6 +30,11 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/course/**"]
     },
+    "@academy/workspace#test:integration": {
+      "dependsOn": ["^build", "build"],
+      "cache": false,
+      "passThroughEnv": ["DOCKER_*", "TESTCONTAINERS_*"]
+    },
     "@academy/web#test": {
       "dependsOn": ["^build"],
       "inputs": [
