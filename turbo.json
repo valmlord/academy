@@ -28,7 +28,13 @@
     },
     "@academy/workspace#test": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/course/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/course/**",
+        "$TURBO_ROOT$/docker-compose.yml",
+        "$TURBO_ROOT$/compose.db-port.yaml",
+        "$TURBO_ROOT$/.env.example"
+      ]
     },
     "@academy/workspace#test:integration": {
       "dependsOn": ["^build", "build"],

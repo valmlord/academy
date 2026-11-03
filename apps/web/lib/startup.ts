@@ -17,8 +17,11 @@ export interface StartupDeps {
 
 // True for every connect failure (refused, unknown host, wrong password), so it is printed only for
 // stage connect: on lock or apply the database is up, and this hint would point at the wrong layer.
+// It names both cases because the same text is printed in the compose web container and by host processes
+// (pnpm dev, pnpm seed), which reach db only through the opt-in port of compose.db-port.yaml (ADR-0002
+// item 6). check-image-migrations.sh (I2) greps the COMPOSE_FILE part: change both together.
 export const connectHint =
-  "check that the database is running and DATABASE_URL points at it (docker compose up -d --wait db)";
+  "check that the database is running and DATABASE_URL points at it (docker compose up -d --wait db; from the host, export COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml before that command)";
 
 // An error's name is as untrusted as its message (any value can claim one): only an identifier is
 // printed, so a name that carries the URL cannot leak it.

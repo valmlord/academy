@@ -128,20 +128,35 @@ jobs:
     name: compose stack and Playwright e2e
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      # db is unpublished by default (ADR-0002 item 6); the seed step reaches it on the host port the override adds.
+      COMPOSE_FILE: docker-compose.yml:compose.db-port.yaml
     steps:
       - uses: actions/checkout@v4
         with:
           # The job never pushes; the token would otherwise sit in .git/config while images build and run.
           persist-credentials: false
       - run: cp .env.example .env
-      - name: generate the auth secret
+      - name: generate the auth and workspace service secrets
         run: |
           secret=$(openssl rand -hex 32)
           echo "::add-mask::$secret"
           printf 'BETTER_AUTH_SECRET=%s\n' "$secret" >> .env
+          service_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$service_secret"
+          printf 'WORKSPACE_SERVICE_SECRET=%s\n' "$service_secret" >> .env
+          # Lesson images arrive with #33; the probe workspace runs on the test image meanwhile.
+          printf 'WORKSPACE_IMAGE=node:22.23.4-alpine\n' >> .env
       - run: docker compose config --quiet
+      - run: docker pull node:22.23.4-alpine
       - run: docker compose up -d --build --wait --wait-timeout 180
       - run: docker compose ps
+      # P7: root without capabilities can use the mounted socket. 404 workspace-not-found means the service asked
+      # Docker and got an answer; 503 means it could not reach the socket. The secret stays in the container.
+      - name: workspace service reaches Docker
+        run: docker compose exec -T workspace node --input-type=module - reach < services/workspace/test/network/api.mjs
+      - name: workspace network isolation
+        run: bash services/workspace/test/network/probe-isolation.sh academy local --rows all
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -151,7 +166,7 @@ jobs:
       - name: migrations run inside the built image
         run: bash apps/web/scripts/check-image-migrations.sh
       # No host dist/ exists yet, so a green step also proves the seed task builds its workspace imports.
-      # 127.0.0.1, not .env's localhost: compose publishes on 127.0.0.1 only and Node may try ::1 first.
+      # 127.0.0.1, not .env's localhost: compose.db-port.yaml publishes on 127.0.0.1 only and Node may try ::1 first.
       - name: seed the e2e user
         timeout-minutes: 3
         run: |

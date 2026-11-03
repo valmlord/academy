@@ -34,7 +34,8 @@ else
 fi
 
 canary=canary-pass-i2
-hint="docker compose up -d --wait db"
+# The host part of connectHint (apps/web/lib/startup.ts): the compose part alone would pass without it.
+hint="COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml"
 run_rc=0
 output=$(docker compose run --rm --no-deps -e "DATABASE_URL=postgres://academy:${canary}@db:1/academy" web 2>&1) || run_rc=$?
 if [ "$run_rc" -eq 0 ]; then
