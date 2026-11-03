@@ -192,3 +192,12 @@ export async function createIdleContainer(
   const args = ["create", "--network", "none", "--name", name, ...labelArgs(labels)];
   return (await docker([...args, TEST_IMAGE, "sleep", "infinity"])).trim();
 }
+
+/** Like `createIdleContainer`, but started, with docker-init so a stop ends it at once. Returns the Id. */
+export async function runIdleContainer(
+  name: string,
+  labels: Readonly<Record<string, string>>,
+): Promise<string> {
+  const args = ["run", "-d", "--init", "--network", "none", "--name", name, ...labelArgs(labels)];
+  return (await docker([...args, TEST_IMAGE, "sleep", "infinity"])).trim();
+}

@@ -23,6 +23,7 @@ import {
   exitReasonOf,
   type GcResult,
   type ManagedContainer,
+  type ManagedVolume,
   type WorkspaceExit,
   type WorkspaceInfo,
   type WorkspaceRuntime,
@@ -198,6 +199,11 @@ export class DockerRuntime implements WorkspaceRuntime {
       labels: container.Labels,
       state: container.State,
     }));
+  }
+
+  async listManagedVolumes(): Promise<ManagedVolume[]> {
+    const volumes = await this.#engine.listVolumes(listFilter(this.#instance, "volume"));
+    return volumes.map((volume) => ({ name: volume.Name, labels: volume.Labels }));
   }
 
   /** GC primitive: stops a running container of this instance by Id, after a fresh inspect (design 5.1). */

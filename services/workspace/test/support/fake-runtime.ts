@@ -4,6 +4,7 @@ import type {
   EnsureResult,
   GcResult,
   ManagedContainer,
+  ManagedVolume,
   WorkspaceInfo,
   WorkspaceRuntime,
   WorkspaceSpec,
@@ -26,6 +27,7 @@ export class FakeRuntime implements WorkspaceRuntime {
   readonly #instance: string;
   readonly #workspaces = new Map<string, WorkspaceInfo>();
   #managed: ManagedContainer[] = [];
+  #volumes: ManagedVolume[] = [];
   readonly #gcBehaviour = new Map<string, GcBehaviour>();
 
   constructor(instance: string) {
@@ -39,6 +41,10 @@ export class FakeRuntime implements WorkspaceRuntime {
 
   setManaged(containers: readonly ManagedContainer[]): void {
     this.#managed = [...containers];
+  }
+
+  setManagedVolumes(volumes: readonly ManagedVolume[]): void {
+    this.#volumes = [...volumes];
   }
 
   /** Overrides the default behaviour of both GC primitives for one container Id. */
@@ -95,6 +101,11 @@ export class FakeRuntime implements WorkspaceRuntime {
   async listManaged(): Promise<ManagedContainer[]> {
     this.calls.push("listManaged");
     return this.#managed.map((container) => ({ ...container }));
+  }
+
+  async listManagedVolumes(): Promise<ManagedVolume[]> {
+    this.calls.push("listManagedVolumes");
+    return this.#volumes.map((volume) => ({ ...volume }));
   }
 
   async stopContainer(containerId: string): Promise<GcResult> {

@@ -60,6 +60,12 @@ export interface ManagedContainer {
   state: string;
 }
 
+/** A managed volume of this instance; reconcile only reports one without a container, never removes it. */
+export interface ManagedVolume {
+  name: string;
+  labels: Labels;
+}
+
 /**
  * The result of a GC primitive (design 5.1): it acted (`done`), the container no longer exists (`gone`), or
  * the fresh inspect showed a state the action does not apply to, so nothing changed (`state-changed`).
@@ -76,6 +82,7 @@ export interface WorkspaceRuntime {
   /** `null` when neither container nor volume exists. */
   inspect(key: WorkspaceKey): Promise<WorkspaceInfo | null>;
   listManaged(): Promise<ManagedContainer[]>;
+  listManagedVolumes(): Promise<ManagedVolume[]>;
   /** GC primitives, by Id, under the GC predicate of design 5.1 (not the key predicate). */
   stopContainer(containerId: string): Promise<GcResult>;
   removeContainer(containerId: string): Promise<GcResult>;
