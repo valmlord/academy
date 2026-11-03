@@ -70,9 +70,10 @@ text only from this list or from the two tables above and below. Quotes of cours
 |------|----------------------|
 | sign-in (F1, F3) | "Вход" (`<title>` and h1), field labels "Почта" and "Пароль", "Входим..." (busy label of "Войти"), "Неверная почта или пароль", "Не удалось связаться с сервером. Проверьте, что платформа запущена (docker compose up), и попробуйте снова.", "Введите почту", "Введите пароль", "Слишком много попыток входа. Подождите и попробуйте снова.", "Пользователя создаёт скрипт seed, см. README", "Вы вышли" |
 | dashboard (F4, F18) | "Следующий урок", "около N мин", "Не удалось загрузить курс", "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; D4: "Слабые темы", "Слабых тем пока нет" |
-| catalog (F5, F6) | "Не удалось загрузить курс", "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>"; not-found "Страница не найдена" |
+| catalog (F5, F6) | "Не удалось загрузить курс", "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>" |
+| not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"). No other text in `main`: no "404", no breadcrumb, no search |
 | lesson tabs | left pane "Теория", "Задание", "Проверки", "Квиз" (D2); environment "Терминал", "Редактор" (D5); one-pane switch "Урок", "Окружение" |
-| lesson (F6-F13, F19) | "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока", "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (D4). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
+| lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока", "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (D4). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
 
 ### Action labels
 
@@ -83,12 +84,12 @@ whether the control is shown in v1; a hidden control appears only when its issue
 |--------|-------|-------|----|
 | skip to the content | "К содержимому" | every page | yes |
 | open the dashboard (top bar) | "Академия" (brand link), "Главная" (nav link) | F4 | yes, every page with the top bar |
-| open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships") |
+| open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships"); not while the course id is unknown (R6, "Course id unknown") |
 | sign in | "Войти" | F1 | yes |
 | sign in again after expiry | "Войти снова" | F2 | yes |
 | sign out | "Выйти" | F3 | yes |
 | open the next lesson | "Начать" (lesson not started, R5) / "Продолжить" (started) | F4 | yes |
-| open the catalog | "Открыть курс" | F4, F5, F8 | yes, from #30 (R6, "Before the catalog ships") |
+| open the catalog | "Открыть курс" | F4, F5, F7, F8 | yes, from #30 (R6, "Before the catalog ships"); on the not-found page not while the course id is unknown (R6, "Course id unknown") |
 | retry a failed load or start | "Повторить" | F1, F4, F5, F7, F8, F13, F15, F16, F18, F19 | yes where its flow is v1 (F1, F4, F5, F7, F8, F18); F13 runner error D1; F15 D2; F16 D3; F19 D4 |
 | expand / collapse the outcomes | "Показать все" / "Свернуть" | F7 | yes |
 | copy a code block | "Копировать" | F7 | yes |
@@ -146,10 +147,11 @@ reason as a second line inside the item, with the same `aria-describedby`.
 - Every live container exists in the DOM from page load, empty; its text is inserted and replaced, never
   inserted together with the container, because a live region added with its content is not reliably
   announced.
-- Live containers on the lesson page, and nothing else: the environment status text (`role="status"`), the
-  check bar status line (`role="status"`, empty before the first run), and in region "Уведомления" one
-  `role="alert"` container (F2.1) and one `role="status"` container (F10.1). D3 adds the review's
-  `role="status"` ("Разбор готов"). Other pages with the top bar: the "Уведомления" containers only.
+- Live containers on the lesson page whose course was read, and nothing else: the environment status text
+  (`role="status"`), the check bar status line (`role="status"`, empty before the first run), and in region
+  "Уведомления" one `role="alert"` container (F2.1) and one `role="status"` container (F10.1). D3 adds the
+  review's `role="status"` ("Разбор готов"). Other pages with the top bar, and the lesson page whose course
+  cannot be read (no "Проверка" or "Окружение" region exists then, R3): the "Уведомления" containers only.
   Sign-in has no live container: every error after "Войти" moves focus to its message, and a submit with
   an empty field moves focus to the first empty field (`auth.md` F1, keyboard path), so a screen reader
   reads the error at the focus point.
@@ -165,19 +167,35 @@ reason as a second line inside the item, with the same `aria-describedby`.
 - Focus when an activated control removes itself (R1 and R2 share this rule; R1 keeps a blocked control in
   place, so this is only about a control the new state replaces): a status-bar action ("Повторить",
   "Запустить снова", "Переподключиться", "Открыть новый сеанс") moves focus to what the R3 table names for
-  the region's new state (for example "Действия" while starting). A page-level "Повторить" (dashboard card
-  or progress section, catalog, the lesson's text load error) moves focus to the reloaded block itself
-  (`tabindex="-1"`, its heading when it has one). Sign-in's "Повторить" sends the form, so focus moves to
-  "Войти", which reads "Входим..." (R1 row). Focus never falls back to `body`.
+  the region's new state (for example "Действия" while starting). A page-level "Повторить" moves focus to
+  what replaced the block (`tabindex="-1"`, its heading when it has one), and the `<title>` is the one of
+  the page now shown. The target of each page-level retry, per outcome:
+
+  | Retry | Loads | Fails again | Loads, but the URL is a way into the not-found page (page inventory, not-found Route) |
+  |-------|-------|-------------|----------------------------------------------------------------|
+  | dashboard course error | the Card heading "Следующий урок"; `<title>` "Главная" | "Повторить" itself (the dashboard Alert title is not a heading) | - (the dashboard URL names no course) |
+  | dashboard progress section | the section heading (the course line) | the section heading "Прогресс недоступен" | - |
+  | catalog course error | the course h1; `<title>` the course title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
+  | lesson course error | the lesson h1; `<title>` the lesson title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
+  | lesson text load error | the reloaded tab panel; `<title>` unchanged | "Повторить" itself | - (the course was read) |
+
+  The not-found h1 (`tabindex="-1"`) is the target in the last column because it is the heading of what
+  replaced the block and it is read before "Открыть курс"; the not-found page reached any other way does not
+  move focus. A retry that fails again on "Повторить" itself is not announced (the focus does not move and
+  the text does not change): an open follow-up ("Open follow-ups" below), not decided here. Sign-in's
+  "Повторить" sends the form, so focus moves to "Войти", which reads "Входим..." (R1 row). Focus never falls
+  back to `body`.
 
 ### R3: the `F6` cycle and where focus lands
 
 This is the only statement of the region order; every flow refers to it. Decision A2 in the #50 design notes.
 
-Regions on the lesson page, each a `region` landmark with a heading (except "Верхняя панель", the
-`banner`), in `F6` order:
+Regions on the lesson page whose course was read, each a `region` landmark with a heading (except
+"Верхняя панель", the `banner`), in `F6` order (while the course cannot be read only "Верхняя панель",
+"Уведомления" and `main` exist: the course-error row of the table below):
 
-1. **"Верхняя панель"** (`banner`): "Академия", "Главная", "Курс", user menu.
+1. **"Верхняя панель"** (`banner`): "Академия", "Главная", "Курс" (not while the course id is unknown,
+   R6), user menu.
 2. **"Уведомления"**: only while it holds an alert (R2); skipped otherwise.
 3. **"Урок"** (the left pane): in one-pane mode the switch "Урок / Окружение"; breadcrumbs, lesson header,
    prerequisite alert (F6.2), tabs Теория, Задание, Проверки (Квиз from #36, rule R6).
@@ -203,7 +221,8 @@ below) is no stop.
 | Уведомления | session expired (F2.1), alone or with the idle warning | "Войти снова" (the alert container comes first in the wrapper) |
 | Уведомления | idle warning only (F10.1) | "Продолжить работу" |
 | Уведомления | empty | no stop |
-| Урок | two panes (from 1024 px), or full width with no "Окружение" region (the M0 lesson, a lesson without the `workspace` field), every state | the breadcrumb "Курс" |
+| Урок | two panes (from 1024 px), or full width with no "Окружение" region (the M0 lesson, a lesson without the `workspace` field), every state in which the course was read | the breadcrumb "Курс" |
+| Урок, Проверка, Окружение | the course cannot be read (F7 error states) | no stop: none of the three regions exists; `main` itself is the stop instead, as on the pages below, and lands on "Повторить" |
 | Урок | one-pane mode (below 1024 px, only when "Окружение" exists), either pane shown | the switch tab "Урок" (`F6` shows the pane if it was hidden) |
 | Проверка | every state of a lesson with checks the platform runs: before a run, running, environment creating, starting, stopped or failed, after a run | "Проверить" (enabled, or `aria-disabled` with its reason, R1) |
 | Проверка | the M0 lesson; a lesson with no check the platform runs (R6) | no stop: the region does not exist |
@@ -228,19 +247,25 @@ below) is no stop.
   under the area at every width.
 - On pages other than the lesson page the cycle is "Верхняя панель", "Уведомления" (if non-empty), `main`;
   in `main` focus lands on its first focusable element (dashboard: the card's button or "Повторить", or
-  "Открыть курс"; catalog: the first module link or "Повторить"); with nothing focusable in `main`
-  ("В курсе пока нет готовых уроков"), on `main` itself (`tabindex="-1"`). Sign-in has no top bar and no
+  "Открыть курс"; catalog: the first module link or "Повторить"; not-found: "Открыть курс"); with nothing
+  focusable in `main` ("В курсе пока нет готовых уроков"; not-found while the course id is unknown), on
+  `main` itself (`tabindex="-1"`). The lesson page whose course cannot be read follows this bullet too:
+  its `main` holds only the course error, so `main` is the stop and lands on "Повторить". Sign-in has no top bar and no
   cycle; `F6` keeps its browser meaning there. Tab order alone also reaches everything on these pages.
 
 ### R4: landmarks, skip link and Tab order
 
-- Every page has one `main`. On the lesson page `main` holds the regions "Урок", "Проверка" and
-  "Окружение" (regions inside `main`); "Верхняя панель" and "Уведомления" are outside it.
+- Every page has one `main`; "Верхняя панель" and "Уведомления" are outside it. On the lesson page `main`
+  holds the regions "Урок", "Проверка" and "Окружение" (regions inside `main`), except when the course
+  cannot be read: then `main` holds only the course error (F7 error states) and none of the three regions
+  exists (R3).
 - The skip link "К содержимому" is the first element in the Tab order of every page; it moves focus to
   `main` (`tabindex="-1"`), so the next Tab reaches `main`'s first focusable element in whatever state or
   pane is shown.
-- Lesson page Tab order (DOM order, the order of R3): skip link; top bar; "Уведомления" (when non-empty);
-  then inside `main`: "Урок" ([switch, in one-pane mode] breadcrumbs ("Курс", module), lesson header
+- Lesson page Tab order when the course cannot be read: skip link; top bar; "Уведомления" when non-empty;
+  "Повторить" (the only control in `main`).
+- Lesson page Tab order in every other state (DOM order, the order of R3): skip link; top bar;
+  "Уведомления" (when non-empty); then inside `main`: "Урок" ([switch, in one-pane mode] breadcrumbs ("Курс", module), lesson header
   ("Показать все"), prerequisite alert links (F6.2), the left-pane tab list, the tab panel); "Проверка"
   ("Проверить", then "К окружению" and "Открыть результаты" when shown); in two-pane mode the split
   handle (F9.3), which sits in the DOM after "Проверка" and before "Окружение" and belongs to no region
@@ -251,6 +276,20 @@ below) is no stop.
   check bar is a sibling between the two panes in the DOM so that the `F6` cycle and the Tab order are
   the same at every width (R3); the check bar is drawn at the bottom, but it is short and always visible,
   so the jump back up to the switch is one predictable step. With "Урок" shown the switch comes first.
+- **Focus ring after a mouse click on a tab (decided in #83, #30 test report F3): accepted.** Radix Tabs
+  focuses a tab trigger on `mousedown`, so in the app the first mouse click on a tab after load matches
+  `:focus-visible` and draws the ring; later clicks do not; the prototype (proto.js) never focuses on
+  `mousedown`, so it shows no ring. The design accepts the app's behaviour and asks for no dev change,
+  because: (1) WCAG 2.4.7 requires a visible indicator for keyboard focus and forbids none for pointer focus,
+  and the ring is the same 2px `ring` outline as every other ring, so nothing fails; (2) after the click the
+  tab really holds focus and arrow keys, Home and End now move between tabs (automatic activation,
+  `design/pages/lesson/acceptance.md`, "Tabs"), so the ring shows where the next key goes; (3) the rule "rings follow `:focus-visible`"
+  (`design/system/README.md`, "Focus ring") stays true: the browser decides `:focus-visible`, and the two
+  ways to suppress it both break something: cancelling the trigger's `mousedown` focus leaves focus where it
+  was, so arrow keys no longer move between tabs after a click, and a hand-written pointer-modality flag on
+  one component overrides the browser's heuristic there only, so tabs would behave unlike every other
+  control. Tab triggers keep the global `:focus-visible` ring; no `:focus-visible`-only special case is
+  added for them. The tester does not report it again.
 
 ### R5: lesson started
 
@@ -284,7 +323,7 @@ ships that route, because a link to a missing route is a dead end (A15) and a li
 R1 covers actions with a visible reason, and the one-row top bar has no room for one. These controls are
 the top-bar link "Курс", "Открыть курс", the dashboard Card button ("Начать" / "Продолжить", it opens a
 lesson route) and module rows, the breadcrumb "Курс" and the module crumb. The catalog, the lesson page and
-the not-found state ship with #30, so before #30 the dashboard is the only page with the top bar (sign-in
+the not-found page ship with #30, so before #30 the dashboard is the only page with the top bar (sign-in
 has none) and it shows only its "no ready lessons" content (`dashboard.md`, "Dashboard by release").
 Before #30 an unknown URL shows the framework's default 404 page (#29 ships no not-found page, so it has no
 top bar and English text); it is reached only by typing a URL and browser Back leaves it, so no flow dead
@@ -292,16 +331,40 @@ ends there.
 
 Top bar by release. One rule for every page with the top bar: the bar is the same on every page of a
 release, and a page added later takes the bar of the release it ships in, never a variant of its own.
+The one exception is a course state, not a page: "Course id unknown" below.
 
 | Release | Pages with the top bar | Top bar, in Tab order after "К содержимому" | `F6` regions (landing) |
 |---------|------------------------|---------------------------------------------|------------------------|
 | before #30 (as #29 shipped) | dashboard | "Академия", "Главная", user menu | "Верхняя панель" ("Академия"); "Уведомления" ("Войти снова", only with the alert); `main` (`main` itself, nothing focusable) |
-| from #30 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс", user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
+| from #30 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс" (left out on all four while the course id is unknown), user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
 
 "Главная" carries `aria-current="page"` on the dashboard, "Курс" on the catalog; the lesson page and
 not-found put `aria-current` on neither top-bar link. `F6` lands on "Академия" in "Верхняя панель" in
 every release, because it is the bar's first focusable element and is never hidden, so no landing table
 changes when "Курс" arrives.
+
+**Course id unknown (#83).** One exception to "the same bar on every page", and it is a course state, not a
+page variant: when `course.yaml` itself cannot be read, the course id is unknown, and every page with the
+top bar (dashboard, catalog, lesson, not-found) leaves out "Курс" in the same request; the not-found page also leaves
+out "Открыть курс". Why: every catalog link is built from the course id; a link to a guessed id (the URL's,
+or a configured default) opens the not-found page or the same course error, a dead end (A15), and a link has no
+disabled state (see "Before the catalog ships"); pointing "Курс" at `/` instead would give two names to one
+target. When `course.yaml` parsed and a later file failed, the id is known and "Курс" stays: it opens the
+catalog's course error with "Повторить", the same failure with its own retry, not a dead end. The whole
+class of controls built from the course id, and what the exception does to each:
+
+| Control | Page | When the course id is unknown |
+|---------|------|-------------------------------|
+| top-bar "Курс" | dashboard, catalog, lesson, not-found | left out (this rule) |
+| "Открыть курс" | not-found | left out (this rule); `main` then has nothing focusable (R3) |
+| "Начать" / "Продолжить", "Открыть курс" (Card), module rows | dashboard | not rendered: the course error replaces the Card and the progress section (`dashboard.md` F4 error states; dashboard `#state-course-error`) |
+| module links, lesson rows, prerequisite note links | catalog | not rendered: the course error is all of `main` (F5 error states) |
+| breadcrumb "Курс", module crumb, prerequisite links, status action "Открыть курс" (environment rejected) | lesson | not rendered: the course error is all of `main` (F7 error states) |
+
+Only the first two rows are new behaviour; the other three follow from the course error states, which
+already hold whether or not the id is known. The `F6` landing on "Верхняя панель" stays "Академия". The
+prototypes draw the bar with "Курс" in every course-error state (the id-known case) and without it once,
+in not-found `#state-no-course`.
 
 ## Sitemap
 
@@ -327,9 +390,10 @@ and `mentor.md`).
 
 ## Navigation model
 
-- **Top bar on every page except sign-in** (the not-found state included): product name "Академия"
+- **Top bar on every page except sign-in** (the not-found page included): product name "Академия"
   (link to the dashboard), "Главная", "Курс" (from #30; the bar by release: R6, "Before the catalog
-  ships"), and a user menu (shows the email) with "Выйти" (F3). No
+  ships"; not while the course id is unknown: R6, "Course id unknown"), and a user menu (shows the email)
+  with "Выйти" (F3). No
   sidebar anywhere, because the app has four pages, a sidebar costs the lesson page the width its two
   panes need, and shadcn's sidebar toggle Ctrl+B is the key Claude Code uses for background tasks inside
   the terminal (research §8; decision A3).
@@ -339,10 +403,13 @@ and `mentor.md`).
   whichever pane is shown (one-pane mode included).
 - **Breadcrumbs** on the lesson page: "Курс" / module title / lesson title. The module crumb links to
   the catalog anchor of that module; the lesson crumb is the current page (`aria-current="page"`, not a
-  link).
+  link). Not shown when the course cannot be read (F7 error states). No breadcrumb on the not-found page: it names
+  no place in the course (GOV.UK page-not-found pattern, #83 research §5).
 - **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson; from #30, before it the
   dashboard has no primary action, R6 "Before the catalog ships"); catalog: a lesson row; lesson page:
-  "Проверить".
+  "Проверить"; not-found page: "Открыть курс" (none while the course id is unknown, R6 "Course id
+  unknown"). While the course cannot be read, the dashboard, catalog and lesson page show the course error
+  instead and its "Повторить" is the only action in `main`.
 - **Skip link** "К содержимому": R4.
 - **Return after sign-in**: any protected route redirects to `/sign-in?next=<path>`; after sign-in the
   learner lands on `next` (only same-origin paths) or on the dashboard.
@@ -359,9 +426,9 @@ Flows column: every flow whose Entry line or steps happen on the page.
 |------|-------|-------------------------------|---------|-------|------------------|
 | sign-in | `/sign-in` | "Вход" | email and password for the single local user | F1, F2 (F2.2-F2.3), F3 (F3.3) | yes |
 | dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts, weak topics, cost | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, D4) | yes: F4 and F18.1-F18.2 only; F18.3-F18.4 are D4 and not drawn (R6) |
-| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков" | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
-| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes |
-| not-found | any unknown route, unknown or not-`ready` lesson | "Страница не найдена" | explains and links to the catalog | F3, F5 | no: an app-shell state, copy in `catalog.md` F5, prototyped with the app shell later |
+| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков"; "Не удалось загрузить курс" while the course cannot be read | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
+| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes |
+| not-found | the ways into the not-found page, each HTTP 404, stated only here: (1) a path no route matches; (2) a catalog URL whose course id is not the course's; (3) a lesson URL whose course id is not the course's; (4) a lesson URL whose lesson id names no `ready` lesson of the course (unknown, or not `ready`). (2)-(4) need the course read: while it cannot be read, those URLs show the course error (HTTP 200), so only (1) remains | "Страница не найдена" | says in one sentence that the address leads nowhere; while the course id is known it links to the catalog ("Открыть курс"), while it is unknown it shows only the sentence and the top bar's "Главная" is the way on (R6, "Course id unknown") | F2, F3, F5, F7 | yes, in #83: `design/pages/not-found/`, states default, no-course, session-expired, user-menu |
 
 Every page is reachable from the catalog: the catalog links to every `ready` lesson and, through the
 top bar, to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
@@ -394,3 +461,38 @@ Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog s
 
 A new flow takes the next free number (F20). An existing flow keeps its id even if it moves to another
 file.
+
+## Open follow-ups
+
+Work that a design task found and handed on, so it survives the task's PR. Each item is one issue to open
+(title in bold), with its owner and the design statement it implements. Remove an item when its issue is
+filed and linked here, or when it is done.
+
+- **FU1. fix(web): not-found sentence, course-id-unknown case and focus after a retry** (dev, from #83).
+  `apps/web/app/(app)/not-found.tsx` renders the sentence "Возможно, в адресе опечатка или ссылка
+  устарела." (page copy above), its h1 gets `tabindex="-1"`, and a catalog or lesson "Повторить" that ends
+  on the not-found page focuses that h1 (R2, page-level retry table; today focus falls to `body`). e2e:
+  the sentence, the course-id-unknown case (no "Курс", no "Открыть курс", `F6` to `main` lands on `main`),
+  the retry focus, and that an ordinary arrival does not move focus.
+- **FU2. test(web): e2e for the lesson page whose course cannot be read** (dev or tester, from #83). Only
+  the Alert with "Не удалось загрузить курс" and "Повторить" in `main`, `<title>` "Не удалось загрузить
+  курс", `F6` to `main` lands on "Повторить", and the three retry outcomes of R2 with their `<title>`.
+- **FU3. chore(web): reword the prose-heading comment in globals.css** (dev, from #83). The comment above
+  `.prose h4` in `apps/web/app/globals.css` says proto.css has no `.prose h4` and draws prose heading
+  rings outside; both stop being true when #83 lands. Comment only.
+- **FU4. test(web): E-ring asserts the ring colour at once after keyboard focus** (tester, from #30 code
+  review G1). The E-ring e2e (`apps/web/e2e/catalog.spec.ts`) checks outline style, width and offset but
+  not `outline-color` right after focus, so a `transition-colors` that animates the ring in on catalog rows
+  and breadcrumb links would pass. Assert `outline-color` against a probe styled `var(--ring)` at once
+  after the key press, and watch it fail with `transition-colors` restored.
+- **FU5. `.checks-panel h2` draws its focus ring outside** (design, owned by #69). The page-local rule in
+  `design/pages/lesson/prototype.html` gives the Проверки heading the outside offset, against
+  `design/system/README.md`, "Focus ring" (headings with `tabindex="-1"` draw it inset) and the app. #69
+  edits that prototype, so #83 leaves it; hand-off as a comment on #69.
+- **FU6. design: a retry that fails again on "Повторить" itself is silent** (design). For the dashboard
+  course error and the lesson text load error, R2 keeps focus on "Повторить" after a second failure; the
+  focus does not move and the text does not change, so a screen reader user hears nothing. Decide an
+  announcement (a focus target with a heading, or a status) and update R2.
+
+Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
+"Focus ring after a mouse click on a tab").
