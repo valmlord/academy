@@ -11,10 +11,27 @@ declare module "dockerode" {
     timeout?: number;
   }
 
+  /** `filters` is sent as JSON in the query string, e.g. `{ label: ["k=v"] }`; label filters are ANDed. */
+  interface ListOptions {
+    all?: boolean;
+    filters?: { label: string[] };
+  }
+
+  /** A handle on one object by Id or name; nothing is requested until a method is called. */
+  interface Inspectable {
+    inspect(): Promise<unknown>;
+  }
+
   class Docker {
     constructor(options?: DockerOptions);
     ping(): Promise<unknown>;
     version(): Promise<unknown>;
+    getContainer(id: string): Inspectable;
+    getVolume(name: string): Inspectable;
+    getImage(name: string): Inspectable;
+    listContainers(options: ListOptions): Promise<unknown>;
+    listVolumes(options: ListOptions): Promise<unknown>;
+    listNetworks(options: ListOptions): Promise<unknown>;
   }
 
   export = Docker;
