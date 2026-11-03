@@ -15,6 +15,12 @@
 - **Written on selection:** selecting a left-pane tab replaces `?tab=` (`theory|task|checks`) with
   `history.replaceState`, no new history entry; the rest of the URL (the prototype's `#state-` hash) stays.
 
+While the course cannot be read, `<title>` and h1 are "Не удалось загрузить курс" (HTTP 200), whatever
+course and lesson ids the URL names: without the course the page cannot tell a hidden lesson from a real
+one (F7 error states). The not-found page (`design/pages/not-found/`, HTTP 404; `ia.md` page inventory,
+not-found Route) is what a lesson URL whose course id is not the course's, or a lesson URL whose lesson id
+names no `ready` lesson of the course, opens.
+
 Dev issues: #30 (M0 lesson), #31 and #32 (environment, terminal), #34 (check bar and Проверки, v1 lesson).
 
 ## Prototype
@@ -35,8 +41,12 @@ platform runs (`#state-no-checks`), and the seven-row status list (`#state-statu
 `models-effort-quiz` is not listed anywhere (R6, A19), so the v1 count is "из 1".
 
 Prose is course data, not UI copy: it is rendered from markdown and is not in the Copy table. theory.md's
-h1 equals the lesson title and is dropped (the page has one h1); its `##` are h2 and `###` h3. task.md's
-h1 becomes an h2 and its `##` h3.
+leading h1 equals the lesson title and is dropped (the page has one h1); any other `#` and its `##` are h2,
+its `###` h3 and its `####`-`######` h4. task.md's h1 becomes an h2, its `##` h3 and its `###`-`######` h4.
+The h4 is set as `.prose h4` in `design/system/proto.css` (AC20), as in the app's heading map.
+
+The course error (the course cannot be read) is not drawn in this prototype: it is the catalog's
+`#state-course-error` inside `main` (States, the row for `../catalog/prototype.html#state-course-error`).
 
 ## Flows
 
@@ -90,8 +100,12 @@ states: the M0 lesson (#30 alone) and the v1 lesson (#31, #32, #34 shipped).
 
 ## Layout and breakpoints
 
-Decision A8, `lesson-environment.md` "Layout by width". `main.lesson-layout` holds, in DOM order, region
-"Урок" (left pane), region "Проверка" (check bar), the split handle, region "Окружение" (right pane).
+Decision A8, `lesson-environment.md` "Layout by width". With the course read, `main.lesson-layout`
+holds, in DOM order, region "Урок" (left pane), region "Проверка" (check bar), the split handle, region
+"Окружение" (right pane).
+
+- **Course cannot be read:** no panes, no switch, no handle and no check bar at any width; `main` holds only
+  the course error, in the catalog's column (`../catalog/prototype.html#state-course-error`).
 
 - **1280 (from 1024 px): two panes.** Grid columns: left `var(--split-left)` (presets 50 / 35 / 65 %, min
   25 %, max 75 %, each pane at least `20rem`), handle `0.75rem` with a 24 px hit area, right pane the rest.
@@ -114,10 +128,10 @@ Decision A8, `lesson-environment.md` "Layout by width". `main.lesson-layout` hol
 
 | shadcn | Usage |
 |--------|-------|
-| Button | "Проверить" (default; `aria-disabled` variants), "К окружению" (outline), "Открыть результаты" (ghost), status actions (default sm), "Подробности" (ghost sm), "Действия" (outline sm), "Копировать" (ghost sm), "Сбросить" (destructive), "Отмена" (outline), "Показать все" (link) |
-| Alert | session expired (destructive) and idle warning (default) in "Уведомления"; prerequisite (warning); text load error (destructive) |
+| Button | course error "Повторить" (secondary, sm); "Проверить" (default; `aria-disabled` variants), "К окружению" (outline), "Открыть результаты" (ghost), status actions (default sm), "Подробности" (ghost sm), "Действия" (outline sm), "Копировать" (ghost sm), "Сбросить" (destructive), "Отмена" (outline), "Показать все" (link) |
+| Alert | session expired (destructive) and idle warning (default) in "Уведомления"; prerequisite (warning); text load error (destructive); course load error (destructive, static, its title is the h1, as on the catalog) |
 | DropdownMenu | user menu; "Действия" with two items, their `aria-disabled` variants with a reason line, and the checkbox item "Режим для экранного диктора" |
-| Breadcrumb | "Курс" / module / lesson (`aria-current="page"`) |
+| Breadcrumb | "Курс" / module / lesson (`aria-current="page"`); not shown when the course cannot be read |
 | Tabs | left pane (Теория, Задание, Проверки), environment (Терминал), one-pane switch (`.pane-switch`) |
 | Badge | lesson type "артефакт" (outline) |
 | Collapsible | outcomes, check rows, "Подробности" |
@@ -136,11 +150,13 @@ loads with the route (Open questions).
 
 ## States
 
-Every state is reachable by `#state-<name>`. Unless stated, the environment is running and no run has
-happened ("Проверить" enabled, status line empty), tab Теория.
+Every state is reachable by `#state-<name>`, except the course error, which is drawn on the catalog
+prototype (first row). Unless stated, the environment is running and no run has happened ("Проверить"
+enabled, status line empty), tab Теория.
 
 | Anchor | What it shows |
 |--------|---------------|
+| `../catalog/prototype.html#state-course-error` (the course cannot be read; F7 error states) | that composition inside `main`: only the destructive static Alert "Не удалось загрузить курс" (its title is the h1, `tabindex="-1"`) with "Повторить". It differs from the drawn catalog prototype state in three things only: `<title>` "Не удалось загрузить курс" (the catalog app sets the same `<title>`; the static catalog prototype keeps the course title); no `aria-current` on "Курс" or "Главная" (the catalog marks "Курс"); "Повторить" targets as in Interactions and keyboard (the course error retry bullet). "Курс" is left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown") |
 | `#state-theory` | default v1 lesson; running environment with the key hint |
 | `#state-task` | Задание tab |
 | `#state-outcomes-collapsed` / `#state-outcomes-expanded` | three outcomes: first one plus "Показать все" / all three plus "Свернуть". The list collapses only with **more than two** outcomes (`lesson-environment.md` F7.1): one outcome, as in this lesson, or two show in full with no button |
@@ -201,15 +217,25 @@ happened ("Проверить" enabled, status line empty), tab Теория.
   | M0 lesson | "Академия" | no stop | "Курс" | no stop | no stop |
   | no `workspace` | "Академия" | no stop | "Курс" | "Проверить" | no stop |
   | no check the platform runs | "Академия" | no stop | "Курс" | no stop | "Действия" |
+  | course cannot be read | "Академия" | "Войти снова" with the session alert, else no stop | no stop | no stop | no stop |
   | one-pane mode, any state | "Академия" | as above | switch tab "Урок" (pane shown) | "Проверить" | switch tab "Окружение" (pane shown) |
 
-  The cycle is off while the AlertDialog is open. From the split handle (no region) `F6` goes to the next
-  region in DOM order ("Окружение").
-- **Tab order (R4):** "К содержимому"; top bar; "Уведомления" when non-empty; "Урок" ([switch] "Курс", module
-  crumb, "Показать все", prerequisite link, the tab list (one stop), the tab panel); "Проверка"
-  ("Проверить", "К окружению", "Открыть результаты"); the split handle (two panes); "Окружение" ([switch]
-  status action, "Подробности", "Действия", tab "Терминал", terminal).
-- **Tabs:** arrow keys, Home, End, automatic activation; the one-pane switch the same.
+  "Курс" in the Урок column is the breadcrumb "Курс", not the top-bar link. With the course unreadable,
+  `main` is the `F6` stop and lands on "Повторить". That row is the catalog's `#state-course-error` cycle,
+  checked there, not in this prototype. The cycle is off while the AlertDialog is open. From the split
+  handle (no region) `F6` goes to the next region in DOM order ("Окружение").
+- **Tab order (R4):** with the course read: "К содержимому"; top bar; "Уведомления" when non-empty; "Урок"
+  ([switch] "Курс", module crumb, "Показать все", prerequisite link, the tab list (one stop), the tab panel);
+  "Проверка" ("Проверить", "К окружению", "Открыть результаты"); the split handle (two panes); "Окружение"
+  ([switch] status action, "Подробности", "Действия", tab "Терминал", terminal). Course cannot be read:
+  "К содержимому"; top bar; "Уведомления" when non-empty; "Повторить".
+- **Course error "Повторить":** reloads the page (`ia.md` R2, page-level retry table): focus on the lesson
+  h1 with `<title>` the lesson title on success; the error h1 with `<title>` "Не удалось загрузить курс" on
+  a second failure; the not-found h1 with `<title>` "Страница не найдена" when the course loads but the URL
+  is a way into the not-found page (`ia.md` page inventory, not-found Route).
+- **Tabs:** arrow keys, Home, End, automatic activation; the one-pane switch the same. The ring on the first
+  mouse click on a tab is accepted (ia.md R4): Radix focuses the trigger on `mousedown`, so the global
+  `:focus-visible` ring shows once; tab triggers get no special focus rule.
 - **Only two things choose the left-pane tab:** the learner selecting a tab, and "Открыть результаты"
   (Проверки). Every other control keeps the selected tab and `?tab=`: "Проверить", status actions,
   "Продолжить работу", "Действия" and its items, the reset dialog, "Показать все", "Содержание", check rows,
@@ -245,7 +271,7 @@ happened ("Проверить" enabled, status line empty), tab Теория.
   |---------|-----------------|----------------|
   | "Войти снова" (F2.1) | `/sign-in?next=<current path with the current ?tab=, URL-encoded>` | `../sign-in/prototype.html?next=<encoded app path with the current ?tab=>#state-with-next`, rewritten on every tab selection |
   | "Выйти" (F3.2) | sign out, then `/sign-in`, which shows "Вы вышли" (F3.3) | `../sign-in/prototype.html#state-signed-out` |
-  | breadcrumb "Курс", top bar "Курс", "Открыть курс" | `/courses/[courseId]` | `../catalog/prototype.html` |
+  | breadcrumb "Курс", top bar "Курс", "Открыть курс" | `/courses/[courseId]`; top bar "Курс" not while the course id is unknown (ia.md R6, "Course id unknown"); the breadcrumb and "Открыть курс" are not rendered while the course cannot be read | `../catalog/prototype.html` |
   | breadcrumb module | `/courses/[courseId]#<moduleId>` (`ia.md`, A6; module 00 is `introduction`) | `../catalog/prototype.html#introduction` |
   | "Академия", "Главная" | `/` | `../dashboard/prototype.html` |
   | prerequisite lesson link (F6.3) | `/courses/[courseId]/lessons/[lessonId]` of that lesson | `prototype.html` |
@@ -258,7 +284,7 @@ happened ("Проверить" enabled, status line empty), tab Теория.
 | skip link | К содержимому |
 | brand | Академия |
 | nav | Главная |
-| nav | Курс |
+| nav | Курс (not while the course id is unknown, ia.md R6 "Course id unknown") |
 | user menu item | Выйти |
 | notifications heading (hidden) | Уведомления |
 | session alert | Сессия закончилась. Файлы в рабочей папке сохранены. |
@@ -270,7 +296,7 @@ happened ("Проверить" enabled, status line empty), tab Теория.
 | one-pane switch tabs | Урок / Окружение |
 | switch suffix (hidden) | остановлено / ошибка |
 | breadcrumb label (not yet in the `ia.md` register, Open questions) | Навигация |
-| breadcrumb | Курс / <module title> / <lesson title> |
+| breadcrumb | Курс / <module title> / <lesson title> (not shown when the course cannot be read) |
 | lesson type | артефакт (one of "теория", "квиз", "артефакт", "оценка агента", "поиск багов", "проект") |
 | duration | около N мин |
 | outcomes heading | Чему научитесь |
@@ -285,6 +311,7 @@ happened ("Проверить" enabled, status line empty), tab Теория.
 | copy denied | Не скопировано, выделите текст вручную |
 | sources heading | Источники |
 | source date | проверено <date> |
+| course error | Не удалось загрузить курс |
 | text load error | Не удалось загрузить текст урока |
 | retry | Повторить |
 | checks heading | Проверки |
@@ -327,9 +354,12 @@ Grader messages are shown verbatim ("2 из 6 карточек неверны.")
   notes appended inside it); the check bar status line (`role="status"`, empty before the first run). Timers
   are `role="timer"` outside them. Nothing else is live: not the rows, not the terminal, not the copy
   button, not the reasons. "Уведомления" is a `region` with its hidden h2 only while a container has text.
+  While the course cannot be read only the two "Уведомления" containers exist.
 - **R3, regions:** the `banner` (R3 calls it "Верхняя панель"; the `header` carries no `aria-label`, as in
   `design/system/components.html`), "Уведомления", and inside `main` the `region`s "Урок",
   "Проверка", "Окружение", each named by a visually hidden h2. The lesson h1 is the first visible heading.
+  While the course cannot be read, `main` holds only the course error and none of the three regions exists.
+  The h1 is then the Alert title "Не удалось загрузить курс".
 - **R4:** one `main` (`tabindex="-1"`), skip link first.
 - **Names of the top bar parts.** The nav carries no label (the only `navigation` landmark in the banner);
   the user menu is named by its trigger (`aria-labelledby="user-menu-trigger"`, the email); its email label
@@ -387,7 +417,8 @@ Grader messages are shown verbatim ("2 из 6 карточек неверны.")
   when the session expired (AC17).
 - AC5: Every disabled control of R1 has `aria-disabled="true"`, no `disabled` attribute, is reachable by Tab,
   does nothing on Enter, Space or click, and its reason is read as its description.
-- AC6: The four live containers exist and are empty on load; their text changes only in the cases R2 and
+- AC6: The four live containers (the two "Уведомления" ones while the course cannot be read) exist and are
+  empty on load; their text changes only in the cases R2 and
   `checks.md` "Live regions" list; the Проверки tab's accessible name is "Проверки, идёт проверка" only
   during a run.
 - AC7: A run does not switch the tab; after it the status line reads "Пройдено: N из M" (or "Урок
@@ -419,6 +450,16 @@ Grader messages are shown verbatim ("2 из 6 карточек неверны.")
   selects Проверки and writes `?tab=checks`. Verified headless over http: 1748 control activations at 1280 px
   and 2120 at 375 px (269 Backs each), 0 tab or query changes; "Войти снова" `next` matched the selected tab
   in all 33 / 42 checks.
+- AC19: When the course cannot be read, `main` holds only "Не удалось загрузить курс" (the h1, `tabindex="-1"`)
+  and "Повторить"; `<title>` "Не удалось загрузить курс" (the app; the catalog prototype that draws this
+  composition keeps the course title); HTTP 200; `F6` to `main` lands on "Повторить"; no
+  `aria-current` on either top-bar link, and "Курс" is left out while the course id is unknown (only when
+  `course.yaml` itself cannot be read). "Повторить"
+  puts focus on the lesson h1 with `<title>` the lesson title on success; the error h1 with `<title>` "Не
+  удалось загрузить курс" on a second failure; the not-found h1 with `<title>` "Страница не найдена" when
+  the course loads but the URL is a way into the not-found page.
+- AC20: task.md `###` renders as h4 at `text-lg`, weight 600, `space-6` above; theory.md `####` the same.
+  No h4 is a "Содержание" target (no `tabindex`).
 
 ## Open questions
 
