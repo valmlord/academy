@@ -44,11 +44,11 @@
       <button class="button" type="button" data-size="sm">Проверить</button>
     </div>
     <div class="row" lang="ru">
-      <button class="button" type="button" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Входим...</button>
+      <button class="button" type="button" aria-disabled="true" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Входим...</button>
       <button class="button" type="button" aria-disabled="true" aria-describedby="g-reason-check">Проверить</button>
       <span class="disabled-reason" id="g-reason-check">Окружение запускается, проверка станет доступна после запуска</span>
     </div>
-    <p class="gallery-note">Variants: default, secondary, outline, ghost, link, destructive; sizes default, sm, icon. Disabled is always aria-disabled with a visible reason (R1), never the native attribute.</p>
+    <p class="gallery-note">Variants: default, secondary, outline, ghost, link, destructive; sizes default, sm, icon. Disabled is always aria-disabled with a visible reason (R1), never the native attribute. A busy button is aria-busy plus aria-disabled, with the busy label as its reason (R1); its cursor is progress.</p>
   </div>
 
   <div class="gallery-section">
