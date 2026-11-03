@@ -151,30 +151,32 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
    >    server, and the db port whenever `compose.db-port.yaml` is in use. On Linux a `127.0.0.1` publish is not
    >    reachable from a bridge (probe rows D3 and W2c on CI: the gateway path; `host.docker.internal` does not
    >    resolve there, so D1/W2a/W2b prove nothing on Linux).
-   > 2. **The db override reopens the superuser.** While `compose.db-port.yaml` is in use, every workspace connects
-   >    to Postgres as `academy`, a superuser, with the documented default password `academy` (unless the owner
-   >    changed it before the volume was first created): read and write every table, including `sessions` (a valid
-   >    session token signs in as the owner) and password hashes, and run shell commands as the `postgres` user in
-   >    the db container through `COPY ... TO PROGRAM`; from there the db container reaches web on `default`. The
-   >    override stays active wherever `COMPOSE_FILE` is set: an open terminal, a shell profile, or a line in the
-   >    owner's `.env` (the repository checks only `.env.example`). `pnpm dev`, the main reason to use the override,
-   >    is also when workspaces run. Mitigation, not enforced: the README tells to stop workspaces first and to
+   > 2. **The db override reopens the superuser.** While `compose.db-port.yaml` is in use on a platform where item 1
+   >    or 5 holds (Docker Desktop; neither was observed on Linux CI), every workspace connects to Postgres as
+   >    `academy`, a superuser, with the documented default password `academy` (unless the owner changed it before the
+   >    volume was first created): read and write every table, including `sessions` (a valid session token signs in as
+   >    the owner) and password hashes, and run shell commands as the `postgres` user in the db container through
+   >    `COPY ... TO PROGRAM`; from there the db container reaches web on `default`. The override stays active
+   >    wherever `COMPOSE_FILE` is set: an open terminal, a shell profile, or a line in the owner's `.env` (the
+   >    repository checks only `.env.example`). `pnpm dev`, the main reason to use the override, is also when
+   >    workspaces run. Mitigation, not enforced: the README tells to stop workspaces first and to
    >    `unset COMPOSE_FILE` afterwards; the override file's header says the same.
-   > 3. **Web is reachable and sits next to the socket holder.** Through items 1 and 5 a workspace reaches every web
-   >    route: public pages, the sign-in endpoint (rate-limited; whether workspace requests share the browser's
-   >    rate-limit bucket is unverified, so a workspace hammering sign-in may lock the owner out for the window), and
-   >    every authenticated route with a stolen session. Web is the only container on `workspace-api` besides the
-   >    workspace service, which holds the Docker socket (root on the Docker VM: every workspace, the owner's
-   >    `academy_db-data`); from #32 web also holds `WORKSPACE_SERVICE_SECRET`. Code execution in web is therefore
-   >    one hop from the socket.
+   > 3. **Web is reachable and sits next to the socket holder.** Where item 1 or 5 holds (Docker Desktop; neither was
+   >    observed on Linux CI), a workspace reaches every web route: public pages, the sign-in endpoint (rate-limited;
+   >    whether workspace requests share the browser's rate-limit bucket is unverified, so a workspace hammering
+   >    sign-in may lock the owner out for the window), and every authenticated route with a stolen session. Web is
+   >    the only container on `workspace-api` besides the workspace service, which holds the Docker socket (root on
+   >    the Docker VM: every workspace, the owner's `academy_db-data`); from #32 web also holds
+   >    `WORKSPACE_SERVICE_SECRET`. Code execution in web is therefore one hop from the socket.
    > 4. **LAN.** Listeners on the Mac's LAN addresses (anything bound to `0.0.0.0`) and other LAN hosts (router
    >    admin pages, NAS, printers) are reachable. Not probed.
-   > 5. **Published ports by container IP; what is not reachable.** Any port that a container on another bridge
-   >    publishes on the host, even on `127.0.0.1` only, is reachable from workspace containers by that container's
-   >    IP until the egress filter ships (#88): web's 3000 always, db's 5432 while `compose.db-port.yaml` is in use
-   >    (inferred from web, not probed on the Mac). Observed on Docker Desktop 29.9.2 for web on `default`; CI's
-   >    Linux value is the one pasted above (probe rows W1, D2). Not reachable (probe NP, Mac and CI): Postgres in
-   >    the default stack by every path, the workspace service by every path, unpublished ports of other
+   > 5. **Published ports by container IP; what is not reachable.** On Docker Desktop (observed on 29.9.2), a port
+   >    that a container on another bridge publishes on the host, even on `127.0.0.1` only, is reachable from
+   >    workspace containers by that container's IP: web's 3000 always (probe row W1, web on `default`), db's 5432
+   >    while `compose.db-port.yaml` is in use (inferred from web, not probed on the Mac). On Linux (CI, Ubuntu
+   >    24.04.5 LTS) both were observed unreachable, db published (probe rows W1, D2 above). The residual lasts until
+   >    the egress filter ships (#88) on every platform where it is observed. Not reachable (probe NP, Mac and CI):
+   >    Postgres in the default stack by every path, the workspace service by every path, unpublished ports of other
    >    containers, the bridge gateway on the db, service and web ports, other workspace instances' networks.
 7. **Lifecycle.** `ensure` is idempotent and converges from every crash point (nothing, volume only, a
    never-started container with or without the starter marker, a stopped or running container). Idle stop after
