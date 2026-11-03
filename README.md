@@ -58,10 +58,11 @@ command also needs `WORKSPACE_SERVICE_SECRET` (at least 32 characters), appended
 
 The database is not published on the host by default. `pnpm dev`, `pnpm seed` and DB clients reach it only
 while the shell that starts it has exported `COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml`, which adds
-`127.0.0.1:5432` (`DB_PORT`). While that port is published, every running workspace container reaches
-Postgres as the superuser, an accepted residual until the workspace egress filter ships
-([ADR-0002](docs/adr/0002-workspace-runtime.md) item 6, #88). So stop workspaces first (command under
-"Workspace service") and, when done, unset the variable and recreate db without the port:
+`127.0.0.1:5432` (`DB_PORT`). While that port is published on Docker Desktop, every running workspace
+container reaches Postgres as the superuser (on Linux, as in CI, neither the host path nor the db container's
+IP was observed reachable), an accepted residual until the workspace egress filter ships
+([ADR-0002](docs/adr/0002-workspace-runtime.md) item 6, residuals 1, 2 and 5, #88). So stop workspaces first
+(command under "Workspace service") and, when done, unset the variable and recreate db without the port:
 
 ```bash
 # stop workspaces first (see "Workspace service")
@@ -177,8 +178,9 @@ removes the orphaned `workspace` container. It leaves the network `academy_works
 
 The integration tests remove their own objects and sweep those of interrupted runs older than 60 minutes.
 To remove leftovers by hand (for example when Docker reports no free network address pool), list them first,
-then remove them. Every test object carries `academy.workspace.test-run`, whatever its value (a run id of 8
-hex digits, or `probe-<epoch>` for the network probe's helper, which the tests' own sweep never removes):
+then remove them. Never run the commands of this section while integration tests run: they also take the
+objects of a run in progress. Every test object carries `academy.workspace.test-run`, whatever its value (a run
+id of 8 hex digits, or `probe-<epoch>` for the network probe's helper, which the tests' own sweep never removes):
 
 ```bash
 docker ps -a --filter label=academy.workspace.test-run --format '{{.ID}} {{.Names}}'
