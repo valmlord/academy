@@ -104,12 +104,13 @@ contract between them is costly to change once #32 builds its client on it, so i
      of the ensure converges as well.
    - `DELETE W` removes the container, then the volume. A crash between them leaves the volume, which `GET`
      reports as `stopped`. The caller retries `DELETE` on any non-204 answer.
-8. **Timeout chain** (for #32's client timeout). One ensure is at most 30 engine calls (worst case 26: the first
-   create path with a "name taken" answer and up to 5 inspects by name, then the start-404 retry, whose create can
-   meet the same answer from another process, plus margin), plus at most 0.75 s of fixed backoff (two waits of the
-   re-inspect schedule 25, 50, 100, 200 ms). Each call is bounded only by a 30 s socket **inactivity** timeout,
-   not a per-call duration: a response that keeps trickling is not cut. Calls on one workspace (ensure, stop,
-   delete, idle stop, reconcile actions) queue on its lock behind earlier calls; `GET` and `activity` take no lock.
+8. **Timeout chain** (for #32's client timeout). One ensure is at most 30 engine calls plus at most 0.75 s of fixed
+   backoff. The 30 is the counted worst case, with no margin: 16 calls on the first create path (a "name taken"
+   answer and up to 5 inspects by name), then 14 for the start-404 retry, whose create can meet the same answer from
+   another process. The 0.75 s is two waits of the re-inspect schedule 25, 50, 100, 200 ms. Each call is bounded
+   only by a 30 s socket **inactivity** timeout, not a per-call duration: a response that keeps trickling is not
+   cut. Calls on one workspace (ensure, stop, delete, idle stop, reconcile actions) queue on its lock behind earlier
+   calls; `GET` and `activity` take no lock.
 9. **Activity obligations.** The idle stop ends a running workspace after `idleStopMinutes` without activity;
    every `PUT` and every `activity` call moves the window. #32 calls `POST W/activity` on terminal input and
    output, at most once per 30 s per workspace; #34 calls it at the start and at the end of a check. The service

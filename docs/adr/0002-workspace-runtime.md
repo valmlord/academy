@@ -18,7 +18,7 @@ platform runs locally. The internet connection may be unstable.
   agent needs the model API); no access to the platform's internal services by any container address or the
   bridge gateway (db in the default stack and the workspace service; proved by the probe in item 6); web and a
   published db are reachable only as the accepted residuals of item 6, which last until the workspace egress
-  filter ships (#88).
+  filter ships (#88), and after it for every workspace created before it unless #88 re-creates existing ones.
 - Terminal: `docker exec` with a TTY over WebSocket.
 - Checks run in the container; `checks/` is mounted read-only only into the grader process
   for the duration of the check. hidden-task runs in a separate copy of the workspace.

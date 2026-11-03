@@ -247,7 +247,8 @@ expect_unreachable S3 host.docker.internal "$SERVICE_PORT"
 expect_unreachable_address S4 "$hdi_ip" "$SERVICE_PORT"
 # W1 records on every platform: Docker Desktop 29.9.2 routes a host-published port to the container IP from
 # any bridge, even for a 127.0.0.1 publish, and web is always published for the browser (ADR-0002 item 6
-# residual 5, until the egress filter of #88). Linux behaviour is unknown, so there is no platform branch.
+# residual 5, until the egress filter of #88, and after it for workspaces created before it unless #88 re-creates
+# existing ones). Linux behaviour is unknown, so there is no platform branch.
 for ip in $web_ips; do record_residual W1 "$ip" "$WEB_CONTAINER_PORT" "$(tcp "$ip" "$WEB_CONTAINER_PORT")"; done
 expect_web_via_host W2a host.docker.internal "$web_port"
 expect_web_via_host W2b "$hdi_ip" "$web_port"
