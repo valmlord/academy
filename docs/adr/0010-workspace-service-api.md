@@ -65,7 +65,9 @@ contract between them is costly to change once #32 builds its client on it, so i
      process while the container went on running; observed on Docker Desktop 29.9.2 (integration test I-oom) for
      such a container stopped gracefully later: `I-oom OOMKilled=true ExitCode=143`, which reads `exited`.
    - `limits`: the configured limits in the units the Docker Engine API takes (`WORKSPACE_CPU_LIMIT=2` is
-     `nanoCpus: 2000000000`, `WORKSPACE_MEMORY_LIMIT=2g` is `memoryBytes: 2147483648`).
+     `nanoCpus: 2000000000`, `WORKSPACE_MEMORY_LIMIT=2g` is `memoryBytes: 2147483648`). They are the service's
+     configured values, not read from the running container: a container keeps the limits it was created with until
+     `DELETE` (ADR-0002 item 5), so #32 does not present them as the container's actual limits.
 5. **Settings.** `GET /v1/settings` returns `ENVIRONMENT_IDLE_STOP_MINUTES` (default 30),
    `ENVIRONMENT_IDLE_WARNING_MINUTES` (default 5) and `ENVIRONMENT_START_SLOW_SECONDS` (default 10) as
    `idleStopMinutes`, `idleWarningMinutes`, `startSlowSeconds`, so web shows the same numbers the service enforces.

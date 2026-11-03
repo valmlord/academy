@@ -69,8 +69,13 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
    runs out of memory), user `1000:1000`, `CapDrop: ALL`, `no-new-privileges:true`, read-only root filesystem,
    `/tmp` a 256 MiB tmpfs (`rw,nosuid,nodev,exec`), `Init: true`, `Cmd` `sleep infinity`, restart policy `no`,
    `StopTimeout` 10 s, `Env` exactly `HOME=/workspace/home`, one network, one volume mount. The create body is an
-   exact allowlist of keys; adding a key is a reviewed change. Residual: named volumes have no disk quota, so a
-   workspace can fill the Docker VM disk that also holds `academy_db-data`.
+   exact allowlist of keys; adding a key is a reviewed change. The spec, the hardening and the limits apply when a
+   container is created: an existing container whose labels match the key (a stopped one, or one never started) is
+   started as it is, so it keeps the image, HostConfig and network it was created with until `DELETE`. A later change
+   that must reach existing workspaces (a tighter spec, new limits, the egress filter of #88) therefore re-creates
+   them, either by bumping the label schema or a spec-version label, or by comparing the HostConfig before a start
+   and re-creating on a difference; neither exists in #31 and both are follow-up work. Residual: named volumes have
+   no disk quota, so a workspace can fill the Docker VM disk that also holds `academy_db-data`.
 6. **Network.** Three zones: `default` (`academy_default`: db, web); `workspace-api` (`academy_workspace-api`,
    `internal: true`: web and the workspace service); `wks-<instance>-net` (created by the service, not internal:
    workspace containers only). Docker isolates different user-defined bridges from each other, and workspaces are
@@ -145,7 +150,7 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
 
    > **Residual: workspace egress (accepted by Stepan, 2026-11-02, Q-W1 option (a); follow-up #88, egress filter
    > for workspace networks).** Workspace containers have unrestricted outbound network. Until the egress filter
-   > ships:
+   > ships, and after it for every workspace created before it unless #88 re-creates it (item 5):
    > 1. **Mac loopback.** On Docker Desktop, `host.docker.internal` (and its IP) forwards to every listener on the
    >    Mac's `127.0.0.1`. Every workspace reaches web on `WEB_PORT` (3080), `pnpm dev` on 3000, any other local
    >    server, and the db port whenever `compose.db-port.yaml` is in use. On Linux a `127.0.0.1` publish is not
@@ -175,7 +180,8 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
    >    workspace containers by that container's IP: web's 3000 always (probe row W1, web on `default`), db's 5432
    >    while `compose.db-port.yaml` is in use (inferred from web, not probed on the Mac). On Linux (CI, Ubuntu
    >    24.04.5 LTS) both were observed unreachable, db published (probe rows W1, D2 above). The residual lasts until
-   >    the egress filter ships (#88) on every platform where it is observed. Not reachable (probe NP, Mac and CI):
+   >    the egress filter ships (#88) on every platform where it is observed, and for a workspace created before #88
+   >    until that workspace is re-created (item 5). Not reachable (probe NP, Mac and CI):
    >    Postgres in the default stack by every path, the workspace service by every path, unpublished ports of other
    >    containers, the bridge gateway on the db, service and web ports, other workspace instances' networks.
 7. **Lifecycle.** `ensure` is idempotent and converges from every crash point (nothing, volume only, a
