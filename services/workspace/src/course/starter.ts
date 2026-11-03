@@ -1,14 +1,24 @@
-import type { BigIntStats } from "node:fs";
-import { lstat, realpath } from "node:fs/promises";
+import { type BigIntStats, constants } from "node:fs";
+import { lstat, open, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { HIDDEN_DIR } from "@academy/lesson-schema/schema";
-import { CourseReadError, StarterRefusedError } from "../errors.js";
-import { fsFailureReason, lstatBelowRoot, MISSING, NOT_A_DIRECTORY, SYMLINK } from "./files.js";
+import { CourseReadError, StarterRefusedError, StarterTooLargeError } from "../errors.js";
+import {
+  CHANGED_DURING_READ,
+  fsFailureReason,
+  lstatBelowRoot,
+  MISSING,
+  NOT_A_DIRECTORY,
+  SYMLINK,
+} from "./files.js";
 
 // Closed reasons of design 5.4 that only the starter rules produce.
 export const DOT_PATH = "dot-path";
 export const HIDDEN = "hidden-dir";
 export const OUTSIDE_LESSON = "outside-lesson";
+export const GRADER_FILE = "grader-file";
+export const SPECIAL_FILE = "special-file";
+export const HARD_LINK = "hard-link";
 
 const DEFAULT_IGNORABLE = /\p{Default_Ignorable_Code_Point}/gu;
 
@@ -142,4 +152,202 @@ export async function resolveStarter(
     throw new StarterRefusedError(starterDir, OUTSIDE_LESSON);
   }
   return { lessonDir, starterDir, lessonPath, starterPath: current, lesson, checks };
+}
+
+// Caps of design 4.4: far above any real starter (the largest in the course is a few hundred KB), low
+// enough that the buffered tar of one ensure cannot hurt the service.
+export const MAX_STARTER_BYTES = 8 * 1024 * 1024;
+export const MAX_STARTER_ENTRIES = 2000;
+const QUIZ_FILE = "quiz.yaml";
+
+/** One walked starter entry; `rel` is relative to the starter directory, `/`-separated. */
+export interface StarterEntry {
+  rel: string;
+  path: string;
+  kind: "directory" | "file";
+  mode: number;
+  size: number;
+  dev: bigint;
+  ino: bigint;
+}
+
+function identityKey(dev: bigint, ino: bigint): string {
+  return `${dev}:${ino}`;
+}
+
+async function readdirOrRefuse(path: string, rel: string): Promise<string[]> {
+  try {
+    return await readdir(path);
+  } catch (error) {
+    const reason = fsFailureReason(error);
+    if (reason === undefined) throw error;
+    throw new StarterRefusedError(rel, reason);
+  }
+}
+
+/**
+ * Rule 7: the identity of `<lesson>/checks`, of every entry below it (walked with `lstat`, never followed),
+ * and of `<lesson>/quiz.yaml`. A starter entry with one of these identities is grader material under another
+ * name.
+ */
+async function graderIdentities(resolved: ResolvedStarter): Promise<Set<string>> {
+  const identities = new Set<string>();
+  const pending: { path: string; rel: string }[] = [];
+  if (resolved.checks !== null) {
+    identities.add(identityKey(resolved.checks.dev, resolved.checks.ino));
+    pending.push({
+      path: join(resolved.lessonPath, HIDDEN_DIR),
+      rel: `${resolved.lessonDir}/${HIDDEN_DIR}`,
+    });
+  }
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    for (const name of await readdirOrRefuse(next.path, next.rel)) {
+      const path = join(next.path, name);
+      const rel = `${next.rel}/${name}`;
+      const stats = await lstatOrRefuse(path, rel);
+      identities.add(identityKey(stats.dev, stats.ino));
+      if (stats.isDirectory()) pending.push({ path, rel });
+    }
+  }
+  const quiz = await optionalIdentity(
+    join(resolved.lessonPath, QUIZ_FILE),
+    `${resolved.lessonDir}/${QUIZ_FILE}`,
+    QUIZ_FILE,
+  );
+  if (quiz !== null) identities.add(identityKey(quiz.dev, quiz.ino));
+  return identities;
+}
+
+/** Rules 7 and 8 for one walked entry; returns its kind or throws the refusal. */
+function classify(stats: BigIntStats, rel: string, grader: Set<string>): StarterEntry["kind"] {
+  if (grader.has(identityKey(stats.dev, stats.ino)))
+    throw new StarterRefusedError(rel, GRADER_FILE);
+  if (stats.isSymbolicLink()) throw new StarterRefusedError(rel, SYMLINK);
+  if (stats.isDirectory()) return "directory";
+  if (!stats.isFile()) throw new StarterRefusedError(rel, SPECIAL_FILE);
+  // A git checkout never creates a second name for a file, so one is refused wherever it points.
+  if (stats.nlink > 1n) throw new StarterRefusedError(rel, HARD_LINK);
+  return "file";
+}
+
+/**
+ * Every entry below the starter directory in a stable order (names sorted, each directory before its
+ * contents), refused by rules 7-9 before any file is read. Nothing is followed, and the caps are checked
+ * during the walk, so a huge tree is refused without being walked to the end.
+ */
+export async function walkStarter(resolved: ResolvedStarter): Promise<StarterEntry[]> {
+  const grader = await graderIdentities(resolved);
+  const entries: StarterEntry[] = [];
+  let totalBytes = 0;
+  const visit = async (dirPath: string, dirRel: string): Promise<void> => {
+    const courseRel = dirRel === "" ? resolved.starterDir : `${resolved.starterDir}/${dirRel}`;
+    const names = (await readdirOrRefuse(dirPath, courseRel)).sort();
+    for (const name of names) {
+      const rel = dirRel === "" ? name : `${dirRel}/${name}`;
+      const path = join(dirPath, name);
+      const stats = await lstatOrRefuse(path, `${resolved.starterDir}/${rel}`);
+      const kind = classify(stats, `${resolved.starterDir}/${rel}`, grader);
+      const size = kind === "file" ? Number(stats.size) : 0;
+      totalBytes += size;
+      if (entries.length + 1 > MAX_STARTER_ENTRIES) {
+        throw new StarterTooLargeError(resolved.starterDir, `${MAX_STARTER_ENTRIES} entries`);
+      }
+      if (totalBytes > MAX_STARTER_BYTES) {
+        throw new StarterTooLargeError(resolved.starterDir, `${MAX_STARTER_BYTES} bytes`);
+      }
+      entries.push({
+        rel,
+        path,
+        kind,
+        mode: Number(stats.mode),
+        size,
+        dev: stats.dev,
+        ino: stats.ino,
+      });
+      if (kind === "directory") await visit(path, rel);
+    }
+  };
+  await visit(resolved.starterPath, "");
+  return entries;
+}
+
+// Ownership comes from the tar headers (design 4.4); only the execute bit survives from the course file.
+const DIRECTORY_MODE = 0o755;
+const FILE_MODE = 0o644;
+const EXECUTABLE_FILE_MODE = 0o755;
+const ANY_EXECUTE_BIT = 0o111;
+
+/** The mode an entry gets in the workspace: directories 0755, files 0644, or 0755 when any execute bit is set. */
+export function normalisedMode(entry: Pick<StarterEntry, "kind" | "mode">): number {
+  if (entry.kind === "directory") return DIRECTORY_MODE;
+  return (entry.mode & ANY_EXECUTE_BIT) !== 0 ? EXECUTABLE_FILE_MODE : FILE_MODE;
+}
+
+/** A gone path or a link where the walk saw a regular file: the tree changed after the walk. */
+function readFailureReason(error: unknown): string | undefined {
+  const reason = fsFailureReason(error);
+  if (reason === MISSING || reason === SYMLINK) return CHANGED_DURING_READ;
+  return reason;
+}
+
+/**
+ * Rule 10: the bytes of one walked file. It is opened without following a link, and the open file must be
+ * the regular file the walk saw (same `(dev, ino)` and size), so a file swapped between the walk and the
+ * read is refused instead of copying whatever the new name points to. The read never exceeds the walked size.
+ */
+export async function readStarterFile(
+  resolved: ResolvedStarter,
+  entry: StarterEntry,
+): Promise<Buffer> {
+  const rel = `${resolved.starterDir}/${entry.rel}`;
+  const refuse = (error: unknown): never => {
+    const reason = readFailureReason(error);
+    if (reason === undefined) throw error;
+    throw new StarterRefusedError(rel, reason);
+  };
+  const handle = await open(entry.path, constants.O_RDONLY | constants.O_NOFOLLOW).catch(refuse);
+  try {
+    const opened = await handle.stat({ bigint: true }).catch(refuse);
+    const isWalkedFile =
+      opened.isFile() &&
+      opened.dev === entry.dev &&
+      opened.ino === entry.ino &&
+      Number(opened.size) === entry.size;
+    if (!isWalkedFile) throw new StarterRefusedError(rel, CHANGED_DURING_READ);
+    const buffer = Buffer.alloc(entry.size);
+    let offset = 0;
+    while (offset < entry.size) {
+      const { bytesRead } = await handle
+        .read(buffer, offset, entry.size - offset, offset)
+        .catch(refuse);
+      if (bytesRead === 0) throw new StarterRefusedError(rel, CHANGED_DURING_READ);
+      offset += bytesRead;
+    }
+    return buffer;
+  } finally {
+    await handle.close();
+  }
+}
+
+/** One starter entry ready for the tar: path below the starter, normalised mode, and a file's bytes. */
+export interface StarterItem {
+  rel: string;
+  kind: "directory" | "file";
+  mode: number;
+  content: Buffer | null;
+}
+
+/** Resolve, walk and read a lesson's starter: every refusal happens before anything is copied. */
+export async function loadStarter(
+  root: string,
+  lessonDir: string,
+  starter: string,
+): Promise<StarterItem[]> {
+  const resolved = await resolveStarter(root, lessonDir, starter);
+  const items: StarterItem[] = [];
+  for (const entry of await walkStarter(resolved)) {
+    const content = entry.kind === "file" ? await readStarterFile(resolved, entry) : null;
+    items.push({ rel: entry.rel, kind: entry.kind, mode: normalisedMode(entry), content });
+  }
+  return items;
 }

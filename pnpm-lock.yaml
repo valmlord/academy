@@ -185,6 +185,9 @@ importers:
       '@academy/lesson-schema':
         specifier: workspace:*
         version: link:../../packages/lesson-schema
+      tar-stream:
+        specifier: 3.2.2
+        version: 3.2.2
       yaml:
         specifier: ^2.9.1
         version: 2.9.1

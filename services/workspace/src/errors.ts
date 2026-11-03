@@ -71,3 +71,16 @@ export class StarterRefusedError extends Error {
     this.reason = reason;
   }
 }
+
+/** A starter exceeds a copy cap, measured from `lstat` before any byte is read (design 4.4). */
+export class StarterTooLargeError extends Error {
+  readonly path: string;
+  readonly limit: string;
+
+  constructor(relativePath: string, limit: string) {
+    super(`starter too large: ${relativePath}: more than ${limit}`);
+    this.name = "StarterTooLargeError";
+    this.path = relativePath;
+    this.limit = limit;
+  }
+}
