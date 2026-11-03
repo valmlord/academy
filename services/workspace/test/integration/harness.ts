@@ -33,6 +33,8 @@ export const INSTANCE_LETTERS: Readonly<Record<string, string>> = {
   "engine-read.int.test.ts": "b",
   "probes.int.test.ts": "c",
   "engine.int.test.ts": "d",
+  "objects.int.test.ts": "e",
+  "runtime.int.test.ts": "f",
 };
 export const DECOY_LETTER = "z";
 const FILE_LETTER_PATTERN = /^[a-y]$/;

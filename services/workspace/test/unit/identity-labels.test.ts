@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   LABEL,
   networkLabels,
+  networkLabelsMatch,
   parseWorkspaceLabels,
   type WorkspaceKey,
   workspaceId,
@@ -86,5 +87,29 @@ describe("workspace labels", () => {
 
   it("never parse a network's labels as a workspace", () => {
     expect(parseWorkspaceLabels(networkLabels(INSTANCE), INSTANCE)).toEqual({ kind: "invalid" });
+  });
+});
+
+describe("networkLabelsMatch", () => {
+  it("is true for managed, this instance and role network, whatever the schema", () => {
+    const labels = networkLabels(INSTANCE);
+
+    expect(networkLabelsMatch(labels, INSTANCE)).toBe(true);
+    expect(networkLabelsMatch({ ...labels, [LABEL.schema]: "2" }, INSTANCE)).toBe(true);
+  });
+
+  it.each([
+    ["managed is not true", { [LABEL.managed]: "false" }],
+    ["another instance", { [LABEL.instance]: "other" }],
+    ["another role", { [LABEL.role]: "volume" }],
+  ])("is false when %s", (_case, change) => {
+    expect(networkLabelsMatch({ ...networkLabels(INSTANCE), ...change }, INSTANCE)).toBe(false);
+  });
+
+  it.each([LABEL.managed, LABEL.instance, LABEL.role])("is false when %s is missing", (missing) => {
+    const labels: Record<string, string> = { ...networkLabels(INSTANCE) };
+    delete labels[missing];
+
+    expect(networkLabelsMatch(labels, INSTANCE)).toBe(false);
   });
 });

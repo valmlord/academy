@@ -134,3 +134,47 @@ export class DockerApiError extends Error {
     this.statusCode = statusCode;
   }
 }
+
+/** The workspace image is not on the daemon (HTTP 409 `image-missing`); the service never pulls (design 4.3). */
+export class ImageMissingError extends Error {
+  readonly image: string;
+
+  constructor(image: string) {
+    super(`image missing: ${image}`);
+    this.name = "ImageMissingError";
+    this.image = image;
+  }
+}
+
+/**
+ * An object with a workspace's name does not carry the labels of that workspace (HTTP 500
+ * `workspace-identity-mismatch`): a foreign object, another schema's, or damaged labels. Nothing was changed.
+ * `objectName` is the Docker name (or the Id, for a GC primitive) the service derived or was given.
+ */
+export class WorkspaceIdentityMismatchError extends Error {
+  readonly objectName: string;
+
+  constructor(objectName: string) {
+    super(`workspace identity mismatch: ${objectName}`);
+    this.name = "WorkspaceIdentityMismatchError";
+    this.objectName = objectName;
+  }
+}
+
+/**
+ * A container create answered 409 (the name is taken), yet no container of that name became inspectable within
+ * the bounded re-inspects (HTTP 502 `docker-error`, design amendment 1). Deliberately not a `DockerApiError`: no `statusCode === 409`
+ * branch may read it as a conflict again, and Docker's original answer is not passed off as the result. The
+ * caller's retry of the idempotent ensure converges.
+ */
+export class ContainerNameUnresolvedError extends Error {
+  readonly containerName: string;
+  readonly waitedMs: number;
+
+  constructor(containerName: string, waitedMs: number) {
+    super(`container name taken but no container found: ${containerName} (waited ${waitedMs} ms)`);
+    this.name = "ContainerNameUnresolvedError";
+    this.containerName = containerName;
+    this.waitedMs = waitedMs;
+  }
+}

@@ -54,3 +54,11 @@ export function testContainerSpec(
 ): ContainerCreateBody {
   return buildContainerSpec({ image, instance, key, names, limits: TEST_LIMITS });
 }
+
+/** The value of a fulfilled call; a rejection fails the test naming the error's constructor. */
+export function fulfilledValue<T>(result: PromiseSettledResult<T>): T {
+  if (result.status === "fulfilled") return result.value;
+  const reason: unknown = result.reason;
+  const kind = reason instanceof Error ? reason.constructor.name : typeof reason;
+  throw new Error(`expected every concurrent call fulfilled, one rejected with ${kind}`);
+}

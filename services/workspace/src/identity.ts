@@ -49,9 +49,14 @@ export function workspaceId(instance: string, key: WorkspaceKey): string {
   return createHash("sha256").update(input).digest("hex").slice(0, ID_HEX_LENGTH);
 }
 
+/** One network per instance, shared by its workspaces and by no compose service (design 4.7.1). */
+export function instanceNetworkName(instance: string): string {
+  return `${NAME_PREFIX}-${instance}-net`;
+}
+
 export function workspaceNames(instance: string, id: string): WorkspaceNames {
   const container = `${NAME_PREFIX}-${instance}-${id}`;
-  return { container, volume: `${container}-files`, network: `${NAME_PREFIX}-${instance}-net` };
+  return { container, volume: `${container}-files`, network: instanceNetworkName(instance) };
 }
 
 // Exec target of every workspace (design 5.2, ADR-0002 uid/path contract); #32 runs its sessions with these.
@@ -111,6 +116,18 @@ export function networkLabels(instance: string): Record<string, string> {
     [LABEL.instance]: instance,
     [LABEL.role]: "network",
   };
+}
+
+/**
+ * Whether a network is this instance's own (design 5.1). `schema` is not checked: the network holds no
+ * workspace data, so a service of any schema version may attach to it.
+ */
+export function networkLabelsMatch(labels: Labels, instance: string): boolean {
+  return (
+    labels[LABEL.managed] === "true" &&
+    labels[LABEL.instance] === instance &&
+    labels[LABEL.role] === "network"
+  );
 }
 
 export type LabelParse =
