@@ -282,6 +282,19 @@ describe("DockerRuntime.ensureRunning", () => {
     await expectOneOfEach();
   });
 
+  it("I-half image: reports the image a never-started container was created from, not the spec's", async () => {
+    const engine = new DockerEngine();
+    const imageId = (await engine.inspectImage(TEST_IMAGE))?.Id ?? "";
+    expect(imageId).toMatch(/^sha256:/);
+    await ensureVolume(engine, instance, key);
+    // Docker keeps `Config.Image` as given, so the Id form tells the container's image from the spec's tag.
+    const preCreated = await createOrAdoptContainer(engine, { ...specInput, image: imageId });
+
+    const result = await newRuntime(engine).ensureRunning(spec);
+
+    expect([result.workspace.containerId, result.workspace.image]).toEqual([preCreated, imageId]);
+  });
+
   it("I-half (e): starts a container that has run before without consulting the marker", async () => {
     const engine = new DockerEngine();
     const runtime = newRuntime(engine);

@@ -97,7 +97,7 @@ export class DockerRuntime implements WorkspaceRuntime {
       await ensureVolume(this.#engine, this.#instance, spec.key);
       await checkImage(this.#engine, spec.image);
       const created = await createOrAdoptContainer(this.#engine, input);
-      return this.#startNeverStarted(created, spec, input);
+      return this.#startNeverStarted(created, spec.image, spec, input);
     }
     if (!labelsMatchKey(existing.Config.Labels, this.#instance, spec.key, "container")) {
       throw new WorkspaceIdentityMismatchError(input.names.container);
@@ -106,7 +106,7 @@ export class DockerRuntime implements WorkspaceRuntime {
       return this.#result(spec, "running", existing.Id, existing.Config.Image);
     }
     if (existing.State.StartedAt === NEVER_STARTED_AT) {
-      return this.#startNeverStarted(existing.Id, spec, input);
+      return this.#startNeverStarted(existing.Id, existing.Config.Image, spec, input);
     }
     // A container that has started before is never copied into again: the learner's files are in it.
     const running = await this.#start(existing.Id, spec, input);
@@ -260,15 +260,20 @@ export class DockerRuntime implements WorkspaceRuntime {
     };
   }
 
-  /** The marker, the last tar entry, is what tells a complete copy from a crash during one (6.1 (b)-(d)). */
+  /**
+   * The marker, the last tar entry, is what tells a complete copy from a crash during one (6.1 (b)-(d)).
+   * `image` is what `containerId` was created from; a re-create in `#start` uses the spec's image instead.
+   */
   async #startNeverStarted(
     containerId: string,
+    image: string,
     spec: WorkspaceSpec,
     input: ContainerSpecInput,
   ): Promise<EnsureResult> {
     const copied = await this.#copyStarterUnlessMarked(containerId, spec);
     const running = await this.#start(containerId, spec, input);
-    return this.#result(spec, copied ? "created" : "started", running, spec.image);
+    const runningImage = running === containerId ? image : spec.image;
+    return this.#result(spec, copied ? "created" : "started", running, runningImage);
   }
 
   /** Copies the starter (overwriting a partial copy) when the marker is absent; returns whether it copied. */
