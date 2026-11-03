@@ -185,6 +185,9 @@ importers:
       '@academy/lesson-schema':
         specifier: workspace:*
         version: link:../../packages/lesson-schema
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
       zod:
         specifier: ^4.6.7
         version: 4.6.7

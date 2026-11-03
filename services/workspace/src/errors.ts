@@ -24,3 +24,50 @@ export class InvalidWorkspaceKeyError extends Error {
     this.field = field;
   }
 }
+
+/**
+ * A course file was refused or could not be read; the whole course is unavailable (design 6.5). `file` is
+ * relative to the course root (`.` for the root itself) and `reason` comes from a closed set, so the
+ * message never carries file contents or a system error's text, which would hold the absolute path.
+ */
+export class CourseReadError extends Error {
+  readonly file: string;
+  readonly reason: string;
+
+  constructor(relativeFile: string, reason: string) {
+    super(`${relativeFile}: ${reason}`);
+    this.name = "CourseReadError";
+    this.file = relativeFile;
+    this.reason = reason;
+  }
+}
+
+/** The course has no lesson with this id (HTTP 404 `lesson-not-found`). Ids are validated slugs. */
+export class LessonNotFoundError extends Error {
+  readonly courseId: string;
+  readonly lessonId: string;
+
+  constructor(courseId: string, lessonId: string) {
+    super(`lesson not found: ${courseId}/${lessonId}`);
+    this.name = "LessonNotFoundError";
+    this.courseId = courseId;
+    this.lessonId = lessonId;
+  }
+}
+
+/**
+ * A lesson's starter cannot be copied (HTTP 500 `starter-invalid`). `path` is relative to the course root and
+ * `reason` is one of the closed reasons of design 5.4; several inputs are refused by more than one rule, and
+ * the reason says which rule fired.
+ */
+export class StarterRefusedError extends Error {
+  readonly path: string;
+  readonly reason: string;
+
+  constructor(relativePath: string, reason: string) {
+    super(`starter refused: ${relativePath}: ${reason}`);
+    this.name = "StarterRefusedError";
+    this.path = relativePath;
+    this.reason = reason;
+  }
+}

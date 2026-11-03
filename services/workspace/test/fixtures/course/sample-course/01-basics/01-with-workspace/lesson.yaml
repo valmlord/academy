@@ -1,0 +1,10 @@
+id: with-workspace
+title: A lesson with a workspace
+type: artifact
+outcomes:
+  - Edits the starter files.
+estimatedMinutes: 10
+status: draft
+workspace:
+  image: academy-workspace:dev
+  starter: starter
