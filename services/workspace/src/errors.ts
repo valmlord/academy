@@ -161,6 +161,30 @@ export class WorkspaceIdentityMismatchError extends Error {
   }
 }
 
+/** The lesson exists but declares no `workspace` (HTTP 422 `lesson-has-no-workspace`). */
+export class LessonHasNoWorkspaceError extends Error {
+  readonly courseId: string;
+  readonly lessonId: string;
+
+  constructor(courseId: string, lessonId: string) {
+    super(`lesson has no workspace: ${courseId}/${lessonId}`);
+    this.name = "LessonHasNoWorkspaceError";
+    this.courseId = courseId;
+    this.lessonId = lessonId;
+  }
+}
+
+/** Activity for a workspace the service does not track as running (HTTP 409 `workspace-not-running`). */
+export class WorkspaceNotRunningError extends Error {
+  readonly id: string;
+
+  constructor(id: string) {
+    super(`workspace not running: ${id}`);
+    this.name = "WorkspaceNotRunningError";
+    this.id = id;
+  }
+}
+
 /** Neither container nor volume exists for the key (HTTP 404 `workspace-not-found`). `id` is the derived id. */
 export class WorkspaceNotFoundError extends Error {
   readonly id: string;
