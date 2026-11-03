@@ -72,3 +72,8 @@ export const networkListSchema = z.array(
   z.object({ Id: z.string().min(1), Name: z.string().min(1), Labels: labelsSchema }),
 );
 export type NetworkSummary = z.infer<typeof networkListSchema>[number];
+
+/** dockerode resolves a volume create with a handle on the volume, named as Docker answered. */
+export const volumeHandleSchema = z.object({ name: z.string().min(1) });
+/** dockerode resolves a network or container create with a handle on the new object's Id. */
+export const idHandleSchema = z.object({ id: z.string().min(1) });

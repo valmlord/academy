@@ -31,6 +31,8 @@ declare module "vitest" {
 export const INSTANCE_LETTERS: Readonly<Record<string, string>> = {
   "harness.int.test.ts": "a",
   "engine-read.int.test.ts": "b",
+  "probes.int.test.ts": "c",
+  "engine.int.test.ts": "d",
 };
 export const DECOY_LETTER = "z";
 const FILE_LETTER_PATTERN = /^[a-y]$/;

@@ -1,7 +1,7 @@
 import Docker from "dockerode";
 import type { z } from "zod";
 import { DockerApiError, DockerResponseShapeError } from "../errors.js";
-import type { ListFilter } from "../identity.js";
+import type { Labels, ListFilter } from "../identity.js";
 import { classifyDockerError } from "./classify.js";
 import {
   type ContainerInspect,
@@ -11,13 +11,16 @@ import {
   type EngineVersion,
   engineVersionSchema,
   type ImageInspect,
+  idHandleSchema,
   imageInspectSchema,
   type NetworkSummary,
   networkListSchema,
   type VolumeInspect,
+  volumeHandleSchema,
   volumeInspectSchema,
   volumeListSchema,
 } from "./schemas.js";
+import type { ContainerCreateBody } from "./spec.js";
 
 // The only module that talks to dockerode (U-boundary). The Engine API is HTTP over the daemon's unix socket;
 // every response is validated before use.
@@ -68,6 +71,19 @@ async function inspectOrNull<T>(
     throw error;
   }
   return parseResponse(operation, schema, value);
+}
+
+/** Start and stop answer it when the container is already in the requested state. */
+const NOT_MODIFIED = 304;
+
+/** A start or stop whose 304 is success: the caller wants the state, not the transition. */
+async function changeState(operation: string, request: () => Promise<unknown>): Promise<void> {
+  try {
+    await call(operation, request);
+  } catch (error: unknown) {
+    if (error instanceof DockerApiError && error.statusCode === NOT_MODIFIED) return;
+    throw error;
+  }
 }
 
 export class DockerEngine {
@@ -136,4 +152,110 @@ export class DockerEngine {
     );
     return parseResponse("list networks", networkListSchema, response);
   }
+
+  /**
+   * Idempotent: Docker answers an existing name with that volume instead of a conflict, so a create proves
+   * nothing about whose volume it is; the caller checks the labels by inspecting (design 6.1 `ensureVolume`).
+   * Returns the volume's name.
+   */
+  async createVolume(name: string, labels: Labels): Promise<string> {
+    const handle = await call("create volume", () =>
+      this.#docker.createVolume({ _query: {}, _body: { Name: name, Labels: { ...labels } } }),
+    );
+    return parseResponse("create volume", volumeHandleSchema, handle).name;
+  }
+
+  /** 404 and 409 (in use) reach the caller as `DockerApiError`. */
+  async removeVolume(name: string): Promise<void> {
+    await call("remove volume", () => this.#docker.getVolume(name).remove());
+  }
+
+  /**
+   * Returns the new network's Id. An existing name is answered with 409 (`DockerApiError`), which the caller
+   * reads as "someone else holds this name" and resolves by listing (design 6.1 `ensureNetwork`).
+   */
+  async createNetwork(name: string, labels: Labels): Promise<string> {
+    const handle = await call("create network", () =>
+      this.#docker.createNetwork({ _query: {}, _body: { Name: name, Labels: { ...labels } } }),
+    );
+    return parseResponse("create network", idHandleSchema, handle).id;
+  }
+
+  /** By Id, never by name: a name alone does not prove which object it is. */
+  async removeNetwork(id: string): Promise<void> {
+    await call("remove network", () => this.#docker.getNetwork(id).remove());
+  }
+
+  /**
+   * Returns the new container's Id. A taken name is 409 and a missing image or network is 404, both as
+   * `DockerApiError`: the name is the cross-process lock the caller resolves by re-inspecting (design 6.1).
+   */
+  async createContainer(name: string, body: ContainerCreateBody): Promise<string> {
+    const handle = await call("create container", () =>
+      this.#docker.createContainer({ _query: { name }, _body: body }),
+    );
+    return parseResponse("create container", idHandleSchema, handle).id;
+  }
+
+  /** 304 (already running) is success; 404 reaches the caller, whose retry is keyed on it (design 6.1). */
+  async startContainer(id: string): Promise<void> {
+    await changeState("start container", () => this.#docker.getContainer(id).start());
+  }
+
+  /** 304 (already stopped) is success. */
+  async stopContainer(id: string, timeoutSeconds: number): Promise<void> {
+    await changeState("stop container", () =>
+      this.#docker.getContainer(id).stop({ t: timeoutSeconds }),
+    );
+  }
+
+  /**
+   * By Id. Without `force` a running container is refused with 409, which GC reads as "it started
+   * meanwhile" (design 5.1). Docker's volume flag is never sent, so a container remove never takes a volume.
+   */
+  async removeContainer(id: string, options: { force: boolean }): Promise<void> {
+    await call("remove container", () =>
+      this.#docker.getContainer(id).remove({ force: options.force }),
+    );
+  }
+
+  /**
+   * Extracts an in-memory tar at `path` inside the container; works on a never-started container, whose volume
+   * Docker mounts for the copy (P1). Ownership and modes come from the tar headers.
+   */
+  async putArchive(id: string, path: string, tar: Buffer): Promise<void> {
+    await call("put archive", () => this.#docker.getContainer(id).putArchive(tar, { path }));
+  }
+
+  /**
+   * Whether `path` exists in the container, by `HEAD /archive` (also on a never-started container, P2). Docker
+   * answers 404 for a missing path and for a missing container alike, so both read as `false`.
+   */
+  async pathExists(id: string, path: string): Promise<boolean> {
+    let response: unknown;
+    try {
+      response = await call("stat path", () => this.#docker.getContainer(id).infoArchive({ path }));
+    } catch (error: unknown) {
+      if (error instanceof DockerApiError && error.statusCode === NOT_FOUND) return false;
+      throw error;
+    }
+    destroyStream("stat path", response);
+    return true;
+  }
+}
+
+/**
+ * dockerode resolves `HEAD /archive` with the response stream itself. An unconsumed stream keeps its socket
+ * open, so every successful HEAD ends here, before its result is used.
+ */
+function destroyStream(operation: string, response: unknown): void {
+  if (
+    typeof response !== "object" ||
+    response === null ||
+    !("destroy" in response) ||
+    typeof response.destroy !== "function"
+  ) {
+    throw new DockerResponseShapeError(operation, "destroy");
+  }
+  response.destroy();
 }
