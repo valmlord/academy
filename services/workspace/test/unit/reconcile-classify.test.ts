@@ -128,10 +128,7 @@ describe("classifyContainer", () => {
       id,
       key: KEY,
     });
-    expect(classifyContainer(container(KEY, "exited"), INSTANCE, COURSE)).toEqual({
-      kind: "keep",
-      id,
-    });
+    expect(classifyContainer(container(KEY, "exited"), INSTANCE, COURSE)).toEqual({ kind: "keep" });
   });
 
   it("removes nothing when the course is unreadable, but still adopts and stops", () => {

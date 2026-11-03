@@ -176,6 +176,16 @@ describe("Reconciler.runPass", () => {
     expect(tracker.isTracked(workspaceId(INSTANCE, OTHER_USER_KEY))).toBe(false);
   });
 
+  it("leaves the idle entry of a workspace listed as exited, which an ensure may have started since the listing", async () => {
+    const { reconciler, runtime, tracker } = setup([workspaceContainer(KEY, "exited")]);
+    tracker.touch(workspaceId(INSTANCE, KEY), KEY);
+
+    await reconciler.runPass();
+
+    expect(actions(runtime)).toEqual([]);
+    expect(tracker.isTracked(workspaceId(INSTANCE, KEY))).toBe(true);
+  });
+
   it("with one invalid lesson in the course: removes nothing, still adopts running workspaces and stops invalid ones", async () => {
     const { reconciler, runtime, tracker, logged } = setup(
       [

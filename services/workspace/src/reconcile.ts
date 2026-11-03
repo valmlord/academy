@@ -20,8 +20,11 @@ export type Classification =
   | { kind: "adopt"; id: string; key: WorkspaceKey }
   /** Another schema version owns it: never stopped or removed, so a rollback leaves the newer one alone. */
   | { kind: "other-schema"; schema: string }
-  /** Not running and left alone; `id` (ours only, else `null`) lets the caller drop a stale idle entry. */
-  | { kind: "keep"; id: string | null };
+  /**
+   * Not running and left alone. Its idle entry is left alone too: the listing may be stale, an ensure may have
+   * started it since, and the idle sweep already forgets the entry of a container it finds stopped.
+   */
+  | { kind: "keep" };
 
 /**
  * `course` is `null` when it could not be read in full: then nothing is removed, while running containers are
@@ -38,16 +41,16 @@ export function classifyContainer(
   // Labels that parse but name another workspace than the container's name are as good as invalid.
   if (parsed.kind !== "valid" || workspaceNames(instance, parsed.id).container !== container.name) {
     if (isRunning) return { kind: "stop" };
-    return course === null ? { kind: "keep", id: null } : { kind: "remove", why: "invalid-labels" };
+    return course === null ? { kind: "keep" } : { kind: "remove", why: "invalid-labels" };
   }
   if (isRunning) return { kind: "adopt", id: parsed.id, key: parsed.key };
-  if (course === null) return { kind: "keep", id: parsed.id };
+  if (course === null) return { kind: "keep" };
   if (container.state === "dead") return { kind: "remove", why: "dead" };
   const lesson = course.find(parsed.key.courseId, parsed.key.lessonId);
   if (lesson === undefined || lesson.workspace === null) {
     return { kind: "remove", why: "lesson-gone" };
   }
-  return { kind: "keep", id: parsed.id };
+  return { kind: "keep" };
 }
 
 export interface ReconcilerOptions {
@@ -123,8 +126,6 @@ export class Reconciler {
         }
         return;
       case "keep":
-        // A container found not running needs no idle stop any more.
-        if (classification.id !== null) tracker.forget(classification.id);
         return;
       case "other-schema":
         if (this.#loggedOtherSchema.has(containerId)) return;
