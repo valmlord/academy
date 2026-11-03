@@ -28,3 +28,21 @@
 - #1 (Proposed): shadcn/ui is initialised on Radix (`-b radix`, preset nova, style `radix-nova`), because
   the design system inventory (`design/system/README.md`) is written against shadcn's Radix docs;
   switching later means regenerating every component.
+- #31 (Proposed): the workspace service (`services/workspace`) adds these choices.
+  - `dockerode@5.0.1` without `@types/dockerode`: a local declaration (`src/docker/dockerode.d.ts`) types every
+    result as `Promise<unknown>`, and zod validates each response before use, because the community types put
+    `any` in dozens of places. Only `src/docker/engine.ts` imports dockerode (a unit test walks `src/` for it).
+  - `tar-stream@3.2.2` builds the starter archive in memory, because the service sets owner, group and mode per
+    entry and refuses symlinks before packing.
+  - zod at the HTTP boundary (path parameters parsed in each handler), without a Fastify type provider.
+  - `fast-check@4.10.2` (dev) for property-based unit tests.
+  - Integration tests run against the real Docker daemon; their helpers create, inspect and remove test objects
+    with the `docker` CLI, a second path to the daemon independent of the engine code under test.
+  - `fastify@5.12.7` exact, with a known advisory, GHSA-3qgw-9275-xf8w (medium, affected `>=5.8.0 <5.12.8`): an
+    uncaught `ERR_HTTP_HEADERS_SENT` ends the process when a nonzero `handlerTimeout` meets a streaming response.
+    It is not reachable while `handlerTimeout` stays `0` (no option passes one) and no route streams (every route
+    answers a small JSON body or 204). A unit guard pins it: a spy on the Fastify constructor asserts it is called
+    once with no `handlerTimeout` key, and the route table asserts that no route declares one. 5.12.8, the fixed
+    release, was published on 2026-11-02 and was too new to take; the bump to 5.12.8 is planned once it is two
+    weeks old (after 2026-11-16) and before #32 adds a streaming response or a nonzero `handlerTimeout`. The guard
+    stays after the bump.
