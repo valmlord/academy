@@ -83,7 +83,8 @@ on `muted` with a header holding "Копировать", scrolling sideways insi
 ## Spacing scale
 
 Tailwind's 0.25rem step, as `--space-*` in `proto.css`: 0.5 (0.125rem), 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12,
-16 (4rem). Controls: height 2.25rem (`--control-height`), small 2rem; every pointer target at least 24px
+16 (4rem). Controls: height 2.25rem (`--control-height`: buttons, the icon button as a square, inputs), small 2rem
+(`--control-height-sm`: small buttons, tab triggers); every pointer target at least 24px
 (WCAG 2.5.8), the split handle included: its grid column `--handle-width` equals `--hit-min` (1.5rem), so
 the 24px target sits between the panes and never overlaps a pane's scrollbar. Page gutter `space-4`, card
 padding `space-6`.
@@ -154,7 +155,7 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 
 | shadcn component | Prototype class | Used on | Variants in v1 |
 |------------------|-----------------|---------|----------------|
-| Button | `.button` | all | default, secondary, outline, ghost, link, destructive; sizes default, sm, icon; `aria-disabled` + `.disabled-reason` (R1); `aria-busy` with Spinner |
+| Button | `.button` | all | default, secondary, outline, ghost, link, destructive; sizes default, sm, icon; `aria-disabled` + `.disabled-reason` (R1), cursor `not-allowed`; busy: `aria-busy` plus `aria-disabled` with Spinner, the busy label is the reason (R1), cursor `progress` |
 | Card | `.card`, `.card-header`, `.card-title`, `.card-description`, `.card-footer` | sign-in, dashboard | one |
 | Field, Label, Input | `.field`, `.label`, `.input`, `.field-description`, `.field-error` | sign-in | default, `aria-invalid="true"` |
 | Alert | `.alert`, `.alert-title`, `.alert-description`, `.alert-actions` | all | default, destructive, warning (custom: border in `warning`, words in `foreground`; for the prerequisite alert F6.2 and the API key note). A message that takes focus instead of a live region (sign-in, R2) is `<div class="alert" role="group" tabindex="-1" aria-labelledby="<title id>" [aria-describedby="<description id>"]>`: a name on a `div` without a role is not exposed |
