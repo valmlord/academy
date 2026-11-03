@@ -4,6 +4,9 @@
   "private": true,
   "description": "Workspace service: one Docker container per lesson, behind an internal HTTP API (ADR-0002, ADR-0010).",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=22.22"
   },
