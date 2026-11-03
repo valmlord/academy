@@ -185,6 +185,9 @@ importers:
       '@academy/lesson-schema':
         specifier: workspace:*
         version: link:../../packages/lesson-schema
+      dockerode:
+        specifier: 5.0.1
+        version: 5.0.1
       tar-stream:
         specifier: 3.2.2
         version: 3.2.2

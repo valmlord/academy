@@ -84,3 +84,53 @@ export class StarterTooLargeError extends Error {
     this.limit = limit;
   }
 }
+
+/**
+ * A Docker Engine response does not have the shape the service relies on (HTTP 502 `docker-response-invalid`).
+ * Names the operation and the path of the first failing field, never the value Docker sent.
+ */
+export class DockerResponseShapeError extends Error {
+  readonly operation: string;
+  readonly issuePath: string;
+
+  constructor(operation: string, issuePath: string) {
+    super(
+      `unexpected Docker response to ${operation} at ${issuePath === "" ? "(root)" : issuePath}`,
+    );
+    this.name = "DockerResponseShapeError";
+    this.operation = operation;
+    this.issuePath = issuePath;
+  }
+}
+
+/**
+ * The Docker daemon cannot be reached (HTTP 503 `docker-unavailable`): the socket is missing or refused, or the
+ * connection was cut, which is also how docker-modem reports its own timeout. `errnoCode` is Node's code.
+ */
+export class DockerUnavailableError extends Error {
+  readonly operation: string;
+  readonly errnoCode: string;
+
+  constructor(operation: string, errnoCode: string) {
+    super(`Docker is unavailable during ${operation} (${errnoCode})`);
+    this.name = "DockerUnavailableError";
+    this.operation = operation;
+    this.errnoCode = errnoCode;
+  }
+}
+
+/**
+ * Docker answered with an error status (HTTP 502 `docker-error`); `statusCode` is 0 when the failure had no
+ * status. Docker's own message is never copied: it echoes request content, which from #33 on can hold a key.
+ */
+export class DockerApiError extends Error {
+  readonly operation: string;
+  readonly statusCode: number;
+
+  constructor(operation: string, statusCode: number) {
+    super(`Docker API error during ${operation} (status ${statusCode})`);
+    this.name = "DockerApiError";
+    this.operation = operation;
+    this.statusCode = statusCode;
+  }
+}
