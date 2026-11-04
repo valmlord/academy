@@ -41,6 +41,8 @@ Requirements: Node 22, pnpm 10, Docker, git, gh, python3.
 pnpm install
 pnpm lint && pnpm typecheck && pnpm test && pnpm content:validate
 cp .env.example .env
+printf 'BETTER_AUTH_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
+printf 'WORKSPACE_SERVICE_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
 docker compose up -d --build --wait
 ```
 
@@ -50,16 +52,34 @@ docker compose up -d --build --wait
 fails, so start the database first. It also exits when `BETTER_AUTH_SECRET` is missing, shorter than 32
 characters or Better Auth's public default. Append a generated one to the root `.env` without printing
 it: `printf 'BETTER_AUTH_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env`. Every compose command that reads
-the file needs it, including `docker compose up -d --wait db`, and so does `pnpm dev`.
+the file needs it, including `docker compose up -d --wait db`, and so does `pnpm dev`. Every compose
+command also needs `WORKSPACE_SERVICE_SECRET` (at least 32 characters), appended the same way:
+`printf 'WORKSPACE_SERVICE_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env`.
+
+The database is not published on the host by default. `pnpm dev`, `pnpm seed` and DB clients reach it only
+while the shell that starts it has exported `COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml`, which adds
+`127.0.0.1:5432` (`DB_PORT`). While that port is published on Docker Desktop, every running workspace
+container reaches Postgres as the superuser (on Linux, as in CI, neither the host path nor the db container's
+IP was observed reachable), an accepted residual until the workspace egress filter ships
+([ADR-0002](docs/adr/0002-workspace-runtime.md) item 6, residuals 1, 2 and 5, #88). So stop workspaces first
+(command under "Workspace service") and, when done, unset the variable and recreate db without the port:
 
 ```bash
-docker compose up -d --wait db   # the database alone
+# stop workspaces first (see "Workspace service")
+export COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml
+docker compose up -d --wait db   # the database alone, on 127.0.0.1:5432
 pnpm dev                         # http://localhost:3000, reads DATABASE_URL from the root .env
+# when done, in the same shell:
+unset COMPOSE_FILE
+docker compose up -d --wait db   # db recreated without the host port
+```
+
+```bash
 docker compose up -d --build --wait   # the whole stack, web on http://127.0.0.1:3080 (WEB_PORT)
 ```
 
-Always pass `--build` after a change: compose tags the image `academy-web:local`, and `up` without
-`--build` reuses a stale one.
+Always pass `--build` after a change: compose tags the images `academy-web:local` and
+`academy-workspace-service:local`, and `up` without `--build` reuses stale ones.
 
 ### Course content
 
@@ -80,24 +100,33 @@ nowhere, or the image was built without `/app/course`.
 normal case, `pnpm dev`, `pnpm build`, `pnpm seed` and `pnpm test:e2e` load the root `.env` exactly as
 before. Exported as `1`, they skip it and print `root .env not loaded: ACADEMY_SKIP_ROOT_ENV=1` on stderr;
 any other value stops startup with an error naming the variable. `COMPOSE_ENV_FILES=/dev/null` is the
-compose counterpart. Export both in the shell, never in `.env`.
+compose counterpart. Export both in the shell, never in `.env`. Compose then reads no `.env` at all, so an
+isolated compose run passes `BETTER_AUTH_SECRET` and `WORKSPACE_SERVICE_SECRET` in its own environment
+(`services/workspace/test/manual/isolated-stack.sh` generates throwaway ones).
 
 ### Signing in
 
 The platform has one user, created by a seed script; there is no sign-up. From the repository root:
 
 1. `ls .env`; if it is missing, `cp .env.example .env`.
-2. Append the secret as above; `grep -c '^BETTER_AUTH_SECRET=' .env` prints `1`.
+2. Append both secrets as above; `grep -c '^BETTER_AUTH_SECRET=' .env` and
+   `grep -c '^WORKSPACE_SERVICE_SECRET=' .env` each print `1`.
 3. Open `.env` in an editor and add `SEED_EMAIL=...` and `SEED_PASSWORD=...` (8 to 128 characters). The
    file is git-ignored. Never type the password on a command line, where the shell history keeps it.
-4. `docker compose up -d --build --wait` (web applies the migrations, including the auth tables).
-5. `pnpm seed` prints `seed: created` (it builds `@academy/db` and `@academy/lesson-schema` first). To
-   keep the password out of `.env`, in zsh: `read -rs "SEED_PASSWORD?Seed password: " && export
+4. Stop workspaces first (command under "Workspace service"), then
+   `export COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml` and
+   `docker compose up -d --build --wait` (web applies the migrations, including the auth tables; db gets its
+   host port for the seed).
+5. In the same shell, `pnpm seed` prints `seed: created` (it builds `@academy/db` and `@academy/lesson-schema`
+   first). To keep the password out of `.env`, in zsh: `read -rs "SEED_PASSWORD?Seed password: " && export
    SEED_PASSWORD && SEED_EMAIL=you@example.com pnpm seed; unset SEED_PASSWORD`.
 6. Open http://127.0.0.1:3080 and sign in with those values.
+7. `unset COMPOSE_FILE` and `docker compose up -d --wait db`: db loses its host port again (ADR-0002 item 6).
 
-To change the password, change `SEED_PASSWORD` in `.env` and run `pnpm seed` again: it prints
-`seed: updated` and ends every existing session. The seed refuses to create a second user.
+To change the password, change `SEED_PASSWORD` in `.env`, stop workspaces, export
+`COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml`, run `docker compose up -d --wait db` and then
+`pnpm seed` again: it prints `seed: updated` and ends every existing session. Afterwards `unset COMPOSE_FILE`
+and run `docker compose up -d --wait db` once more. The seed refuses to create a second user.
 
 End-to-end tests sign in with the same `SEED_EMAIL` / `SEED_PASSWORD` and run against the compose stack.
 A Playwright trace of a failed local run can hold the typed password; `test-results/` is git-ignored,
@@ -115,3 +144,62 @@ branch and whose PR targets it (`gh pr create --base <design-branch>`). The code
 the markers and nothing else. GitHub does not close an issue from a PR into a non-default branch, so that
 issue is closed by hand after the DESIGN PR merges. A re-copy that changes more than 5 lines runs as
 TASK, not HOTFIX.
+
+## Workspace service
+
+`services/workspace` runs one Docker container per learner and lesson (ADR-0002, its HTTP API in ADR-0010).
+Compose starts it as `workspace`, on the internal network `workspace-api` only: no host port, no route to
+db; web will call it at `http://workspace:4100` with `WORKSPACE_SERVICE_SECRET` (#32). It drives Docker
+through the mounted socket, which is root on the Docker VM. Its workspaces are named `wks-local-...`, carry
+the labels `academy.workspace.managed=true` and `academy.workspace.instance=local`, keep the learner's files
+in a volume `wks-local-...-files` (kept when a workspace stops) and share the network `wks-local-net`, which
+has outbound internet for the agent. Lesson images arrive with #33; until then
+`WORKSPACE_IMAGE=node:22.23.4-alpine` in `.env` lets a workspace start.
+
+Each workspace gets at most 2 CPUs, 2 GiB of memory without swap and 512 processes, and stops after 30 idle
+minutes (`.env.example` lists the variables). Docker Desktop's default VM of about 7.75 GiB holds db, web and
+three busy workspaces. `WORKSPACE_CPU_LIMIT` must not exceed the CPUs Docker has
+(`docker info --format '{{.NCPU}}'`); a larger value fails every start with 502 `docker-error`, and the
+service log shows `Docker API error during create container (status 400)`.
+
+Workspaces outlive the service: stopping or removing `workspace` leaves them running. Stop them all:
+
+```bash
+docker ps -q --filter label=academy.workspace.managed=true --filter label=academy.workspace.instance=local \
+  | xargs -r docker stop
+```
+
+Rollback (a `git revert` of the #31 commits): first run the stop command above, because the reverted compose
+publishes db on the host again and running workspaces would reach it. Then `docker compose up -d --remove-orphans`
+removes the orphaned `workspace` container. It leaves the network `academy_workspace-api` behind; remove it with
+`docker network rm academy_workspace-api`. The workspaces' volumes stay for a later return.
+
+### Sweep of test leftovers
+
+The integration tests remove their own objects and sweep those of interrupted runs older than 60 minutes.
+To remove leftovers by hand (for example when Docker reports no free network address pool), list them first,
+then remove them. Never run the commands of this section while integration tests run: they also take the
+objects of a run in progress. Every test object carries `academy.workspace.test-run`, whatever its value (a run
+id of 8 hex digits, or `probe-<epoch>` for the network probe's helper, which the tests' own sweep never removes):
+
+```bash
+docker ps -a --filter label=academy.workspace.test-run --format '{{.ID}} {{.Names}}'
+docker volume ls --filter label=academy.workspace.test-run --format '{{.Name}}'
+docker network ls --filter label=academy.workspace.test-run --format '{{.ID}} {{.Name}}'
+docker ps -aq --filter label=academy.workspace.test-run | xargs -r docker rm -f
+docker volume ls -q --filter label=academy.workspace.test-run | xargs -r docker volume rm
+docker network ls -q --filter label=academy.workspace.test-run | xargs -r docker network rm
+```
+
+Workspaces the tests create through the service belong to a test instance `t<8 hex digits>-<letter>`, never
+`local`. The commands below remove them; without the `| xargs ...` part each one only lists:
+
+```bash
+pattern=' t[0-9a-f]{8}-[a-z]$'
+docker ps -a --filter label=academy.workspace.instance --format '{{.ID}} {{.Label "academy.workspace.instance"}}' \
+  | grep -E "$pattern" | cut -d' ' -f1 | xargs -r docker rm -f
+docker volume ls --filter label=academy.workspace.instance --format '{{.Name}} {{.Label "academy.workspace.instance"}}' \
+  | grep -E "$pattern" | cut -d' ' -f1 | xargs -r docker volume rm
+docker network ls --filter label=academy.workspace.instance --format '{{.ID}} {{.Label "academy.workspace.instance"}}' \
+  | grep -E "$pattern" | cut -d' ' -f1 | xargs -r docker network rm
+```

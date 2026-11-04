@@ -1,8 +1,10 @@
-# Local, production-like stack. Services are added by their issues (workspace next).
-# Start: docker compose up -d --build --wait (always --build: web is tagged academy-web:local and up
+# Local, production-like stack. Services are added by their issues.
+# Start: docker compose up -d --build --wait (always --build: web and workspace are tagged :local and up
 # without --build reuses a stale image)
-# DB_PORT and WEB_IMAGE_TAG exist for isolated runs next to the owner's stack (another project name, host
-# port and image tag); their defaults are the owner's values.
+# db is not published on the host (ADR-0002 item 6): pnpm dev, pnpm seed and DB clients need
+# export COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml, which adds the port (DB_PORT lives there).
+# WEB_IMAGE_TAG, WORKSPACE_SERVICE_IMAGE_TAG and WORKSPACE_INSTANCE exist for isolated runs next to the
+# owner's stack (another project name, image tag and workspace instance); their defaults are the owner's.
 name: academy
 
 services:
@@ -13,8 +15,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-academy}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-academy}
       POSTGRES_DB: ${POSTGRES_DB:-academy}
-    ports:
-      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -38,6 +38,8 @@ services:
       # Required: compose refuses every command without it (ADR-0008 item 9). BETTER_AUTH_SECRETS is
       # never passed: the app refuses it.
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env, see .env.example}
+    # default for db; workspace-api for the workspace service (#32 calls it at http://workspace:4100).
+    networks: [default, workspace-api]
     # Loopback only; 3080 so pnpm dev (3000) runs alongside.
     ports:
       - "127.0.0.1:${WEB_PORT:-3080}:3000"
@@ -54,6 +56,56 @@ services:
       timeout: 3s
       retries: 20
       start_period: 5s
+
+  workspace:
+    build:
+      context: .
+      dockerfile: services/workspace/Dockerfile
+    image: academy-workspace-service:${WORKSPACE_SERVICE_IMAGE_TAG:-local}
+    init: true
+    restart: unless-stopped
+    # Root without capabilities: enough to open the root-owned socket, which is itself root on the Docker
+    # VM (ADR-0002 item 1). The socket is the whole grant; nothing else is mounted writable.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./course:/course:ro
+    # Only the internal network: no host port, and no path to db (ADR-0002 item 6).
+    networks: [workspace-api]
+    # Explicit, never env_file: the root .env holds secrets the service must not see.
+    environment:
+      WORKSPACE_SERVICE_SECRET: ${WORKSPACE_SERVICE_SECRET:?set WORKSPACE_SERVICE_SECRET in .env, see .env.example}
+      WORKSPACE_INSTANCE: ${WORKSPACE_INSTANCE:-local}
+      WORKSPACE_HOST: 0.0.0.0
+      WORKSPACE_PORT: "4100"
+      COURSE_ROOT: /course
+      WORKSPACE_IMAGE: ${WORKSPACE_IMAGE:-}
+      WORKSPACE_CPU_LIMIT: ${WORKSPACE_CPU_LIMIT:-2}
+      WORKSPACE_MEMORY_LIMIT: ${WORKSPACE_MEMORY_LIMIT:-2g}
+      WORKSPACE_PIDS_LIMIT: ${WORKSPACE_PIDS_LIMIT:-512}
+      ENVIRONMENT_IDLE_STOP_MINUTES: ${ENVIRONMENT_IDLE_STOP_MINUTES:-30}
+      ENVIRONMENT_IDLE_WARNING_MINUTES: ${ENVIRONMENT_IDLE_WARNING_MINUTES:-5}
+      ENVIRONMENT_START_SLOW_SECONDS: ${ENVIRONMENT_START_SLOW_SECONDS:-10}
+      DOCKER_HOST: unix:///var/run/docker.sock
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4100/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+networks:
+  # Internal: no route out of it, so the service reaches nothing but web and the Docker socket.
+  workspace-api:
+    internal: true
 
 volumes:
   db-data:

@@ -1,0 +1,5 @@
+id: sample-course
+title: Sample course
+description: A tiny valid course for the workspace service tests.
+modules:
+  - 01-basics
