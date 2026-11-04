@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { nodeCourseFs } from "@/lib/course/node-fs";
 import { type CourseTree, readCourse } from "@/lib/course/read";
+import type { StartedLesson } from "@/lib/progress/lesson-started";
 import type { SessionData } from "@/lib/session-reader";
 import type { TicketRequest } from "@/lib/terminal/mint";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
@@ -76,8 +77,20 @@ function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
     },
   };
   const mintTicket = vi.fn((_request: TicketRequest) => ({ ticket: "minted", renewInMs: 1 }));
-  const actions = createEnvironmentActions({ getCourse, client, mintTicket, now: () => NOW });
-  return { actions, calls, mintTicket };
+  const started: StartedLesson[] = [];
+  const recordStarted = vi.fn(async (lesson: StartedLesson) => {
+    started.push(lesson);
+  });
+  const log = vi.fn((_line: string) => {});
+  const actions = createEnvironmentActions({
+    getCourse,
+    client,
+    mintTicket,
+    now: () => NOW,
+    recordStarted,
+    log,
+  });
+  return { actions, calls, mintTicket, started, recordStarted, log };
 }
 
 describe("environment actions", () => {
@@ -196,5 +209,55 @@ describe("environment actions", () => {
 
     expect(result).toEqual(expected);
     expect(calls.map((call) => call.method)).toEqual(["ensure"]);
+  });
+});
+
+describe("recordLessonStarted action", () => {
+  it("records the session user's lesson, never a user from the arguments", async () => {
+    const { actions, started } = setup({ kind: "failed" });
+
+    const result: unknown = await Reflect.apply(actions.recordLessonStarted, actions, [
+      session("user_a"),
+      FIXTURE_COURSE_ID,
+      LESSON,
+      "user_b",
+    ]);
+
+    expect(result).toEqual({ kind: "recorded" });
+    expect(started).toEqual([{ userId: "user_a", courseId: FIXTURE_COURSE_ID, lessonId: LESSON }]);
+  });
+
+  it("writes nothing without a session", async () => {
+    const { actions, recordStarted } = setup({ kind: "failed" });
+
+    expect(await actions.recordLessonStarted(async () => null, FIXTURE_COURSE_ID, LESSON)).toEqual({
+      kind: "unauthenticated",
+    });
+    expect(recordStarted).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a lesson without workspace", "first-lesson"],
+    ["a draft lesson", "draft-lesson"],
+    ["an unknown lesson", "no-such-lesson"],
+  ])("writes nothing for %s", async (_case, lessonId) => {
+    const { actions, recordStarted } = setup({ kind: "failed" });
+
+    expect(
+      await actions.recordLessonStarted(session("user_a"), FIXTURE_COURSE_ID, lessonId),
+    ).toEqual({ kind: "failed" });
+    expect(recordStarted).not.toHaveBeenCalled();
+  });
+
+  it("answers failed and logs the error's name and code only when the write fails", async () => {
+    const { actions, recordStarted, log } = setup({ kind: "failed" });
+    recordStarted.mockRejectedValueOnce(
+      Object.assign(new Error("Failed query: insert ... params: canary-param"), { code: "23503" }),
+    );
+
+    const result = await actions.recordLessonStarted(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "failed" });
+    expect(log.mock.calls).toEqual([["web: lesson started write failed: Error (23503)"]]);
   });
 });

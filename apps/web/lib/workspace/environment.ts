@@ -1,5 +1,7 @@
 import type { CourseTree } from "../course/read";
 import { findLesson } from "../course/view";
+import { describeDbError } from "../db-error";
+import type { StartedLesson } from "../progress/lesson-started";
 import type { SessionData } from "../session-reader";
 import type { TerminalTicket, TicketRequest } from "../terminal/mint";
 import type { WorkspaceClient, WorkspaceFailure, WorkspaceKey } from "./client";
@@ -29,11 +31,19 @@ export type OpenTerminalResult =
   | { kind: "limits" }
   | WorkspaceFailure;
 
+/** `recordLessonStarted`'s answer; the browser retries a `failed` one on a later input (design 3.4). */
+export type LessonStartedResult =
+  | { kind: "recorded" }
+  | { kind: "unauthenticated" }
+  | { kind: "failed" };
+
 export interface EnvironmentDeps {
   getCourse: () => Promise<CourseTree>;
   client: WorkspaceClient;
   mintTicket: (request: TicketRequest) => TerminalTicket;
   now: () => number;
+  recordStarted: (lesson: StartedLesson) => Promise<void>;
+  log: (line: string) => void;
 }
 
 // ADR-0010 item 3: the service refuses any other user id with 400, so it is refused here first.
@@ -97,6 +107,15 @@ export interface EnvironmentActions {
     courseId: unknown,
     lessonId: unknown,
   ): Promise<OpenTerminalResult>;
+  /**
+   * Marks the lesson started for the signed-in user (the first key or paste in its terminal). It can only
+   * mark the caller's own lesson, and only one that exists, is visible and has a workspace.
+   */
+  recordLessonStarted(
+    readSession: ReadSession,
+    courseId: unknown,
+    lessonId: unknown,
+  ): Promise<LessonStartedResult>;
 }
 
 /** The session's expiry in epoch ms when it is a valid date after `now`; Better Auth's cache may hand back a string. */
@@ -151,6 +170,19 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
         return { kind: "ticket", ticket, renewInMs };
       } catch {
         // TicketKeyError: the secret is checked at startup, so this is not expected; nothing to show but failed.
+        return { kind: "failed" };
+      }
+    },
+
+    async recordLessonStarted(readSession, courseId, lessonId) {
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      if (lookup.kind !== "key") return { kind: lookup.kind };
+      try {
+        await deps.recordStarted(lookup.key);
+        return { kind: "recorded" };
+      } catch (error: unknown) {
+        // Name, code and constraint only: a Drizzle message carries the query parameters (ADR-0008 item 11).
+        deps.log(`web: lesson started write failed: ${describeDbError(error)}`);
         return { kind: "failed" };
       }
     },

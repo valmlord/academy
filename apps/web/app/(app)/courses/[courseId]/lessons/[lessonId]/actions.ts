@@ -1,12 +1,15 @@
 "use server";
 
+import { getDb } from "@/lib/auth";
 import { getCourse } from "@/lib/course/server";
+import { recordLessonStarted as writeLessonStarted } from "@/lib/progress/lesson-started";
 import { getSession } from "@/lib/session";
 import { mintForSession } from "@/lib/terminal/mint";
 import { workspaceClient } from "@/lib/workspace/client";
 import {
   createEnvironmentActions,
   type EnvironmentResult,
+  type LessonStartedResult,
   type OpenTerminalResult,
 } from "@/lib/workspace/environment";
 
@@ -18,6 +21,8 @@ const environment = createEnvironmentActions({
   client: workspaceClient,
   mintTicket: mintForSession,
   now: () => Date.now(),
+  recordStarted: (lesson) => writeLessonStarted(getDb(), lesson),
+  log: (line) => console.error(line),
 });
 
 export async function peekEnvironment(
@@ -39,4 +44,11 @@ export async function openTerminal(
   lessonId: unknown,
 ): Promise<OpenTerminalResult> {
   return environment.openTerminal(() => getSession(), courseId, lessonId);
+}
+
+export async function recordLessonStarted(
+  courseId: unknown,
+  lessonId: unknown,
+): Promise<LessonStartedResult> {
+  return environment.recordLessonStarted(() => getSession(), courseId, lessonId);
 }

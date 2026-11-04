@@ -61,6 +61,8 @@ describe("I-revoked", () => {
       },
       mintTicket: (request) => mintTerminalTicket(KEY, request, 900, Date.now()),
       now: () => Date.now(),
+      recordStarted: async () => {},
+      log: () => {},
     });
 
     const first = await actions.openTerminal(readSession, FIXTURE_COURSE_ID, LESSON);

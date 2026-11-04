@@ -72,6 +72,8 @@ function setup(answer: WorkspaceAnswer = { kind: "workspace", workspace: workspa
     client,
     mintTicket: (request) => mintTerminalTicket(KEY, request, 900, NOW),
     now: () => NOW,
+    recordStarted: async () => {},
+    log: () => {},
   });
   return { actions, keys };
 }
@@ -188,6 +190,8 @@ describe("openTerminal (U-action-uid)", () => {
         throw new Error("no key");
       },
       now: () => NOW,
+      recordStarted: async () => {},
+      log: () => {},
     });
 
     expect(await actions.openTerminal(session("user_a"), FIXTURE_COURSE_ID, LESSON)).toEqual({
