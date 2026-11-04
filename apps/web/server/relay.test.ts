@@ -112,8 +112,11 @@ describe("relay (U-relay)", () => {
     const { upstream, web } = await setup();
     const [encoded = "", mac = ""] = ticketFor(Date.now()).split(".");
     const payload: unknown = JSON.parse(Buffer.from(encoded, "base64url").toString());
-    if (typeof payload !== "object" || payload === null) throw new Error("payload is not an object");
-    const reEncoded = Buffer.from(JSON.stringify({ ...payload, u: "user_b" })).toString("base64url");
+    if (typeof payload !== "object" || payload === null)
+      throw new Error("payload is not an object");
+    const reEncoded = Buffer.from(JSON.stringify({ ...payload, u: "user_b" })).toString(
+      "base64url",
+    );
     const forged = `${reEncoded}.${mac}`;
 
     const status = await refusal(web, upgrade(web, forged));
