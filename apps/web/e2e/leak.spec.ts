@@ -29,8 +29,14 @@ interface PendingBody {
 }
 
 // Chromium keeps no body for a streamed fetch the page has consumed, so an RSC response (request header
-// `rsc: 1`, a router navigation or prefetch) is read through a route: fetched by the test, recorded, and
-// fulfilled with the same response. Every other text response is read from the response event.
+// `rsc: 1`, a router navigation or prefetch) and a server action's response (header `next-action`, the
+// lesson's environment actions since #32, posted to the page's own URL) are read through a route: fetched by
+// the test, recorded, and fulfilled with the same response. Every other text response is read from the
+// response event.
+function isReadThroughRoute(headers: Record<string, string>): boolean {
+  return headers.rsc === "1" || headers["next-action"] !== undefined;
+}
+
 class BodyCapture {
   readonly bodies = new Map<string, { url: string; body: string }>();
   /** RSC bodies read through the route, prefetches included. */
@@ -52,7 +58,7 @@ class BodyCapture {
 
   private async onRoute(route: Route): Promise<void> {
     const request = route.request();
-    if (request.headers().rsc !== "1") {
+    if (!isReadThroughRoute(request.headers())) {
       await route.fallback();
       return;
     }
@@ -68,7 +74,8 @@ class BodyCapture {
     try {
       const response = await route.fetch();
       const text = await response.text();
-      this.rscResponses += 1;
+      // Action responses are not counted: the navigation test's positive control is about RSC payloads.
+      if (request.headers().rsc === "1") this.rscResponses += 1;
       settle({ isRead: true, text });
       await route.fulfill({ response, body: text });
     } catch (error) {
@@ -79,7 +86,7 @@ class BodyCapture {
 
   private onResponse(response: Response): void {
     if (new URL(response.url()).origin !== this.origin) return;
-    if (response.request().headers().rsc === "1") return;
+    if (isReadThroughRoute(response.request().headers())) return;
     const status = response.status();
     if (status >= 300 && status < 400) return;
     const contentType = response.headers()["content-type"] ?? "";
