@@ -27,7 +27,25 @@ export const Source = z.object({
   checkedAt: isoDate,
 });
 
-const checkBase = { id: slug, title: z.string().min(1), weight: z.number().positive().default(1) };
+/**
+ * Most scored submissions a quiz or bug-hunt check may allow. #15 section 2.5.6 item 6 shows score-only
+ * feedback safe only within 3 scored submissions, and every guessing rate in that design is computed for
+ * this number, so raising it needs a new analysis and a change of ADR-0001 item 8, not a YAML edit.
+ */
+export const SCORE_ONLY_SUBMISSION_CAP = 3;
+
+// Strict so that a typo inside the block (`maxFaild`) is an error at every status, never a silent "no cap".
+const Attempts = z.strictObject({
+  limit: z.number().int().positive().optional(),
+  mentorAfter: z.number().int().positive().optional(),
+});
+
+const checkBase = {
+  id: slug,
+  title: z.string().min(1),
+  weight: z.number().positive().default(1),
+  attempts: Attempts.optional(),
+};
 
 export const Check = z.discriminatedUnion("kind", [
   z.object({
@@ -118,6 +136,25 @@ export const Lesson = z
         message: "command/hidden-task checks need a workspace",
       });
     }
+    l.checks.forEach((c, index) => {
+      const limit = c.attempts?.limit;
+      const mentorAfter = c.attempts?.mentorAfter;
+      if (limit !== undefined && mentorAfter !== undefined && mentorAfter >= limit) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["checks", index, "attempts", "mentorAfter"],
+          message: `check "${c.id}": mentorAfter (${mentorAfter}) must be below limit (${limit}), the check closes at its limit`,
+        });
+      }
+      const isScoreOnly = c.kind === "quiz" || c.kind === "bug-hunt";
+      if (isScoreOnly && limit !== undefined && limit > SCORE_ONLY_SUBMISSION_CAP) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["checks", index, "attempts", "limit"],
+          message: `check "${c.id}" (${c.kind}): attempts.limit (${limit}) is above ${SCORE_ONLY_SUBMISSION_CAP}, the most scored submissions a quiz or bug-hunt may allow (ADR-0001 item 8)`,
+        });
+      }
+    });
     const ids = l.checks.map((c) => c.id);
     const dup = ids.find((id, i) => ids.indexOf(id) !== i);
     if (dup)
