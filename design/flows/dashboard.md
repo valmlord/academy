@@ -37,7 +37,8 @@ or #34 ships no lesson can be started, so the card always reads "Начать" (
 
 **Error states:**
 - Course data cannot be read (course files invalid or missing in the container): the card is replaced by
-  an alert "Не удалось загрузить курс" with "Повторить"; the top bar stays usable.
+  an alert "Не удалось загрузить курс" with "Повторить"; the top bar stays usable (without "Курс" while
+  the course id is unknown, `ia.md` R6 "Course id unknown").
 - Progress cannot be read (database down) but the course can: the card shows the first lesson with
   "Начать" and a muted line "Прогресс недоступен, показан первый урок", because the learner can still
   study.
@@ -75,4 +76,5 @@ Each release state is one named state (rule R6 in `ia.md`, "Before the catalog s
   alert), `main` itself (`tabindex="-1"`). The session alert (F2.1) and the user menu (F3) work as in every
   release. No exit to the catalog; F4.1-F4.3 and F18 are not shown. Prototype state
   `#state-before-catalog`.
-- **From #30**: F4 and F18.1-F18.2 as designed above, with "Курс" in the top bar.
+- **From #30**: F4 and F18.1-F18.2 as designed above, with "Курс" in the top bar (left out while the
+  course id is unknown, `ia.md` R6 "Course id unknown").

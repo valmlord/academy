@@ -63,7 +63,7 @@ Sizes are Tailwind's, so every value is a class in the app.
 | `text-xs` | 0.75rem / 1rem | badges, key hint, R1 reason in a menu item, gallery notes |
 | `text-sm` | 0.875rem / 1.25rem | controls, labels, status bars, check rows, alerts, breadcrumbs, tables, code |
 | `text-base` | 1rem / 1.5rem | body text, inputs (16px avoids iOS zoom on focus) |
-| `text-lg` | 1.125rem / 1.75rem | card and dialog titles |
+| `text-lg` | 1.125rem / 1.75rem | card and dialog titles; empty-state titles; h4 in prose |
 | `text-xl` | 1.25rem / 1.75rem | h2 on pages; h3 in prose |
 | `text-2xl` | 1.5rem / 2rem | page h1; h2 in prose |
 | `text-3xl` | 1.875rem / 2.25rem | h1 in prose (rare: the lesson title is the page h1) |
@@ -74,8 +74,8 @@ use `tabular-nums`.
 
 **Prose (`.prose`, theory.md and task.md, 107-163 lines):** `text-base` with line height 1.7, measure
 `70ch` (readable line length, WCAG 1.4.8 advisory); `space-4` between blocks, `space-10` above h2,
-`space-8` above h3; lists indented `space-6`; inline `code` in `text-sm` (`--text-sm`, not an `em`
-factor); tables full width in a horizontally scrollable wrapper
+`space-8` above h3, `space-6` above h4; lists indented `space-6`; inline `code` in `text-sm` (`--text-sm`,
+not an `em` factor); tables full width in a horizontally scrollable wrapper
 (`.table-wrap`), `text-sm`, row rules in `border`; inline `code` on `muted`; code blocks (`.code-block`)
 on `muted` with a header holding "Копировать", scrolling sideways inside the block only; headings that
 "Содержание" jumps to carry `tabindex="-1"`.
@@ -126,7 +126,8 @@ DropdownMenu items keep shadcn's `accent` background on focus but also draw the 
 (`outline-offset: -2px`) so it stays inside the menu; `aria-disabled` items draw it on `muted`. shadcn's
 `focus:bg-accent outline-hidden` alone measures 1.090:1 (light) and 1.185:1 (dark) on `popover`. The
 ring measures 4.742:1 / 6.939:1 on `popover` and 4.349:1 / 5.857:1 on `accent` = `muted` (light / dark,
-"Contrast runs").
+"Contrast runs"). The browser decides `:focus-visible`: the ring Radix Tabs draws on the first mouse click
+on a tab is accepted (ia.md R4).
 
 Selected tab: shadcn's default pill (`background` on the `muted` tab list, `shadow-sm`), with a 1px
 `muted-foreground` border around the whole pill. The surface alone measures 1.090:1 (light) and 1.308:1

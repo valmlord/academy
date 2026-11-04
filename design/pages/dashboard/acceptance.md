@@ -78,7 +78,7 @@ Compositions: top bar, "Уведомления" (R2), and the "Прогресс 
 | all ready lessons passed | `#state-all-passed` | Card "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "Открыть курс"; "Пройдено уроков: 6 из 6" |
 | no ready lessons | `#state-no-ready-lessons` | Empty "В курсе пока нет готовых уроков", no button, no progress section (nothing focusable in `main`, R3) |
 | loading | `#state-loading` | Skeletons for the Card and the progress section (`aria-hidden`) |
-| course load error | `#state-course-error` | Alert "Не удалось загрузить курс" with "Повторить" instead of the Card; no progress section; the top bar works |
+| course load error | `#state-course-error` | Alert "Не удалось загрузить курс" with "Повторить" instead of the Card; no progress section; the top bar works, with "Курс" left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown"; the prototype draws the id-known bar) |
 | progress unavailable (F4 and F18 errors) | `#state-progress-unavailable` | Card: first lesson, "Начать", line "Прогресс недоступен, показан первый урок"; progress section: line "Прогресс недоступен" and "Повторить" |
 | session expired (F2.1) | `#state-session-expired` | in-progress content plus the Alert in "Уведомления" with "Войти снова" |
 | user menu open (F3.1) | `#state-user-menu` | in-progress content with the user menu open |
@@ -94,7 +94,8 @@ are not drawn as separate states.
 
 ## Interactions and keyboard
 
-- Tab order. From #30: "К содержимому", "Академия", "Главная", "Курс", user menu, "Войти снова" (only
+- Tab order. From #30: "К содержимому", "Академия", "Главная", "Курс" (left out while the course id is
+  unknown, ia.md R6, "Course id unknown"), user menu, "Войти снова" (only
   with the alert), then `main`: Card button (or "Повторить", or "Открыть курс"), "Повторить" of the
   progress section when shown, module rows in order. Before #30: "К содержимому", "Академия", "Главная",
   user menu, "Войти снова" (only with the alert); nothing focusable in `main`.
@@ -104,7 +105,9 @@ are not drawn as separate states.
   the same cycle; `main` lands on `main` itself, as in "no ready lessons".
 - From #30: "Начать" / "Продолжить": navigation (`a href`); target tab per F4.3.
 - From #30: course error "Повторить" (prototype: proto.js `data-goto-state` + `data-focus`): reloads the Card; focus moves to the Card heading "Следующий урок"
-  (`tabindex="-1"`, R2).
+  (`tabindex="-1"`, R2) and the `<title>` stays "Главная". If the course fails again, focus stays on
+  "Повторить" itself, because the dashboard Alert title is not a heading (`ia.md` R2, page-level retry
+  table).
 - From #30: **progress "Повторить" (round-4 advisory):** reloads the progress section **and** the Card, because the
   next lesson and "Начать" / "Продолжить" are progress data; focus moves to the progress section heading
   (the course line, `tabindex="-1"`, R2). The Card updates in place without taking focus.
@@ -123,7 +126,7 @@ are not drawn as separate states.
 | title, h1 | Главная |
 | skip link | К содержимому |
 | top bar brand | Академия |
-| top bar nav | Главная; Курс (from #30, ia.md R6, "Before the catalog ships"; before #30: Главная) |
+| top bar nav | Главная; Курс (from #30, ia.md R6, "Before the catalog ships"; before #30: Главная; not while the course id is unknown, ia.md R6, "Course id unknown") |
 | user menu item | Выйти |
 | notifications heading (visually hidden) | Уведомления |
 | session alert | Сессия закончилась. Файлы в рабочей папке сохранены. |
@@ -190,7 +193,9 @@ shown whatever the course holds (AC14). AC14 applies before #30 only (`ia.md` R6
 - AC7: no ready lesson shows "В курсе пока нет готовых уроков" with no button and no progress section;
   `F6` to `main` focuses `main`.
 - AC8: a course read failure replaces the Card with "Не удалось загрузить курс" and "Повторить"; the top
-  bar works; "Повторить" reloads and focuses the Card heading.
+  bar works, without "Курс" while the course id is unknown, only when `course.yaml` itself cannot be read
+  (ia.md R6, "Course id unknown"); "Повторить"
+  reloads and focuses the Card heading; if the course fails again, focus stays on "Повторить" itself.
 - AC9: a progress read failure shows the first lesson with "Начать" and "Прогресс недоступен, показан
   первый урок", and the progress section "Прогресс недоступен" with "Повторить"; "Повторить" reloads the
   section and the Card and focuses the section heading.
