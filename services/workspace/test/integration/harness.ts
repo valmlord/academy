@@ -41,6 +41,7 @@ export const INSTANCE_LETTERS: Readonly<Record<string, string>> = {
   "reconcile.int.test.ts": "j",
   "main.int.test.ts": "k",
   "terminal-exec.int.test.ts": "l",
+  "terminal.int.test.ts": "m",
 };
 export const DECOY_LETTER = "z";
 const FILE_LETTER_PATTERN = /^[a-y]$/;

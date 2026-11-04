@@ -8,10 +8,12 @@ import { IdleTracker } from "./idle.js";
 import { KeyedMutex } from "./lock.js";
 import { type ServiceLog, WorkspaceManager } from "./manager.js";
 import { Reconciler } from "./reconcile.js";
+import { TerminalRegistry } from "./terminal/registry.js";
 
 // Startup order: configuration (exit 1 naming the variable), the HTTP server (it listens even while Docker is
 // down, answering 503), then reconcile and the timers. SIGTERM and SIGINT clear the timers and close the
-// server, so no idle stop or reconcile starts during shutdown.
+// server, so no idle stop or reconcile starts during shutdown; terminal sessions end with 1001 before the server
+// closes.
 
 /** Design 6.4: often enough that a workspace stops within half a minute of its idle time. */
 const IDLE_SWEEP_INTERVAL_MS = 30_000;
@@ -75,6 +77,20 @@ async function main(): Promise<void> {
     mutex,
     log,
     now: Date.now,
+    // The registry is built just below; a stop reaches these hooks only after the server is listening.
+    stopHooks: {
+      onStopping: (id) => terminals.onStopping(id),
+      onStopRejected: (id) => terminals.onStopRejected(id),
+    },
+  });
+  const terminals = new TerminalRegistry({
+    runtime,
+    workspaces: manager,
+    mutex,
+    instance: config.instance,
+    shell: config.terminalShell,
+    scrollbackLines: config.terminalScrollbackLines,
+    log,
   });
   const reconciler = new Reconciler({
     runtime,
@@ -93,6 +109,7 @@ async function main(): Promise<void> {
       startSlowSeconds: config.startSlowSeconds,
     },
     limits: config.limits,
+    terminals,
   });
   logTarget.current = app.log;
 
@@ -104,6 +121,7 @@ async function main(): Promise<void> {
   const shutdown = (signal: NodeJS.Signals): void => {
     app.log.info(`workspace: ${signal}, shutting down`);
     for (const timer of timers) clearInterval(timer);
+    terminals.closeAll();
     void app.close().then(() => {
       process.exitCode = 0;
     });

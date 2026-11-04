@@ -236,6 +236,8 @@ export async function terminalSetup(options: TerminalSetupOptions = {}): Promise
         {
           // Listeners before the upgrade completes, or the first frame (`attached`) is lost (design 10.1).
           onInit: (socket) => {
+            // An `injectWS` client is built without `autoPong`; a browser always answers a ping.
+            socket.on("ping", () => socket.pong());
             socket.on("message", (data, isBinary) => frames.push(decodeFrame(data, isBinary)));
             socket.on("close", (code, reason) =>
               resolveClosed({ code, reason: reason.toString("utf8") }),
