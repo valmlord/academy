@@ -1,0 +1,243 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  DockerApiError,
+  DockerResponseShapeError,
+  DockerUnavailableError,
+} from "../../../src/errors.js";
+import {
+  type FakeScreen,
+  ID,
+  KEY,
+  processErrorSpy,
+  type TerminalSetup,
+  terminalSetup,
+  texts,
+  waitForAttached,
+} from "../../support/terminal.js";
+
+// U-session-end (design 3.2.1 rows 2, 21, 24; 3.2.2 C5, C9) and U-resize-error (row 16, C1), design 10.1.
+
+let setup: TerminalSetup | undefined;
+let spy: ReturnType<typeof processErrorSpy> | undefined;
+
+async function start(options: Parameters<typeof terminalSetup>[0] = {}): Promise<TerminalSetup> {
+  spy = processErrorSpy();
+  setup = await terminalSetup(options);
+  return setup;
+}
+
+afterEach(async () => {
+  await setup?.close();
+  setup = undefined;
+  spy?.stop();
+  spy = undefined;
+});
+
+function endLines(logged: readonly string[]): string[] {
+  return logged.filter((line) => line.startsWith(`terminal ${ID} `) && line.includes(": ended "));
+}
+
+/** The common afterwards of every end path: nothing left in the service, and a second end is a no-op. */
+async function expectFullyEnded(current: TerminalSetup, screen: FakeScreen | undefined) {
+  const { registry, shell, logged } = current;
+  const linesBefore = endLines(logged).length;
+  registry.closeAll();
+
+  expect(registry.size).toBe(0);
+  expect(shell().stream.destroyed).toBe(true);
+  expect(endLines(logged)).toHaveLength(linesBefore);
+  if (screen !== undefined) {
+    expect(screen.disposeCalls).toBe(1);
+    expect(screen.resetCalls).toBe(0);
+  }
+  expect(await spy?.seen()).toEqual([]);
+}
+
+describe("session end paths (U-session-end)", () => {
+  it("ends with 4000 and the exit code when the shell exits", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+
+    current.shell().exitCode = 3;
+    current.shell().peer.end();
+
+    expect(await client.closed).toEqual({ code: 4000, reason: "exit 3" });
+    expect(endLines(current.logged)).toEqual([`terminal ${ID} -: ended 4000`]);
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("ends with `exit unknown` when Docker cannot report the exit code", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+
+    current.shell().exitCode = new DockerUnavailableError("inspect exec", "ECONNRESET");
+    current.shell().peer.end();
+
+    expect(await client.closed).toEqual({ code: 4000, reason: "exit unknown" });
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("ends with 4002 when the exec ends after a stop was announced", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+
+    current.registry.onStopping(ID);
+    current.shell().peer.end();
+
+    expect(await client.closed).toEqual({ code: 4002, reason: "environment stopped" });
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("ends with 4002 when the container is no longer running", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+    const info = await current.runtime.inspect(KEY);
+    if (info === null) throw new Error("the workspace was not created");
+
+    current.runtime.seed({ ...info, state: "stopped" });
+    current.shell().peer.end();
+
+    expect(await client.closed).toEqual({ code: 4002, reason: "environment stopped" });
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("ends with 1011 when the container inspect at the end rejects", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+
+    vi.spyOn(current.runtime, "inspect").mockRejectedValueOnce(
+      new DockerUnavailableError("inspect container", "ECONNREFUSED"),
+    );
+    current.shell().peer.end();
+
+    expect(await client.closed).toEqual({ code: 1011, reason: "terminal error" });
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("ends every session with 1001 on closeAll", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+
+    current.registry.closeAll();
+
+    expect(await client.closed).toEqual({ code: 1001, reason: "service shutting down" });
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it.each([
+    ["exec create", new DockerApiError("create exec", 409)],
+    ["exec start", new DockerResponseShapeError("start exec", "stream")],
+  ])("closes the socket with 1011 and maps nothing when the %s fails", async (_step, error) => {
+    const current = await start();
+    current.runtime.openShellFailures.push(error);
+
+    const client = await current.connect();
+
+    expect(await client.closed).toEqual({ code: 1011, reason: "terminal error" });
+    expect(current.registry.size).toBe(0);
+    expect(current.logged).toContain(`terminal ${ID} -: exec failed (${error.name})`);
+    expect(await spy?.seen()).toEqual([]);
+  });
+
+  it("closes a pending socket with the end code, and its later flush callback does nothing", async () => {
+    const current = await start({ deferScreen: true });
+    const client = await current.connect();
+    await vi.waitFor(() => expect(current.screens).toHaveLength(1));
+
+    current.registry.closeAll();
+    const closed = await client.closed;
+    current.screens[0]?.release();
+
+    expect(closed.code).toBe(1001);
+    expect(texts(client)).toEqual([]);
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("inspects once and ends once when the stream emits end, close and error", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+    const inspect = vi.spyOn(current.runtime, "inspect");
+
+    const stream = current.shell().stream;
+    stream.emit("end");
+    stream.emit("close");
+    stream.emit("error", new Error("reset"));
+    await client.closed;
+
+    expect(inspect).toHaveBeenCalledTimes(1);
+    expect(endLines(current.logged)).toHaveLength(1);
+    await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("survives a headless write still queued when the session ends (real headless)", async () => {
+    const current = await start({ realScreen: true });
+    const client = await current.connect();
+    await waitForAttached(client);
+
+    // Registered after the session's own `data` listener, so the chunk is already queued in xterm.
+    current.shell().stream.once("data", () => current.registry.closeAll());
+    current.shell().peer.write("queued output\r\n");
+    await client.closed;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    await expectFullyEnded(current, undefined);
+  });
+
+  it("ends with 1011 when a headless write callback body throws (C5)", async () => {
+    const current = await start();
+    const first = await current.connect();
+    await waitForAttached(first);
+    await current.leave(first);
+    const screen = current.screens[0];
+    if (screen === undefined) throw new Error("no screen");
+
+    screen.serializeError = new Error("serialize failed");
+    const second = await current.connect();
+
+    expect(await second.closed).toEqual({ code: 1011, reason: "terminal error" });
+    await expectFullyEnded(current, screen);
+  });
+
+  it("ignores an error emitted on the stream after the end (C9)", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+    current.registry.closeAll();
+    await client.closed;
+
+    current.shell().stream.emit("error", new Error("late"));
+
+    await expectFullyEnded(current, current.screens[0]);
+  });
+});
+
+describe("resize failures (U-resize-error)", () => {
+  it.each([
+    ["DockerApiError", new DockerApiError("resize exec", 409)],
+    ["DockerUnavailableError", new DockerUnavailableError("resize exec", "ECONNREFUSED")],
+  ])("ignores a resize rejected with %s and logs it once", async (name, error) => {
+    const current = await start();
+    const client = await current.connect({ conn: "00112233445566ff" });
+    await waitForAttached(client);
+    current.shell().resizeFailures.push(error);
+
+    client.send({ t: "resize", cols: 120, rows: 40 });
+    await vi.waitFor(() => expect(current.shell().resizes).toEqual(["120x40"]));
+    current.shell().peer.write("after the resize\r\n");
+
+    await vi.waitFor(() => expect(client.output()).toContain("after the resize"));
+    expect(client.ws.readyState).toBe(client.ws.OPEN);
+    expect(current.logged.filter((line) => line.includes("resize failed"))).toEqual([
+      `terminal ${ID} 00112233445566ff: resize failed (${name})`,
+    ]);
+    expect(current.screens[0]?.resizes).toEqual(["120x40"]);
+    expect(await spy?.seen()).toEqual([]);
+  });
+});

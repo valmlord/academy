@@ -21,6 +21,7 @@ export const CONFIG_VARIABLES = [
   "ENVIRONMENT_IDLE_WARNING_MINUTES",
   "ENVIRONMENT_START_SLOW_SECONDS",
   "TERMINAL_SHELL",
+  "TERMINAL_SCROLLBACK_LINES",
 ] as const;
 
 export type ConfigVariable = (typeof CONFIG_VARIABLES)[number];
@@ -41,6 +42,7 @@ export const CONFIG_DEFAULTS: Readonly<Partial<Record<ConfigVariable, string>>> 
   ENVIRONMENT_IDLE_WARNING_MINUTES: "5",
   ENVIRONMENT_START_SLOW_SECONDS: "10",
   TERMINAL_SHELL: "/bin/sh",
+  TERMINAL_SCROLLBACK_LINES: "1000",
 };
 
 /** The three limits a workspace container gets, in the units the Docker Engine API takes. */
@@ -64,6 +66,8 @@ export interface Config {
   startSlowSeconds: number;
   /** The program every terminal session runs with `-l` (design 3.2); #33 switches it to bash (D2). */
   terminalShell: string;
+  /** Lines the server-held screen keeps above the visible rows, replayed on reconnect (ADR-0011 item 10). */
+  terminalScrollbackLines: number;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -86,6 +90,8 @@ const IDLE_STOP_MINUTES_RANGE = { min: 5, max: 1440 };
 const START_SLOW_SECONDS_RANGE = { min: 1, max: 120 };
 /** An absolute path from a closed charset: it becomes an exec `Cmd` element, never a shell string. */
 const SHELL_PATH_PATTERN = /^\/[A-Za-z0-9/_.-]+$/;
+/** ADR-0011 item 10; about 2-3 MB of headless memory per session at 1000 lines and 200 columns (design 3.2). */
+const SCROLLBACK_LINES_RANGE = { min: 100, max: 10_000 };
 
 function integerText(min: number, max: number): z.ZodType<number> {
   return z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(min).max(max));
@@ -186,6 +192,12 @@ export function loadConfig(env: Env): Config {
     z.string().regex(SHELL_PATH_PATTERN),
     `an absolute path matching ${SHELL_PATH_PATTERN.source}`,
   );
+  const terminalScrollbackLines = read(
+    env,
+    "TERMINAL_SCROLLBACK_LINES",
+    integerText(SCROLLBACK_LINES_RANGE.min, SCROLLBACK_LINES_RANGE.max),
+    `integer from ${SCROLLBACK_LINES_RANGE.min} to ${SCROLLBACK_LINES_RANGE.max}`,
+  );
   return {
     secret,
     instance,
@@ -198,5 +210,6 @@ export function loadConfig(env: Env): Config {
     idleWarningMinutes,
     startSlowSeconds,
     terminalShell,
+    terminalScrollbackLines,
   };
 }

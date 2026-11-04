@@ -56,6 +56,7 @@ const EXPECTED_ENVIRONMENT: Readonly<Record<ConfigVariable | "DOCKER_HOST", stri
   ENVIRONMENT_IDLE_WARNING_MINUTES: "${ENVIRONMENT_IDLE_WARNING_MINUTES:-5}",
   ENVIRONMENT_START_SLOW_SECONDS: "${ENVIRONMENT_START_SLOW_SECONDS:-10}",
   TERMINAL_SHELL: "${TERMINAL_SHELL:-/bin/sh}",
+  TERMINAL_SCROLLBACK_LINES: "${TERMINAL_SCROLLBACK_LINES:-1000}",
   DOCKER_HOST: "unix:///var/run/docker.sock",
 };
 
@@ -118,7 +119,7 @@ describe("docker-compose.yml (U-compose)", () => {
       compared += 1;
     }
 
-    expect(compared).toBe(8);
+    expect(compared).toBe(9);
   });
 
   it("refuses to start without the secret (the :? form)", () => {

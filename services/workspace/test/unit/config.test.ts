@@ -36,6 +36,7 @@ describe("loadConfig", () => {
       idleWarningMinutes: 5,
       startSlowSeconds: 10,
       terminalShell: "/bin/sh",
+      terminalScrollbackLines: 1000,
     });
   });
 
@@ -122,6 +123,22 @@ describe("loadConfig", () => {
       expect(configError({ ...REQUIRED, TERMINAL_SHELL: shell }).variable).toBe("TERMINAL_SHELL");
     },
   );
+
+  it("reads TERMINAL_SCROLLBACK_LINES, 1000 by default", () => {
+    expect(loadConfig(REQUIRED).terminalScrollbackLines).toBe(1000);
+    expect(
+      loadConfig({ ...REQUIRED, TERMINAL_SCROLLBACK_LINES: "100" }).terminalScrollbackLines,
+    ).toBe(100);
+    expect(
+      loadConfig({ ...REQUIRED, TERMINAL_SCROLLBACK_LINES: "10000" }).terminalScrollbackLines,
+    ).toBe(10_000);
+  });
+
+  it.each(["99", "10001", "1e3", "-5"])("refuses the TERMINAL_SCROLLBACK_LINES %j", (lines) => {
+    expect(configError({ ...REQUIRED, TERMINAL_SCROLLBACK_LINES: lines }).variable).toBe(
+      "TERMINAL_SCROLLBACK_LINES",
+    );
+  });
 
   it("lists a default only for variables it reads", () => {
     for (const variable of Object.keys(CONFIG_DEFAULTS)) {
