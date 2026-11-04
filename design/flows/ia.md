@@ -34,6 +34,11 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 | editor | editor | редактор | |
 | lost connection | connection | соединение | "Соединение с терминалом потеряно", "Соединение с проверкой потеряно"; never "связь" |
 | page region | region | "Верхняя панель", "Уведомления", "Урок", "Проверка", "Окружение" | the stops of the `F6` cycle, see Navigation model |
+| attempt number (#72) | attempt number | "№ N" | the place of an attempt record among this user's attempts of this lesson, oldest = 1, by `attempts.started_at`, every attempt numbered (runner errors included); derived, not stored (`progress.md` F19.1, A72-10). Not "Попытка N", which is the quiz's per-check string (`quiz.md`, set "quiz") |
+| summary of one attempt record (#72) | attempt summary | the set "attempt summary" below | what one record's results add up to; never the check bar's lesson count "Пройдено: N из M" (`progress.md`, "Words") |
+| cost of one attempt record (#72) | attempt cost | "Потрачено: $N" (set "cost" below) | the run total for which #69's row "cost of one check's result" asks a label of its own; this row is that label; never "Стоимость попытки", which is one check's result (#69). Summed by ADR-0007 item 11 |
+| total cost (#72) | total cost | "Потрачено на проверки и разборы: $N" (set "cost" below) | names what it sums: checks and mentor reviews; the terminal agent's spend is not in it (ADR-0007 item 11) |
+| checks where the learner struggles (#72) | weak checks | "Где трудно" | derived from failed and closed checks (Stepan, #72 architect brief, O1); never "слабые темы" or any "темы": no source tags a topic (#72 research §1.4). Replaces the #50 strings "Слабые темы", "Слабых тем пока нет" |
 
 ### Closed status sets
 
@@ -59,6 +64,8 @@ exist. "When" says which release shows it: v1 (this PR's prototypes), or the def
 | mentor (D3) | "Ментор читает попытку", "до $N", "Оценка N из M, нужно N", "Стоимость разбора: $N", "Разбор готов", "Бюджет на разбор исчерпан", "Ментор не ответил", "Ключ API не задан, разбор недоступен. Добавьте ключ в .env.", "Ментор не видел транскрипт работы с агентом" | review block and hint ladder in Проверки (F16, F17) | D3, after #37 |
 | budget (D1) | "Проверка с агентом потратит до $N" | budget confirmation (F13.1) | D1, after #39 |
 | editor (D5) | "Загружаем редактор", "Редактор не отвечает" | Редактор tab (F12) | D5, after #40 |
+| attempt summary (one attempt record, #72) | summaries, the first that matches: "Идёт проверка" (status `running`; #69's run word, check bar summary 1), "Сбой проверки, попытка не засчитана" (the attempt has no check result, or every result is a runner error, as the check bar's summary 4 in `checks.md`, #69), "Пройдено проверок: N из M" (otherwise; M results in this attempt, N of them with the word "Пройдено"); one note after "Пройдено проверок: N из M" only, joined with ". ": "Проверок с незасчитанной попыткой: N" (N is the count K, at least 1: the results of this attempt whose own word, set "check status", contains "попытка не засчитана": "Время вышло, попытка не засчитана", "Ошибка формата, попытка не засчитана", "Сбой проверки, попытка не засчитана"; no other result, whatever its counting flag, so K always equals the number of such words in the attempt's panel). #69's "Проверок со сбоем: N" is not an attempt-row note (a runner error is one of the K). Each result kind and how it enters: `progress.md` A72-6; icon of each form: A72-8 | "Последние попытки" rows (F18.3), "История попыток" rows and plain items (F19.1) | from #35 (`progress.md`, A72-6). "Идёт проверка" shows only on the dashboard, with the `running` ring held still (the dashboard row is a snapshot): the history lists finished attempts (A72-9) |
+| cost (#72) | attempt: "Потрачено: $N", "Потрачено: не меньше $N", "Потрачено: нет данных"; total: "Потрачено на проверки и разборы: $N", "Потрачено на проверки и разборы: не меньше $N", "Потрачено на проверки и разборы: нет данных" | attempt rows (F18.3, F19.1, only for an attempt that can spend), dashboard total (F18.5) | from #37 (Stepan, #72 architect brief, O3). Which variant: ADR-0007 item 11 ("Known or at least"); money format as `checks.md` "Money" (two decimals, a dot, rounded up) |
 
 ### Page copy
 
@@ -69,7 +76,9 @@ text only from this list or from the two tables above and below. Quotes of cours
 | Page | Copy (Russian, exact) |
 |------|----------------------|
 | sign-in (F1, F3) | "Вход" (`<title>` and h1), field labels "Почта" and "Пароль", "Входим..." (busy label of "Войти"), "Неверная почта или пароль", "Не удалось связаться с сервером. Проверьте, что платформа запущена (docker compose up), и попробуйте снова.", "Введите почту", "Введите пароль", "Слишком много попыток входа. Подождите и попробуйте снова.", "Пользователя создаёт скрипт seed, см. README", "Вы вышли" |
-| dashboard (F4, F18) | "Следующий урок", "около N мин", "Не удалось загрузить курс", "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; D4: "Слабые темы", "Слабых тем пока нет" |
+| dashboard (F4, F18) | "Следующий урок", "около N мин", "Не удалось загрузить курс", "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; F18.3-F18.5: the row "dashboard, progress (#72)" |
+| dashboard, progress (#72) | F18.3 (from #35): section h2 "Последние попытки" (also the name of its `ul`, `aria-labelledby`), the empty text "Попыток пока нет"; each row one link whose name is its fields joined by ". " (`progress.md` A72-19): lesson title (data), date and time (data, format below), the attempt summary (set "attempt summary"), from #37 the attempt cost (set "cost"), for example "Закрытый контур. 3 ноября, 18:40. Пройдено проверок: 1 из 1". F18.4 (from #35): section h2 "Где трудно" (also the name of its `ul`), the empty text "Пока нет проверок, которые не удаются"; each row one link whose name is its fields joined by ". ": check title (data), lesson title (data), and "Закрыта: не пройдено" (set "check status") or "Неудачных попыток: N" / "Неудачных попыток: N из M" (set "check row note", one check's results). An empty section holds its empty text in place of the `ul`. F18.5 (from #37): h2 the total (set "cost"), the note "Расход агента в терминале сюда не входит"; its `section` has no accessible name (`progress.md` F18 keyboard path). Date and time format (both pages): day, month name in the genitive, hours and minutes in the learner's local time, "4 ноября, 14:05"; the year after the month when it is not the current year, "4 ноября 2025, 14:05"; in `<time datetime="<ISO 8601>">`. The #50 strings "Слабые темы" and "Слабых тем пока нет" are dropped (vocabulary, "checks where the learner struggles") |
+| lesson, attempt history (F19; #72) | from #35, below the check list of the Проверки tab: section h3 "История попыток" (also the name of its `ul`); in the error state the h3 reads "История попыток недоступна" with "Повторить", and when a re-read after the first run fails the same text is written once into the visually hidden history status container (R2, `progress.md` F19 error states); the empty text "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (in place of the `ul`), and "Попыток пока нет" alone from the moment the first run disables "Проверить" ("Дождитесь окончания проверки", "Результат проверки ещё не получен") until the history re-read after that run returns (`progress.md` F19 empty states); each attempt row a disclosure button whose name is its fields joined by ". " (`progress.md` A72-19): "№ N" (vocabulary, "attempt number"), date and time (format in the row above), the attempt summary, from #37 the attempt cost, for example "№ 3. 4 ноября, 14:05. Пройдено проверок: 1 из 2. Проверок с незасчитанной попыткой: 1"; an attempt with no check result a plain list item (`li`, `tabindex="-1"`, not a button) whose text holds the same fields, joins and order and the summary "Сбой проверки, попытка не засчитана", for example "№ 2. 4 ноября, 13:50. Сбой проверки, попытка не засчитана"; in an open panel per result: check title (data) or check id (data) with "Этой проверки больше нет в уроке", the result's status word (set "check status", result words only, `progress.md` F19.2), the grader message (data), "Подробности" with the raw error (data), from #37 / #39 "Стоимость попытки: $N" (set "check row note", #69), from #37 the review block (set "mentor"). The panel's list has no name of its own; the section has none either (no `region` landmark inside "Урок", `progress.md` F19 keyboard path). The three strings "История попыток", "Попыток пока нет. ..." and "История попыток недоступна" are also in the row "lesson (F6-F13, F19)" below, marked "(D4)" there until FU7 |
 | catalog (F5, F6) | "Не удалось загрузить курс", "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>" |
 | not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"). No other text in `main`: no "404", no breadcrumb, no search |
 | lesson tabs | left pane "Теория", "Задание", "Проверки", "Квиз" (D2); environment "Терминал", "Редактор" (D5); one-pane switch "Урок", "Окружение" |
@@ -159,6 +168,16 @@ reason as a second line inside the item, with the same `aria-describedby`.
 - "Уведомления" is a wrapper that always holds both containers. It becomes a `region` landmark with a
   visually hidden heading "Уведомления" only while a container holds text, and drops both when they are
   empty; the containers themselves are never removed. An empty wrapper is no landmark and no `F6` stop.
+- From #35 (#72), the lesson page with the Проверки tab shown holds one more live container than the list
+  of lesson live containers above names (FU7 folds it into that list): the attempt history's status
+  container (`role="status"`, visually hidden, inside the F19 section), present and empty whenever the
+  section is rendered, before any text is set. One case only writes it, once, with "История попыток
+  недоступна": a history re-read after a run's end fails while the history was empty and the Проверки tab
+  panel is shown (`progress.md` F19 error states), set no sooner than `CHECK_STATUS_TEXT_GAP_MS` after the
+  check bar's end text; "Повторить" loading the history empties it. Not the
+  "Уведомления" status container, because a history error there would make "Уведомления" a landmark and an
+  `F6` stop for a message that belongs to one tab panel; not the check bar status line, because its text is
+  the run's outcome (`checks.md` "Live regions") and the history error would replace it.
 - Focus when a focused alert disappears: after "Продолжить работу" (F10.2) focus returns to the element
   that had it before focus entered "Уведомления", or, if there was none, to the first focusable element of
   "Урок". When the environment stops (F10.3) while focus is in the idle warning, focus moves to "Запустить
@@ -178,6 +197,7 @@ reason as a second line inside the item, with the same `aria-describedby`.
   | catalog course error | the course h1; `<title>` the course title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
   | lesson course error | the lesson h1; `<title>` the lesson title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
   | lesson text load error | the reloaded tab panel; `<title>` unchanged | "Повторить" itself | - (the course was read) |
+  | lesson attempt history (F19, from #35; #72) | the history heading "История попыток" (h3, `tabindex="-1"`); `<title>` unchanged | the error heading "История попыток недоступна" (h3, `tabindex="-1"`), so a second failure is read aloud (unlike FU6) | - (the course was read) |
 
   The not-found h1 (`tabindex="-1"`) is the target in the last column because it is the heading of what
   replaced the block and it is read before "Открыть курс"; the not-found page reached any other way does not
@@ -366,6 +386,33 @@ already hold whether or not the id is known. The `F6` landing on "Верхняя
 prototypes draw the bar with "Курс" in every course-error state (the id-known case) and without it once,
 in not-found `#state-no-course`.
 
+**Progress by release (#72).** The "recent attempts, weak topics and attempt history (#35)" above are
+designed in #72 (`progress.md` F18.3-F18.5, F19) and split over two releases, because before #37 nothing
+writes a cost (Stepan, #72 architect brief, O3): #35 renders no cost element at all, #37 turns every cost
+element on. The whole class, and what each release renders:
+
+| Member | Page | Step | Before #35 | From #35 | From #37 |
+|--------|------|------|------------|----------|----------|
+| section "Последние попытки": h2, `ul`, row links (status icon, lesson title, date and time, attempt summary), the empty text "Попыток пока нет" | dashboard | F18.3 | not rendered | rendered | rendered |
+| the attempt cost in a "Последние попытки" row ("Потрачено: ..." variants) | dashboard | F18.3 | not rendered | not rendered | rendered for an attempt that can spend (ADR-0007 item 11) |
+| the row link target `?tab=checks&attempt=<attemptId>` | dashboard -> lesson | F18.3, F19 entry | no link exists | rendered | rendered |
+| section "Где трудно": h2, `ul`, row links (check title, lesson title, "Закрыта: не пройдено" or the counter), the empty text "Пока нет проверок, которые не удаются" | dashboard | F18.4 | not rendered | rendered | rendered |
+| the total "Потрачено на проверки и разборы: ..." (h2, its variants) and the note "Расход агента в терминале сюда не входит" | dashboard | F18.5 | not rendered | not rendered | rendered, "$0.00" included |
+| section "История попыток": h3, `ul`, attempt rows ("№ N", date and time, attempt summary), plain items (no check result) and the panels (check title or id with "Этой проверки больше нет в уроке", status word, grader message, "Подробности") | lesson, Проверки | F19.1-F19.3 | not rendered | rendered | rendered |
+| the empty text "Попыток пока нет. Нажмите "Проверить", когда будете готовы." | lesson, Проверки | F19 empty | rendered alone, as the tab's own empty state (F13) | under the h3 "История попыток"; from the moment the first run disables "Проверить" until the history re-read after that run returns, "Попыток пока нет" alone (`progress.md` F19 empty states) | as #35 |
+| the error state: h3 "История попыток недоступна", "Повторить"; the history status container (R2, empty except after a failed re-read of an empty history) | lesson, Проверки | F19 error | not rendered | rendered | rendered |
+| the attempt cost in a history row ("Потрачено: ..." variants) | lesson, Проверки | F19.1 | not rendered | not rendered | rendered for an attempt that can spend |
+| "Стоимость попытки: $N" in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | rendered when the result spends (#37 rubric, #39 hidden-task) |
+| "Не пройдено: исчерпан бюджет $N" in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | from #39 |
+| the mentor review in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | rendered (D3 designs the block) |
+| hints in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | from the release that stores hints with the attempt (`progress.md` A72-16) |
+| the query parameter `attempt` (Navigation model, "Attempt deep link") | lesson URL | F19 entry | ignored | read | read |
+| "Слабые темы", "Слабых тем пока нет" (#50) | dashboard | - | dropped: no release renders them | - | - |
+
+Every other F18 and F19 statement holds in every release from #30. The `F6` landings (R3) do not change in
+any of these releases: on the dashboard `main` lands on the Card's button, and the history is inside the
+"Урок" region.
+
 ## Sitemap
 
 ```mermaid
@@ -416,6 +463,35 @@ and `mentor.md`).
 - **Deep links**: the lesson page's left-pane tab is in the query (`?tab=theory|task|checks|quiz`), so
   F2 returns the learner to the same tab. A tab that is not shown in the current release (R6) falls back to
   Теория, or to Задание when the lesson has no theory.
+- **Attempt deep link (#72, from #35)**: `?tab=checks&attempt=<attemptId>` opens the Проверки tab of
+  "История попыток" (`progress.md` F19 entry); every "Последние попытки" row links it (F18.3), whatever its
+  summary. `attempt` is read only with `tab=checks` and only when the Проверки tab is shown; otherwise the
+  `tab` fallback above applies and `attempt` is ignored. The id is a uuid, not personal data; F2 keeps it in
+  `next`. Before #35 the parameter is ignored and nothing links it. Every arrival, its outcome and the
+  single focus move on load (A72-18); in one-pane mode the area shows "Урок" on load in rows 1-6, as
+  "Открыть результаты" switches it, so the target is never in a hidden pane:
+
+  | # | `attempt` names, and the page's state | Shown | Focus on load |
+  |---|----------------------------------------|-------|---------------|
+  | 1 | a finished attempt of this lesson and user with at least one check result; history read | its disclosure expanded and scrolled into view | its disclosure button |
+  | 2 | a finished attempt of this lesson and user with no check result (A72-14); history read | its plain item scrolled into view | the plain item (`tabindex="-1"`); an `li` has no name from content, so a screen reader reads its text (`progress.md` A72-19, a tester check) |
+  | 3 | an attempt of this lesson and user still running (a dashboard row "Идёт проверка" clicked before the run ended); history read, holding earlier attempts or empty | nothing expanded; the run is in the check rows and the check bar (#69 attaches on load); an empty history reads "Попыток пока нет" alone, because "Проверить" is disabled by this run (`progress.md` F19 empty states) | the heading "История попыток" (h3, `tabindex="-1"`), where the attempt will appear |
+  | 4 | any value; the history cannot be read (the check state was read) | h3 "История попыток недоступна" and "Повторить" | the error heading (h3, `tabindex="-1"`), because no attempt can be shown and the learner asked for one |
+  | 5 | an id the dashboard does not emit for this lesson: malformed, unknown, another user's (ADR-0007 item 8 owner check), another lesson's; history read | nothing expanded | not moved, as any load (A72-18) |
+  | 6 | any value; the check state cannot be read | no history section (`progress.md` F19 error states); the tab's state is #69's (FU9, Q1) | not moved until #69 answers Q1 |
+  | 7 | any value; the Проверки tab is not shown (before #35, or a lesson with no check the platform runs, R6) | the `tab` fallback (Теория, or Задание) | not moved |
+  | 8 | any value; the lesson is not a `ready` lesson of the course (it left the course after the dashboard read) | the not-found page (inventory way 4) | the not-found rules (focus not moved on arrival) |
+  | 9 | any value; the course cannot be read | the lesson course error (F7) | its rules (R2, R3) |
+  | 10 | any value; the session expired | F2, `next` keeps `tab` and `attempt` | after sign-in, rows 1-9 apply |
+
+  An id of a finished attempt of this lesson and user is always in the read history (F19.1 lists every
+  finished attempt, A72-5), so "history empty" occurs only with rows 3 and 5. A background re-read
+  (F19 loading) never moves focus, and "Повторить" after row 4 follows R2 (row "lesson attempt history")
+  without applying `attempt` again, because the one focus move on load has happened. When more than one
+  row applies, the first in the order 10, 9, 8, 7, 6, 4 wins, because each of them describes a page state
+  that hides or replaces what the rows after it need (the session, the course, the lesson, the tab, the
+  check state, the history); if none of these applies, exactly one of rows 1, 2, 3 and 5 does, because they
+  describe disjoint ids. So a malformed id while the history cannot be read is row 4.
 - **The `F6` cycle**: R3.
 
 ## Page inventory
@@ -425,9 +501,9 @@ Flows column: every flow whose Entry line or steps happen on the page.
 | Slug | Route | Russian title (`<title>` / h1) | Purpose | Flows | Prototype in #50 |
 |------|-------|-------------------------------|---------|-------|------------------|
 | sign-in | `/sign-in` | "Вход" | email and password for the single local user | F1, F2 (F2.2-F2.3), F3 (F3.3) | yes |
-| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts, weak topics, cost | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, D4) | yes: F4 and F18.1-F18.2 only; F18.3-F18.4 are D4 and not drawn (R6) |
+| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts and "Где трудно", from #37 cost (R6, "Progress by release (#72)") | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, from #35) | yes: F4 and F18.1-F18.2 only; F18.3-F18.5 are drawn in #72's author phase |
 | catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков"; "Не удалось загрузить курс" while the course cannot be read | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
-| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes |
+| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes; F19 ("История попыток") is drawn in #72's author phase, on #69's Проверки panel |
 | not-found | the ways into the not-found page, each HTTP 404, stated only here: (1) a path no route matches; (2) a catalog URL whose course id is not the course's; (3) a lesson URL whose course id is not the course's; (4) a lesson URL whose lesson id names no `ready` lesson of the course (unknown, or not `ready`). (2)-(4) need the course read: while it cannot be read, those URLs show the course error (HTTP 200), so only (1) remains | "Страница не найдена" | says in one sentence that the address leads nowhere; while the course id is known it links to the catalog ("Открыть курс"), while it is unknown it shows only the sentence and the top bar's "Главная" is the way on (R6, "Course id unknown") | F2, F3, F5, F7 | yes, in #83: `design/pages/not-found/`, states default, no-course, session-expired, user-menu |
 
 Every page is reachable from the catalog: the catalog links to every `ready` lesson and, through the
@@ -456,7 +532,7 @@ Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog s
 | F15 | `quiz.md` | Take a quiz | 6 |
 | F16 | `mentor.md` | Read the mentor review of an attempt | 5 |
 | F17 | `mentor.md` | Ask the mentor for a hint | 4 |
-| F18 | `progress.md` | See progress by module | 4 |
+| F18 | `progress.md` | See progress by module | 5 |
 | F19 | `progress.md` | Review the attempts of a lesson | 3 |
 
 A new flow takes the next free number (F20). An existing flow keeps its id even if it moves to another
@@ -493,6 +569,46 @@ filed and linked here, or when it is done.
   course error and the lesson text load error, R2 keeps focus on "Повторить" after a second failure; the
   focus does not move and the text does not change, so a screen reader user hears nothing. Decide an
   announcement (a focus target with a heading, or a status) and update R2.
+- **FU7. design: align #69's rows with #72 once #69 is on `main`** (design, #72 author phase). #72 left
+  #69's rows untouched to keep the merge small. After #69 merges: the check status row's Where column says
+  "attempt history panels (F19.2)" instead of "recent attempts (F18.3)" (attempt rows use the set "attempt
+  summary"); the vocabulary row "cost of one check's result" points to the vocabulary row "cost of one
+  attempt record (#72)" instead of "A run total (the dashboard's attempt cost, #35, D4) needs its own
+  label, chosen by that DESIGN task"; the Action labels row "show raw error
+  details" ("Подробности") lists F19; the "Повторить" row reads "F19 from #35" instead of "F19 D4"; the R6
+  sentence "recent attempts, weak topics and attempt history (#35)" points to "Progress by release (#72)";
+  the check status row's Where column also lists ""Где трудно" rows (F18.4), "Закрыта: не пройдено" only",
+  and the check row note row's Where column ""Где трудно" rows (F18.4), "Неудачных попыток: N" and
+  "Неудачных попыток: N из M" only"; R2's list of lesson live containers names the history status container
+  (the #72 bullet after the "Уведомления" wrapper bullet merges into it); in the vocabulary row "attempt (record of a run)" "История попыток
+  недоступна" reads "(from #35, F19)" instead of "(D4)" and "A run total cost needs its own label (D4,
+  #35)" points to the row "cost of one attempt record (#72)"; the vocabulary row "attempt (one check's
+  result)" lists "Проверок с незасчитанной попыткой: N" among its strings; and in `checks.md` three D4
+  markers point to #72: the intro "the attempt history is D4", the "Not in the row" line "the attempt
+  history (D4)" and empty states "the history section itself is D4, R6" read "from #35 (`progress.md` F19,
+  R6)". One `main` row #69 does not change is kept here too: the page-copy row "lesson (F6-F13, F19)"
+  reads "(from #35, F19)" instead of "(D4)" after "История попыток недоступна", in the same edit as #69's
+  vocabulary row "attempt (record of a run)", because both mark the same string and one should not flip
+  without the other.
+- **FU8. design: mentor remarks on the dashboard** (design, Stepan, #72 architect brief, O9).
+  learning-process §4 lists "mentor remarks" on the dashboard; no flow has them. Follow-up issue #102.
+- **FU9. design: questions #72 hands to #69, #70 and #39** (design; each answered in that task, or in
+  #72's author phase if that task has merged). Q1 (#69): what the Проверки tab shows, and where focus lands on
+  load, when the check state cannot be read; F19 renders nothing then (`progress.md` F19 error states) and
+  the deep link's row 6 waits for the answer. Q2 (#70): a quiz attempt record would carry both the quiz's
+  "Попытка N из M" and the history's "№ N" (`progress.md` A72-17); say whether the history row adds a quiz
+  line or the two numbers stay apart. Q3 (#70): from #36 a quiz-only lesson's check bar shows "Пройти
+  квиз" (`checks.md`), so the F19 empty text "Попыток пока нет. Нажмите "Проверить", когда будете
+  готовы." is wrong there; #70 names the text for that lesson. Q4 (#69 and #39): the word of a
+  budget-spent result the server reports as not counted; #69 gives it "Не пройдено: исчерпан бюджет $N"
+  "as the server reports", which does not say "попытка не засчитана", so until it is named the attempt
+  summary leaves it out of its note (`progress.md` A72-6) and the result reads like a counted one. Q5
+  (#69): before #35, the Проверки tab's own empty text "Попыток пока нет. Нажмите "Проверить", когда будете
+  готовы." is defined for "before any run" only; during the first run "Проверить" is disabled, and from #35
+  F19 shows "Попыток пока нет" alone then (`progress.md` F19 empty states); #69 may take the same rule for
+  its own state. A proposal for the author phase: a
+  "Где трудно" row could focus its check row on arrival (`?check=`), with its own fallback set
+  (`progress.md` "Not designed in #72").
 
 Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
 "Focus ring after a mouse click on a tab").

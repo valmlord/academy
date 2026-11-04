@@ -138,6 +138,37 @@ Each item can be accepted or overturned on its own.
      package builds; option errors never serialize caller data.
 10. **Change procedure.** Any schema change is a dev task with a generated migration. Changing items 2-9
     updates this ADR and needs Stepan's approval.
+11. **Cost sums (Proposed, #72; Stepan accepts or overturns it in the #72 PR).** A reader rule over the
+    existing columns `check_results.cost_usd` and `mentor_reviews.cost_usd` (`numeric(12,6)`, USD, `>= 0`,
+    nullable); no schema change. Every place that shows money summed over more than one row follows it:
+    the cost of one attempt (dashboard "Последние попытки", F18.3; lesson "История попыток", F19.1) and the
+    dashboard total (F18.5), `design/flows/progress.md`. The reader that ships them is #37 (with #35's
+    queries), because no writer stores a cost before #37.
+    - *What one attempt costs.* The sum of `cost_usd` over its `check_results` plus the sum over its
+      `mentor_reviews` with status `completed` or `error` (a failed review can have spent money). A review
+      with status `pending` is left out until it ends, because its cost is written when the call ends. A
+      review requested after the run (`mentor_reviews.attempt_id` is that attempt) adds to that attempt, so
+      an attempt's cost can grow after it finished.
+    - *Null, by what spends.* Rubric and hidden-task checks spend tokens (learning-process §2), and so does
+      every mentor review (its cost is shown as "Стоимость разбора", `design/flows/mentor.md` F16.5): for
+      these a null `cost_usd` means **unknown** (the service reported no cost). Every other check kind (`command`, `quiz`, `bug-hunt`) spends nothing: a null there is
+      **zero**. The kind is the stored `check_results.check_kind`, never the current `lesson.yaml`. A
+      non-null value of any kind is summed as is.
+    - *Known or at least.* A sum with no unknown term is known. A sum with one or more unknown terms is a
+      lower bound, shown as "не меньше $N" when the known part is above zero and "нет данных" when it is
+      zero; it is never shown as an exact figure.
+    - *Whether an attempt shows a cost at all.* It does when it has at least one term that can spend (a
+      rubric or hidden-task result, or a review counted above); an attempt of free checks only shows none.
+    - *Rounding.* Add the raw `numeric(12,6)` values exactly (in SQL `numeric`, or a decimal type in
+      TypeScript, never binary floating point, whose error can push a sum over a cent boundary), then round
+      **up** to the cent once, for each figure shown. Rounded figures are never added together, so the
+      rounded attempt costs on screen may add up to more than the rounded total.
+    - *The dashboard total.* Every attempt of the user, in every course and lesson id, whatever the lesson's
+      status or presence in the current tree and whatever the attempt status. This is the one place where
+      item 5 "Dashboard" does not filter by `ready` lessons, because money spent on a lesson that later
+      left the course was still spent.
+    - *Unit.* USD only; no token counts (there are no token columns). The agent the learner runs in the
+      terminal uses the same API key but its spend is not recorded by the platform and is in no sum.
 
 ## Alternatives considered
 - **Drizzle 1.0 RC** (item 1): fixes out-of-order merges by design and its kit has no dependencies, but
@@ -182,6 +213,8 @@ Each item can be accepted or overturned on its own.
 - drizzle-kit 0.31 pulls `esbuild@0.18.20` (moderate GHSA-67mh-4wv8-2f99, exploitable only while
   `esbuild serve` runs, which nothing here does). Accepted until the 1.0 upgrade.
 - Transcripts survive the database cascade; the account-deletion flow (#78) deletes them.
+- Proposed by #72: item 11 (cost sums), a reader rule with no schema change; Stepan accepts or overturns
+  it in the #72 PR. Items 1-10 are unchanged by it.
 - Drizzle 0.45's `DrizzleQueryError` message embeds the query parameters. Before credential tables exist,
   #29 states its own rule for logging DB errors (for example: the SQLSTATE and the constraint name, never
   the Drizzle error message or object). #29's rule is ADR-0008 item 11.
