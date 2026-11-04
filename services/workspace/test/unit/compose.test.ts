@@ -129,6 +129,27 @@ describe("docker-compose.yml (U-compose)", () => {
   });
 });
 
+describe("docker-compose.yml, web and the service (#32)", () => {
+  it("lets web start without the workspace service: depends_on names db only (U-compose-independent)", () => {
+    const dependsOn = z.record(z.string(), z.unknown()).parse(service("web").depends_on);
+
+    expect(Object.keys(dependsOn)).toEqual(["db"]);
+    expect(dependsOn).not.toHaveProperty("workspace");
+  });
+
+  it("passes web the service address, the shared secret and the terminal settings", () => {
+    const environment = service("web").environment ?? {};
+
+    expect(environment).toMatchObject({
+      WORKSPACE_SERVICE_URL: "http://workspace:4100",
+      WORKSPACE_SERVICE_SECRET:
+        "${WORKSPACE_SERVICE_SECRET:?set WORKSPACE_SERVICE_SECRET in .env, see .env.example}",
+      TERMINAL_RECONNECT_ATTEMPTS: "${TERMINAL_RECONNECT_ATTEMPTS:-5}",
+      TERMINAL_RELAY_MAX_SECONDS: "${TERMINAL_RELAY_MAX_SECONDS:-900}",
+    });
+  });
+});
+
 describe("compose.db-port.yaml (U-compose)", () => {
   it("adds only the loopback db port", () => {
     expect(readYaml("compose.db-port.yaml")).toEqual({

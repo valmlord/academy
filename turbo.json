@@ -19,7 +19,16 @@
       "cache": false,
       "persistent": true,
       "dependsOn": ["^build"],
-      "passThroughEnv": ["DATABASE_URL", "PORT", "BETTER_AUTH_SECRET", "COURSE_ROOT"]
+      "passThroughEnv": [
+        "DATABASE_URL",
+        "PORT",
+        "BETTER_AUTH_SECRET",
+        "COURSE_ROOT",
+        "WORKSPACE_SERVICE_URL",
+        "WORKSPACE_SERVICE_SECRET",
+        "TERMINAL_RECONNECT_ATTEMPTS",
+        "TERMINAL_RELAY_MAX_SECONDS"
+      ]
     },
     "seed": {
       "dependsOn": ["^build"],

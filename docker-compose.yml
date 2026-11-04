@@ -38,7 +38,13 @@ services:
       # Required: compose refuses every command without it (ADR-0008 item 9). BETTER_AUTH_SECRETS is
       # never passed: the app refuses it.
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env, see .env.example}
-    # default for db; workspace-api for the workspace service (#32 calls it at http://workspace:4100).
+      # The terminal (#32): web calls the service on demand and relays terminal connections to it. No
+      # depends_on on workspace: the site works while the service is down (ADR-0010 item 10 amended).
+      WORKSPACE_SERVICE_URL: http://workspace:4100
+      WORKSPACE_SERVICE_SECRET: ${WORKSPACE_SERVICE_SECRET:?set WORKSPACE_SERVICE_SECRET in .env, see .env.example}
+      TERMINAL_RECONNECT_ATTEMPTS: ${TERMINAL_RECONNECT_ATTEMPTS:-5}
+      TERMINAL_RELAY_MAX_SECONDS: ${TERMINAL_RELAY_MAX_SECONDS:-900}
+    # default for db; workspace-api for the workspace service.
     networks: [default, workspace-api]
     # Loopback only; 3080 so pnpm dev (3000) runs alongside.
     ports:
