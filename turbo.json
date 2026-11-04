@@ -13,7 +13,13 @@
     "test:e2e": {
       "dependsOn": ["^build"],
       "cache": false,
-      "passThroughEnv": ["E2E_BASE_URL", "SEED_*"]
+      "passThroughEnv": [
+        "E2E_BASE_URL",
+        "SEED_*",
+        "E2E_TERMINAL",
+        "E2E_ALL_BROWSERS",
+        "DATABASE_URL"
+      ]
     },
     "dev": {
       "cache": false,
