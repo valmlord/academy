@@ -2,7 +2,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSyn
 import { join, relative } from "node:path";
 import { parse } from "yaml";
 import type { z } from "zod";
-import { Course, HIDDEN_DIR, Lesson, Module, REQUIRED_LESSON_FILES } from "./schema.js";
+import { Check, Course, HIDDEN_DIR, Lesson, Module, REQUIRED_LESSON_FILES } from "./schema.js";
 
 export interface ValidationIssue {
   file: string;
@@ -25,6 +25,57 @@ function zodIssues(file: string, err: z.ZodError): ValidationIssue[] {
     file,
     message: `${i.path.join(".") || "(root)"}: ${i.message}`,
   }));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// A raw value can be anything YAML yields, including a self-referencing alias that JSON.stringify
+// cannot print, so only scalars are printed verbatim.
+function describeRawValue(value: unknown): string {
+  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "number" || typeof value === "boolean" || value === null)
+    return String(value);
+  return `of type ${typeof value}`;
+}
+
+function unknownKeysOfCheck(element: unknown, index: number): string[] {
+  if (!isRecord(element)) return [`checks.${index}: not a check object; its keys were not checked`];
+  const id = typeof element.id === "string" ? element.id : "?";
+  const kind = element.kind;
+  if (kind === undefined) {
+    return [`checks.${index}: check "${id}" has no kind; its keys were not checked`];
+  }
+  const member = Check.options.find((o) => o.shape.kind.value === kind);
+  if (!member) {
+    return [
+      `checks.${index}: check "${id}" has kind ${describeRawValue(kind)}, which no check kind defines; its keys were not checked`,
+    ];
+  }
+  const known = Object.keys(member.shape).sort();
+  return Object.keys(element)
+    .filter((key) => !known.includes(key))
+    .map(
+      (key) =>
+        `checks.${index}: check "${id}" (${member.shape.kind.value}) has unknown key "${key}"; known keys: ${known.join(", ")}`,
+    );
+}
+
+/**
+ * Keys of the checks of a ready lesson that the check's kind does not define. Works on the raw YAML
+ * because zod strips unknown keys from the parsed lesson, and runs whether or not the lesson parses,
+ * so a misspelled `attempts` is reported even when it also makes the parse fail.
+ */
+function unknownCheckKeys(rawLesson: unknown): string[] {
+  if (!isRecord(rawLesson) || rawLesson.status !== "ready") return [];
+  const checks = rawLesson.checks;
+  // Absent is the empty list, as `checks: z.array(Check).default([])` makes it: a ready theory lesson
+  // needs no checks.
+  if (checks === undefined) return [];
+  if (!Array.isArray(checks)) return ["checks: not a list; check keys were not checked"];
+  const elements: readonly unknown[] = checks;
+  return elements.flatMap((element, index) => unknownKeysOfCheck(element, index));
 }
 
 /** Files under dir. With includeLinks, symlinks are returned (not followed) so callers can reject them. */
@@ -103,7 +154,9 @@ export function validateCourses(root: string): ValidationResult {
           issue(lessonDir, "lesson listed in module.yaml but lesson.yaml is missing");
           continue;
         }
-        const lesson = Lesson.safeParse(readYaml(lessonFile));
+        const rawLesson = readYaml(lessonFile);
+        for (const message of unknownCheckKeys(rawLesson)) issue(lessonFile, message);
+        const lesson = Lesson.safeParse(rawLesson);
         result.lessons++;
         if (!lesson.success) {
           result.issues.push(...zodIssues(relative(root, lessonFile), lesson.error));

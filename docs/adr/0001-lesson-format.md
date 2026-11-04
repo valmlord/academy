@@ -3,8 +3,8 @@
 - Status: Proposed
 - Date: 2026-10-27
 - Issue: (bootstrap)
-- Amended: 2026-11-04, #68 (Decision 8: per-check attempt limits and mentor threshold).
-  Status stays Proposed until Stepan accepts.
+- Amended: 2026-11-04, #68 (Decision 8: per-check attempt limits and mentor threshold; Decision 6:
+  unknown check keys). Status stays Proposed until Stepan accepts.
 
 ## Context
 The methodologists produce lessons; the platform displays and checks them. If the format is not
@@ -23,6 +23,10 @@ agreement must be checked by a machine, not by text.
    or the browser.
 6. `pnpm content:validate` checks the schema, the presence of files, the order, id uniqueness, sources
    of `ready` lessons and leaks of `checks/`. It is a required CI check.
+   In `ready` lessons it also reports any key of a check that the check's kind does not define, and
+   any check whose keys it cannot compare (a missing kind or one no check member defines, a check
+   that is not an object, or a `checks` value that is present but not a list); an absent `checks`
+   is an empty list, as the schema's default makes it.
 7. Changing the format: a dev team task that updates this ADR and migrates all lessons
    in the same PR. Owner (CODEOWNERS): Stepan.
 8. Attempt limits (amended 2026-11-04, #68). Any check may carry an optional `attempts` object holding

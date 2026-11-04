@@ -334,6 +334,123 @@ describe("check attempts", () => {
   });
 });
 
+const COMMAND_KEYS = "attempts, id, kind, run, timeoutSec, title, weight";
+const QUIZ_KEYS = "attempts, file, id, kind, passScore, title, weight";
+const misspelledBlock = (limit: number) => `    attempt:\n      limit: ${limit}\n`;
+
+describe("unknown check keys in ready lessons", () => {
+  it("reports a misspelled attempts block on a ready command check", () => {
+    validCourse();
+
+    withChecks(commandCheck(misspelledBlock(10)));
+
+    expect(issueMessages()).toEqual([
+      `checks.0: check "tests" (command) has unknown key "attempt"; known keys: ${COMMAND_KEYS}`,
+    ]);
+  });
+
+  it("reports nothing for a check of every kind that uses only its own keys", () => {
+    validCourse();
+    write(`${L}/quiz.yaml`, "q: 1\n");
+    write(`${L}/checks/rubric.md`, "rubric\n");
+    write(`${L}/checks/answers.yaml`, "a: 1\n");
+
+    withChecks(`${quizCheck(limitBlock(3))}${commandCheck(limitBlock(10))}  - id: review
+    title: Review
+    kind: rubric
+    rubric: checks/rubric.md
+    artifacts: [plan.md]
+    passScore: 0.7
+    attempts:
+      mentorAfter: 5
+  - id: hidden
+    title: Hidden task
+    kind: hidden-task
+    task: checks/hidden/task.md
+    verify: checks/hidden/verify.sh
+    timeoutSec: 600
+    budgetUsd: 1
+    attempts: {}
+${bugHuntCheck(limitBlock(2))}`);
+
+    expect(validateCourses(root).issues).toEqual([]);
+  });
+
+  it("does not report unknown check keys in a draft lesson", () => {
+    validCourse();
+    asDraft();
+
+    withChecks(commandCheck(misspelledBlock(10)));
+
+    expect(validateCourses(root).issues).toEqual([]);
+  });
+
+  it("checks keys against the member of the check's own kind", () => {
+    validCourse();
+    write(`${L}/quiz.yaml`, "q: 1\n");
+
+    withChecks(quizCheck(`${limitBlock(3)}    run: "pytest"\n`));
+
+    expect(issueMessages()).toEqual([
+      `checks.0: check "q" (quiz) has unknown key "run"; known keys: ${QUIZ_KEYS}`,
+    ]);
+  });
+
+  it("reports unknown check keys when the lesson also fails to parse", () => {
+    validCourse();
+    write(`${L}/quiz.yaml`, "q: 1\n");
+
+    withChecks(quizCheck(misspelledBlock(3)));
+
+    expect(issueMessages()).toEqual([
+      `checks.0: check "q" (quiz) has unknown key "attempt"; known keys: ${QUIZ_KEYS}`,
+      'checks.0.attempts: check "q" (quiz): ready lessons need attempts.limit for quiz and bug-hunt checks',
+    ]);
+  });
+
+  it("reports checks whose keys it cannot compare instead of skipping them", () => {
+    validCourse();
+    const cases = [
+      {
+        checks: "checks:\n  - { id: q, title: Q, kind: quizz }\n",
+        message:
+          'checks.0: check "q" has kind "quizz", which no check kind defines; its keys were not checked',
+      },
+      {
+        checks: "checks:\n  - { id: q, title: Q }\n",
+        message: 'checks.0: check "q" has no kind; its keys were not checked',
+      },
+      {
+        checks: "checks:\n  - { id: q, title: Q, kind: &k [*k] }\n",
+        message:
+          'checks.0: check "q" has kind of type object, which no check kind defines; its keys were not checked',
+      },
+      {
+        checks: "checks:\n  - tests\n",
+        message: "checks.0: not a check object; its keys were not checked",
+      },
+      { checks: 'checks: "none"\n', message: "checks: not a list; check keys were not checked" },
+      { checks: "checks:\n", message: "checks: not a list; check keys were not checked" },
+    ];
+    for (const { checks, message } of cases) {
+      write(`${L}/lesson.yaml`, readLesson().replace(/checks:[\s\S]*$/, checks));
+
+      expect(issueMessages()).toContain(message);
+    }
+  });
+
+  it("treats an absent checks key as the empty list, as the schema default does", () => {
+    validCourse();
+    const withoutChecks = readLesson().replace(/checks:\n[\s\S]*$/, "");
+
+    write(`${L}/lesson.yaml`, withoutChecks.replace("type: agent-eval", "type: theory"));
+    expect(validateCourses(root).issues).toEqual([]);
+
+    write(`${L}/lesson.yaml`, withoutChecks.replace("type: agent-eval", "type: quiz"));
+    expect(issueMessages()).toEqual(["checks: ready practice lessons need checks"]);
+  });
+});
+
 function readLesson() {
   return readFileSync(join(root, `${L}/lesson.yaml`), "utf8");
 }
