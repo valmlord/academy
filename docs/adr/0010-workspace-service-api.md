@@ -148,3 +148,29 @@ contract between them is costly to change once #32 builds its client on it, so i
 - Every response field and code is part of `/v1`; a breaking change needs `/v2` and an update of this ADR.
 - The service holds no state, so a restart loses only idle windows; reconcile re-adopts running workspaces at
   startup (ADR-0002 item 8).
+
+## Amendments
+- #32 (Proposed), 2026-11-04. The terminal of ADR-0011:
+  - Item 1: Fastify answers `HEAD` for every `GET` route except `GET W/terminal`, which sets `exposeHeadRoute: false`;
+    a `HEAD` on it answers 404 `route-not-found` like any unknown route.
+  - Item 8: creating a terminal session takes the workspace's lock; attaching to a live session does not.
+  - Item 9 is replaced: "every `PUT` and every `activity` call moves the window, and so does terminal input, a
+    terminal resize and terminal output while a browser is attached to the session; output with no browser
+    attached does not. The service sees the terminal traffic itself (ADR-0011), so web does not call `activity`
+    for the terminal; #34 calls it at the start and at the end of a check. Terminal activity for a workspace the
+    idle tracker does not know (after a restart, before reconcile adopts it) is ignored."
+  - Item 10, second sentence, is replaced (Stepan, 2026-11-04): "Web does not `depends_on` the workspace service. The
+    site (sign-in, dashboard, catalog, lesson text) needs nothing from the service, and with the dependency a
+    service that cannot start (no Docker socket, a broken image) would keep the whole site down. Web calls the
+    service only on demand (the environment actions and the terminal relay) and shows an unreachable service as the
+    Terminal tab's 'start failed' state; a compose unit test asserts that `web.depends_on` names no `workspace`.
+    `docker compose up --wait` still exits non-zero while the service is unhealthy, with web running."
+    The first sentence (the service listens before it talks to Docker) and the healthcheck stay.
+  - Item 13 (new), route `GET W/terminal`: a WebSocket upgrade, behind the same Bearer check (401 before the upgrade)
+    and key rule (400 `invalid-workspace-key` before the upgrade). A request without an upgrade answers 404
+    `route-not-found` and opens no shell. After the upgrade, errors are close codes, not bodies; the protocol, close
+    codes and limits are ADR-0011 items 6, 7 and 10. The optional request header `X-Academy-Conn` (16 lowercase hex)
+    is a log correlation id only. No new error code. A stop, remove or idle stop of a workspace with a terminal
+    session closes its sockets with 4002. A failed exec resize is ignored and logged.
+  - Item 11 unchanged: the terminal writes nothing durable; web records "lesson started" (ADR-0007 item 5).
+  - Consequences, first bullet: "adds the `depends_on` of item 10" no longer applies (item 10 as amended).
