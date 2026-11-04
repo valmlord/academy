@@ -136,3 +136,45 @@ export function moduleProgressLabel(passed: number, total: number): string {
 export function progressValueText(passed: number, total: number): string {
   return `${passed} из ${total}`;
 }
+
+// design/pages/lesson/acceptance.md, Copy: the environment region's hidden heading, its tab list label, the
+// tab and the terminal's accessible name.
+export const environmentRegionHeading = "Окружение";
+export const environmentTabsLabel = "Окружение";
+export const terminalTabLabel = "Терминал";
+export const terminalName = "Терминал";
+
+// design/pages/lesson/acceptance.md, Copy "key hint" and "key hint, macOS".
+export const regionKeyHint = "F6 или Ctrl+Shift+. (клавиша Ю): следующая область";
+export const regionKeyHintMac = "F6 (Fn+F6) или Ctrl+Shift+. (клавиша Ю): следующая область";
+
+// design/pages/lesson/acceptance.md, Copy "environment status", "environment notes" (the slow start) and
+// "environment errors".
+export const environmentCreatingStatus = "Создаём окружение";
+export const environmentStartingStatus = "Запускаем окружение";
+export const environmentSlowNote = "Запуск идёт дольше обычного";
+export const environmentRunningStatus = "Окружение работает";
+export const environmentStoppedStatus =
+  "Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены.";
+export const environmentMemoryLimitStatus =
+  "Окружение остановлено: превышен лимит памяти. Файлы сохранены.";
+export const dockerDownStatus =
+  'Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".';
+export function imageMissingStatus(image: string): string {
+  return `Нет образа окружения ${image}. Соберите его (см. README) и нажмите "Повторить".`;
+}
+export const environmentRejectedStatus = "Нет доступа к этому окружению.";
+
+// design/pages/lesson/acceptance.md, Copy "terminal connection" and "status actions".
+export const connectionLostStatus = "Соединение с терминалом потеряно. Переподключаемся...";
+export const reconnectFailedStatus = "Не удалось переподключиться";
+export const shellExitedStatus = "Сеанс терминала завершён";
+export const reconnectLabel = "Переподключиться";
+export const openNewSessionLabel = "Открыть новый сеанс";
+export const startAgainLabel = "Запустить снова";
+
+// Stepan's copy for #32 (D8), not yet in the design flows or the lesson Copy table: follow-up 7.4 adds it
+// there. The taken-over state and its action, and the generic start failure (its action is retryLabel).
+export const takenOverStatus = "Терминал открыт в другой вкладке.";
+export const openHereLabel = "Открыть здесь";
+export const startFailedStatus = "Не удалось запустить окружение.";

@@ -22,6 +22,7 @@ const UNSET_WORKSPACE_ENV = {
   WORKSPACE_SERVICE_SECRET: undefined,
   TERMINAL_RECONNECT_ATTEMPTS: undefined,
   TERMINAL_RELAY_MAX_SECONDS: undefined,
+  ENVIRONMENT_START_SLOW_SECONDS: undefined,
 };
 
 function fakeDeps(
@@ -197,6 +198,7 @@ describe("migrateOnStartup with the workspace service settings", () => {
     WORKSPACE_SERVICE_SECRET: "canary-service-secret-u".padEnd(32, "x"),
     TERMINAL_RECONNECT_ATTEMPTS: "5",
     TERMINAL_RELAY_MAX_SECONDS: "900",
+    ENVIRONMENT_START_SLOW_SECONDS: "10",
   };
   const URL_U = "postgres://academy:secret@db:5432/academy";
 
@@ -249,6 +251,11 @@ describe("migrateOnStartup with the workspace service settings", () => {
       change: { TERMINAL_RELAY_MAX_SECONDS: value },
       line: "web: InvalidWorkspaceServiceConfigError: TERMINAL_RELAY_MAX_SECONDS must be an integer from 120 to 3600",
     })),
+    ...["0", "121", "x"].map((value) => ({
+      case: `ENVIRONMENT_START_SLOW_SECONDS=${value}`,
+      change: { ENVIRONMENT_START_SLOW_SECONDS: value },
+      line: "web: InvalidWorkspaceServiceConfigError: ENVIRONMENT_START_SLOW_SECONDS must be an integer from 1 to 120",
+    })),
   ])("exits with 1 before migrating for $case, naming the variable", async ({ change, line }) => {
     const deps = fakeDeps(URL_U, async () => {}, VALID_AUTH_ENV, {
       ...COMPOSE_WORKSPACE_ENV,
@@ -268,6 +275,8 @@ describe("migrateOnStartup with the workspace service settings", () => {
     ["TERMINAL_RECONNECT_ATTEMPTS", "20"],
     ["TERMINAL_RELAY_MAX_SECONDS", "120"],
     ["TERMINAL_RELAY_MAX_SECONDS", "3600"],
+    ["ENVIRONMENT_START_SLOW_SECONDS", "1"],
+    ["ENVIRONMENT_START_SLOW_SECONDS", "120"],
   ])("accepts %s=%s at the edge of its range", async (name, value) => {
     const deps = fakeDeps(URL_U, async () => {}, VALID_AUTH_ENV, {
       ...COMPOSE_WORKSPACE_ENV,

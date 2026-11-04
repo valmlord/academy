@@ -44,6 +44,7 @@ services:
       WORKSPACE_SERVICE_SECRET: ${WORKSPACE_SERVICE_SECRET:?set WORKSPACE_SERVICE_SECRET in .env, see .env.example}
       TERMINAL_RECONNECT_ATTEMPTS: ${TERMINAL_RECONNECT_ATTEMPTS:-5}
       TERMINAL_RELAY_MAX_SECONDS: ${TERMINAL_RELAY_MAX_SECONDS:-900}
+      ENVIRONMENT_START_SLOW_SECONDS: ${ENVIRONMENT_START_SLOW_SECONDS:-10}
     # default for db; workspace-api for the workspace service.
     networks: [default, workspace-api]
     # Loopback only; 3080 so pnpm dev (3000) runs alongside.

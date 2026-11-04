@@ -146,6 +146,7 @@ describe("docker-compose.yml, web and the service (#32)", () => {
         "${WORKSPACE_SERVICE_SECRET:?set WORKSPACE_SERVICE_SECRET in .env, see .env.example}",
       TERMINAL_RECONNECT_ATTEMPTS: "${TERMINAL_RECONNECT_ATTEMPTS:-5}",
       TERMINAL_RELAY_MAX_SECONDS: "${TERMINAL_RELAY_MAX_SECONDS:-900}",
+      ENVIRONMENT_START_SLOW_SECONDS: "${ENVIRONMENT_START_SLOW_SECONDS:-10}",
     });
   });
 });

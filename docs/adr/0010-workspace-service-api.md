@@ -166,6 +166,9 @@ contract between them is costly to change once #32 builds its client on it, so i
     Terminal tab's 'start failed' state; a compose unit test asserts that `web.depends_on` names no `workspace`.
     `docker compose up --wait` still exits non-zero while the service is unhealthy, with web running."
     The first sentence (the service listens before it talks to Docker) and the healthcheck stay.
+  - Item 5: web reads `ENVIRONMENT_START_SLOW_SECONDS` from its own environment; compose passes the same variable, with
+    the same default 10 and range 1-120, to web and to the service, so the lesson page shows the slow-start note
+    without a service call before the start (item 10 as amended). `GET /v1/settings` stays unchanged.
   - Item 13 (new), route `GET W/terminal`: a WebSocket upgrade, behind the same Bearer check (401 before the upgrade)
     and key rule (400 `invalid-workspace-key` before the upgrade). A request without an upgrade answers 404
     `route-not-found` and opens no shell. After the upgrade, errors are close codes, not bodies; the protocol, close

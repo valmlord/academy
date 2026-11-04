@@ -14,6 +14,7 @@ export async function runStartup(): Promise<void> {
       WORKSPACE_SERVICE_SECRET: process.env.WORKSPACE_SERVICE_SECRET,
       TERMINAL_RECONNECT_ATTEMPTS: process.env.TERMINAL_RECONNECT_ATTEMPTS,
       TERMINAL_RELAY_MAX_SECONDS: process.env.TERMINAL_RELAY_MAX_SECONDS,
+      ENVIRONMENT_START_SLOW_SECONDS: process.env.ENVIRONMENT_START_SLOW_SECONDS,
     },
     migrate: (url) => migrateDatabase(url),
     exit: (code) => process.exit(code),

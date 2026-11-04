@@ -8,6 +8,7 @@ export interface WorkspaceServiceEnv {
   WORKSPACE_SERVICE_SECRET: string | undefined;
   TERMINAL_RECONNECT_ATTEMPTS: string | undefined;
   TERMINAL_RELAY_MAX_SECONDS: string | undefined;
+  ENVIRONMENT_START_SLOW_SECONDS: string | undefined;
 }
 
 export class InvalidWorkspaceServiceConfigError extends Error {
@@ -22,7 +23,10 @@ export class InvalidWorkspaceServiceConfigError extends Error {
 const SECRET_MIN_LENGTH = 32;
 
 interface IntegerSetting {
-  name: "TERMINAL_RECONNECT_ATTEMPTS" | "TERMINAL_RELAY_MAX_SECONDS";
+  name:
+    | "TERMINAL_RECONNECT_ATTEMPTS"
+    | "TERMINAL_RELAY_MAX_SECONDS"
+    | "ENVIRONMENT_START_SLOW_SECONDS";
   min: number;
   max: number;
   fallback: number;
@@ -40,6 +44,15 @@ export const RELAY_MAX_SECONDS: IntegerSetting = {
   min: 120,
   max: 3600,
   fallback: 900,
+};
+// Seconds after which the lesson page says a start takes longer than usual (#32 Delta 2.1). Range and
+// default are the service's (services/workspace/src/config.ts, ADR-0010 item 5), and compose passes the same
+// variable to both containers, so web shows the service's threshold without asking the service first.
+export const START_SLOW_SECONDS: IntegerSetting = {
+  name: "ENVIRONMENT_START_SLOW_SECONDS",
+  min: 1,
+  max: 120,
+  fallback: 10,
 };
 
 export type WorkspaceServiceConfig =
@@ -97,4 +110,5 @@ export function checkWorkspaceServiceEnv(env: WorkspaceServiceEnv): void {
   readWorkspaceServiceConfig(env);
   readIntegerSetting(env, RECONNECT_ATTEMPTS);
   readIntegerSetting(env, RELAY_MAX_SECONDS);
+  readIntegerSetting(env, START_SLOW_SECONDS);
 }
