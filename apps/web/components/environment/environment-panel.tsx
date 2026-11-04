@@ -213,10 +213,22 @@ export function EnvironmentPanel({
           </TabsTrigger>
         </TabsList>
         {/* No tab stop of its own: the terminal inside is the panel's focusable content. */}
-        <TabsContent value="terminal" tabIndex={-1}>
+        <TabsContent
+          value="terminal"
+          tabIndex={-1}
+          aria-busy={view?.isAwaitingAttach === true ? "true" : undefined}
+        >
+          {/* Connecting: keys are dropped until `attached` (design 3.6.1 row 32), so the cursor must not invite
+              typing; nothing is lost, so the frame keeps its solid border. */}
           <div
-            data-connection={view?.isConnectionLost === true ? "lost" : undefined}
-            className="flex h-[min(70vh,40rem)] min-h-48 flex-col rounded-md border bg-terminal p-3 font-mono text-sm text-terminal-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[connection=lost]:border-dashed data-[connection=lost]:border-warning [&[data-connection=lost]_.xterm-cursor]:invisible"
+            data-connection={
+              view?.isConnectionLost === true
+                ? "lost"
+                : view?.isAwaitingAttach === true
+                  ? "connecting"
+                  : undefined
+            }
+            className="flex h-[min(70vh,40rem)] min-h-48 flex-col rounded-md border bg-terminal p-3 font-mono text-sm text-terminal-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[connection=lost]:border-dashed data-[connection=lost]:border-warning [&[data-connection=lost]_.xterm-cursor]:invisible [&[data-connection=connecting]_.xterm-cursor]:invisible"
           >
             {/* Clipped: before the first fit xterm is 80 columns wide, which must never scroll the page sideways. */}
             <div ref={frameRef} className="min-h-0 flex-1 overflow-hidden" />

@@ -267,7 +267,7 @@ describe("EnvironmentPanel states (U-env-region)", () => {
     expect(screen.getByText(regionKeyHint)).not.toBeVisible();
   });
 
-  it("shows the lost-connection frame while reconnecting", async () => {
+  it("shows the lost-connection frame without a busy tab panel while reconnecting", async () => {
     const env = setup();
     const socket = await reachRunning(env);
 
@@ -275,6 +275,27 @@ describe("EnvironmentPanel states (U-env-region)", () => {
 
     expect(statusText()).toBe(connectionLostStatus);
     expect(frameOf(env.terminals[0])).toHaveAttribute("data-connection", "lost");
+    expect(screen.getByRole("tabpanel")).not.toHaveAttribute("aria-busy");
+  });
+
+  it("hides the cursor and marks the tab panel busy while the terminal is not attached yet", async () => {
+    const env = setup();
+    await answer(env.peeks, { kind: "running", outcome: "running" });
+
+    await answer(env.opens, { kind: "ticket", ticket: "t", renewInMs: null });
+
+    expect(statusText()).toBe(environmentRunningStatus);
+    expect(frameOf(env.terminals[0])).toHaveAttribute("data-connection", "connecting");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("neither hides the cursor nor marks the tab panel busy once attached", async () => {
+    const env = setup();
+
+    await reachRunning(env);
+
+    expect(frameOf(env.terminals[0])).not.toHaveAttribute("data-connection");
+    expect(screen.getByRole("tabpanel")).not.toHaveAttribute("aria-busy");
   });
 
   it.each([

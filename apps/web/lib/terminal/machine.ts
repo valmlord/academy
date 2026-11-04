@@ -789,7 +789,9 @@ export class TerminalMachine {
       this.#emit();
       return;
     }
-    // Row 29a, as row 17.
+    // Row 29a, as row 17. Unreachable today: RN without a renewal request or socket is left by rows 19-21 before
+    // any close can arrive. Kept so that a future change to those rows cannot leave the terminal stuck in RN
+    // with no timer and no action.
     this.#currentLostInRunning(entry);
   }
 
