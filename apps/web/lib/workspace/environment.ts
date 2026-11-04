@@ -1,6 +1,7 @@
 import type { CourseTree } from "../course/read";
 import { findLesson } from "../course/view";
 import type { SessionData } from "../session-reader";
+import type { TerminalTicket, TicketRequest } from "../terminal/mint";
 import type { WorkspaceClient, WorkspaceFailure, WorkspaceKey } from "./client";
 
 // The logic of the lesson page's environment actions (#32 design 3.3 layer 1); the server action module only
@@ -20,15 +21,27 @@ export type EnvironmentResult =
 
 export type ReadSession = () => Promise<SessionData | null>;
 
+/** `openTerminal`'s answer: a ticket and its renewal delay, or the state that keeps the terminal closed. */
+export type OpenTerminalResult =
+  | { kind: "ticket"; ticket: string; renewInMs: number | null }
+  | { kind: "unauthenticated" }
+  | { kind: "stopped" }
+  | { kind: "limits" }
+  | WorkspaceFailure;
+
 export interface EnvironmentDeps {
   getCourse: () => Promise<CourseTree>;
   client: WorkspaceClient;
+  mintTicket: (request: TicketRequest) => TerminalTicket;
+  now: () => number;
 }
 
 // ADR-0010 item 3: the service refuses any other user id with 400, so it is refused here first.
 const USER_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
-export type KeyLookup = { kind: "key"; key: WorkspaceKey } | { kind: "unauthenticated" | "failed" };
+export type KeyLookup =
+  | { kind: "key"; key: WorkspaceKey; session: SessionData }
+  | { kind: "unauthenticated" | "failed" };
 
 /**
  * The workspace key of the signed-in user for a visible lesson with a `workspace` section, read in this
@@ -55,7 +68,11 @@ export async function lookupWorkspaceKey(
   if (course.id !== courseId) return { kind: "failed" };
   const found = findLesson(course, lessonId);
   if (found === undefined || found.node.lesson.workspace === undefined) return { kind: "failed" };
-  return { kind: "key", key: { userId, courseId: course.id, lessonId: found.node.lesson.id } };
+  return {
+    kind: "key",
+    key: { userId, courseId: course.id, lessonId: found.node.lesson.id },
+    session,
+  };
 }
 
 export interface EnvironmentActions {
@@ -71,6 +88,23 @@ export interface EnvironmentActions {
     courseId: unknown,
     lessonId: unknown,
   ): Promise<EnvironmentResult>;
+  /**
+   * A ticket for the running workspace's terminal. Reads the session on every call, renewals included, so a
+   * revoked session gets no new connection (D11).
+   */
+  openTerminal(
+    readSession: ReadSession,
+    courseId: unknown,
+    lessonId: unknown,
+  ): Promise<OpenTerminalResult>;
+}
+
+/** The session's expiry in epoch ms when it is a valid date after `now`; Better Auth's cache may hand back a string. */
+function sessionExpiry(session: SessionData, now: number): number | undefined {
+  const expiresAt: unknown = session.session.expiresAt;
+  if (!(expiresAt instanceof Date)) return undefined;
+  const time = expiresAt.getTime();
+  return Number.isFinite(time) && time > now ? time : undefined;
 }
 
 export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActions {
@@ -96,6 +130,29 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
       const { workspace } = answer;
       if (workspace.state !== "running") return { kind: "failed" };
       return { kind: "running", outcome: workspace.outcome ?? null };
+    },
+
+    async openTerminal(readSession, courseId, lessonId) {
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      if (lookup.kind !== "key") return { kind: lookup.kind };
+      const now = deps.now();
+      const sessionExpiresAt = sessionExpiry(lookup.session, now);
+      if (sessionExpiresAt === undefined) return { kind: "failed" };
+      const answer = await deps.client.get(lookup.key);
+      // Never created: the environment-stopped state, whose action starts it.
+      if (answer.kind === "not-found") return { kind: "stopped" };
+      if (answer.kind !== "workspace") return answer;
+      const { workspace } = answer;
+      if (workspace.state !== "running") {
+        return workspace.exit?.reason === "memory-limit" ? { kind: "limits" } : { kind: "stopped" };
+      }
+      try {
+        const { ticket, renewInMs } = deps.mintTicket({ ...lookup.key, sessionExpiresAt });
+        return { kind: "ticket", ticket, renewInMs };
+      } catch {
+        // TicketKeyError: the secret is checked at startup, so this is not expected; nothing to show but failed.
+        return { kind: "failed" };
+      }
     },
   };
 }

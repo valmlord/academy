@@ -77,7 +77,10 @@ export function readWorkspaceServiceConfig(env: WorkspaceServiceEnv): WorkspaceS
 }
 
 /** The setting's value, its default when unset; throws for anything but an integer in its range. */
-export function readIntegerSetting(env: WorkspaceServiceEnv, setting: IntegerSetting): number {
+export function readIntegerSetting(
+  env: Partial<Pick<WorkspaceServiceEnv, IntegerSetting["name"]>>,
+  setting: IntegerSetting,
+): number {
   const raw = env[setting.name];
   if (isUnset(raw)) return setting.fallback;
   const value = /^[0-9]{1,6}$/.test(raw) ? Number(raw) : Number.NaN;

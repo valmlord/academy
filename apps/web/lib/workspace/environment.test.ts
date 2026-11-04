@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { nodeCourseFs } from "@/lib/course/node-fs";
 import { type CourseTree, readCourse } from "@/lib/course/read";
 import type { SessionData } from "@/lib/session-reader";
+import type { TicketRequest } from "@/lib/terminal/mint";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
 import type { Workspace, WorkspaceAnswer, WorkspaceClient, WorkspaceKey } from "./client";
 import { createEnvironmentActions } from "./environment";
@@ -30,8 +31,21 @@ afterAll(() => {
 // second-lesson is the fixture's visible lesson with a workspace section.
 const LESSON = "second-lesson";
 
-function session(userId: string): () => Promise<SessionData | null> {
-  return async () => ({ user: { id: userId, email: "learner@example.com" } });
+// The fixed clock of these tests; sessions expire a day after it unless a test says otherwise.
+const NOW = Date.UTC(2026, 10, 4, 12, 0, 0);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function session(
+  userId: string,
+  expiresAt: Date | string = new Date(NOW + DAY_MS),
+): () => Promise<SessionData | null> {
+  const data: SessionData = {
+    user: { id: userId, email: "learner@example.com" },
+    session: { expiresAt: new Date(NOW + DAY_MS) },
+  };
+  // A string stands for what a cache may hand back at runtime despite the declared Date.
+  Reflect.set(data.session, "expiresAt", expiresAt);
+  return async () => data;
 }
 
 function workspace(change: Partial<Workspace>): Workspace {
@@ -61,7 +75,9 @@ function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
       return answer;
     },
   };
-  return { actions: createEnvironmentActions({ getCourse, client }), calls };
+  const mintTicket = vi.fn((_request: TicketRequest) => ({ ticket: "minted", renewInMs: 1 }));
+  const actions = createEnvironmentActions({ getCourse, client, mintTicket, now: () => NOW });
+  return { actions, calls, mintTicket };
 }
 
 describe("environment actions", () => {
