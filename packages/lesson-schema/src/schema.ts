@@ -127,6 +127,16 @@ export const Lesson = z
           message: "ready practice lessons need checks",
         });
       }
+      l.checks.forEach((c, index) => {
+        const isScoreOnly = c.kind === "quiz" || c.kind === "bug-hunt";
+        if (isScoreOnly && c.attempts?.limit === undefined) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["checks", index, "attempts"],
+            message: `check "${c.id}" (${c.kind}): ready lessons need attempts.limit for quiz and bug-hunt checks`,
+          });
+        }
+      });
     }
     const needsWorkspace = l.checks.some((c) => c.kind === "command" || c.kind === "hidden-task");
     if (needsWorkspace && !l.workspace) {

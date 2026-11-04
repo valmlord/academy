@@ -45,6 +45,7 @@ agreement must be checked by a machine, not by text.
    Rules: `mentorAfter` is below `limit` when both are set. A `quiz` or `bug-hunt` check has a `limit`
    of at most 3: score-only feedback was shown safe only within 3 scored submissions (module 00 design,
    #15 section 2.5.6), so a higher value needs a new analysis and a change of this ADR.
+   In a `ready` lesson every `quiz` and `bug-hunt` check declares `limit`.
    A command check whose failure message reports something enumerable (an aggregate count over enum
    fields, as `model-routing` and `cost-estimate` in module 00) carries the `limit` its design computes;
    the schema cannot tell such a check from another, so review checks it.

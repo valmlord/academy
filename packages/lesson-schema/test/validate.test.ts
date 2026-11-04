@@ -278,6 +278,34 @@ describe("check attempts", () => {
     expect(Lesson.parse(lesson).checks[0]?.attempts).toEqual({});
   });
 
+  it("requires attempts.limit on ready quiz and bug-hunt checks", () => {
+    validCourse();
+    write(`${L}/quiz.yaml`, "q: 1\n");
+    write(`${L}/checks/answers.yaml`, "a: 1\n");
+    const fixtureChecks = readLesson().replace(/^[\s\S]*checks:\n/, "");
+    const cases = [
+      { check: quizCheck, id: "q", kind: "quiz" },
+      { check: bugHuntCheck, id: "hunt", kind: "bug-hunt" },
+    ];
+    for (const { check, id, kind } of cases) {
+      withChecks(`${fixtureChecks}${check("    attempts:\n      mentorAfter: 2\n")}`);
+
+      expect(issueMessages()).toEqual([
+        `checks.2.attempts: check "${id}" (${kind}): ready lessons need attempts.limit for quiz and bug-hunt checks`,
+      ]);
+    }
+  });
+
+  it("accepts a draft quiz without attempts.limit in a draft module", () => {
+    validCourse();
+    asDraft();
+    write(`${L}/quiz.yaml`, "q: 1\n");
+
+    withChecks(quizCheck(""));
+
+    expect(validateCourses(root).issues).toEqual([]);
+  });
+
   it("caps the limit of ready quiz and bug-hunt checks at 3", () => {
     validCourse();
     write(`${L}/quiz.yaml`, "q: 1\n");
