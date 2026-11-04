@@ -141,8 +141,9 @@ Plain `pnpm test:e2e` against your own stack skips the specs that type into a te
 `region-keys.spec.ts`), so it runs no commands in your workspaces and writes no `lesson_progress` rows. It still
 opens lesson pages, which starts those lessons' workspaces and can take over a terminal you have open on one of
 them. `E2E_TERMINAL=1` runs the terminal specs; only CI and `isolated-stack.sh --e2e` set it, so do not set it
-against your own stack. `E2E_ALL_BROWSERS=1` adds the region-key spec in Firefox and WebKit, which needs
-`pnpm --filter @academy/web exec playwright install chromium firefox webkit` once. Each switch is `1` or unset
+against your own stack. `E2E_WEBKIT=1` adds the region-key spec in WebKit (once:
+`pnpm --filter @academy/web exec playwright install chromium webkit`); `E2E_FIREFOX=1` adds it in Firefox as the last
+project (`playwright install firefox`), which does not launch on macOS 27 with Playwright's Firefox build 1555. Each switch is `1` or unset
 (any other value stops the run); export it in the shell, never in `.env`.
 
 `apps/web/app/globals.css` carries `design/system/tokens.css` verbatim between the `design-tokens`

@@ -4,7 +4,7 @@ import { useOwnBucket } from "./fixtures";
 import { pathOf, terminalLessons, waitForShell } from "./terminal-page";
 
 // E-keys (#32 design 10.5, D10): with the terminal focused, each region key moves focus to the next or previous
-// region instead of reaching the shell. Runs in Chromium, and in Firefox and WebKit with E2E_ALL_BROWSERS=1. Its
+// region instead of reaching the shell. Runs in Chromium, in WebKit with E2E_WEBKIT=1 and in Firefox with E2E_FIREFOX=1. Its
 // own lesson, so it never takes over terminal.spec.ts's session. Only with E2E_TERMINAL=1 (D12).
 
 test.skip(process.env.E2E_TERMINAL !== "1", "focuses a live terminal: set E2E_TERMINAL=1 (D12)");

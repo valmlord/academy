@@ -31,7 +31,7 @@ export class InvalidE2eSwitchError extends Error {
  * fails the run at config load instead of silently skipping the terminal specs.
  */
 export function isSwitchOn(
-  name: "E2E_TERMINAL" | "E2E_ALL_BROWSERS" | "E2E_SERVICE_DOWN",
+  name: "E2E_TERMINAL" | "E2E_WEBKIT" | "E2E_FIREFOX" | "E2E_SERVICE_DOWN",
 ): boolean {
   const value = process.env[name];
   if (value === undefined || value === "") return false;
@@ -39,9 +39,21 @@ export function isSwitchOn(
   return true;
 }
 
+export class RetiredE2eSwitchError extends Error {
+  constructor() {
+    super("E2E_ALL_BROWSERS was replaced by E2E_WEBKIT and E2E_FIREFOX");
+    this.name = "RetiredE2eSwitchError";
+  }
+}
+
+// An old invocation with E2E_ALL_BROWSERS would otherwise silently run Chromium only (D17).
+const retiredSwitch = process.env.E2E_ALL_BROWSERS;
+if (retiredSwitch !== undefined && retiredSwitch !== "") throw new RetiredE2eSwitchError();
+
 isSwitchOn("E2E_TERMINAL");
 isSwitchOn("E2E_SERVICE_DOWN");
-const isAllBrowsers = isSwitchOn("E2E_ALL_BROWSERS");
+const isWebkit = isSwitchOn("E2E_WEBKIT");
+const isFirefox = isSwitchOn("E2E_FIREFOX");
 
 // The specs that type into a terminal run in their own projects after every other spec, so no other spec has
 // a page open on a terminal lesson and takes its session over meanwhile (design 10.5).
@@ -73,21 +85,27 @@ export default defineConfig({
       testMatch: TERMINAL_SPECS,
       dependencies: ["chromium"],
     },
-    // The region keys in the other two engines (D10); CI installs Chromium only, so they run where
-    // E2E_ALL_BROWSERS=1 is set (isolated-stack.sh --e2e).
-    ...(isAllBrowsers
+    // The region keys in the other engines (D10). One engine at a time is on the region-keys lesson, so the chain
+    // is linear: terminal -> terminal-webkit -> terminal-firefox. WebKit runs with E2E_WEBKIT=1
+    // (isolated-stack.sh --e2e). Firefox is opt-in with E2E_FIREFOX=1 and runs last, because Playwright Firefox
+    // does not launch on macOS 27 (D17, follow-up 7.7). CI installs Chromium only.
+    ...(isWebkit
+      ? [
+          {
+            name: "terminal-webkit",
+            use: { ...devices["Desktop Safari"], storageState: STORAGE_STATE },
+            testMatch: REGION_KEYS_SPEC,
+            dependencies: ["terminal"],
+          },
+        ]
+      : []),
+    ...(isFirefox
       ? [
           {
             name: "terminal-firefox",
             use: { ...devices["Desktop Firefox"], storageState: STORAGE_STATE },
             testMatch: REGION_KEYS_SPEC,
-            dependencies: ["terminal"],
-          },
-          {
-            name: "terminal-webkit",
-            use: { ...devices["Desktop Safari"], storageState: STORAGE_STATE },
-            testMatch: REGION_KEYS_SPEC,
-            dependencies: ["terminal-firefox"],
+            dependencies: [isWebkit ? "terminal-webkit" : "terminal"],
           },
         ]
       : []),

@@ -17,7 +17,8 @@
         "E2E_BASE_URL",
         "SEED_*",
         "E2E_TERMINAL",
-        "E2E_ALL_BROWSERS",
+        "E2E_WEBKIT",
+        "E2E_FIREFOX",
         "DATABASE_URL"
       ]
     },
