@@ -52,15 +52,21 @@ checks:
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_permissions.py"'
     timeoutSec: 30
     weight: 2
+    attempts:
+      mentorAfter: 5
   - id: hook-blocks-generated
     title: "PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит"
     kind: command
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_hook.py"'
     timeoutSec: 30
     weight: 2
+    attempts:
+      mentorAfter: 5
   - id: security-quiz
     title: "Квиз: lethal trifecta, обходы правил, песочница, режимы, хуки"
     kind: quiz
     file: quiz.yaml
     passScore: 0.8
     weight: 1
+    attempts:
+      limit: 3
