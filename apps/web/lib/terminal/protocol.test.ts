@@ -1,4 +1,4 @@
-// @vitest-environment node
+// jsdom (the default environment) provides MessageEvent and CloseEvent.
 import { describe, expect, it } from "vitest";
 import {
   type BrowserWebSocket,
@@ -46,9 +46,9 @@ describe("terminal protocol (browser side)", () => {
   it("adapts a browser WebSocket: binary output as bytes, text as text, the close code", () => {
     const created: FakeWebSocket[] = [];
     class FakeWebSocket implements BrowserWebSocket {
-      binaryType = "blob";
-      onmessage: ((event: { data: unknown }) => void) | null = null;
-      onclose: ((event: { code: number }) => void) | null = null;
+      binaryType: BinaryType = "blob";
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onclose: ((event: CloseEvent) => void) | null = null;
       readonly sent: string[] = [];
       readonly url: string;
       constructor(url: string) {
@@ -69,9 +69,9 @@ describe("terminal protocol (browser side)", () => {
       onClose: (code) => events.push(`close ${code}`),
     });
     const ws = created[0];
-    ws?.onmessage?.({ data: '{"t":"attached","resumed":false}' });
-    ws?.onmessage?.({ data: new Uint8Array([1, 2, 3]).buffer });
-    ws?.onclose?.({ code: 4001 });
+    ws?.onmessage?.(new MessageEvent("message", { data: '{"t":"attached","resumed":false}' }));
+    ws?.onmessage?.(new MessageEvent("message", { data: new Uint8Array([1, 2, 3]).buffer }));
+    ws?.onclose?.(new CloseEvent("close", { code: 4001 }));
     socket.send("x");
 
     expect(ws?.url).toBe("ws://127.0.0.1:3080/api/terminal/socket?ticket=tk");

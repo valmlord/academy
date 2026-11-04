@@ -87,9 +87,9 @@ export type OpenSocket = (ticket: string, handlers: SocketHandlers) => TerminalS
 
 /** The parts of the DOM `WebSocket` the adapter uses, so a test can pass a fake constructor. */
 export interface BrowserWebSocket {
-  binaryType: string;
-  onmessage: ((event: { data: unknown }) => void) | null;
-  onclose: ((event: { code: number }) => void) | null;
+  binaryType: BinaryType;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onclose: ((event: CloseEvent) => void) | null;
   send(data: string): void;
   close(): void;
 }
@@ -105,8 +105,10 @@ export function browserSocketOpener(
     const socket = new WebSocketClass(terminalSocketUrl(location, ticket));
     socket.binaryType = "arraybuffer";
     socket.onmessage = (event) => {
-      if (typeof event.data === "string") handlers.onText(event.data);
-      else if (event.data instanceof ArrayBuffer) handlers.onBinary(new Uint8Array(event.data));
+      // `MessageEvent.data` is typed `any`; it is narrowed from unknown before use.
+      const data: unknown = event.data;
+      if (typeof data === "string") handlers.onText(data);
+      else if (data instanceof ArrayBuffer) handlers.onBinary(new Uint8Array(data));
     };
     socket.onclose = (event) => handlers.onClose(event.code);
     return {
