@@ -79,3 +79,10 @@ export type NetworkSummary = z.infer<typeof networkListSchema>[number];
 export const volumeHandleSchema = z.object({ name: z.string().min(1) });
 /** dockerode resolves a network or container create with a handle on the new object's Id. */
 export const idHandleSchema = z.object({ id: z.string().min(1) });
+
+/** `GET /exec/<id>/json`: `ExitCode` is `null` while the exec runs. */
+export const execInspectSchema = z.object({
+  Running: z.boolean(),
+  ExitCode: z.number().int().nullable(),
+});
+export type ExecInspect = z.infer<typeof execInspectSchema>;

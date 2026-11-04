@@ -35,6 +35,7 @@ describe("loadConfig", () => {
       idleStopMinutes: 30,
       idleWarningMinutes: 5,
       startSlowSeconds: 10,
+      terminalShell: "/bin/sh",
     });
   });
 
@@ -108,6 +109,19 @@ describe("loadConfig", () => {
       "WORKSPACE_INSTANCE",
     );
   });
+
+  it("reads an absolute TERMINAL_SHELL", () => {
+    expect(loadConfig({ ...REQUIRED, TERMINAL_SHELL: "/bin/bash" }).terminalShell).toBe(
+      "/bin/bash",
+    );
+  });
+
+  it.each(["bash", "/bin/sh -c id", "/bin/sh\n", "/bin/$(id)"])(
+    "refuses the TERMINAL_SHELL %j",
+    (shell) => {
+      expect(configError({ ...REQUIRED, TERMINAL_SHELL: shell }).variable).toBe("TERMINAL_SHELL");
+    },
+  );
 
   it("lists a default only for variables it reads", () => {
     for (const variable of Object.keys(CONFIG_DEFAULTS)) {

@@ -16,7 +16,8 @@ WebSocket). Facts, with sources:
 - The custom server runs outside the bundle: only packages Next's tracing copies into the standalone tree exist
   there (`next` does, `zod` does not), and `next` is CommonJS whose export is the factory function. Node removes its
   socket error handler before emitting `upgrade`, and Next's own server wraps upgrades in try/catch.
-- Docker cannot re-attach to a running exec (409 "already running"); a cancelled exec start request kills the exec.
+- Docker cannot re-attach to a running exec (409 "already running"), and closing the attach connection of a TTY exec
+  does not stop its process (observed on Docker Desktop 29.9.2, linux/arm64).
 - xterm's `reset()` neither clears queued writes nor resets the parser; RIS written in band does both, in order.
 - One terminal session per lesson; a new browser tab takes it over (Stepan, 2026-11-04).
 - ADR-0008 items 5 and 10 and ADR-0007 item 6 promise that sign-out, a password re-key and account deletion revoke
@@ -54,7 +55,8 @@ WebSocket). Facts, with sources:
    headless xterm (`allowProposedApi`) with `TERMINAL_SCROLLBACK_LINES` of scrollback, never reset, at most one
    attached and one attaching socket. It outlives the browser and ends on shell exit, container stop and service
    shutdown, always through one idempotent teardown. Every promise or callback started from a socket, stream or timer
-   listener has a stated failure action; a failed resize is ignored. A service restart ends every shell; files stay.
+   listener has a stated failure action; a failed resize is ignored. A service restart ends every session; the
+   shells of sessions that ended this way keep running without a terminal until the container stops; files stay.
 5. **Reconnect, renewal and takeover.** A connection attaches to the live session or creates one; the newest
    connection wins and every older attached or attaching socket is closed with 4001; only the current sockets'
    events change the session. An attach flushes the headless parser and sends the serialized screen before live
@@ -112,3 +114,8 @@ WebSocket). Facts, with sources:
 - A Next upgrade must re-verify the custom server (required-server-files.json, the `httpServer` option, the `next`
   export).
 - The `ws` override in `pnpm-workspace.yaml` is removed with the fastify 5.12.8 bump.
+- Accepted residual (Stepan, 2026-11-04): a shell whose session ends while the shell is still running (service
+  restart, an end with code 1011, a failure after the exec started) keeps running inside the container, without a
+  terminal and with its children, until the container stops (idle stop or restart). It counts against the container's
+  memory and pids limits and can hold files or ports open. An integration test asserts this behaviour so a change in
+  Docker is noticed; an explicit kill of the shell's process group is a follow-up.

@@ -24,6 +24,8 @@ import {
   type GcResult,
   type ManagedContainer,
   type ManagedVolume,
+  type ShellHandle,
+  type ShellSpec,
   type WorkspaceExit,
   type WorkspaceInfo,
   type WorkspaceRuntime,
@@ -32,7 +34,7 @@ import {
 import type { DockerEngine } from "./engine.js";
 import { checkImage, createOrAdoptContainer, ensureVolume, labelsMatchKey } from "./objects.js";
 import { type ContainerInspect, NEVER_STARTED_AT, type VolumeInspect } from "./schemas.js";
-import { type ContainerSpecInput, STOP_TIMEOUT_SECONDS } from "./spec.js";
+import { type ContainerSpecInput, execCreateBody, STOP_TIMEOUT_SECONDS } from "./spec.js";
 import { buildStarterTar } from "./tar.js";
 
 export interface DockerRuntimeOptions {
@@ -237,6 +239,26 @@ export class DockerRuntime implements WorkspaceRuntime {
       throw error;
     }
     return "done";
+  }
+
+  /**
+   * A fresh inspect by key with the label check, then exec create and start by the inspected Id: a name alone
+   * never decides which container a shell runs in. A container that is not running answers 409 at the create.
+   */
+  async openShell(key: WorkspaceKey, spec: ShellSpec): Promise<ShellHandle> {
+    const { container } = await this.#checkedObjects(key);
+    if (container === null) throw new WorkspaceNotFoundError(workspaceId(this.#instance, key));
+    const execId = await this.#engine.createExec(container.Id, execCreateBody(spec.shell));
+    const stream = await this.#engine.startExec(execId);
+    const engine = this.#engine;
+    return {
+      stream,
+      resize: (cols, rows) => engine.resizeExec(execId, cols, rows),
+      exitCode: async () => {
+        const exec = await engine.inspectExec(execId);
+        return exec.Running ? null : exec.ExitCode;
+      },
+    };
   }
 
   /** `null` when the container is gone; a container failing the GC predicate is refused by its Id. */

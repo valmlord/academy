@@ -20,6 +20,7 @@ export const CONFIG_VARIABLES = [
   "ENVIRONMENT_IDLE_STOP_MINUTES",
   "ENVIRONMENT_IDLE_WARNING_MINUTES",
   "ENVIRONMENT_START_SLOW_SECONDS",
+  "TERMINAL_SHELL",
 ] as const;
 
 export type ConfigVariable = (typeof CONFIG_VARIABLES)[number];
@@ -39,6 +40,7 @@ export const CONFIG_DEFAULTS: Readonly<Partial<Record<ConfigVariable, string>>> 
   ENVIRONMENT_IDLE_STOP_MINUTES: "30",
   ENVIRONMENT_IDLE_WARNING_MINUTES: "5",
   ENVIRONMENT_START_SLOW_SECONDS: "10",
+  TERMINAL_SHELL: "/bin/sh",
 };
 
 /** The three limits a workspace container gets, in the units the Docker Engine API takes. */
@@ -60,6 +62,8 @@ export interface Config {
   idleStopMinutes: number;
   idleWarningMinutes: number;
   startSlowSeconds: number;
+  /** The program every terminal session runs with `-l` (design 3.2); #33 switches it to bash (D2). */
+  terminalShell: string;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -80,6 +84,8 @@ const MEMORY_RANGE = { min: 64 * MIB, max: 16 * GIB };
 const PIDS_RANGE = { min: 32, max: 32_768 };
 const IDLE_STOP_MINUTES_RANGE = { min: 5, max: 1440 };
 const START_SLOW_SECONDS_RANGE = { min: 1, max: 120 };
+/** An absolute path from a closed charset: it becomes an exec `Cmd` element, never a shell string. */
+const SHELL_PATH_PATTERN = /^\/[A-Za-z0-9/_.-]+$/;
 
 function integerText(min: number, max: number): z.ZodType<number> {
   return z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(min).max(max));
@@ -174,6 +180,12 @@ export function loadConfig(env: Env): Config {
     integerText(START_SLOW_SECONDS_RANGE.min, START_SLOW_SECONDS_RANGE.max),
     `integer from ${START_SLOW_SECONDS_RANGE.min} to ${START_SLOW_SECONDS_RANGE.max}`,
   );
+  const terminalShell = read(
+    env,
+    "TERMINAL_SHELL",
+    z.string().regex(SHELL_PATH_PATTERN),
+    `an absolute path matching ${SHELL_PATH_PATTERN.source}`,
+  );
   return {
     secret,
     instance,
@@ -185,5 +197,6 @@ export function loadConfig(env: Env): Config {
     idleStopMinutes,
     idleWarningMinutes,
     startSlowSeconds,
+    terminalShell,
   };
 }
