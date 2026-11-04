@@ -140,6 +140,26 @@ describe("GET W/terminal (U-route)", () => {
   });
 });
 
+describe("socket errors (U-route-error)", () => {
+  it("logs one F5c line with the code and never the ws error object", async () => {
+    const app = await openApp();
+    const client = await connect(app, AUTHORIZED);
+    await vi.waitFor(() => expect(client.isAttached()).toBe(true));
+
+    // A text frame with invalid UTF-8 makes `ws` emit WS_ERR_INVALID_UTF8 on the server socket.
+    client.ws.send(Buffer.from([0xff]), { binary: false });
+    await client.closed;
+
+    const socketErrors = app.terminalLogs.filter((line) => line.includes("socket error"));
+    expect(socketErrors).toHaveLength(1);
+    expect(socketErrors[0]).toMatch(/socket error \(WS_ERR_INVALID_UTF8\)$/);
+    const logged = [...app.terminalLogs, app.logs()].join("\n");
+    expect(logged).not.toContain("Invalid UTF-8");
+    expect(logged).not.toContain('"err"');
+    expect(logged).not.toContain("stack");
+  });
+});
+
 describe("connection ids (U-term-log, route part)", () => {
   it("names the X-Academy-Conn id in F5a", async () => {
     const app = await openApp();

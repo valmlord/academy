@@ -16,6 +16,13 @@ export const TERMINAL_ROUTE = `${WORKSPACE_ROUTE}/terminal`;
 export const websocketPlugin = fastifyWebsocket;
 export const websocketOptions: WebsocketPluginOptions = {
   options: { maxPayload: MAX_MESSAGE_BYTES },
+  // The plugin's default handler logs the `ws` error object, stack included, which ADR-0011 item 11 forbids
+  // ("never ... error objects"). F5c is already logged, with the code only, by the session's own `error` listener,
+  // attached in `connect` before its first await. The `wsHandler` never throws or rejects (3.2.2 C4), so this
+  // handler only sees errors of an established socket.
+  errorHandler: (_error, socket) => {
+    socket.terminate();
+  },
 };
 
 /** The relay's correlation id when it has the expected form, else `-`; it only ever reaches a log line. */

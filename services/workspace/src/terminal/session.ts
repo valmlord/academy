@@ -357,6 +357,8 @@ export class Session {
 
   /** Rows 7, 8 and 9. */
   #flushed(token: number): void {
+    // Redundant while the stream stays paused from the first flush to the last: a stale callback would attach the
+    // same newest pending socket. Kept so row 9 does not depend on that pause invariant, held in `#updateFlow`.
     if (token !== this.#flushToken) return;
     this.#gates.flush = false;
     const pending = this.#pending;
