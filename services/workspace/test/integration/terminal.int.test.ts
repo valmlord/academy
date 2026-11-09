@@ -26,8 +26,14 @@ const COURSE_ID = "sample-course";
 const LESSON_ID = "with-workspace";
 const OUTPUT_TIMEOUT_MS = 15_000;
 const POLL_MS = 100;
-/** I-term-flow: the window in which unacknowledged output must stop growing, and the bound it stays under. */
-const FLOW_SETTLE_MS = 3_000;
+/**
+ * I-term-flow: output counts as stopped once it is unchanged for FLOW_STABLE_MS; a slow runner may need far
+ * longer than a fixed wait to reach the high-water mark, so the deadline only bounds a broken run.
+ */
+const FLOW_STABLE_MS = 1_000;
+const FLOW_SETTLE_DEADLINE_MS = 30_000;
+/** HIGH_WATER_BYTES in src/terminal/session.ts: the ack gate pauses the shell only above it. */
+const HIGH_WATER_BYTES = 1024 * 1024;
 const FLOW_BOUND_BYTES = 1.5 * 1024 * 1024;
 const FLOW_TEST_TIMEOUT_MS = 60_000;
 
@@ -172,6 +178,23 @@ async function attached(client: Client): Promise<void> {
   }
 }
 
+async function stoppedBytes(client: Client): Promise<number> {
+  const deadline = Date.now() + FLOW_SETTLE_DEADLINE_MS;
+  let stableSince = Date.now();
+  let last = client.receivedBytes();
+  while (Date.now() - stableSince < FLOW_STABLE_MS) {
+    if (Date.now() > deadline)
+      throw new Error(`output still growing at ${last} bytes after ${FLOW_SETTLE_DEADLINE_MS} ms`);
+    await sleep(POLL_MS);
+    const current = client.receivedBytes();
+    if (current !== last) {
+      last = current;
+      stableSince = Date.now();
+    }
+  }
+  return last;
+}
+
 describe("terminal sessions on the real daemon", () => {
   it("I-term-resume: a reconnect gets the screen and the same shell", async () => {
     const service = await startService();
@@ -280,14 +303,14 @@ describe("terminal sessions on the real daemon", () => {
       await attached(client);
 
       client.type("yes | head -c 50000000");
-      await sleep(FLOW_SETTLE_MS);
-      const settled = client.receivedBytes();
-      await sleep(FLOW_SETTLE_MS / 3);
+      const settled = await stoppedBytes(client);
+      await sleep(FLOW_STABLE_MS);
       const later = client.receivedBytes();
       client.ws.send(JSON.stringify({ t: "ack", n: later }));
-      await sleep(FLOW_SETTLE_MS / 3);
+      await sleep(FLOW_STABLE_MS);
 
       expect(settled).toBeGreaterThan(0);
+      expect(settled).toBeGreaterThan(HIGH_WATER_BYTES);
       expect(later).toBe(settled);
       expect(later).toBeLessThan(FLOW_BOUND_BYTES);
       expect(client.receivedBytes()).toBeGreaterThan(later);
