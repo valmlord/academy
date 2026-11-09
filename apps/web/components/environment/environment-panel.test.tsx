@@ -298,6 +298,18 @@ describe("EnvironmentPanel states (U-env-region)", () => {
     expect(screen.getByRole("tabpanel")).not.toHaveAttribute("aria-busy");
   });
 
+  it("shows neither the connecting frame nor a busy tab panel once the session expired while connecting", async () => {
+    const env = setup();
+    await answer(env.peeks, { kind: "running", outcome: "running" });
+
+    await answer(env.opens, { kind: "unauthenticated" });
+
+    expect(statusText()).toBe(environmentRunningStatus);
+    expect(actionButtons()).toEqual([]);
+    expect(frameOf(env.terminals[0])).not.toHaveAttribute("data-connection");
+    expect(screen.getByRole("tabpanel")).not.toHaveAttribute("aria-busy");
+  });
+
   it.each([
     { code: 4001, text: takenOverStatus, label: openHereLabel },
     { code: 4000, text: shellExitedStatus, label: openNewSessionLabel },
