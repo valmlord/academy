@@ -38,9 +38,13 @@ checks:
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_routing.py"'
     timeoutSec: 30
     weight: 2
+    attempts:
+      limit: 10
   - id: models-effort-quiz
     title: "Квиз: effort, поверхности и локальные модели"
     kind: quiz
     file: quiz.yaml
     passScore: 0.8
     weight: 1
+    attempts:
+      limit: 3

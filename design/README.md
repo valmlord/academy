@@ -33,3 +33,4 @@ address bar shows a named state.
 | dashboard | ready | [pages/dashboard/prototype.html](pages/dashboard/prototype.html) |
 | catalog | ready | [pages/catalog/prototype.html](pages/catalog/prototype.html) |
 | lesson | ready | [pages/lesson/prototype.html](pages/lesson/prototype.html) |
+| not-found | ready | [pages/not-found/prototype.html](pages/not-found/prototype.html) |

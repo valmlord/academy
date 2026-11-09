@@ -45,12 +45,16 @@ checks:
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_arch.py"'
     timeoutSec: 120
     weight: 3
+    attempts:
+      mentorAfter: 5
   - id: arch-workspace-clean
     title: "Проект чист по A1-A3 без обхода правил, поведение сохранено, make check ловит нарушения"
     kind: command
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_workspace.py"'
     timeoutSec: 360
     weight: 2
+    attempts:
+      mentorAfter: 5
   - id: remediation-rubric
     title: "Сообщения линтера: что нарушено, конкретное исправление, понятно агенту без CLAUDE.md (оценка ментора)"
     kind: rubric

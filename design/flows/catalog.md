@@ -13,8 +13,9 @@ module link to its section.
 
 **Goal:** see what the course contains and open a chosen lesson. Source: #30; G1.
 
-**Entry:** "Курс" in the top bar; "Открыть курс" on the dashboard; the module crumb on a lesson page
-(lands on that module's section).
+**Entry:** "Курс" in the top bar; "Открыть курс" on the dashboard or on the not-found page (the top-bar
+"Курс" and the not-found "Открыть курс" only while the course id is known, `ia.md` R6 "Course id
+unknown"); the module crumb on a lesson page (lands on that module's section).
 
 **Steps (4):**
 
@@ -32,13 +33,23 @@ module link to its section.
 **Success:** the lesson page opens (#30 e2e).
 
 **Error states:**
-- Course data cannot be read: alert "Не удалось загрузить курс" with "Повторить".
-- Unknown lesson or module in the URL, or a lesson that is not `ready`: the not-found state "Страница не
-  найдена" with "Открыть курс". A non-`ready` lesson is never visible (#30 AC), so it is reported as not
-  found rather than "not ready yet", because a "coming soon" page would show that it exists. Not-found is
-  an app-shell state with the top bar; it is not prototyped in #50 (#50 design notes §3), this copy is its
-  spec. It ships with the catalog in #30, with the "from #30" top bar (`ia.md` R6, "Before the catalog
-  ships"); its `F6` stop `main` lands on "Открыть курс".
+- Course data cannot be read: alert "Не удалось загрузить курс" with "Повторить", whatever course id the
+  URL names, because without the course the page cannot tell a wrong id from the right one. The top bar
+  keeps "Курс" unless `course.yaml` itself is unreadable (`ia.md` R6, "Course id unknown"). `<title>`
+  "Не удалось загрузить курс". "Повторить" focuses the course h1 when the course loads (`<title>` the
+  course title), the error h1 when it fails again, and the not-found h1 when the course loads but its id
+  is not the URL's (`<title>` "Страница не найдена"; `ia.md` R2, page-level retry table).
+- A URL that is a way into the not-found page (`ia.md` page inventory, not-found Route): the not-found page
+  (`design/pages/not-found/`, #83): h1 "Страница не найдена", the sentence "Возможно, в адресе опечатка
+  или ссылка устарела." and "Открыть курс" (only while the course id is known, see below); no breadcrumb, no "404", no destructive colour, because the
+  learner followed a stale link or mistyped, nothing failed (GOV.UK page-not-found pattern, #83 research
+  §5). A non-`ready` lesson is never visible (#30 AC), so it is reported as not found rather than "not
+  ready yet", because a "coming soon" page would show that it exists; the sentence holds for both causes
+  and names neither. The not-found page has the "from #30" top bar (`ia.md` R6, "Before the catalog
+  ships"), `aria-current` on neither link; its `F6` stop `main` lands on "Открыть курс". While the course
+  id is unknown (`course.yaml` unreadable, so only an unmatched path can reach it) it has no "Открыть
+  курс" and no "Курс": `main` holds the h1 and the sentence, `F6` lands on `main` itself, and the way on
+  is "Главная" in the top bar, because every course page would show the course error.
 - Progress cannot be read: lessons show no learner status and no prerequisite note (whether a
   prerequisite is passed is progress data, F6 error states), and a muted line "Прогресс недоступен" once
   at the top; lessons stay openable.

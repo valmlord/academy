@@ -1,0 +1,7 @@
+id: basics
+title: Basics
+summary: One lesson with a workspace and one without.
+status: draft
+lessons:
+  - 01-with-workspace
+  - 02-theory-only

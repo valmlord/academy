@@ -28,6 +28,8 @@ checks:
     answers: checks/bugs.yaml
     minFound: 5
     weight: 2
+    attempts:
+      limit: 3
   - id: plan-structure
     title: "Структура plan.md: разделы, шаги с проверкой, пути, вопросы"
     kind: command

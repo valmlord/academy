@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru" data-default-state="default">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Страница не найдена</title>
+  <link rel="stylesheet" href="../../system/tokens.css">
+  <link rel="stylesheet" href="../../system/proto.css">
+</head>
+<body>
+<div class="app">
+  <a class="skip-link" href="#main">К содержимому</a>
+
+  <!-- The "from #30" top bar; aria-current on neither link. "Курс" is left out while the course id is
+       unknown (ia.md R6, "Course id unknown"). -->
+  <header class="topbar" data-region>
+    <a class="topbar-brand" href="../dashboard/prototype.html">Академия</a>
+    <nav class="topbar-nav"><a href="../dashboard/prototype.html">Главная</a><a href="../catalog/prototype.html" data-state="default session-expired user-menu">Курс</a></nav>
+    <div class="topbar-end">
+      <div class="dropdown">
+        <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
+        <div class="dropdown-menu" id="user-menu" role="menu" aria-labelledby="user-menu-trigger">
+          <div role="group" aria-labelledby="user-menu-label">
+            <p class="dropdown-label" id="user-menu-label" role="presentation">learner@example.com</p>
+            <div class="dropdown-separator" role="separator"></div>
+            <a class="dropdown-item" role="menuitem" href="../sign-in/prototype.html#state-signed-out" data-step="F3.2">Выйти</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="notifications" data-notifications data-region>
+    <h2 class="sr-only" id="notifications-heading" data-notifications-heading>Уведомления</h2>
+    <div class="live" role="alert" data-live-key="page-alert"></div>
+    <div class="live" role="status" data-live-key="page-status"></div>
+  </div>
+  <!-- next is the sample unmatched path this page stands for; the sign-in prototype maps an unknown path
+       to the dashboard, while the app returns to the same URL (F2.4). -->
+  <template data-live-source="page-alert" data-state="session-expired">
+    <div class="alert" data-variant="destructive" data-step="F2.1">
+      <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+      <p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p>
+      <div class="alert-actions"><a class="button" data-size="sm" href="../sign-in/prototype.html?next=%2Fno%2Fsuch%2Fpath#state-with-next">Войти снова</a></div>
+    </div>
+  </template>
+
+  <!-- The app's composition (apps/web/app/(app)/not-found.tsx): one column, one stack. The button sits in
+       a block div so it keeps its intrinsic width, as items-start does in the app. -->
+  <main id="main" class="page" tabindex="-1" data-region>
+    <div class="column">
+      <div class="stack">
+        <h1 id="not-found-title" tabindex="-1">Страница не найдена</h1>
+        <p>Возможно, в адресе опечатка или ссылка устарела.</p>
+        <div data-state="default session-expired user-menu"><a class="button" data-variant="outline" href="../catalog/prototype.html">Открыть курс</a></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="proto-chrome" lang="en">
+    <span>Prototype states:</span>
+    <nav data-state-index aria-label="Prototype states" class="row"></nav>
+    <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
+    <span hidden data-state="default" data-state-label="default (course id known)"></span>
+    <span hidden data-state="no-course" data-state-label="course id unknown"></span>
+    <span hidden data-state="session-expired" data-state-label="session expired (F2.1)"></span>
+    <span hidden data-state="user-menu" data-state-label="user menu open (F3.1)"></span>
+  </div>
+</div>
+
+<script src="../../system/proto.js"></script>
+</body>
+</html>

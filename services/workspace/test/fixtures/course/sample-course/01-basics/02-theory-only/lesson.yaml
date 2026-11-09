@@ -1,0 +1,7 @@
+id: theory-only
+title: A lesson without a workspace
+type: theory
+outcomes:
+  - Reads the theory.
+estimatedMinutes: 5
+status: draft

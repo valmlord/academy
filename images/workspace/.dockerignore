@@ -1,0 +1,8 @@
+# Allowlist: the build context is images/workspace; only the files the Dockerfile copies may enter it, so a
+# stray .env, .npmrc or test file can never reach a layer (scan_layers.py proves it with planted canaries).
+*
+!package.json
+!package-lock.json
+!claude-code.asc
+!bin/tsp
+!bin/openapi-typescript
