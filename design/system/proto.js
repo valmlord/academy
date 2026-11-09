@@ -244,8 +244,21 @@
     // Pages hook per-state setup (layout attributes, the shown pane) here; it runs before any focus move
     // of data-goto-state, so the focus target is already rendered.
     document.dispatchEvent(new CustomEvent("proto:statechange", { detail: { state: active } }));
-    if (settings.focusReturn && isRendered(settings.focusReturn)) settings.focusReturn.focus();
+    var returnTarget = backFocusTarget(settings.focusReturn);
+    if (returnTarget) returnTarget.focus();
     else if (focusBefore) repairFocus(focusBefore);
+  }
+
+  // A control remembered inside a dialog is not Back's target: the dialog opens on its own initial
+  // control every time, so Back to a dialog state lands on "Отмена", never on the action (F11.3, F13.1).
+  function backFocusTarget(control) {
+    if (!control || !isRendered(control)) return null;
+    var dialog = control.closest("dialog");
+    return dialog ? dialogInitialControl(dialog) : control;
+  }
+
+  function dialogInitialControl(dialog) {
+    return dialog.querySelector("[autofocus]") || firstFocusable(dialog);
   }
 
   /* ---------- Background focus repair: data-focus-fallback (ia.md R2, A69-19) ---------- */
@@ -545,7 +558,7 @@
     if (!dialog || typeof dialog.showModal !== "function") return;
     dialog.protoOpener = opener;
     dialog.showModal();
-    var initial = dialog.querySelector("[autofocus]") || firstFocusable(dialog);
+    var initial = dialogInitialControl(dialog);
     if (initial) initial.focus();
   }
 

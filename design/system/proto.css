@@ -687,7 +687,9 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
   color: var(--card-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line);
 }
 .check-bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.check-bar-status { display: flex; align-items: center; gap: var(--space-2); flex: 1 1 10rem; min-width: 0; }
+/* min-width: min-content (spinner, the longest word, the timer) is what the bar's wrap compares: a status
+   that cannot sit beside "Проверить" at 320 px moves to its own line and wraps there (AC1, WCAG 1.4.10). */
+.check-bar-status { display: flex; align-items: center; gap: var(--space-2); flex: 1 1 10rem; min-width: min-content; }
 .check-bar .disabled-reason { flex-basis: 100%; }
 
 /* ---------- Composition: check row (the checks tab) ---------- */
