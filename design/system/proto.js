@@ -11,6 +11,10 @@
   var CLICK_SLOP_PX = 4; // F9 split handle: a press that moves less than this is a click
   var SPLIT_STEP = 5; // arrow keys move the split by 5 % (F9)
   var STATE_PREFIX = "#state-";
+  // The prototype's value of CHECK_STATUS_TEXT_GAP_MS (checks.md "Live regions", text gap: 100-150 ms, at
+  // least one rendered frame; #34 sets the app's value). Applies only to the container below.
+  var PROTO_STATUS_TEXT_GAP_MS = 150;
+  var GAPPED_LIVE_KEY = "check-status";
   var FOCUSABLE = [
     "a[href]",
     "button",
@@ -106,18 +110,94 @@
     return words(el.getAttribute(attribute || "data-state")).indexOf(name) >= 0;
   }
 
-  function fillLiveContainers(name) {
+  function liveSourceFor(key, name) {
+    var source = null;
+    document.querySelectorAll("template[data-live-source]").forEach(function (template) {
+      if (template.getAttribute("data-live-source") === key && hasState(template, name))
+        source = template;
+    });
+    return source;
+  }
+
+  // A container may hold, in the page markup, the content it is loaded with (the nothing-to-run states,
+  // checks.md "Containers and order"): on the first render the children whose data-state lists the loaded
+  // state stay, so their text is there before any script runs and is not announced; the others go. Every
+  // later state takes its content from the templates.
+  function keepInitialContent(container, name) {
+    var children = Array.prototype.slice.call(container.children);
+    var kept = children.filter(function (child) {
+      return hasState(child, name);
+    });
+    children.forEach(function (child) {
+      if (kept.indexOf(child) < 0) child.remove();
+    });
+    return kept.length > 0;
+  }
+
+  // options.isInitial: the first render on load. options.mayResetEqual: a background change (B9), so a
+  // check status text equal to the one shown is set again, a gap after an empty container.
+  function fillLiveContainers(name, options) {
     document.querySelectorAll("[data-live-key]").forEach(function (container) {
       var key = container.getAttribute("data-live-key");
-      var source = null;
-      document.querySelectorAll("template[data-live-source]").forEach(function (template) {
-        if (template.getAttribute("data-live-source") === key && hasState(template, name))
-          source = template;
-      });
+      if (options.isInitial && keepInitialContent(container, name)) return;
+      var source = liveSourceFor(key, name);
+      var content = source ? source.content.cloneNode(true) : null;
+      if (key === GAPPED_LIVE_KEY && !options.isInitial) {
+        scheduleStatusContent(container, content, options.mayResetEqual);
+        return;
+      }
       // R2: the container stays; only its content is replaced.
-      if (source) container.replaceChildren(source.content.cloneNode(true));
+      if (content) container.replaceChildren(content);
       else container.replaceChildren();
     });
+  }
+
+  /* ---------- Status-text gap: the check status line (checks.md "Live regions", A69-24) ---------- */
+
+  // A screen reader sees the accessibility tree once per rendered frame, so "X", "", "X" or two texts
+  // inside one frame can reach it as no change. Two consecutive texts of the line, the empty one of a
+  // re-set included, are therefore at least PROTO_STATUS_TEXT_GAP_MS apart, and the gap also counts from
+  // the last dialog close, so a text set by a dialog button lands after the modal has gone (B6, B23).
+  var lastDialogCloseAt = Number.NEGATIVE_INFINITY;
+
+  function statusLineOf(container) {
+    if (!container.protoStatusLine)
+      container.protoStatusLine = { changedAt: Number.NEGATIVE_INFINITY, queue: [], timer: 0 };
+    return container.protoStatusLine;
+  }
+
+  function scheduleStatusContent(container, content, mayResetEqual) {
+    var line = statusLineOf(container);
+    var text = content ? content.textContent.trim() : "";
+    var shownText = container.textContent.trim();
+    // Only the newest waiting text is set: a new change replaces whatever still waits. A text equal to the
+    // one shown sets nothing (B11), and drops a waiting text that it replaces (usability n1); the B9
+    // re-set happens only when nothing waits.
+    var isWaiting = line.queue.length > 0;
+    if (text !== shownText) line.queue = [content];
+    else if (mayResetEqual && text && !isWaiting) line.queue = [null, content];
+    else line.queue = [];
+    flushStatusLine(container);
+  }
+
+  function flushStatusLine(container) {
+    var line = statusLineOf(container);
+    window.clearTimeout(line.timer);
+    line.timer = 0;
+    while (line.queue.length) {
+      var dueAt = Math.max(line.changedAt, lastDialogCloseAt) + PROTO_STATUS_TEXT_GAP_MS;
+      var wait = dueAt - performance.now();
+      if (wait > 0) {
+        line.timer = window.setTimeout(function () {
+          flushStatusLine(container);
+        }, wait);
+        return;
+      }
+      var next = line.queue.shift();
+      if (next) container.replaceChildren(next);
+      else container.replaceChildren();
+      line.changedAt = performance.now();
+    }
   }
 
   function renderStateIndex(names, active) {
@@ -134,24 +214,114 @@
     });
   }
 
+  var hasRendered = false;
+
   // options.keepTabs (a data-goto-state transition, A17): each tab list keeps its selected tab while the
   // new state still shows it. Without it (a hash load, Back, a typed #state-) data-select-in-states wins.
+  // options.repairFocus: a change the learner did not activate here (window.proto.setState, a hash, Back);
+  // focus that the change leaves on nothing is repaired (A69-19). options.focusReturn: the control Back
+  // returns to. options.isBackground: window.proto.setState, which stands for a re-read or a stream event.
   function setState(name, options) {
-    var keepTabs = Boolean(options && options.keepTabs);
+    var settings = options || {};
+    var isInitial = !hasRendered;
+    hasRendered = true;
+    var focusBefore = settings.repairFocus ? captureFocus() : null;
     var names = stateNames();
     var active = name || activeStateFromHash(names);
+    var previous = root.getAttribute("data-active-state");
     document.querySelectorAll("[data-state]").forEach(function (el) {
       if (el.tagName === "TEMPLATE") return;
       el.hidden = !hasState(el, active);
     });
     root.setAttribute("data-active-state", active);
-    applyStateOpenings(active, keepTabs);
-    fillLiveContainers(active);
+    applyStateOpenings(active, Boolean(settings.keepTabs));
+    fillLiveContainers(active, {
+      isInitial: isInitial,
+      mayResetEqual: Boolean(settings.isBackground) && previous !== active,
+    });
     syncNotifications();
     renderStateIndex(names, active);
     // Pages hook per-state setup (layout attributes, the shown pane) here; it runs before any focus move
     // of data-goto-state, so the focus target is already rendered.
     document.dispatchEvent(new CustomEvent("proto:statechange", { detail: { state: active } }));
+    if (settings.focusReturn && isRendered(settings.focusReturn)) settings.focusReturn.focus();
+    else if (focusBefore) repairFocus(focusBefore);
+  }
+
+  /* ---------- Background focus repair: data-focus-fallback (ia.md R2, A69-19) ---------- */
+
+  // Taken before the change, because the focused element may be hidden or removed by it: the element,
+  // the data-focus-fallback selectors of its ancestors, nearest first (a dialog's own attribute is one of
+  // them), and the opener of the dialog it sits in.
+  function captureFocus() {
+    var el = document.activeElement;
+    if (!el || el === document.body || el === root) return null;
+    var fallbacks = [];
+    var holder = el.closest("[data-focus-fallback]");
+    while (holder) {
+      fallbacks.push(holder.getAttribute("data-focus-fallback"));
+      holder = holder.parentElement && holder.parentElement.closest("[data-focus-fallback]");
+    }
+    return { fallbacks: fallbacks, dialog: el.closest("dialog") };
+  }
+
+  function isFocusLost() {
+    var active = document.activeElement;
+    return !active || active === document.body || active === root || !isRendered(active);
+  }
+
+  function firstRendered(selector) {
+    var matches = selector ? document.querySelectorAll(selector) : [];
+    for (var i = 0; i < matches.length; i++) {
+      if (isRendered(matches[i])) return matches[i];
+    }
+    return null;
+  }
+
+  // Focus moves only when the change left it on nothing: a page's own focus move in proto:statechange
+  // (the lesson's per-state targets) and a focus still on a rendered control both stay.
+  function repairFocus(before) {
+    if (!isFocusLost()) return;
+    var opener = before.dialog && before.dialog.protoOpener;
+    // The close listener runs a task later; it must not move focus again over this repair.
+    if (before.dialog) before.dialog.protoOpener = null;
+    if (opener && isRendered(opener)) {
+      opener.focus();
+      return;
+    }
+    for (var i = 0; i < before.fallbacks.length; i++) {
+      var target = firstRendered(before.fallbacks[i]);
+      if (target) {
+        focusElement(target);
+        return;
+      }
+    }
+    var main = document.querySelector("main");
+    if (main && isRendered(main)) focusElement(main);
+  }
+
+  /* ---------- Back focus: the control activated from each history entry ---------- */
+
+  // data-goto-state pushes an entry; the control activated from the entry it leaves is remembered, so
+  // Back to that entry focuses it again when it is rendered (prototype only: the app pushes no entry per
+  // action). Entry ids carry the load time, so entries of an earlier load never match this load's map.
+  var ENTRY_PREFIX = String(Date.now()) + "-";
+  var nextEntryNumber = 1;
+  var activatedControls = {};
+
+  function currentEntryId() {
+    var state = history.state;
+    if (state && typeof state.protoEntry === "string") return state.protoEntry;
+    var id = ENTRY_PREFIX + nextEntryNumber++;
+    history.replaceState({ protoEntry: id }, "");
+    return id;
+  }
+
+  function rememberedControl() {
+    var state = history.state;
+    return (
+      (state && typeof state.protoEntry === "string" && activatedControls[state.protoEntry]) || null
+    );
   }
 
   function isTabShownIn(tab, name) {
@@ -181,9 +351,7 @@
   // collapsible, so a state can show "menu open" or "dialog open" without a click. Focus is not moved.
   function applyStateOpenings(name, keepTabs) {
     closeMenu(false);
-    document.querySelectorAll("dialog[open]").forEach(function (dialog) {
-      dialog.close();
-    });
+    document.querySelectorAll("dialog[open]").forEach(closeDialog);
     document.querySelectorAll("[role='tablist']:not([data-pane-switch])").forEach(function (list) {
       if (list.querySelector("[role='tab'][data-select-in-states]"))
         applyTabSelection(list, name, keepTabs);
@@ -367,6 +535,11 @@
 
   /* ---------- AlertDialog (native <dialog>) ---------- */
 
+  function closeDialog(dialog) {
+    lastDialogCloseAt = performance.now();
+    dialog.close();
+  }
+
   function openDialog(id, opener) {
     var dialog = document.getElementById(id);
     if (!dialog || typeof dialog.showModal !== "function") return;
@@ -376,14 +549,23 @@
     if (initial) initial.focus();
   }
 
+  // Focus after a close: the opener while it is rendered, else the dialog's own data-focus-fallback when
+  // focus was left on nothing. A dialog opened by data-open-in-states has no opener, and it sits outside
+  // the region it returns to, so only its own attribute can name the target (Esc, "Отмена").
   document.addEventListener(
     "close",
     function (event) {
       var dialog = event.target;
-      if (dialog.tagName === "DIALOG" && dialog.protoOpener) {
-        dialog.protoOpener.focus();
-        dialog.protoOpener = null;
+      if (dialog.tagName !== "DIALOG") return;
+      lastDialogCloseAt = performance.now();
+      var opener = dialog.protoOpener;
+      dialog.protoOpener = null;
+      if (opener && isRendered(opener)) {
+        opener.focus();
+        return;
       }
+      var target = isFocusLost() ? firstRendered(dialog.getAttribute("data-focus-fallback")) : null;
+      if (target) focusElement(target);
     },
     true,
   );
@@ -609,12 +791,15 @@
 
   // data-focus="<selector>": the element that takes focus after a simulated action. A target that cannot
   // take focus (a heading, a panel) is made programmatically focusable.
-  function focusSelector(selector) {
-    var target = selector && document.querySelector(selector);
-    if (!target) return;
+  function focusElement(target) {
     if (!target.matches(FOCUSABLE) && !target.hasAttribute("tabindex"))
       target.setAttribute("tabindex", "-1");
     target.focus();
+  }
+
+  function focusSelector(selector) {
+    var target = selector && document.querySelector(selector);
+    if (target) focusElement(target);
   }
 
   /* ---------- Simulated outcome: data-goto-state + data-focus ---------- */
@@ -627,7 +812,8 @@
     var dialog = trigger.closest("dialog");
     // The dialog's own close handler would return focus to its opener a task later, over data-focus.
     if (dialog) dialog.protoOpener = null;
-    history.pushState(null, "", STATE_PREFIX + name);
+    activatedControls[currentEntryId()] = trigger;
+    history.pushState({ protoEntry: ENTRY_PREFIX + nextEntryNumber++ }, "", STATE_PREFIX + name);
     setState(name, { keepTabs: true });
     var namedTab = document.getElementById(trigger.getAttribute("data-select-tab") || "");
     if (namedTab) selectTab(namedTab, false);
@@ -696,7 +882,7 @@
 
     var dialogCloser = el.closest("[data-dialog-close]");
     if (dialogCloser) {
-      dialogCloser.closest("dialog").close();
+      closeDialog(dialogCloser.closest("dialog"));
       return;
     }
 
@@ -792,9 +978,12 @@
     }, 0);
   }
 
-  // A typed or history-restored anchor hash moves focus and leaves the state as it is.
+  // A typed or history-restored anchor hash moves focus and leaves the state as it is. A state hash (Back,
+  // Forward, a typed #state-, the state index) returns focus to the control activated from that entry, else
+  // repairs focus the change left on nothing.
   window.addEventListener("hashchange", function () {
-    if (!window.location.hash || isStateHash(window.location.hash)) setState();
+    if (!window.location.hash || isStateHash(window.location.hash))
+      setState(null, { repairFocus: true, focusReturn: rememberedControl() });
     else focusAnchor(anchorId(window.location.hash));
   });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
@@ -802,8 +991,13 @@
   if (document.readyState === "complete") focusArrivalAnchor();
   else window.addEventListener("load", focusArrivalAnchor);
 
+  // window.proto.setState stands for a change the learner did not make here (a re-read on return to the
+  // tab, a stream event): focus it leaves on nothing is repaired, and an equal check status text of
+  // another state is set again (B9); the same state sets nothing (B11).
   window.proto = {
-    setState: setState,
+    setState: function (name) {
+      setState(name, { repairFocus: true, isBackground: true });
+    },
     showPane: showPane,
     syncNotifications: syncNotifications,
     setTheme: setTheme,

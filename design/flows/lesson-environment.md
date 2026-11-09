@@ -222,11 +222,17 @@ page background and `terminal`.
 by keyboard.
 
 **Error states:**
-- WebSocket drops: the terminal dims, status "Соединение с терминалом потеряно. Переподключаемся...", and
+- WebSocket drops: the terminal frame turns dashed in `warning` and hides the cursor, never dimmed or
+  made transparent (`design/system/README.md`, dark-mode rules), status "Соединение с терминалом потеряно.
+  Переподключаемся...", and
   reconnects to the same session (#32). After a number of failed retries (parameter
-  `TERMINAL_RECONNECT_ATTEMPTS`, set by #32): "Не удалось переподключиться" with "Переподключиться". Typed
-  input during the drop is not sent and not buffered, because replaying keys into an unknown shell state
-  is unsafe.
+  `TERMINAL_RECONNECT_ATTEMPTS`, set by #32): "Не удалось переподключиться" with "Переподключиться".
+  "Переподключиться" starts a new reconnect cycle: the status reads "Соединение с терминалом потеряно.
+  Переподключаемся..." again (a text change, so it is announced), the button goes and focus moves to
+  "Действия" (R2, R3 row "reconnecting"); the cycle ends connected or with "Не удалось переподключиться"
+  and "Переподключиться" again. The check bar's "Переподключиться" works the same way (`checks.md` F13
+  error states). Typed input during the drop is not sent and not buffered, because replaying keys into an
+  unknown shell state is unsafe.
 - The environment stopped underneath (idle stop, limits, platform restart): F10.
 - Session expired: F2.
 - The shell process exits (`exit`, Ctrl+D): "Сеанс терминала завершён" with "Открыть новый сеанс"; the
@@ -318,7 +324,11 @@ delete, recovery).
 окончания проверки" (R1), because a reset under a running check would grade half-deleted files. The
 environment is not running (creating, starting, stopped, an F8 error): both are `aria-disabled` with
 "Доступно, когда окружение работает" (R1), because the status bar's own action already starts it.
-Recreate fails: F8 error states.
+A run this page does not know of is going (started in another tab, #34 lock): the server refuses the
+action, the dialog (if open) closes, nothing is restarted or reset, and the page attaches to the run as in
+`checks.md` F13 error states: the check bar announces "Идёт проверка", both items become `aria-disabled`
+with "Дождитесь окончания проверки", and focus returns to "Действия". No new text is needed, because the
+status line already says why. Recreate fails: F8 error states.
 
 **Empty states:** none.
 

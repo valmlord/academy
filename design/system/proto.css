@@ -270,6 +270,16 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
   animation: spin var(--spinner-period) linear infinite;
 }
 .status-icon[data-status="muted"] { color: var(--muted-foreground); border-style: dotted; }
+/* Closed check (S2): a lock in the destructive ring, drawn by the two pseudo-elements on the same empty
+   span as every other status (the app uses lucide Lock). The shape tells it from the failed cross. */
+.status-icon[data-status="closed"] { color: var(--destructive); flex-direction: column; }
+.status-icon[data-status="closed"]::before {
+  width: var(--space-1-5); height: var(--space-1-5);
+  border: 2px solid currentColor; border-bottom: 0; border-radius: var(--radius-full) var(--radius-full) 0 0;
+}
+.status-icon[data-status="closed"]::after {
+  content: ""; width: var(--space-2); height: var(--space-1-5); background: currentColor;
+}
 
 /* ---------- Badge ---------- */
 
@@ -293,6 +303,7 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
   width: var(--text-xs-line); height: var(--text-xs-line); border-width: 1px;
   font-size: var(--text-xs); color: currentColor;
 }
+.badge .status-icon[data-status="closed"]::before { border-width: 1px; }
 
 /* ---------- DropdownMenu ---------- */
 
@@ -427,6 +438,13 @@ dialog.alert-dialog {
 dialog.alert-dialog::backdrop { background: var(--scrim); }
 .alert-dialog-title { font-size: var(--text-lg); line-height: var(--text-lg-line); font-weight: 600; }
 .alert-dialog-description { margin-top: var(--space-2); color: var(--muted-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+/* A list after the description paragraph (the budget confirmation, F13.1): a sibling, because a ul cannot
+   sit inside the description's p; on the .outcomes list scale, muted like the description. */
+.alert-dialog-list {
+  margin: var(--space-2) 0 0; padding-left: var(--space-6);
+  color: var(--muted-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line);
+}
+.alert-dialog-list li + li { margin-top: var(--space-1); }
 .alert-dialog-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-6); }
 
 /* ---------- Spinner ---------- */
@@ -605,12 +623,17 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 .env-status-note[data-tone="warning"] { display: flex; align-items: flex-start; gap: var(--space-1-5); color: var(--card-foreground); }
 .env-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .env-hint { flex-basis: 100%; color: var(--muted-foreground); font-size: var(--text-xs); line-height: var(--text-xs-line); }
-.env-details {
+/* "Подробности": the raw error as the server gives it, opened by a ghost sm .collapsible-trigger. One class
+   for the environment status bar and the check row panel; flex-basis takes the full row in the status bar
+   and is inert in the panel. */
+.error-details {
   flex-basis: 100%; margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
   background: var(--muted); color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-xs); line-height: var(--text-xs-line);
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.timer { font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+/* .timer: a standalone time with role="timer" (check bar, environment status bar). .check-row-time: the
+   running time inside a check row button, no role (a button's children are presentational). One look. */
+.timer, .check-row-time { font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
 
 /* ---------- Composition: terminal frame (static mock of xterm output) ---------- */
 /* Dark in both themes. The focus ring sits outside the frame with an offset, measured on --background
@@ -679,10 +702,20 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 .check-row-trigger:hover { background: var(--accent); color: var(--accent-foreground); }
 .check-row-title { font-weight: 500; }
 .check-row-meta { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: var(--space-2); font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); }
+/* The last-attempt warning (S4): warning icon first, words in foreground, not muted; on the trigger's
+   hover surface the words take accent-foreground, as the trigger does. The 1.25rem icon equals the
+   text-sm line, so it stays on the first line when the words wrap. */
+.check-row-meta > [data-tone="warning"] {
+  display: inline-flex; align-items: flex-start; gap: var(--space-1-5); min-width: 0; color: var(--foreground);
+}
+.check-row-trigger:hover .check-row-meta > [data-tone="warning"] { color: var(--accent-foreground); }
 .check-row-status { display: inline-flex; align-items: center; gap: var(--space-1-5); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+/* Panel items (notes, message, "Подробности" and its details, cost, counter) are space-2 apart; a hidden
+   item (a collapsed details block, an item of another state) takes no space, as with a flex gap. */
 .check-row-panel { padding: 0 var(--space-4) var(--space-4) calc(var(--space-4) + 1.25rem + var(--space-3)); }
+.check-row-panel > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-2); }
 .check-row-message {
-  margin: 0 0 var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
   background: var(--muted); color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--text-sm-line);
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
