@@ -127,6 +127,8 @@ jobs:
   e2e:
     name: compose stack and Playwright e2e
     runs-on: ubuntu-24.04
+    # The terminal specs start workspace containers and run after every other spec (#32 design 10.5); the job
+    # also builds the workspace image the lessons name (#33).
     timeout-minutes: 30
     env:
       # db is unpublished by default (ADR-0002 item 6); the seed step reaches it on the host port the override adds.
@@ -181,9 +183,33 @@ jobs:
       - name: the image holds only the learner-visible course files
         run: bash apps/web/scripts/check-image-course.sh
       - run: pnpm --filter @academy/web exec playwright install --with-deps --only-shell chromium
+      # E2E_TERMINAL runs the specs that type into a terminal (D12); E-echo reads lesson_progress through the
+      # host port compose.db-port.yaml publishes.
       - run: pnpm test:e2e
         env:
           E2E_BASE_URL: http://127.0.0.1:3080
+          E2E_TERMINAL: "1"
+          DATABASE_URL: postgres://academy:academy@127.0.0.1:5432/academy
+      # Delta 5: a Next-logged server error during the suite is a failure even when every spec passed. D1 (no
+      # __NEXT_PRIVATE_ORIGIN) left sign-out green but logged SessionReadError. Runs before service-down, which
+      # makes web log errors on purpose.
+      - name: web logged no server error during e2e
+        run: |
+          docker compose logs --no-color web > "$RUNNER_TEMP/web-e2e.log"
+          if ! grep -qF 'web: database migrations applied' "$RUNNER_TEMP/web-e2e.log"; then
+            echo "web log lacks \"web: database migrations applied\"; the guard did not read this stack's web log"
+            exit 1
+          fi
+          if grep -nF -e '⨯' -e 'Error [' "$RUNNER_TEMP/web-e2e.log"; then
+            echo "web logged a server error during the e2e run (matching lines above)"
+            exit 1
+          fi
+      # D5: with the workspace service stopped the site still works and the lesson says the start failed.
+      - run: docker compose stop workspace
+      - run: pnpm --filter @academy/web exec playwright test e2e/service-down.spec.ts --project=chromium --output test-results/service-down
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3080
+          E2E_SERVICE_DOWN: "1"
       - if: failure()
         run: |
           docker compose ps -a > compose-ps.txt

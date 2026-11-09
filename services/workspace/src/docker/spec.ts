@@ -106,3 +106,46 @@ export function buildContainerSpec(input: ContainerSpecInput): ContainerCreateBo
     },
   };
 }
+
+// The exec of a terminal shell (design 3.2, ADR-0002 item 13): exact allowlists like the container create
+// body, pinned by U-exec-body. No `Privileged`, no `DetachKeys`: the shell gets nothing the container lacks.
+
+/** The size Docker gives the TTY until the browser's first `resize` corrects it (rows, columns). */
+const EXEC_CONSOLE_SIZE: [number, number] = [24, 80];
+
+export interface ExecCreateBody {
+  AttachStdin: true;
+  AttachStdout: true;
+  AttachStderr: true;
+  Tty: true;
+  Cmd: [string, "-l"];
+  Env: string[];
+  User: string;
+  WorkingDir: string;
+  ConsoleSize: [number, number];
+}
+
+export interface ExecStartBody {
+  Detach: false;
+  Tty: true;
+}
+
+/** `shell` is `TERMINAL_SHELL`, already checked as an absolute path by the config. */
+export function execCreateBody(shell: string): ExecCreateBody {
+  return {
+    AttachStdin: true,
+    AttachStdout: true,
+    AttachStderr: true,
+    Tty: true,
+    Cmd: [shell, "-l"],
+    // Added to the container's own `HOME`; nothing from the service's environment reaches the shell.
+    Env: ["TERM=xterm-256color", "LANG=C.UTF-8"],
+    User: `${LEARNER_UID}:${LEARNER_GID}`,
+    WorkingDir: WORK_DIR,
+    ConsoleSize: [...EXEC_CONSOLE_SIZE],
+  };
+}
+
+export function execStartBody(): ExecStartBody {
+  return { Detach: false, Tty: true };
+}

@@ -4,6 +4,7 @@ import { type AppDeps, type BuiltApp, buildApp } from "../../src/http/app.js";
 import { IdleTracker } from "../../src/idle.js";
 import { KeyedMutex } from "../../src/lock.js";
 import { WorkspaceManager } from "../../src/manager.js";
+import { TerminalRegistry } from "../../src/terminal/registry.js";
 import { FakeRuntime } from "./fake-runtime.js";
 
 // `buildApp` over a manager on the in-memory runtime, with the pino output captured, for the HTTP unit tests.
@@ -32,6 +33,9 @@ export const TEST_COURSE = new CourseLessons([
 export interface TestApp extends BuiltApp {
   runtime: FakeRuntime;
   manager: WorkspaceManager;
+  terminals: TerminalRegistry;
+  /** Every line the terminal registry and its sessions logged. */
+  terminalLogs: string[];
   /** Everything pino wrote so far, as the sink received it. */
   logs: () => string;
 }
@@ -47,6 +51,12 @@ export function testApp(overrides: Partial<Pick<AppDeps, "manager">> = {}): Test
       callback();
     },
   });
+  const mutex = new KeyedMutex();
+  // The manager and the registry know each other, as in the service; the hooks run only once a stop does.
+  const stopHooks = {
+    onStopping: (id: string) => terminals.onStopping(id),
+    onStopRejected: (id: string) => terminals.onStopRejected(id),
+  };
   const manager =
     overrides.manager ??
     new WorkspaceManager({
@@ -55,16 +65,28 @@ export function testApp(overrides: Partial<Pick<AppDeps, "manager">> = {}): Test
       instance: INSTANCE,
       imageOverride: null,
       tracker: new IdleTracker({ stopMinutes: 30, warningMinutes: 5, now }),
-      mutex: new KeyedMutex(),
+      mutex,
       log: { info: () => {}, warn: () => {} },
       now,
+      stopHooks,
     });
+  const terminalLogs: string[] = [];
+  const terminals = new TerminalRegistry({
+    runtime,
+    workspaces: manager,
+    mutex,
+    instance: INSTANCE,
+    shell: "/bin/sh",
+    scrollbackLines: 1000,
+    log: { info: (line) => terminalLogs.push(line), warn: (line) => terminalLogs.push(line) },
+  });
   const built = buildApp({
     secret: TEST_SECRET,
     manager,
     settings: { idleStopMinutes: 30, idleWarningMinutes: 5, startSlowSeconds: 10 },
     limits: { nanoCpus: 2_000_000_000, memoryBytes: 2 * 1024 ** 3, pidsLimit: 512 },
+    terminals,
     logStream,
   });
-  return { ...built, runtime, manager, logs: () => chunks.join("") };
+  return { ...built, runtime, manager, terminals, terminalLogs, logs: () => chunks.join("") };
 }

@@ -7,6 +7,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { notificationsHeading, sessionExpiredMessage, signInAgainLabel } from "@/lib/copy";
 import { signInPath } from "@/lib/next-path";
+import { SESSION_EXPIRED_EVENT } from "@/lib/terminal/state";
 
 const SESSION_ENDPOINT = "/api/auth/get-session";
 const HEADING_ID = "notifications-heading";
@@ -21,6 +22,9 @@ const HEADING_ID = "notifications-heading";
 // The sign-in-again link is built during render from the current path and query, not when the read
 // resolves, so it follows a lesson tab selected while the alert is shown (history.replaceState updates
 // useSearchParams; lesson AC17).
+//
+// The lesson terminal dispatches `academy:session-expired` when an action answers unauthenticated (#32 design
+// 3.6): the same alert, because the session is gone on the server.
 export function Notifications(): ReactElement {
   const [isSessionGone, setIsSessionGone] = useState(false);
   const pathname = usePathname();
@@ -34,6 +38,12 @@ export function Notifications(): ReactElement {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const onSessionExpired = (): void => setIsSessionGone(true);
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, []);
 
   const query = searchParams.toString();

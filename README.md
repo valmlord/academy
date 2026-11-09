@@ -139,6 +139,15 @@ pnpm --filter @academy/web exec playwright install chromium --only-shell   # onc
 pnpm test:e2e                    # E2E_BASE_URL overrides http://127.0.0.1:3080
 ```
 
+Plain `pnpm test:e2e` against your own stack skips the specs that type into a terminal (`terminal.spec.ts`,
+`region-keys.spec.ts`), so it runs no commands in your workspaces and writes no `lesson_progress` rows. It still
+opens lesson pages, which starts those lessons' workspaces and can take over a terminal you have open on one of
+them. `E2E_TERMINAL=1` runs the terminal specs; only CI and `isolated-stack.sh --e2e` set it, so do not set it
+against your own stack. `E2E_WEBKIT=1` adds the region-key spec in WebKit (once:
+`pnpm --filter @academy/web exec playwright install chromium webkit`); `E2E_FIREFOX=1` adds it in Firefox as the last
+project (`playwright install firefox`), which does not launch on macOS 27 with Playwright's Firefox build 1555. Each switch is `1` or unset
+(any other value stops the run); export it in the shell, never in `.env`.
+
 `apps/web/app/globals.css` carries `design/system/tokens.css` verbatim between the `design-tokens`
 markers, and `pnpm test` fails when they differ. When a DESIGN PR changes `tokens.css`, its CI goes red;
 the orchestrator opens a dev HOTFIX issue "re-copy the token block" whose branch is cut from the DESIGN
@@ -151,12 +160,13 @@ TASK, not HOTFIX.
 
 `services/workspace` runs one Docker container per learner and lesson (ADR-0002, its HTTP API in ADR-0010).
 Compose starts it as `workspace`, on the internal network `workspace-api` only: no host port, no route to
-db; web will call it at `http://workspace:4100` with `WORKSPACE_SERVICE_SECRET` (#32). It drives Docker
-through the mounted socket, which is root on the Docker VM. Its workspaces are named `wks-local-...`, carry
-the labels `academy.workspace.managed=true` and `academy.workspace.instance=local`, keep the learner's files
-in a volume `wks-local-...-files` (kept when a workspace stops) and share the network `wks-local-net`, which
-has outbound internet for the agent. Every lesson names the image `academy-workspace:dev`, which you build
-yourself (next section); the service never pulls one and answers 409 `image-missing` while it is absent.
+db; web calls it at `http://workspace:4100` with `WORKSPACE_SERVICE_SECRET` (#32, "Browser terminal" below).
+It drives Docker through the mounted socket, which is root on the Docker VM. Its workspaces are named
+`wks-local-...`, carry the labels `academy.workspace.managed=true` and `academy.workspace.instance=local`, keep
+the learner's files in a volume `wks-local-...-files` (kept when a workspace stops) and share the network
+`wks-local-net`, which has outbound internet for the agent. Every lesson names the image `academy-workspace:dev`,
+which you build yourself (next section); the service never pulls one and answers 409 `image-missing` while it is
+absent.
 
 Each workspace gets at most 2 CPUs, 2 GiB of memory without swap and 512 processes, and stops after 30 idle
 minutes (`.env.example` lists the variables). Docker Desktop's default VM of about 7.75 GiB holds db, web and
@@ -175,6 +185,15 @@ Rollback (a `git revert` of the #31 commits): first run the stop command above, 
 publishes db on the host again and running workspaces would reach it. Then `docker compose up -d --remove-orphans`
 removes the orphaned `workspace` container. It leaves the network `academy_workspace-api` behind; remove it with
 `docker network rm academy_workspace-api`. The workspaces' volumes stay for a later return.
+
+`services/workspace/test/manual/isolated-stack.sh [t31|t32] [--e2e]` runs a throwaway compose stack next to
+yours. The run name (`t31`, the default, or `t32`) picks the project `academy-<run>`, the image tag, the
+workspace instance and the host ports (`t31`: 55432 and 53080, `t32`: 55433 and 53081). A preflight stops the
+script before anything starts, and so removes nothing, when objects of that project, instance or images are left
+over from an earlier run, or when a Docker listing fails. `--e2e` adds the seed, the whole e2e suite with the
+terminal specs (the region keys in Chromium and WebKit; Firefox is checked by hand) and the service-down spec.
+The last line is `T32 RESULT OK` (the prefix is the run name), or `RESULT FAIL (run rc=..., check status=...,
+teardown failed=...)`, where `check status` covers the probes, the red runs and the e2e stages.
 
 ### Workspace image
 
@@ -355,3 +374,37 @@ docker volume ls --filter label=academy.workspace.instance --format '{{.Name}} {
 docker network ls --filter label=academy.workspace.instance --format '{{.ID}} {{.Label "academy.workspace.instance"}}' \
   | grep -E "$pattern" | cut -d' ' -f1 | xargs -r docker network rm
 ```
+
+## Browser terminal
+
+Every lesson page has an environment region next to the lesson text with one tab, the terminal: a shell (`sh`
+until #33) in that lesson's workspace container ([ADR-0011](docs/adr/0011-browser-terminal.md)). Opening a lesson
+starts its workspace (created on the first visit, started when stopped); it stops after 30 idle minutes as
+before. The browser talks to web's own port (`/api/terminal/socket`), web relays the connection to the workspace
+service, and the service keeps one terminal session per learner and lesson. A dropped connection reconnects to
+the same session and redraws the screen; a second browser tab on the same lesson takes the session over, and the
+first tab offers to take it back. The first key or paste typed into a lesson's terminal records the lesson as
+started in the database (an enrollment and an `in-progress` `lesson_progress` row).
+
+**Before the first deploy (until #33 ships the lesson image):** add `WORKSPACE_IMAGE=node:22.23.4-alpine` to the
+root `.env` in an editor, and run `docker pull node:22.23.4-alpine` once. Without it every lesson says that the
+environment image `academy-workspace:dev` is missing.
+
+- **`pnpm dev` has no terminal.** It runs `next dev` without web's custom server; the lesson's environment says it
+  could not start. The terminal works in the compose stack on http://127.0.0.1:3080.
+- **The site does not depend on the workspace service.** Web starts after db only. With the service down or
+  broken, every page works and only the lesson's terminal says the environment could not start, with a retry
+  button; `docker compose up -d --build --wait` then exits non-zero after its wait timeout while web is up.
+- **Restarting or rebuilding the workspace service ends every open terminal session.** Each terminal reconnects
+  to a new shell; the old shells, and every program started in them, keep running in the background, invisible,
+  until the environment stops (idle stop after 30 minutes, or a restart). Files stay. Rebuilding web only makes
+  open terminals reconnect to the same session.
+- **An open terminal renews its connection silently about every 15 minutes** (`TERMINAL_RELAY_MAX_SECONDS`, 900),
+  and each renewal checks the session again: after a sign-out in another tab or a re-key, an open terminal stops
+  within that bound and the page shows the session alert. The shell keeps running across a renewal; a text
+  selection is cleared. A full-screen program (an editor, `top`) may show a stray cursor or misread the mouse after
+  a renewal until it redraws; Ctrl+L redraws it.
+- **F6, Shift+F6, Ctrl+Shift+. and Ctrl+Shift+, never reach the shell**: they move focus between the page regions.
+
+Rollback: `git revert` the #32 commits and run `docker compose up -d --build --wait`. The terminal's
+`lesson_progress` rows stay valid ADR-0007 rows; nothing needs to be removed.

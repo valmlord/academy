@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { brandName, signInAgainLabel } from "@/lib/copy";
 import { RegionCycle } from "./region-cycle";
 
@@ -17,6 +17,28 @@ function Page({ hasAlert }: { hasAlert: boolean }): ReactElement {
         </div>
       </div>
       <main data-region tabIndex={-1} data-testid="main" />
+      <RegionCycle />
+    </>
+  );
+}
+
+// A widget with its own keydown listener (as xterm's textarea has) in the middle region.
+function WidgetPage({ onWidgetKeyDown }: { onWidgetKeyDown: () => void }): ReactElement {
+  return (
+    <>
+      <header data-region>
+        <button type="button" data-testid="before">
+          before
+        </button>
+      </header>
+      <section data-region>
+        <textarea aria-label="widget" onKeyDown={onWidgetKeyDown} />
+      </section>
+      <main data-region>
+        <button type="button" data-testid="after">
+          after
+        </button>
+      </main>
       <RegionCycle />
     </>
   );
@@ -54,6 +76,46 @@ describe("RegionCycle", () => {
     expect(screen.getByTestId("main")).toHaveFocus();
     pressF6(true);
     expect(screen.getByRole("link", { name: brandName })).toHaveFocus();
+  });
+
+  it.each([
+    { name: "F6", init: { key: "F6", code: "F6" }, target: "after" },
+    { name: "Shift+F6", init: { key: "F6", code: "F6", shiftKey: true }, target: "before" },
+    {
+      name: "Ctrl+Shift+Period",
+      init: { key: ">", code: "Period", ctrlKey: true, shiftKey: true },
+      target: "after",
+    },
+    {
+      name: "Ctrl+Shift+Comma",
+      init: { key: "<", code: "Comma", ctrlKey: true, shiftKey: true },
+      target: "before",
+    },
+  ])(
+    "moves focus on $name without the focused widget's own listener seeing it (U-region-stop)",
+    ({ init, target }) => {
+      const ownKeyDown = vi.fn();
+      render(<WidgetPage onWidgetKeyDown={ownKeyDown} />);
+      const widget = screen.getByRole("textbox");
+      widget.focus();
+
+      fireEvent.keyDown(widget, init);
+
+      expect(screen.getByTestId(target)).toHaveFocus();
+      expect(ownKeyDown).not.toHaveBeenCalled();
+    },
+  );
+
+  it("lets any other key reach the focused widget's own listener", () => {
+    const ownKeyDown = vi.fn();
+    render(<WidgetPage onWidgetKeyDown={ownKeyDown} />);
+    const widget = screen.getByRole("textbox");
+    widget.focus();
+
+    fireEvent.keyDown(widget, { key: "a", code: "KeyA" });
+
+    expect(ownKeyDown).toHaveBeenCalledTimes(1);
+    expect(widget).toHaveFocus();
   });
 
   it("takes Ctrl+Shift+Period as F6", () => {

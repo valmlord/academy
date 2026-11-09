@@ -48,3 +48,5 @@ checks:
     answers: checks/bugs.yaml
     minFound: 6
     weight: 2
+    attempts:
+      limit: 3

@@ -55,6 +55,8 @@ const EXPECTED_ENVIRONMENT: Readonly<Record<ConfigVariable | "DOCKER_HOST", stri
   ENVIRONMENT_IDLE_STOP_MINUTES: "${ENVIRONMENT_IDLE_STOP_MINUTES:-30}",
   ENVIRONMENT_IDLE_WARNING_MINUTES: "${ENVIRONMENT_IDLE_WARNING_MINUTES:-5}",
   ENVIRONMENT_START_SLOW_SECONDS: "${ENVIRONMENT_START_SLOW_SECONDS:-10}",
+  TERMINAL_SHELL: "${TERMINAL_SHELL:-/bin/sh}",
+  TERMINAL_SCROLLBACK_LINES: "${TERMINAL_SCROLLBACK_LINES:-1000}",
   DOCKER_HOST: "unix:///var/run/docker.sock",
 };
 
@@ -117,13 +119,35 @@ describe("docker-compose.yml (U-compose)", () => {
       compared += 1;
     }
 
-    expect(compared).toBe(7);
+    expect(compared).toBe(9);
   });
 
   it("refuses to start without the secret (the :? form)", () => {
     expect(service("workspace").environment?.WORKSPACE_SERVICE_SECRET).toMatch(
       /^\$\{WORKSPACE_SERVICE_SECRET:\?[^}]+\}$/,
     );
+  });
+});
+
+describe("docker-compose.yml, web and the service (#32)", () => {
+  it("lets web start without the workspace service: depends_on names db only (U-compose-independent)", () => {
+    const dependsOn = z.record(z.string(), z.unknown()).parse(service("web").depends_on);
+
+    expect(Object.keys(dependsOn)).toEqual(["db"]);
+    expect(dependsOn).not.toHaveProperty("workspace");
+  });
+
+  it("passes web the service address, the shared secret and the terminal settings", () => {
+    const environment = service("web").environment ?? {};
+
+    expect(environment).toMatchObject({
+      WORKSPACE_SERVICE_URL: "http://workspace:4100",
+      WORKSPACE_SERVICE_SECRET:
+        "${WORKSPACE_SERVICE_SECRET:?set WORKSPACE_SERVICE_SECRET in .env, see .env.example}",
+      TERMINAL_RECONNECT_ATTEMPTS: "${TERMINAL_RECONNECT_ATTEMPTS:-5}",
+      TERMINAL_RELAY_MAX_SECONDS: "${TERMINAL_RELAY_MAX_SECONDS:-900}",
+      ENVIRONMENT_START_SLOW_SECONDS: "${ENVIRONMENT_START_SLOW_SECONDS:-10}",
+    });
   });
 });
 

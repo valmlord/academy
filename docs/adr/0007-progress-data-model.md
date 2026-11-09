@@ -194,6 +194,14 @@ Each item can be accepted or overturned on its own.
   on the private free plan); an edited `when` of an existing `_journal.json` entry is unguarded (U1 only
   checks that the values increase); a migration applied locally before it was merged may later differ, so Stepan resets
   his local database (`docker compose down -v`) in that case.
+- Amended by #32 on 2026-11-04 (item 10: Stepan approved on 2026-11-04 and confirms in the #32 PR; the status stays
+  Accepted). Item 5 "Row creation" now reads: "The `lesson_progress` row (`in-progress`) is upserted, together with
+  its `enrollments` row, when the learner first types or pastes into the lesson's terminal, and at the latest
+  together with the first attempt; opening the lesson page creates no row." The row is the durable "lesson started"
+  flag of `design/flows/ia.md` R5: never cleared, also not by a workspace reset. The writer is `apps/web`'s
+  `recordLessonStarted` server action (one function, `lib/progress/lesson-started.ts`), called by the browser;
+  it can only mark the signed-in user's own lesson as started. Item 6: account deletion reaches an open terminal
+  within `TERMINAL_RELAY_MAX_SECONDS` (ADR-0011 item 3).
 
 ### Follow-ups for #34 (the finish transaction and the stale-attempt sweep)
 - If two web processes overlap (a dev restart), the new process's startup sweep can mark the old
