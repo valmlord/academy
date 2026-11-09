@@ -106,10 +106,12 @@ section 0 of the #30 design (PR #85), working notes that are not published.
   and a `workspace` for command checks. They stay on the server: views never carry them (item 3), and the
   unit canary and the e2e response scan of item 10 are built from exactly these values. Anyone with a shell
   in the web container can read them, as they can read the repository.
-- `content:validate` (the package's `parse`) tolerates a YAML warning that the web treats as an error (item
-  7). A content edit with such a warning passes `content:validate`, but the web shows "Не удалось загрузить
-  курс", so the CI `e2e` job (no path filter) fails on the catalog; all course files have no warning today.
-  Aligning the validator is a contract-package change for a later issue.
+- `content:validate` parses `course.yaml`, `module.yaml` and `lesson.yaml` with item 7's rules (#103): an
+  error or a warning fails the file, and the issue gives the line and the parser's error code (for example
+  `invalid YAML at line 5 (TAG_RESOLVE_FAILED)`), never the parser's message. It also reports an alias that
+  cannot be resolved, which the web loader and the workspace service still let escape as an unclassified
+  error (#117). The rules exist in three copies (web, workspace service, validator) until one
+  package owns them (#118).
 - The workspace service (#31) and the grader read their own subsets (`starter/`, `checks/`) through their
   own allowlists; this ADR covers only the web image.
 - A second course needs a design (navigation, dashboard) and an amendment of item 6.
