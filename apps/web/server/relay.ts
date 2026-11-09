@@ -87,7 +87,7 @@ function headerOf(request: IncomingMessage, name: string): string | undefined {
 }
 
 /** A bare status line and `Connection: close`, then the socket is destroyed once it is flushed. */
-function answer(socket: Duplex, status: number): void {
+export function answer(socket: Duplex, status: number): void {
   if (!socket.writable) {
     socket.destroy();
     return;

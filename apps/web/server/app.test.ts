@@ -3,9 +3,18 @@ import { EventEmitter } from "node:events";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { browserHeaders, rawClient } from "@/test/relay-harness";
+import {
+  answerAsNext,
+  browserHeaders,
+  processSpies,
+  rawClient,
+  settle,
+  statusOf,
+  within,
+} from "@/test/relay-harness";
 import {
   attachServerErrorHandler,
+  createPublicServer,
   createShutdown,
   createUpgradeDispatch,
   installSignalHandlers,
@@ -36,62 +45,127 @@ async function listening(server: Server): Promise<number> {
 }
 
 describe("upgrade dispatch (U-dispatch)", () => {
-  async function dispatching() {
+  type Handle = (request: IncomingMessage, socket: Duplex) => Promise<void>;
+
+  function stubRelay(handle?: Handle) {
     const handled: string[] = [];
     const relay = {
-      handle: async (request: IncomingMessage, socket: Duplex) => {
-        handled.push(request.url ?? "");
-        socket.destroy();
-      },
+      handle:
+        handle ??
+        (async (request: IncomingMessage, socket: Duplex) => {
+          handled.push(request.url ?? "");
+          socket.destroy();
+        }),
       contain: vi.fn((socket: Duplex, _error: unknown) => socket.destroy()),
     };
-    const nextFacing = new EventEmitter();
-    const server = createServer();
-    server.on("upgrade", createUpgradeDispatch({ relay, nextFacing }));
-    const port = await listening(server);
-    const headers = browserHeaders({ host: `127.0.0.1:${port}` });
-    return { handled, relay, nextFacing, port, headers };
+    return { handled, relay };
   }
 
-  it("hands the terminal path to the relay", async () => {
-    const { handled, port, headers } = await dispatching();
+  /** The production server: upgrade filter, dispatch, and the harness's stand-in for Next. */
+  async function dispatching(handle?: Handle) {
+    const { handled, relay } = stubRelay(handle);
+    const requests: string[] = [];
+    const server = createPublicServer();
+    server.on("upgrade", createUpgradeDispatch({ relay }));
+    server.on("request", answerAsNext(requests));
+    const port = await listening(server);
+    const headers = browserHeaders({ host: `127.0.0.1:${port}` });
+    return { handled, relay, requests, port, headers };
+  }
 
-    await rawClient(port, { path: `${TERMINAL_PATH}?ticket=t`, headers }).closed;
+  /** A server without the filter, as on a Node that ignores `shouldUpgradeCallback`. */
+  async function unfiltered() {
+    const { handled, relay } = stubRelay();
+    const server = createServer();
+    server.on("upgrade", createUpgradeDispatch({ relay }));
+    const port = await listening(server);
+    const headers = browserHeaders({ host: `127.0.0.1:${port}` });
+    return { handled, relay, port, headers };
+  }
+
+  it.each([
+    "//api/terminal/socket?ticket=t",
+    "/api/terminal/socket/?ticket=t",
+    "/api//terminal/socket",
+    "/api/terminal/%73ocket",
+    "/",
+    "/_next/webpack-hmr",
+  ])("answers an upgrade on %s as an ordinary request", async (path) => {
+    const { handled, requests, port, headers } = await dispatching();
+    const client = rawClient(port, { path, headers });
+
+    await within(client.until(/\r\n\r\n/), path);
+    client.socket.destroy();
+
+    expect(statusOf(client.text())).toBe("HTTP/1.1 308 Permanent Redirect");
+    expect(requests).toEqual([path]);
+    expect(handled).toEqual([]);
+  });
+
+  it("hands the terminal path to the relay", async () => {
+    const { handled, requests, port, headers } = await dispatching();
+
+    await within(rawClient(port, { path: `${TERMINAL_PATH}?ticket=t`, headers }).closed, "close");
 
     expect(handled).toEqual([`${TERMINAL_PATH}?ticket=t`]);
+    expect(requests).toEqual([]);
   });
 
-  it("destroys another path while Next has no upgrade listener", async () => {
-    const { handled, port, headers } = await dispatching();
-
+  it("answers 404 when a non-terminal upgrade reaches the dispatch", async () => {
+    const { handled, port, headers } = await unfiltered();
     const client = rawClient(port, { path: "/_next/webpack-hmr", headers });
-    await client.closed;
 
-    expect(client.text()).toBe("");
+    await within(client.closed, "close");
+
+    expect(statusOf(client.text())).toBe("HTTP/1.1 404 Not Found");
     expect(handled).toEqual([]);
   });
 
-  it("emits another path on Next's server once Next listens there", async () => {
-    const { handled, nextFacing, port, headers } = await dispatching();
-    const seen: string[] = [];
-    nextFacing.on("upgrade", (request: IncomingMessage, socket: Duplex) => {
-      seen.push(request.url ?? "");
-      socket.destroy();
-    });
+  it("answers a malformed URL upgrade without anything escaping", async () => {
+    const spies = processSpies();
+    try {
+      const { requests, port, headers } = await dispatching();
+      const client = rawClient(port, { path: "//[", headers });
 
-    await rawClient(port, { path: "/_next/webpack-hmr", headers }).closed;
+      await within(client.until(/\r\n\r\n/), "//[");
+      client.socket.destroy();
+      await settle();
 
-    expect(seen).toEqual(["/_next/webpack-hmr"]);
-    expect(handled).toEqual([]);
+      expect(statusOf(client.text())).toBe("HTTP/1.1 308 Permanent Redirect");
+      expect(requests).toEqual(["//["]);
+      expect(spies.escaped).toEqual([]);
+    } finally {
+      spies.restore();
+    }
   });
 
-  it("contains a malformed URL instead of throwing out of the listener", async () => {
-    const { relay, port, headers } = await dispatching();
+  it("answers 404 for a malformed URL that reaches the dispatch", async () => {
+    const { relay, port, headers } = await unfiltered();
+    const client = rawClient(port, { path: "//[", headers });
 
-    await rawClient(port, { path: "//[", headers }).closed;
+    await within(client.closed, "close");
 
-    expect(relay.contain).toHaveBeenCalledOnce();
-    expect(relay.contain.mock.calls[0]?.[1]).toBeInstanceOf(TypeError);
+    expect(statusOf(client.text())).toBe("HTTP/1.1 404 Not Found");
+    expect(relay.contain).not.toHaveBeenCalled();
+  });
+
+  it("contains an error thrown by the relay's handle", async () => {
+    const spies = processSpies();
+    const canary = new RangeError("canary");
+    try {
+      const { relay, port, headers } = await dispatching(() => {
+        throw canary;
+      });
+
+      await within(rawClient(port, { path: `${TERMINAL_PATH}?ticket=t`, headers }).closed, "close");
+      await settle();
+
+      expect(relay.contain).toHaveBeenCalledOnce();
+      expect(relay.contain.mock.calls[0]?.[1]).toBe(canary);
+      expect(spies.escaped).toEqual([]);
+    } finally {
+      spies.restore();
+    }
   });
 });
 

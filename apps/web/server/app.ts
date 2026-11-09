@@ -7,13 +7,14 @@ import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { readStandaloneConfig } from "./config-file.ts";
 import { type NextApp, type RequestHandler, toNextApp, toNextFactory } from "./next-shape.ts";
-import { createRelay, type Relay } from "./relay.ts";
+import { answer, createRelay, type Relay } from "./relay.ts";
 import { serverErrorLine } from "./strings.ts";
 
 // Web's production server (#32 design 3.1, ADR-0011 item 2): Next's request handler behind a listening server
-// that Next never sees, so Next's lazily attached upgrade listener (which ends every socket whose path matches
-// an app route) lands on a second, never-listening server. The terminal path goes to the relay; every other
-// upgrade is handed to Next there. Run by plain Node from the standalone tree: node:* and `next` only.
+// that accepts only the terminal path as an upgrade (its `shouldUpgradeCallback`) and hands that to the relay.
+// Every other upgrade request is handled as a request, which Next answers unless Node refuses it first. Next's
+// own upgrade listener sits on a second, never-listening server that nothing emits on: without that server Next
+// would attach to the listening one. Run by plain Node from the standalone tree: node:* and `next` only.
 
 export const TERMINAL_PATH = "/api/terminal/socket";
 // Next's own start-server uses no hard limit; 8 s stays inside compose's default 10 s stop grace period.
@@ -22,12 +23,37 @@ export const SHUTDOWN_HARD_LIMIT_MS = 8_000;
 const ERROR_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 const SYSTEM_CODE = /^[A-Z][A-Z0-9_]{0,31}$/;
 
-export interface DispatchDeps {
-  relay: Pick<Relay, "handle" | "contain">;
-  nextFacing: EventEmitter;
+/** Whether `request` asks for the terminal path: its parsed pathname, exactly. Never throws. */
+export function isTerminalUpgrade(request: IncomingMessage): boolean {
+  return URL.parse(request.url ?? "/", "http://localhost")?.pathname === TERMINAL_PATH;
 }
 
-/** The public server's `upgrade` listener, contained as 3.3.1 R1/R2. */
+/**
+ * The listening server. Next's production upgrade handler leaves an upgrade with no matched output open on
+ * purpose (`router-server.js:801-802`), every `//` and trailing-slash path included, so no upgrade other than the
+ * terminal path may reach it: Node handles those as requests instead.
+ */
+export function createPublicServer(): Server {
+  return createServer({
+    shouldUpgradeCallback: (request) => {
+      try {
+        return isTerminalUpgrade(request);
+      } catch {
+        // Node calls this from its HTTP parser, outside every listener's catch: a throw is an uncaughtException.
+        return false;
+      }
+    },
+  });
+}
+
+export interface DispatchDeps {
+  relay: Pick<Relay, "handle" | "contain">;
+}
+
+/**
+ * The public server's `upgrade` listener, contained as 3.3.1 R1/R2. Only terminal-path upgrades reach it; anything
+ * else is answered 404.
+ */
 export function createUpgradeDispatch(
   deps: DispatchDeps,
 ): (request: IncomingMessage, socket: Duplex, head: Buffer) => void {
@@ -35,19 +61,13 @@ export function createUpgradeDispatch(
     // R1, first: Node removed its own socket error handler before emitting `upgrade`.
     socket.on("error", () => socket.destroy());
     try {
-      const { pathname } = new URL(request.url ?? "/", "http://localhost");
-      if (pathname === TERMINAL_PATH) {
-        deps.relay
-          .handle(request, socket, head)
-          .catch((error: unknown) => deps.relay.contain(socket, error));
+      if (!isTerminalUpgrade(request)) {
+        answer(socket, 404);
         return;
       }
-      // Next attaches its listener on the first HTTP request; until then nobody would answer the socket.
-      if (deps.nextFacing.listenerCount("upgrade") === 0) {
-        socket.destroy();
-        return;
-      }
-      deps.nextFacing.emit("upgrade", request, socket, head);
+      deps.relay
+        .handle(request, socket, head)
+        .catch((error: unknown) => deps.relay.contain(socket, error));
     } catch (error: unknown) {
       deps.relay.contain(socket, error);
     }
@@ -164,7 +184,7 @@ export async function start(): Promise<void> {
   // fails with SessionReadError.
   process.env.__NEXT_PRIVATE_ORIGIN = nextPrivateOrigin(hostname, port);
 
-  const publicServer = createServer();
+  const publicServer = createPublicServer();
   const keepAliveTimeout = Number.parseInt(process.env.KEEP_ALIVE_TIMEOUT ?? "", 10);
   if (Number.isFinite(keepAliveTimeout) && keepAliveTimeout >= 0) {
     publicServer.keepAliveTimeout = keepAliveTimeout;
@@ -192,7 +212,7 @@ export async function start(): Promise<void> {
       TERMINAL_RELAY_MAX_SECONDS: process.env.TERMINAL_RELAY_MAX_SECONDS,
     },
   });
-  publicServer.on("upgrade", createUpgradeDispatch({ relay, nextFacing }));
+  publicServer.on("upgrade", createUpgradeDispatch({ relay }));
   installSignalHandlers(
     process,
     { NEXT_MANUAL_SIG_HANDLE: process.env.NEXT_MANUAL_SIG_HANDLE },

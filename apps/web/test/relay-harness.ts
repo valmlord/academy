@@ -1,15 +1,14 @@
 import { createHash } from "node:crypto";
-import { EventEmitter } from "node:events";
-import { createServer, type IncomingMessage, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { connect, Socket } from "node:net";
 import type { Duplex } from "node:stream";
-import { createUpgradeDispatch } from "@/server/app";
+import { createPublicServer, createUpgradeDispatch } from "@/server/app";
 import { createRelay, type Relay, type RelayOptions } from "@/server/relay";
 import { deriveTicketKey, mintTicket } from "@/server/ticket";
 
 // Real sockets for the relay's unit tests (#32 design 10.3 U-relay*): a fake workspace service that records
-// what reaches it, web's upgrade dispatch with the real relay, and a raw client that writes the bytes a
-// browser (or an attacker) would.
+// what reaches it, web's upgrade dispatch with the real relay, with the production server's upgrade filter and a
+// stand-in for Next's request handler, and a raw client that writes the bytes a browser (or an attacker) would.
 
 export const AUTH_SECRET = "canary-relay-auth-secret".padEnd(40, "x");
 export const SERVICE_SECRET = "canary-relay-service-secret".padEnd(40, "y");
@@ -114,8 +113,32 @@ export interface Web {
   host: string;
   relay: Relay;
   lines: string[];
-  nextFacing: EventEmitter;
+  /** The URL of every request the stand-in for Next answered. */
+  requests: string[];
   close(): Promise<void>;
+}
+
+/**
+ * Stands in for Next's request handler: records the URL and answers 308 to `/`. 308 is distinguishable from the
+ * dispatch's 404; like Next it sends no `Connection: close`, so the connection stays open after the answer.
+ */
+export function answerAsNext(
+  requests: string[],
+): (request: IncomingMessage, response: ServerResponse) => void {
+  return (request, response) => {
+    requests.push(request.url ?? "");
+    response.writeHead(308, { Location: "/" });
+    response.end();
+  };
+}
+
+/** Rejects with `label` when `promise` has not settled within `ms`, so a held socket fails with a message. */
+export function within<T>(promise: Promise<T>, label: string, ms = 2_000): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer within ${ms} ms: ${label}`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 export async function startWeb(
@@ -131,16 +154,17 @@ export async function startWeb(
       BETTER_AUTH_SECRET: AUTH_SECRET,
     },
   });
-  const nextFacing = new EventEmitter();
-  const server = createServer();
-  server.on("upgrade", createUpgradeDispatch({ relay, nextFacing }));
+  const requests: string[] = [];
+  const server = createPublicServer();
+  server.on("upgrade", createUpgradeDispatch({ relay }));
+  server.on("request", answerAsNext(requests));
   const port = await listen(server);
   return {
     port,
     host: `127.0.0.1:${port}`,
     relay,
     lines,
-    nextFacing,
+    requests,
     close: () => closeServer(server),
   };
 }
