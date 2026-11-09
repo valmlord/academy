@@ -231,7 +231,8 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
 13. **Terminal** (#32, ADR-0011). The decision's "docker exec with a TTY over WebSocket" is a service-held exec per
     workspace: `Cmd [TERMINAL_SHELL, "-l"]` (`TERMINAL_SHELL`, default `/bin/bash` since #33, which the image of
     item 10 has), `User 1000:1000`, `WorkingDir /workspace/home/work`, `Env` adds `TERM=xterm-256color` and
-    `LANG=C.UTF-8` to the container's `HOME`; the exec create and start bodies are exact allowlists like the container create body.
+    `LANG=C.UTF-8` to the container's `HOME`; the exec create and start bodies are exact allowlists like the
+    container create body.
     Item 9's `WorkspaceRuntime` gains `openShell`. Residual 3 of item 6 is now in effect: web holds
     `WORKSPACE_SERVICE_SECRET` and relays long-lived terminal connections; a workspace that reaches web's port still
     needs a ticket minted for a signed-in session to open one, and malformed requests cannot stop web.

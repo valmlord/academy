@@ -95,7 +95,9 @@ WebSocket). Facts, with sources:
 - A relay process or container: a second DB client (ADR-0007 item 8) or a second auth path, one more process.
 - Dropping standalone output for a classic custom server: loses the traced image and its course-leak checks.
 - Session in web: dies with every web restart; the web-to-service link would need its own reconnect.
-- tmux/dtach in the container: needs the image (#33); revisit there, it would survive a service restart.
+- tmux/dtach in the container: a session would survive a service restart, but the lesson image (#33) installs
+  neither; #110 (end the shell when its session ends) weighs tmux among the alternatives for the shells item 4
+  leaves running.
 - Raw byte replay: breaks full-screen programs. Session cookie on the upgrade: the custom server would need its own
   Better Auth and pool. A dedicated ticket secret: one more required secret.
 - Keeping a connection until the session's expiry: a revoked session's terminal would live up to 7 days.

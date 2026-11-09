@@ -390,7 +390,10 @@ started in the database (an enrollment and an `in-progress` `lesson_progress` ro
 **Before the first deploy:** build the lesson image and move off `WORKSPACE_IMAGE` ("Workspace image" above, step
 4). Without the image every lesson says that the environment image `academy-workspace:dev` is missing. The terminal
 runs `/bin/bash` (`TERMINAL_SHELL`), which the lesson image has and `node:22.23.4-alpine` does not: on that image
-the terminal does not open.
+the terminal does not open. While you still run on the Alpine override (for example after a failed first build),
+a line `TERMINAL_SHELL=/bin/sh` in `.env` and `docker compose up -d --build --wait workspace` bring the terminal
+back with `sh`; delete that line together with the override in step 4b, otherwise the lesson image's terminal
+stays on `sh`.
 
 - **`pnpm dev` has no terminal.** It runs `next dev` without web's custom server; the lesson's environment says it
   could not start. The terminal works in the compose stack on http://127.0.0.1:3080.
@@ -409,4 +412,11 @@ the terminal does not open.
 - **F6, Shift+F6, Ctrl+Shift+. and Ctrl+Shift+, never reach the shell**: they move focus between the page regions.
 
 Rollback: `git revert` the #32 commits and run `docker compose up -d --build --wait`. The terminal's
-`lesson_progress` rows stay valid ADR-0007 rows; nothing needs to be removed.
+`lesson_progress` rows stay valid ADR-0007 rows; nothing needs to be removed. #32 landed as one commit, and with #33
+merged its revert stops with conflicts wherever #33 edited #32's lines. Resolve them by hand so that #32's additions
+go and #33's stay. Remove the `TERMINAL_SHELL` lines (`docker-compose.yml`, `.env.example`,
+`services/workspace/src/config.ts` and its unit tests), ADR-0002 item 13, this section and the `isolated-stack.sh`
+paragraph under "Workspace service"; delete ADR-0011 (`git rm docs/adr/0011-browser-terminal.md`, which #33 also
+edited). Keep the image sentence under "Workspace service", the "Workspace image" section (without its remark about
+the terminal) and the 30-minute e2e timeout in `ci.yml`, which the image build needs. Then `git revert --continue`.
+The `TERMINAL_SHELL=/bin/sh` that `isolated-stack.sh` keeps is harmless: no service reads it any more.

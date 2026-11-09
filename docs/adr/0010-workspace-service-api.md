@@ -95,9 +95,9 @@ contract between them is costly to change once #32 builds its client on it, so i
    | 503 | `docker-unavailable` | the socket is missing or refused, or the connection was cut (also how a 30 s inactivity timeout surfaces) |
 
    Never in a body or a log: the secret, file contents, request headers, Docker's own messages (Docker echoes
-   request content, and from #33 on that can hold an API key), container environment. Messages name the entity and
-   a closed reason (a relative course path, a parameter name, a Docker operation and status). An unlisted error is
-   logged by constructor name and `code` only.
+   request content, which can hold an API key once #115 passes one into workspaces), container environment.
+   Messages name the entity and a closed reason (a relative course path, a parameter name, a Docker operation and
+   status). An unlisted error is logged by constructor name and `code` only.
 7. **Retries and idempotence.**
    - `PUT W` is idempotent and converges from every crash point (ADR-0002 item 7). A 502 on `PUT W` may be
      retried, ensure is idempotent. A 503 during a create or a starter copy leaves the outcome unknown; the retry

@@ -121,7 +121,8 @@ export class DockerUnavailableError extends Error {
 
 /**
  * Docker answered with an error status (HTTP 502 `docker-error`); `statusCode` is 0 when the failure had no
- * status. Docker's own message is never copied: it echoes request content, which from #33 on can hold a key.
+ * status. Docker's own message is never copied: it echoes request content, which can hold an API key once #115
+ * passes one into workspaces.
  */
 export class DockerApiError extends Error {
   readonly operation: string;
