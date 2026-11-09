@@ -50,7 +50,8 @@
         "$TURBO_ROOT$/course/**",
         "$TURBO_ROOT$/docker-compose.yml",
         "$TURBO_ROOT$/compose.db-port.yaml",
-        "$TURBO_ROOT$/.env.example"
+        "$TURBO_ROOT$/.env.example",
+        "$TURBO_ROOT$/images/workspace/test/smoke.sh"
       ]
     },
     "@academy/workspace#test:integration": {

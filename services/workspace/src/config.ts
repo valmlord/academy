@@ -41,7 +41,7 @@ export const CONFIG_DEFAULTS: Readonly<Partial<Record<ConfigVariable, string>>> 
   ENVIRONMENT_IDLE_STOP_MINUTES: "30",
   ENVIRONMENT_IDLE_WARNING_MINUTES: "5",
   ENVIRONMENT_START_SLOW_SECONDS: "10",
-  TERMINAL_SHELL: "/bin/sh",
+  TERMINAL_SHELL: "/bin/bash",
   TERMINAL_SCROLLBACK_LINES: "1000",
 };
 
@@ -64,7 +64,7 @@ export interface Config {
   idleStopMinutes: number;
   idleWarningMinutes: number;
   startSlowSeconds: number;
-  /** The program every terminal session runs with `-l` (design 3.2); #33 switches it to bash (D2). */
+  /** The program every terminal session runs with `-l` (design 3.2): bash, which the lesson image has (#33). */
   terminalShell: string;
   /** Lines the server-held screen keeps above the visible rows, replayed on reconnect (ADR-0011 item 10). */
   terminalScrollbackLines: number;

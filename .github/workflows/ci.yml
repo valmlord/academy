@@ -127,7 +127,8 @@ jobs:
   e2e:
     name: compose stack and Playwright e2e
     runs-on: ubuntu-24.04
-    # The terminal specs start workspace containers and run after every other spec (#32 design 10.5).
+    # The terminal specs start workspace containers and run after every other spec (#32 design 10.5); the job
+    # also builds the workspace image the lessons name (#33).
     timeout-minutes: 30
     env:
       # db is unpublished by default (ADR-0002 item 6); the seed step reaches it on the host port the override adds.
@@ -146,10 +147,13 @@ jobs:
           service_secret=$(openssl rand -hex 32)
           echo "::add-mask::$service_secret"
           printf 'WORKSPACE_SERVICE_SECRET=%s\n' "$service_secret" >> .env
-          # Lesson images arrive with #33; the probe workspace runs on the test image meanwhile.
-          printf 'WORKSPACE_IMAGE=node:22.23.4-alpine\n' >> .env
       - run: docker compose config --quiet
+      # The network probe's helper container runs it.
       - run: docker pull node:22.23.4-alpine
+      - name: build the workspace image the lessons name
+        timeout-minutes: 15
+        shell: bash
+        run: bash scripts/build-workspace-image.sh academy-workspace:dev
       - run: docker compose up -d --build --wait --wait-timeout 180
       - run: docker compose ps
       # P7: root without capabilities can use the mounted socket. 404 workspace-not-found means the service asked
@@ -220,6 +224,10 @@ jobs:
             compose.log
             compose-ps.txt
           retention-days: 7
+      - name: disk usage (on failure or cancel)
+        if: failure() || cancelled()
+        shell: bash
+        run: df -h / && docker system df
       # Safe here only: the runner is ephemeral and this job created the volume.
       - if: always()
         run: docker compose down -v
