@@ -1,6 +1,7 @@
 import type { EventEmitter } from "node:events";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { createRequire } from "node:module";
+import { isIPv6 } from "node:net";
 import path from "node:path";
 import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
@@ -86,6 +87,18 @@ export function createRequestListener(
   };
 }
 
+/**
+ * The origin Next's start-server stores in `__NEXT_PRIVATE_ORIGIN` for a server listening on `hostname`
+ * (`start-server.js:262-280`): every-address hosts become their loopback, any other IPv6 address is bracketed.
+ */
+export function nextPrivateOrigin(hostname: string, port: number): string {
+  let host: string;
+  if (hostname === "" || hostname === "0.0.0.0") host = "localhost";
+  else if (hostname === "::") host = "[::1]";
+  else host = isIPv6(hostname) ? `[${hostname}]` : hostname;
+  return `http://${host}:${port}`;
+}
+
 export interface ShutdownDeps {
   publicServer: Pick<Server, "close" | "closeIdleConnections" | "closeAllConnections">;
   app: Pick<NextApp, "close">;
@@ -145,6 +158,11 @@ export async function start(): Promise<void> {
   process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = await readStandaloneConfig(dir);
   const port = Number.parseInt(process.env.PORT ?? "", 10) || 3000;
   const hostname = process.env.HOSTNAME || "0.0.0.0";
+  // Next's start-server sets this and the next() API does not. A server action's redirect fetches its target
+  // page from this origin; without it Next uses http://<HOSTNAME>:<PORT> (0.0.0.0:3000 in the image), Node's
+  // fetch sends that as Host, Better Auth's allowedHosts refuses it, and the sign-out redirect's sign-in page
+  // fails with SessionReadError.
+  process.env.__NEXT_PRIVATE_ORIGIN = nextPrivateOrigin(hostname, port);
 
   const publicServer = createServer();
   const keepAliveTimeout = Number.parseInt(process.env.KEEP_ALIVE_TIMEOUT ?? "", 10);

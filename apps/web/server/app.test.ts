@@ -9,12 +9,13 @@ import {
   createShutdown,
   createUpgradeDispatch,
   installSignalHandlers,
+  nextPrivateOrigin,
   SHUTDOWN_HARD_LIMIT_MS,
   TERMINAL_PATH,
 } from "./app.ts";
 import { serverErrorLine } from "./strings.ts";
 
-// U-dispatch, U-server-error and U-signals (#32 design 3.1, 3.3.1).
+// U-dispatch, U-server-error, U-signals and U-origin (#32 design 3.1, 3.3.1).
 
 const servers: Server[] = [];
 
@@ -177,5 +178,25 @@ describe("signals (U-signals)", () => {
 
     expect(shutdown).toHaveBeenCalledTimes(2);
     expect(manual.listenerCount("SIGTERM")).toBe(0);
+  });
+});
+
+describe("Next's private origin (U-origin)", () => {
+  // Next fetches a server action's redirect target from this origin. Node's fetch sends the URL's host as Host,
+  // and Better Auth's allowedHosts refuses 0.0.0.0, so the origin must be the one Next's start-server derives.
+  it("uses localhost when web listens on every IPv4 address", () => {
+    expect(nextPrivateOrigin("0.0.0.0", 3000)).toBe("http://localhost:3000");
+  });
+
+  it("uses the IPv6 loopback when web listens on every IPv6 address", () => {
+    expect(nextPrivateOrigin("::", 3000)).toBe("http://[::1]:3000");
+  });
+
+  it("brackets any other IPv6 address", () => {
+    expect(nextPrivateOrigin("::1", 3081)).toBe("http://[::1]:3081");
+  });
+
+  it("keeps a named host and the port as given", () => {
+    expect(nextPrivateOrigin("localhost", 3081)).toBe("http://localhost:3081");
   });
 });
