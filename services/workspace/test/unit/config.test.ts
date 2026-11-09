@@ -35,6 +35,8 @@ describe("loadConfig", () => {
       idleStopMinutes: 30,
       idleWarningMinutes: 5,
       startSlowSeconds: 10,
+      terminalShell: "/bin/sh",
+      terminalScrollbackLines: 1000,
     });
   });
 
@@ -106,6 +108,35 @@ describe("loadConfig", () => {
   it.each(["my_local", "Local"])("refuses the instance %s", (instance) => {
     expect(configError({ ...REQUIRED, WORKSPACE_INSTANCE: instance }).variable).toBe(
       "WORKSPACE_INSTANCE",
+    );
+  });
+
+  it("reads an absolute TERMINAL_SHELL", () => {
+    expect(loadConfig({ ...REQUIRED, TERMINAL_SHELL: "/bin/bash" }).terminalShell).toBe(
+      "/bin/bash",
+    );
+  });
+
+  it.each(["bash", "/bin/sh -c id", "/bin/sh\n", "/bin/$(id)"])(
+    "refuses the TERMINAL_SHELL %j",
+    (shell) => {
+      expect(configError({ ...REQUIRED, TERMINAL_SHELL: shell }).variable).toBe("TERMINAL_SHELL");
+    },
+  );
+
+  it("reads TERMINAL_SCROLLBACK_LINES, 1000 by default", () => {
+    expect(loadConfig(REQUIRED).terminalScrollbackLines).toBe(1000);
+    expect(
+      loadConfig({ ...REQUIRED, TERMINAL_SCROLLBACK_LINES: "100" }).terminalScrollbackLines,
+    ).toBe(100);
+    expect(
+      loadConfig({ ...REQUIRED, TERMINAL_SCROLLBACK_LINES: "10000" }).terminalScrollbackLines,
+    ).toBe(10_000);
+  });
+
+  it.each(["99", "10001", "1e3", "-5"])("refuses the TERMINAL_SCROLLBACK_LINES %j", (lines) => {
+    expect(configError({ ...REQUIRED, TERMINAL_SCROLLBACK_LINES: lines }).variable).toBe(
+      "TERMINAL_SCROLLBACK_LINES",
     );
   });
 

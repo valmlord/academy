@@ -1,3 +1,4 @@
+import { type Duplex, duplexPair } from "node:stream";
 import { WorkspaceNotFoundError } from "../../src/errors.js";
 import { type WorkspaceKey, workspaceId } from "../../src/identity.js";
 import type {
@@ -5,6 +6,8 @@ import type {
   GcResult,
   ManagedContainer,
   ManagedVolume,
+  ShellHandle,
+  ShellSpec,
   WorkspaceInfo,
   WorkspaceRuntime,
   WorkspaceSpec,
@@ -16,6 +19,24 @@ import type {
 
 /** A graceful stop through docker-init ends the keeper with SIGTERM: 128 + 15. */
 const STOPPED_EXIT_CODE = 143;
+
+/**
+ * One shell `openShell` handed out. The test plays the shell through `peer`: what it writes there is the
+ * shell's output, what it reads there is the input the unit under test sent.
+ */
+export interface FakeShell {
+  key: WorkspaceKey;
+  spec: ShellSpec;
+  /** The end the unit under test holds, as `ShellHandle.stream`. */
+  stream: Duplex;
+  peer: Duplex;
+  /** One `<cols>x<rows>` entry per resize call, rejected ones included. */
+  resizes: string[];
+  /** The next resize calls reject with these, in order; an empty queue resolves. */
+  resizeFailures: Error[];
+  /** What `exitCode()` answers, or the error it rejects with. */
+  exitCode: number | null | Error;
+}
 
 /** What a GC primitive answers for one container Id, or what it throws. */
 export type GcBehaviour = GcResult | Error;
@@ -29,6 +50,10 @@ export class FakeRuntime implements WorkspaceRuntime {
   #managed: ManagedContainer[] = [];
   #volumes: ManagedVolume[] = [];
   readonly #gcBehaviour = new Map<string, GcBehaviour>();
+  /** Every shell opened so far, in order. */
+  readonly shells: FakeShell[] = [];
+  /** The next `openShell` calls reject with these, in order (exec create or start failing). */
+  readonly openShellFailures: Error[] = [];
 
   constructor(instance: string) {
     this.#instance = instance;
@@ -134,6 +159,35 @@ export class FakeRuntime implements WorkspaceRuntime {
         ? this.#managed.filter((entry) => entry !== container)
         : this.#managed.map((entry) => (entry === container ? { ...entry, state: next } : entry));
     return "done";
+  }
+
+  async openShell(key: WorkspaceKey, spec: ShellSpec): Promise<ShellHandle> {
+    this.calls.push(`openShell ${this.#id(key)}`);
+    const failure = this.openShellFailures.shift();
+    if (failure !== undefined) throw failure;
+    const [stream, peer] = duplexPair();
+    const shell: FakeShell = {
+      key,
+      spec,
+      stream,
+      peer,
+      resizes: [],
+      resizeFailures: [],
+      exitCode: null,
+    };
+    this.shells.push(shell);
+    return {
+      stream,
+      resize: async (cols, rows) => {
+        shell.resizes.push(`${cols}x${rows}`);
+        const resizeFailure = shell.resizeFailures.shift();
+        if (resizeFailure !== undefined) throw resizeFailure;
+      },
+      exitCode: async () => {
+        if (shell.exitCode instanceof Error) throw shell.exitCode;
+        return shell.exitCode;
+      },
+    };
   }
 
   #id(key: WorkspaceKey): string {

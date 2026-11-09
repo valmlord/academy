@@ -59,9 +59,12 @@ export function RegionCycle(): null {
       const step = regionStep(event);
       if (step === 0) return;
       event.preventDefault();
+      // A focused widget with its own keydown listener (xterm's textarea) would otherwise still receive the key
+      // and send it on: F6 would reach the shell as `ESC [17~` while focus moves away.
+      event.stopPropagation();
       cycleRegion(step);
     }
-    // Capture phase, so the keys reach the cycle before any widget handles them.
+    // Capture phase on window, so the cycle runs before the key reaches any element's own listener.
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);

@@ -8,3 +8,8 @@ allowBuilds:
   esbuild: false
   protobufjs: false
   ssh2: false
+
+# @fastify/websocket@11.3.4 asks for ws ^8.16.0, which would resolve 8.22.1 (published 2026-10-31, inside the
+# two-week cutoff). Pinned until the fastify 5.12.8 bump removes it (#32 follow-up 7.2, ADR-0003 amendment #32).
+overrides:
+  ws: 8.22.0

@@ -170,3 +170,12 @@ reset: a seed creates the only user. Facts, with sources: the #29 research notes
   the limiter, origin-check, session-refresh and secret call sites cited in the design.
 - Multi-user features (#50 excludes them) would need sign-up or an admin path and a review of items 7,
   9 and 10.
+- Amended by #32 (Proposed): the terminal WebSocket (`/api/terminal/socket`, ADR-0011) is the one entry point outside
+  Next's router. It is served by web's custom server, reads no session and no database, and accepts only a ticket
+  minted by the `openTerminal` server action, which calls the DAL; the ticket binds the session user, course and
+  lesson, expires after 30 s, is single-use within one web process and carries a connection deadline. The relay
+  requires a loopback `Host` and `Origin` equal to `http://<Host>`, contains every error before authentication, and
+  cuts every connection at most `TERMINAL_RELAY_MAX_SECONDS` (default 15 minutes) after it opened; the browser renews
+  before that through `openTerminal`. Item 5 (sign-out revokes on the server) and item 10 (a re-key deletes every
+  session) therefore reach an open terminal within that bound, not at once. The guard test of item 8 does not see the
+  custom server; its own unit tests are the guard.

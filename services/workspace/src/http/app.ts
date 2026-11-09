@@ -2,6 +2,8 @@ import type { Writable } from "node:stream";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { WorkspaceLimits } from "../config.js";
 import type { WorkspaceManager } from "../manager.js";
+import type { TerminalRegistry } from "../terminal/registry.js";
+import { declareTerminalRoute, websocketOptions, websocketPlugin } from "../terminal/route.js";
 import { authorizationChecker } from "./auth.js";
 import { frameworkErrors, installErrorHandling } from "./errors.js";
 import { registerRoutes } from "./routes.js";
@@ -20,6 +22,8 @@ export interface AppDeps {
   manager: WorkspaceManager;
   settings: ServiceSettings;
   limits: WorkspaceLimits;
+  /** The terminal sessions behind `GET W/terminal` (#32). */
+  terminals: TerminalRegistry;
   /** Where pino writes; tests pass a stream they read, the service leaves it to stdout. */
   logStream?: Writable;
 }
@@ -69,6 +73,10 @@ export function buildApp(deps: AppDeps): BuiltApp {
   // Compose's healthcheck calls it every 5 s: at info level its request lines would bury the real events.
   app.get("/healthz", { logLevel: "warn" }, async () => ({ ok: true }));
   registerRoutes(app, deps);
+  // Plugins load at `ready()`, after this function returned: the root hooks and the error handling above
+  // already apply to the child, and the websocket plugin's route hook exists before the terminal route.
+  app.register(websocketPlugin, websocketOptions);
+  app.register(async (child) => declareTerminalRoute(child, deps.terminals));
   installErrorHandling(app);
   return { app, routes };
 }
