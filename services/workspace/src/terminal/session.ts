@@ -242,10 +242,6 @@ export class Session {
     this.#stream.on("drain", this.#onDrain);
   }
 
-  get isEnded(): boolean {
-    return this.#ended;
-  }
-
   isCreatedBy(connection: TerminalConnection): boolean {
     return connection === this.#createdBy;
   }

@@ -9,9 +9,6 @@ export const CLOSE_CODE = {
   environmentStopped: 4002,
 } as const;
 
-/** A WebSocket that never opened, or dropped without a close frame. */
-export const ABNORMAL_CLOSE = 1006;
-
 // The service's message limits (services/workspace/src/terminal/protocol.ts). A frame outside them is closed
 // 1008 `invalid message`, which would end the connection, so the browser keeps inside them.
 export const INPUT_MAX_UNITS = 8192;
