@@ -221,11 +221,12 @@ teardown failed=...)`, where `check status` covers the probes, the red runs and 
    **If the script fails** (a line `build-workspace-image: FAIL ...`, exit code 1), the line says where
    `academy-workspace:dev` stands. `academy-workspace:dev unchanged (...)` names the Id it had before, or `absent`, or
    `unknown` when Docker could not be asked: it is exactly what it was. On the first build (step 4a), stop there and
-   do not delete the `.env` line: lessons keep running on `node:22.23.4-alpine`. On a rebuild nothing changed for the
-   service or your workspaces, there is nothing to undo. After a failed smoke test or a failed `docker tag` the new
-   build stays as `academy-workspace:dev-candidate` for the bug report; `docker image rm
-   academy-workspace:dev-candidate` removes it. On "no space left on device", `docker system df` shows what holds the
-   Docker disk. A line `academy-workspace:dev is now sha256:... (tested; previous: ...)` means the new, tested build
+   do not delete the `.env` line: lessons keep running on `node:22.23.4-alpine`, without a terminal (that image has
+   no bash, "Browser terminal" below). On a rebuild nothing changed for the service or your workspaces, there is
+   nothing to undo. After a failed smoke test or a failed `docker tag` the new build stays as
+   `academy-workspace:dev-candidate` for the bug report; `docker image rm academy-workspace:dev-candidate`
+   removes it. On "no space left on device", `docker system df` shows what holds the Docker disk. A line
+   `academy-workspace:dev is now sha256:... (tested; previous: ...)` means the new, tested build
    is already delivered and only the extra tag is left: `docker image rm academy-workspace:dev-candidate` removes it,
    and on the first build step 4a goes on to 4b. A line `academy-workspace:dev is ... (before this run: ...)` means
    the script could not tell (Docker did not answer, or another run moved the tag): run the build again before going
@@ -377,8 +378,8 @@ docker network ls --filter label=academy.workspace.instance --format '{{.ID}} {{
 
 ## Browser terminal
 
-Every lesson page has an environment region next to the lesson text with one tab, the terminal: a shell (`sh`
-until #33) in that lesson's workspace container ([ADR-0011](docs/adr/0011-browser-terminal.md)). Opening a lesson
+Every lesson page has an environment region next to the lesson text with one tab, the terminal: a bash shell
+in that lesson's workspace container ([ADR-0011](docs/adr/0011-browser-terminal.md)). Opening a lesson
 starts its workspace (created on the first visit, started when stopped); it stops after 30 idle minutes as
 before. The browser talks to web's own port (`/api/terminal/socket`), web relays the connection to the workspace
 service, and the service keeps one terminal session per learner and lesson. A dropped connection reconnects to
@@ -386,9 +387,10 @@ the same session and redraws the screen; a second browser tab on the same lesson
 first tab offers to take it back. The first key or paste typed into a lesson's terminal records the lesson as
 started in the database (an enrollment and an `in-progress` `lesson_progress` row).
 
-**Before the first deploy (until #33 ships the lesson image):** add `WORKSPACE_IMAGE=node:22.23.4-alpine` to the
-root `.env` in an editor, and run `docker pull node:22.23.4-alpine` once. Without it every lesson says that the
-environment image `academy-workspace:dev` is missing.
+**Before the first deploy:** build the lesson image and move off `WORKSPACE_IMAGE` ("Workspace image" above, step
+4). Without the image every lesson says that the environment image `academy-workspace:dev` is missing. The terminal
+runs `/bin/bash` (`TERMINAL_SHELL`), which the lesson image has and `node:22.23.4-alpine` does not: on that image
+the terminal does not open.
 
 - **`pnpm dev` has no terminal.** It runs `next dev` without web's custom server; the lesson's environment says it
   could not start. The terminal works in the compose stack on http://127.0.0.1:3080.

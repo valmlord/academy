@@ -86,9 +86,11 @@ owner_containers=""
 auth_secret=$(openssl rand -hex 32)
 service_secret=$(openssl rand -hex 32)
 
+# The workspaces run on NODE_IMAGE, which has no bash: the terminal specs need the compose default /bin/bash
+# replaced by the shell that image has.
 envv=(env -i "PATH=$PATH" "HOME=$HOME" COMPOSE_ENV_FILES=/dev/null "COMPOSE_PROJECT_NAME=$PROJECT"
   "WEB_IMAGE_TAG=$TAG" "WORKSPACE_SERVICE_IMAGE_TAG=$TAG" "WORKSPACE_INSTANCE=$INSTANCE"
-  "DB_PORT=$DB_PORT_T31" "WEB_PORT=$WEB_PORT_T31" "WORKSPACE_IMAGE=$NODE_IMAGE"
+  "DB_PORT=$DB_PORT_T31" "WEB_PORT=$WEB_PORT_T31" "WORKSPACE_IMAGE=$NODE_IMAGE" "TERMINAL_SHELL=/bin/sh"
   "BETTER_AUTH_SECRET=$auth_secret" "WORKSPACE_SERVICE_SECRET=$service_secret")
 base=("${envv[@]}" docker compose -p "$PROJECT" -f docker-compose.yml)
 with_port=("${base[@]}" -f "$OVERRIDE")

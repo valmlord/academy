@@ -35,7 +35,7 @@ describe("loadConfig", () => {
       idleStopMinutes: 30,
       idleWarningMinutes: 5,
       startSlowSeconds: 10,
-      terminalShell: "/bin/sh",
+      terminalShell: "/bin/bash",
       terminalScrollbackLines: 1000,
     });
   });
