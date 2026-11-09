@@ -17,6 +17,9 @@ import {
 
 // U-session-end (design 3.2.1 rows 2, 21, 24; 3.2.2 C5, C9) and U-resize-error (row 16, C1), design 10.1.
 
+/** Arbitrary under the fake clock; the test advances three of these. */
+const HEARTBEAT_MS = 100;
+
 let setup: TerminalSetup | undefined;
 let spy: ReturnType<typeof processErrorSpy> | undefined;
 
@@ -27,6 +30,7 @@ async function start(options: Parameters<typeof terminalSetup>[0] = {}): Promise
 }
 
 afterEach(async () => {
+  vi.useRealTimers();
   await setup?.close();
   setup = undefined;
   spy?.stop();
@@ -128,6 +132,26 @@ describe("session end paths (U-session-end)", () => {
 
     expect(await client.closed).toEqual({ code: 1001, reason: "service shutting down" });
     await expectFullyEnded(current, current.screens[0]);
+  });
+
+  it("stops the heartbeat when the session ends, so no interval outlives it", async () => {
+    // Only the interval functions are faked: the sockets and the setup keep their real timeouts. The heartbeat is
+    // unref'd, so an interval kept past the end would not hang the service; it would leak one per ended session.
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const current = await start({ heartbeatMs: HEARTBEAT_MS });
+    const client = await current.connect();
+    await waitForAttached(client);
+    const server = [...current.app.websocketServer.clients][0];
+    if (server === undefined) throw new Error("no server socket");
+    const ping = vi.spyOn(server, "ping");
+    expect(vi.getTimerCount()).toBe(1);
+
+    current.registry.closeAll();
+    vi.advanceTimersByTime(3 * HEARTBEAT_MS);
+
+    expect(vi.getTimerCount()).toBe(0);
+    expect(ping).not.toHaveBeenCalled();
+    expect(await client.closed).toEqual({ code: 1001, reason: "service shutting down" });
   });
 
   it.each([
