@@ -197,9 +197,34 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
 9. **`WorkspaceRuntime` at the lifecycle level**: `ensureRunning`, `stop`, `remove`, `inspect`, `listManaged`,
    `listManagedVolumes`, and the GC primitives `stopContainer` / `removeContainer` by Id. `DockerRuntime` is the
    one adapter.
-10. **Image contract for #33**: uid/gid 1000, `HOME=/workspace/home`, working directory `/workspace/home/work`,
-    nothing needed under `/workspace` in the image, a read-only root filesystem with a writable `$HOME` and
-    `/tmp`, `sleep` accepting `infinity`. Until #33, `WORKSPACE_IMAGE` overrides every lesson's image.
+10. **Image contract** (#33, `images/workspace`). Every lesson names `academy-workspace:dev` (the schema default),
+    built on the learner's machine by `scripts/build-workspace-image.sh`, which tags it only after its smoke test
+    passes, and never pulled (the service only inspects it, ADR-0010 item 6 `image-missing`). Ubuntu 24.04 by
+    digest, apt packages at exact versions from a dated snapshot; every tarball and binary checked against a pinned
+    sha256 (the agent CLI also against its signed manifest); apt and npm verified by their signed indexes and lockfile
+    integrity. uid/gid 1000 is `learner` with home `/workspace/home` and no
+    supplementary group; `HOME=/workspace/home`, working directory `/workspace/home/work`; nothing under
+    `/workspace` in the image; a read-only root filesystem with a writable `$HOME` and `/tmp`; no `ENTRYPOINT`,
+    `sleep` accepting `infinity`; the setuid/setgid files are the base's (pinned by the smoke test), and they, like
+    any file capability, grant nothing under `no-new-privileges` and `--cap-drop ALL`. Tool
+    locations are a contract with the lesson checks and change only together with them: `python3` (3.12), `git`,
+    `make`, `rg` in `/usr/bin`; Go at `/usr/local/go`; Node 22 at `/opt/node`; the TypeSpec tools in a read-only
+    `/opt/academy/node` with wrappers in `/opt/academy/bin`; the agent CLI in its own directory under `/opt` (the
+    `ENV PATH` line of `images/workspace/Dockerfile` names it), never in `/usr/bin`, `/bin` or the `python3`
+    directory (#43). `PATH`, `LANG` and `DISABLE_AUTOUPDATER=1` come from the
+    image; the create body adds only `HOME` (item 5). No API key is in the image or reaches a workspace (a follow-up
+    issue decides how); the learner signs in with `/login`. **Residual**: `/login` stores a long-lived OAuth token in
+    the agent CLI's credentials file in the home on each workspace volume. Every process in that workspace runs as
+    the same uid and
+    can read it, so can anyone holding the Docker socket (the service, or the host user), and a process in the
+    workspace can send it out through the outbound network that item 6 leaves open (its residuals). Accepted for
+    #33 because the learner is the only user and logs in deliberately; the follow-up issue decides the key and
+    login path. **Residual** of the layer scan: it searches raw bytes, so a secret re-encoded inside a file (UTF-16,
+    base64) or inside a compressed file in a layer is not found; only the context allowlist
+    (`images/workspace/.dockerignore`) keeps such files out of the build. `WORKSPACE_IMAGE` remains an override for
+    test runs (the isolated recipe), empty in normal use. A
+    rebuilt image reaches only workspaces created after the rebuild: an existing container keeps its image until it
+    is removed (item 5; #92 for re-creation).
 11. **Engine API v1.44**: every request path carries the version prefix, so a daemon upgrade cannot change the
     shape of a response; every response is validated before use.
 12. **Checks** (how `checks/` reaches the grader) are left to #34.
@@ -227,3 +252,8 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
   reverted compose publishes db on the host again (residual 2 of item 6); then
   `docker compose up -d --remove-orphans`, which removes the `workspace` container but leaves the network
   `academy_workspace-api`, removed with `docker network rm academy_workspace-api` (volumes stay for a later return).
+- The workspace image is about 1 GB and is built locally (`scripts/build-workspace-image.sh`)
+  from seven download hosts (the Ubuntu apt archive, `snapshot.ubuntu.com`, `go.dev`, `dl.google.com`, `nodejs.org`,
+  the agent CLI's release host (named in `images/workspace/Dockerfile`), `registry.npmjs.org`) and Docker Hub; a build
+  fails when one of them is down or a pinned file
+  changed, and the apt snapshot freezes security fixes until its date is bumped.

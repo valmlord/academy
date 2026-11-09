@@ -18,12 +18,13 @@
 - **apps/web**: catalog, lesson, dashboard, sign-in. Reads the course only through `@academy/lesson-schema`.
   Does not talk to Docker directly.
 - **services/workspace**: workspace lifecycle (#31: ensure running, stop, delete, idle stop, reconcile), later
-  the terminal (#32), running checks (#34), mentor (Claude Agent SDK) and transcripts. The only service with
+  the terminal (#32), running checks (#34), mentor (the agent SDK) and transcripts. The only service with
   access to Docker (the socket is bind-mounted, ADR-0002 item 1). Reads `course/` read-only at `/course`, to copy
   a lesson's starter into the workspace volume. Its HTTP API is ADR-0010, reachable only from web (client in #32).
 - **packages/lesson-schema**: the lesson contract (ADR-0001) and its validator.
 - **packages/db**: schema and migrations (Drizzle).
-- **images/workspace**: the workspace image.
+- **images/workspace**: the workspace image (Ubuntu 24.04, the agent CLI, the lesson toolchains; ADR-0002 item 10),
+  built locally by `scripts/build-workspace-image.sh`.
 - **course/**: content. Written by the methodologists, read by the platform.
 - **design/**: flows, the design system (tokens) and page prototypes. Written by the design team, read by
   apps/web (ADR-0006).
