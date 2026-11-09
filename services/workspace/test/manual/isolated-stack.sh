@@ -264,6 +264,21 @@ teardown() {
   exit 0
 }
 
+# web_log_clean: Delta 5. Fails when web's log since start has a Next-logged server error; called before service-down,
+# which makes web log errors on purpose. Called only as an if condition (set -e is off there), so it returns explicitly.
+web_log_clean() {
+  local log
+  log=$("${base[@]}" logs --no-color web) || { echo "$PREFIX FAIL web-log: docker compose logs web failed"; return 1; }
+  if ! grep -qF 'web: database migrations applied' <<<"$log"; then
+    echo "$PREFIX FAIL web-log: web log lacks \"web: database migrations applied\"; the guard did not read this stack's web log"
+    return 1
+  fi
+  if grep -nF -e '⨯' -e 'Error [' <<<"$log"; then
+    echo "$PREFIX FAIL web-log: web logged a server error during the e2e run (matching lines above)"
+    return 1
+  fi
+}
+
 # run_e2e_stages: seed, the e2e suite and the service-down spec against this stack (design 9, order 10). A failed
 # stage sets status and the run goes on, so service-back always restores the service before the probes. The seed
 # password lives only in this function's arguments and is never echoed.
@@ -275,6 +290,7 @@ run_e2e_stages() {
     "SEED_PASSWORD=$seed_password" "E2E_BASE_URL=http://127.0.0.1:$WEB_PORT_T31" E2E_TERMINAL=1 E2E_WEBKIT=1)
   if "${e2e_env[@]}" pnpm seed; then echo "$PREFIX OK seed"; else echo "$PREFIX FAIL seed"; status=1; fi
   if "${e2e_env[@]}" pnpm test:e2e; then echo "$PREFIX OK e2e"; else echo "$PREFIX FAIL e2e"; status=1; fi
+  if web_log_clean; then echo "$PREFIX OK web-log"; else status=1; fi
   if "${base[@]}" stop workspace &&
     "${e2e_env[@]}" E2E_SERVICE_DOWN=1 pnpm --filter @academy/web exec playwright test e2e/service-down.spec.ts \
       --project=chromium --output test-results/service-down; then

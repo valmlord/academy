@@ -112,7 +112,9 @@ WebSocket). Facts, with sources:
 - The used-ticket set lives in one web process: after a web restart a ticket minted in the last 30 s can be used once
   more by whoever holds it.
 - A Next upgrade must re-verify the custom server (required-server-files.json, the `httpServer` option, the `next`
-  export).
+  export, and `__NEXT_PRIVATE_ORIGIN`, which Next marks for removal; without it a server-action redirect fetches
+  through `0.0.0.0` and the sign-in page fails to read the session). The e2e job fails when web logs a server error
+  during the suite.
 - The `ws` override in `pnpm-workspace.yaml` is removed with the fastify 5.12.8 bump.
 - Accepted residual (Stepan, 2026-11-04): a shell whose session ends while the shell is still running (service
   restart, an end with code 1011, a failure after the exec started) keeps running inside the container, without a
