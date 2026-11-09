@@ -39,9 +39,18 @@ export const terminalLine = {
     `terminal ${workspaceId} ${conn}: resize failed (${errorName})`,
 };
 
-/** The class name of a thrown value, the only part of an error the terminal logs. */
+// The pattern of web's relay (apps/web/server/relay.ts), restated because the two share no package.
+const ERROR_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
+
+/**
+ * The name of a thrown Error when it is a string and an identifier of at most 64 characters, otherwise `Error`;
+ * `NonError` for any other thrown value. The only part of an error the terminal logs.
+ */
 export function errorName(error: unknown): string {
-  return error instanceof Error ? error.name : typeof error;
+  if (!(error instanceof Error)) return "NonError";
+  // Read once: a getter could pass the checks with one value and return another.
+  const name: unknown = error.name;
+  return typeof name === "string" && ERROR_NAME.test(name) ? name : "Error";
 }
 
 /** The server-held screen: a headless xterm fed with every byte of output, serialized on a resumed attach. */

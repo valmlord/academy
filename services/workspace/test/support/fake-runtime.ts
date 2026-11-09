@@ -33,7 +33,7 @@ export interface FakeShell {
   /** One `<cols>x<rows>` entry per resize call, rejected ones included. */
   resizes: string[];
   /** The next resize calls reject with these, in order; an empty queue resolves. */
-  resizeFailures: Error[];
+  resizeFailures: unknown[];
   /** What `exitCode()` answers, or the error it rejects with. */
   exitCode: number | null | Error;
 }
