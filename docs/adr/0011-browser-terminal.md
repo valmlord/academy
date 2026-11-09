@@ -52,10 +52,11 @@ WebSocket). Facts, with sources:
    `renewInMs`, the delay after which the browser renews, or null when the deadline is within the renewal margin.
    The relay checks the token against a fixed ASCII pattern with an exact 43-character MAC before any decode or
    compare, accepts a ticket once per process, only with a loopback `Host` (`localhost`, `127.0.0.1`, `[::1]`, any
-   port) and an `Origin` of exactly `http://<Host>`, builds the upstream path from the payload alone, forwards only
-   `Upgrade`, `Connection`, `Sec-WebSocket-Key`, `Sec-WebSocket-Version` plus its own `Authorization` and a random
-   connection id, and cuts the connection at `min(dl, connect + TERMINAL_RELAY_MAX_SECONDS)` (default 900 s,
-   120-3600). Every raw socket gets an error listener before anything else and keeps one until it is gone, and every
+   port; a missing `Host` is refused like any other) and an `Origin` of exactly `http://<Host>`, builds the upstream
+   path from the payload alone, sends the service exactly `Upgrade`, `Connection` and `Sec-WebSocket-Version` with
+   fixed values, the browser's `Sec-WebSocket-Key` (the only value taken from the browser), `Host` set to the host of
+   `WORKSPACE_SERVICE_URL`, its own `Authorization` and a random connection id, and cuts the connection at
+   `min(dl, connect + TERMINAL_RELAY_MAX_SECONDS)` (default 900 s, 120-3600). Every raw socket gets an error listener before anything else and keeps one until it is gone, and every
    upgrade path runs inside a catch, so no malformed request or reset can stop the server; refusal and containment
    logs are rate-limited per reason and never carry an error object.
 4. **Session.** The workspace service holds at most one session per workspace: a TTY exec (`Cmd [TERMINAL_SHELL,

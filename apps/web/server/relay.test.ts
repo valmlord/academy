@@ -14,6 +14,7 @@ import {
   ticketFor,
   type Upstream,
   type Web,
+  within,
 } from "@/test/relay-harness";
 import { refusedLine, suppressedLine, upstreamFailedLine } from "./strings.ts";
 
@@ -156,6 +157,18 @@ describe("relay (U-relay)", () => {
       expect(upstream.records).toEqual([]);
     },
   );
+
+  it("refuses an upgrade without a Host header with 403 before the Origin check", async () => {
+    const { upstream, web } = await setup();
+    const client = upgrade(web, ticketFor(Date.now()), {
+      Host: undefined,
+      Origin: "http://undefined",
+    });
+
+    expect(await within(refusal(web, client), "refusal")).toBe("HTTP/1.1 403 Forbidden");
+    expect(web.lines).toEqual([refusedLine(connOf(web.lines), "forbidden-host")]);
+    expect(upstream.records).toEqual([]);
+  });
 
   it.each([
     ["an Upgrade other than websocket", { Upgrade: "h2c" }, "GET"],
