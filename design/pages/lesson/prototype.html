@@ -74,6 +74,8 @@
 <template data-state="no-checks" data-state-label="F13 empty: no check the platform runs (sample)"></template>
 <template data-state="results-limit-known" data-state-label="F13.5 results, limit known (from #68)"></template>
 <template data-state="limit-warning" data-state-label="F14.1 one attempt left, limit known (from #68)"></template>
+<template data-state="limit-known-running" data-state-label="F13.2 run from the limit-known results (from #68)"></template>
+<template data-state="limit-warning-running" data-state-label="F14.2 the run on the last attempt (from #68)"></template>
 <template data-state="closed" data-state-label="F14.3-F14.4 check closed, lesson finished, not passed (limit known)"></template>
 <template data-state="closed-limit-unknown" data-state-label="F14 closed, limit unknown, a later visit"></template>
 <template data-state="mixed" data-state-label="F14.4 mixed results (sample data)"></template>
@@ -161,7 +163,7 @@
           <p class="lesson-meta"><span class="badge" data-variant="outline">артефакт</span><span>около 40 мин</span></p>
           <div class="outcomes">
             <h2>Чему научитесь</h2>
-            <ul data-state="theory task text-error copy-denied no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only">
+            <ul data-state="theory task text-error copy-denied no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
               <li>Выбирает модель, уровень ризонинга и облачный или локальный запуск под конкретную задачу и называет ограничение, которое определило выбор: качество, задержка, цена, контекст или приватность.</li>
             </ul>
             <div class="stack" data-gap="2" data-state="outcomes-collapsed outcomes-expanded">
@@ -186,9 +188,9 @@
 
         <div class="tabs">
           <div class="tabs-list" role="tablist" aria-label="Разделы урока" data-step="F2.4">
-            <button class="tabs-trigger" type="button" role="tab" id="tab-theory" aria-controls="panel-theory" aria-selected="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only" data-select-in-states="theory outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done check-running after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled closed-limit-unknown stream-lost stream-failed">Теория</button>
+            <button class="tabs-trigger" type="button" role="tab" id="tab-theory" aria-controls="panel-theory" aria-selected="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-select-in-states="theory outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done check-running after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled closed-limit-unknown stream-lost stream-failed">Теория</button>
             <button class="tabs-trigger" type="button" role="tab" id="tab-task" aria-controls="panel-task" aria-selected="false" data-select-in-states="task no-theory">Задание</button>
-            <button class="tabs-trigger" type="button" role="tab" id="tab-checks" aria-controls="panel-checks" aria-selected="false" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only" data-select-in-states="checks-before results statuses lesson-passed results-limit-known limit-warning closed mixed mixed-running passed-last-failed runner-error budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only">Проверки<span class="status-icon" data-status="running" aria-hidden="true" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost"></span><span class="sr-only" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost">, идёт проверка</span></button>
+            <button class="tabs-trigger" type="button" role="tab" id="tab-checks" aria-controls="panel-checks" aria-selected="false" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-select-in-states="checks-before results statuses lesson-passed results-limit-known limit-warning closed mixed mixed-running passed-last-failed runner-error budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">Проверки<span class="status-icon" data-status="running" aria-hidden="true" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"></span><span class="sr-only" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running">, идёт проверка</span></button>
           </div>
 
           <!-- Теория -->
@@ -199,7 +201,7 @@
               <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="theory" data-focus="#panel-theory">Повторить</button></div>
             </div>
 
-            <div data-state="theory task outcomes-collapsed outcomes-expanded copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only">
+            <div data-state="theory task outcomes-collapsed outcomes-expanded copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
               <nav class="toc" aria-labelledby="toc-heading" data-step="F7.3">
                 <h2 id="toc-heading">Содержание</h2>
                 <ol>
@@ -277,7 +279,7 @@
                 </ul>
                 <div class="code-block">
                   <div class="code-block-header">
-                    <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="theory task outcomes-collapsed outcomes-expanded text-error no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only" data-step="F7.5">Копировать</button>
+                    <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="theory task outcomes-collapsed outcomes-expanded text-error no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-step="F7.5">Копировать</button>
                     <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="copy-denied">Не скопировано, выделите текст вручную</button>
                   </div>
                   <pre><code id="code-ollama">export ANTHROPIC_BASE_URL=http:&#47;&#47;localhost:11434
@@ -311,7 +313,7 @@ claude</code></pre>
                 <p>Вы разберёте шесть карточек задач. В каждой одно ограничение связывает руки, остальные ослаблены. Для каждой выберите уровень модели, effort и место запуска и назовите ограничение, которое решило выбор. Потом квиз на механизмы: что меняет effort, как проверить настройку, когда оправдана локальная модель.</p>
               </article>
 
-              <div class="sources" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only">
+              <div class="sources" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
                 <h2>Источники</h2>
                 <ul>
                   <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview">Anthropic: Models overview (линейка, цены, окно контекста, effort по умолчанию)</a> <span class="muted">проверено 2026-10-27</span></li>
@@ -384,7 +386,7 @@ claude</code></pre>
               <h2 id="checks-heading" tabindex="-1">Проверки</h2>
 
               <ul class="check-list" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-not-running reset-dialog reset-done checks-before one-pane-env split-focused split-cycled">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-notrun">
                     <span class="status-icon" data-status="muted" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -396,7 +398,7 @@ claude</code></pre>
               <p class="text-sm muted" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-not-running reset-dialog reset-done checks-before one-pane-env split-focused split-cycled budget-lesson budget-dialog">Попыток пока нет. Нажмите "Проверить", когда будете готовы.</p>
 
               <ul class="check-list" data-state="check-running actions-check-running" data-step="F13.3">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-running">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -408,7 +410,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="results after-run-stopped after-run-starting">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-failed">
                     <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -422,7 +424,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="lesson-passed">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-passed">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -437,7 +439,7 @@ claude</code></pre>
 
               <!-- Sample data: one row per v1 check status, titles of module 00 command checks. -->
               <ul class="check-list" data-state="statuses">
-                <li>
+                <li data-focus-fallback="[data-check-row='permissions-policy']">
                   <button class="check-row-trigger" type="button" data-check-row="permissions-policy" data-collapsible aria-expanded="false" aria-controls="row-s1">
                     <span class="status-icon" data-status="muted" aria-hidden="true"></span>
                     <span class="check-row-title">Правила разрешений в .claude/settings.json и Makefile против политики</span>
@@ -445,7 +447,7 @@ claude</code></pre>
                   </button>
                   <div class="check-row-panel" id="row-s1" data-focus-fallback="[data-check-row='permissions-policy']" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='hook-blocks-generated']">
                   <button class="check-row-trigger" type="button" data-check-row="hook-blocks-generated" data-collapsible aria-expanded="false" aria-controls="row-s2">
                     <span class="status-icon" data-status="queued" aria-hidden="true"></span>
                     <span class="check-row-title">PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит</span>
@@ -453,7 +455,7 @@ claude</code></pre>
                   </button>
                   <div class="check-row-panel" id="row-s2" data-focus-fallback="[data-check-row='hook-blocks-generated']" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='harness-behaviour']">
                   <button class="check-row-trigger" type="button" data-check-row="harness-behaviour" data-collapsible aria-expanded="false" aria-controls="row-s3">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения</span>
@@ -462,7 +464,7 @@ claude</code></pre>
                   </button>
                   <div class="check-row-panel" id="row-s3" data-focus-fallback="[data-check-row='harness-behaviour']" hidden><p class="text-sm muted">Неудачных попыток: 1</p></div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-structure" data-collapsible aria-expanded="false" aria-controls="row-s4">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
@@ -470,7 +472,7 @@ claude</code></pre>
                   </button>
                   <div class="check-row-panel" id="row-s4" data-focus-fallback="[data-check-row='agents-md-structure']" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='cost-estimate']">
                   <button class="check-row-trigger" type="button" data-check-row="cost-estimate" data-collapsible aria-expanded="true" aria-controls="row-s5">
                     <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
                     <span class="check-row-title">Стоимость трёх сессий, промах кэша, главная составляющая, дешевле за задачу</span>
@@ -481,7 +483,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 2</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='plan-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="plan-structure" data-collapsible aria-expanded="false" aria-controls="row-s6">
                     <span class="status-icon" data-status="warning" aria-hidden="true"></span>
                     <span class="check-row-title">Структура plan.md: разделы, шаги с проверкой, пути, вопросы</span>
@@ -490,7 +492,7 @@ claude</code></pre>
                   </button>
                   <div class="check-row-panel" id="row-s6" data-focus-fallback="[data-check-row='plan-structure']" hidden><p class="text-sm muted">Неудачных попыток: 1</p></div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-s7">
                     <span class="status-icon" data-status="warning" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -501,36 +503,36 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 2</p>
                   </div>
                 </li>
-                <li>
-                  <button class="check-row-trigger" type="button" data-check-row="plan-structure" data-collapsible aria-expanded="false" aria-controls="row-s8">
+                <li data-focus-fallback="[data-check-row='plan-structure-uncounted']">
+                  <button class="check-row-trigger" type="button" data-check-row="plan-structure-uncounted" data-collapsible aria-expanded="false" aria-controls="row-s8">
                     <span class="status-icon" data-status="warning" aria-hidden="true"></span>
                     <span class="check-row-title">Структура plan.md: разделы, шаги с проверкой, пути, вопросы</span>
                     <span class="check-row-status">Время вышло, попытка не засчитана</span>
                     <span class="check-row-meta"><span>лимит 0:30</span></span>
                   </button>
-                  <div class="check-row-panel" id="row-s8" data-focus-fallback="[data-check-row='plan-structure']" hidden>
+                  <div class="check-row-panel" id="row-s8" data-focus-fallback="[data-check-row='plan-structure-uncounted']" hidden>
                     <p class="text-sm muted">Неудачных попыток: 1</p>
                   </div>
                 </li>
-                <li>
-                  <button class="check-row-trigger" type="button" data-check-row="permissions-policy" data-collapsible aria-expanded="true" aria-controls="row-s9">
+                <li data-focus-fallback="[data-check-row='permissions-policy-error']">
+                  <button class="check-row-trigger" type="button" data-check-row="permissions-policy-error" data-collapsible aria-expanded="true" aria-controls="row-s9">
                     <span class="status-icon" data-status="warning" aria-hidden="true"></span>
                     <span class="check-row-title">Правила разрешений в .claude/settings.json и Makefile против политики</span>
                     <span class="check-row-status">Сбой проверки, попытка не засчитана</span>
                   </button>
-                  <div class="check-row-panel" id="row-s9" data-focus-fallback="[data-check-row='permissions-policy']">
+                  <div class="check-row-panel" id="row-s9" data-focus-fallback="[data-check-row='permissions-policy-error']">
                     <button class="button collapsible-trigger" type="button" data-variant="ghost" data-size="sm" data-collapsible aria-expanded="false" aria-controls="row-s9-details">Подробности</button>
                     <pre class="error-details" id="row-s9-details" hidden>grader exited: container stopped (exit code 137) before checks/verify_permissions.py finished</pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
-                  <button class="check-row-trigger" type="button" data-check-row="cost-estimate" data-collapsible aria-expanded="true" aria-controls="row-s10">
+                <li data-focus-fallback="[data-check-row='cost-estimate-closed']">
+                  <button class="check-row-trigger" type="button" data-check-row="cost-estimate-closed" data-collapsible aria-expanded="true" aria-controls="row-s10">
                     <span class="status-icon" data-status="closed" aria-hidden="true"></span>
                     <span class="check-row-title">Стоимость трёх сессий, промах кэша, главная составляющая, дешевле за задачу</span>
                     <span class="check-row-status">Закрыта: не пройдено</span>
                   </button>
-                  <div class="check-row-panel" id="row-s10" data-focus-fallback="[data-check-row='cost-estimate']">
+                  <div class="check-row-panel" id="row-s10" data-focus-fallback="[data-check-row='cost-estimate-closed']">
                     <p class="text-sm">Проверка закрыта: попытки исчерпаны. Сброс рабочей папки и перезапуск окружения её не откроют.</p>
                     <p class="text-sm muted">Неудачных попыток: 10</p>
                   </div>
@@ -538,7 +540,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="results-limit-known">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-lk">
                     <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -552,22 +554,53 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="limit-warning">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-warn">
                     <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
                     <span class="check-row-status">Не пройдено</span>
                     <span class="check-row-meta"><span data-tone="warning" data-step="F14.1"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span></span>
                   </button>
-                  <div class="check-row-panel" id="row-warn" data-focus-fallback="[data-check-row='model-routing']" data-step="F14.2">
+                  <div class="check-row-panel" id="row-warn" data-focus-fallback="[data-check-row='model-routing']">
                     <pre class="check-row-message">2 из 6 карточек неверны.</pre>
                     <p class="text-sm muted">Неудачных попыток: 9 из 10</p>
                   </div>
                 </li>
               </ul>
 
+
+              <!-- The run started from #state-results-limit-known: the same check, its counter and the open row continue. -->
+              <ul class="check-list" data-state="limit-known-running">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-lk-run">
+                    <span class="status-icon" data-status="running" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Идёт</span>
+                    <span class="check-row-meta"><span class="check-row-time">0:12 из 0:30</span></span>
+                  </button>
+                  <div class="check-row-panel" id="row-lk-run" data-focus-fallback="[data-check-row='model-routing']">
+                    <p class="text-sm muted">Неудачных попыток: 3 из 10</p>
+                  </div>
+                </li>
+              </ul>
+
+              <!-- The run started from #state-limit-warning: the same check, its counter and the open row continue. -->
+              <ul class="check-list" data-state="limit-warning-running">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-warn-run">
+                    <span class="status-icon" data-status="running" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Идёт</span>
+                    <span class="check-row-meta"><span class="check-row-time">0:12 из 0:30</span><span data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span></span>
+                  </button>
+                  <div class="check-row-panel" id="row-warn-run" data-focus-fallback="[data-check-row='model-routing']">
+                    <p class="text-sm muted">Неудачных попыток: 9 из 10</p>
+                  </div>
+                </li>
+              </ul>
+
               <ul class="check-list" data-state="closed">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-closed">
                     <span class="status-icon" data-status="closed" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -582,7 +615,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="closed-limit-unknown">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-closed-unknown">
                     <span class="status-icon" data-status="closed" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -598,7 +631,7 @@ claude</code></pre>
 
               <!-- Sample data: four checks from module 00 in one lesson; plan-structure has no limit in lesson.yaml, 3 is a sample limit. -->
               <ul class="check-list" data-state="mixed">
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-structure" data-collapsible aria-expanded="true" aria-controls="row-mixed-a">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
@@ -611,7 +644,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='cost-estimate']">
                   <button class="check-row-trigger" type="button" data-check-row="cost-estimate" data-collapsible aria-expanded="false" aria-controls="row-mixed-b">
                     <span class="status-icon" data-status="closed" aria-hidden="true"></span>
                     <span class="check-row-title">Стоимость трёх сессий, промах кэша, главная составляющая, дешевле за задачу</span>
@@ -623,7 +656,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 10 из 10</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-mixed-c">
                     <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -635,7 +668,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 9 из 10</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='plan-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="plan-structure" data-collapsible aria-expanded="false" aria-controls="row-mixed-d">
                     <span class="status-icon" data-status="warning" aria-hidden="true"></span>
                     <span class="check-row-title">Структура plan.md: разделы, шаги с проверкой, пути, вопросы</span>
@@ -650,7 +683,7 @@ claude</code></pre>
 
               <!-- Sample data: the run of #state-mixed; the closed check is not run. -->
               <ul class="check-list" data-state="mixed-running">
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-structure" data-collapsible aria-expanded="true" aria-controls="row-mixed-run-a">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
@@ -661,7 +694,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='cost-estimate']">
                   <button class="check-row-trigger" type="button" data-check-row="cost-estimate" data-collapsible aria-expanded="false" aria-controls="row-mixed-run-b">
                     <span class="status-icon" data-status="closed" aria-hidden="true"></span>
                     <span class="check-row-title">Стоимость трёх сессий, промах кэша, главная составляющая, дешевле за задачу</span>
@@ -673,7 +706,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 10 из 10</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-mixed-run-c">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -684,7 +717,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 9 из 10</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='plan-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="plan-structure" data-collapsible aria-expanded="false" aria-controls="row-mixed-run-d">
                     <span class="status-icon" data-status="queued" aria-hidden="true"></span>
                     <span class="check-row-title">Структура plan.md: разделы, шаги с проверкой, пути, вопросы</span>
@@ -698,7 +731,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="passed-last-failed">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-sticky">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -713,7 +746,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="runner-error">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="true" aria-controls="row-runner">
                     <span class="status-icon" data-status="warning" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -728,7 +761,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="stream-lost">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-stream-lost">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -742,7 +775,7 @@ claude</code></pre>
               </ul>
 
               <ul class="check-list" data-state="stream-failed">
-                <li>
+                <li data-focus-fallback="[data-check-row='model-routing']">
                   <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-stream-failed">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
@@ -757,7 +790,7 @@ claude</code></pre>
 
               <!-- Sample data, from #37 / #39: lesson 05 with its rubric check and a sample hidden-task check. -->
               <ul class="check-list" data-state="budget-lesson budget-dialog">
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-structure" data-collapsible aria-expanded="false" aria-controls="row-budget-a">
                     <span class="status-icon" data-status="muted" aria-hidden="true"></span>
                     <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
@@ -767,7 +800,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-rubric']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-rubric" data-collapsible aria-expanded="false" aria-controls="row-budget-b">
                     <span class="status-icon" data-status="muted" aria-hidden="true"></span>
                     <span class="check-row-title">Качество AGENTS.md (оценка ментора по рубрике)</span>
@@ -777,7 +810,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-hidden-task']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-hidden-task" data-collapsible aria-expanded="false" aria-controls="row-budget-c">
                     <span class="status-icon" data-status="muted" aria-hidden="true"></span>
                     <span class="check-row-title">Агент решает скрытую задачу с вашим AGENTS.md</span>
@@ -791,7 +824,7 @@ claude</code></pre>
 
               <!-- Sample data: a rubric check has no timeoutSec, so its running row shows no time. -->
               <ul class="check-list" data-state="budget-running">
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-structure" data-collapsible aria-expanded="false" aria-controls="row-budget-run-a">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
@@ -802,7 +835,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-rubric']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-rubric" data-collapsible aria-expanded="false" aria-controls="row-budget-run-b">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Качество AGENTS.md (оценка ментора по рубрике)</span>
@@ -812,7 +845,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-hidden-task']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-hidden-task" data-collapsible aria-expanded="false" aria-controls="row-budget-run-c">
                     <span class="status-icon" data-status="queued" aria-hidden="true"></span>
                     <span class="check-row-title">Агент решает скрытую задачу с вашим AGENTS.md</span>
@@ -826,7 +859,7 @@ claude</code></pre>
 
               <!-- Sample data, from #37 / #39. -->
               <ul class="check-list" data-state="statuses-agent budget-dialog-one">
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-structure" data-collapsible aria-expanded="false" aria-controls="row-agent-a">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
@@ -836,7 +869,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-rubric']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-rubric" data-collapsible aria-expanded="true" aria-controls="row-agent-b">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Качество AGENTS.md (оценка ментора по рубрике)</span>
@@ -847,7 +880,7 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-hidden-task']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-hidden-task" data-collapsible aria-expanded="true" aria-controls="row-agent-c">
                     <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
                     <span class="check-row-title">Агент решает скрытую задачу с вашим AGENTS.md</span>
@@ -862,7 +895,7 @@ claude</code></pre>
 
               <!-- Sample data: the passed rubric check is not run again (S11). -->
               <ul class="check-list" data-state="budget-running-one">
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-structure']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-structure" data-collapsible aria-expanded="false" aria-controls="row-one-run-a">
                     <span class="status-icon" data-status="running" aria-hidden="true"></span>
                     <span class="check-row-title">Структура AGENTS.md и подключение к Claude Code (фильтр формы; смысл правил оценивает рубрика)</span>
@@ -873,24 +906,24 @@ claude</code></pre>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
-                  <button class="check-row-trigger" type="button" data-check-row="agents-md-rubric" data-collapsible aria-expanded="false" aria-controls="row-one-run-b">
+                <li data-focus-fallback="[data-check-row='agents-md-rubric']">
+                  <button class="check-row-trigger" type="button" data-check-row="agents-md-rubric" data-collapsible aria-expanded="true" aria-controls="row-one-run-b">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Качество AGENTS.md (оценка ментора по рубрике)</span>
                     <span class="check-row-status">Пройдено</span>
                   </button>
-                  <div class="check-row-panel" id="row-one-run-b" data-focus-fallback="[data-check-row='agents-md-rubric']" hidden>
+                  <div class="check-row-panel" id="row-one-run-b" data-focus-fallback="[data-check-row='agents-md-rubric']">
                     <p class="text-sm muted">Стоимость попытки: $0.04</p>
                     <p class="text-sm muted">Неудачных попыток: 0</p>
                   </div>
                 </li>
-                <li>
-                  <button class="check-row-trigger" type="button" data-check-row="agents-md-hidden-task" data-collapsible aria-expanded="false" aria-controls="row-one-run-c">
+                <li data-focus-fallback="[data-check-row='agents-md-hidden-task']">
+                  <button class="check-row-trigger" type="button" data-check-row="agents-md-hidden-task" data-collapsible aria-expanded="true" aria-controls="row-one-run-c">
                     <span class="status-icon" data-status="queued" aria-hidden="true"></span>
                     <span class="check-row-title">Агент решает скрытую задачу с вашим AGENTS.md</span>
                     <span class="check-row-status">В очереди</span>
                   </button>
-                  <div class="check-row-panel" id="row-one-run-c" data-focus-fallback="[data-check-row='agents-md-hidden-task']" hidden>
+                  <div class="check-row-panel" id="row-one-run-c" data-focus-fallback="[data-check-row='agents-md-hidden-task']">
                     <p class="text-sm muted">Неудачных попыток: 1</p>
                   </div>
                 </li>
@@ -898,7 +931,7 @@ claude</code></pre>
 
               <!-- Sample data, from #37: a lesson whose only counted check is a passed rubric check. -->
               <ul class="check-list" data-state="passed-paid-only">
-                <li>
+                <li data-focus-fallback="[data-check-row='agents-md-rubric']">
                   <button class="check-row-trigger" type="button" data-check-row="agents-md-rubric" data-collapsible aria-expanded="true" aria-controls="row-paid-only">
                     <span class="status-icon" data-status="success" aria-hidden="true"></span>
                     <span class="check-row-title">Качество AGENTS.md (оценка ментора по рубрике)</span>
@@ -917,14 +950,16 @@ claude</code></pre>
     </section>
 
     <!-- Region "Проверка" (check bar): a sibling of "Урок", drawn under it -->
-    <section class="check-bar" data-region aria-labelledby="check-region-heading" data-focus-fallback="[data-check-run]" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only">
+    <section class="check-bar" data-region aria-labelledby="check-region-heading" data-focus-fallback="[data-check-run]" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
       <h2 class="sr-only" id="check-region-heading">Проверка</h2>
       <div class="check-bar-controls">
-        <button class="button" type="button" data-check-run data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed one-pane-env split-focused split-cycled results-limit-known limit-warning passed-last-failed runner-error" data-goto-state="check-running" data-focus="#check-run-wait" data-step="F13.1">Проверить</button>
+        <button class="button" type="button" data-check-run data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed one-pane-env split-focused split-cycled passed-last-failed runner-error" data-goto-state="check-running" data-focus="#check-run-wait" data-step="F13.1">Проверить</button>
         <button class="button" type="button" data-check-run aria-disabled="true" aria-describedby="reason-check-starting" data-state="env-creating env-starting env-slow actions-not-running after-run-starting">Проверить</button>
         <button class="button" type="button" data-check-run aria-disabled="true" aria-describedby="reason-check-stopped" data-state="docker-down image-missing limits rejected stopped after-run-stopped">Проверить</button>
-        <button class="button" type="button" id="check-run-wait" data-check-run aria-disabled="true" aria-describedby="reason-check-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost">Проверить</button>
+        <button class="button" type="button" id="check-run-wait" data-check-run aria-disabled="true" aria-describedby="reason-check-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running">Проверить</button>
         <button class="button" type="button" data-check-run data-state="mixed" data-goto-state="mixed-running" data-focus="#check-run-wait">Проверить</button>
+        <button class="button" type="button" data-check-run data-state="results-limit-known" data-goto-state="limit-known-running" data-focus="#check-run-wait">Проверить</button>
+        <button class="button" type="button" data-check-run data-state="limit-warning" data-goto-state="limit-warning-running" data-focus="#check-run-wait" data-step="F14.2">Проверить</button>
         <button class="button" type="button" data-check-run data-state="budget-lesson budget-dialog" data-goto-state="budget-dialog" data-focus="#budget-cancel">Проверить</button>
         <button class="button" type="button" data-check-run data-state="statuses-agent budget-dialog-one" data-goto-state="budget-dialog-one" data-focus="#budget-one-cancel">Проверить</button>
         <button class="button" type="button" id="check-stream-wait" data-check-run aria-disabled="true" aria-describedby="reason-check-stream" data-state="stream-failed">Проверить</button>
@@ -934,18 +969,18 @@ claude</code></pre>
         <button class="button" type="button" data-variant="ghost" data-show-pane="lesson" data-select-tab="tab-checks" data-focus="#checks-heading" data-state="results lesson-passed after-run-stopped after-run-starting results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error statuses-agent budget-dialog-one passed-paid-only">Открыть результаты</button>
       </div>
       <div class="check-bar-status" data-step="F13.4">
-        <span class="spinner" aria-hidden="true" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost"></span>
+        <span class="spinner" aria-hidden="true" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"></span>
         <span role="status" data-live-key="check-status"><span data-state="closed closed-limit-unknown">Урок завершён: не пройден. Пройдено: 0 из 1</span><span data-state="passed-paid-only">Урок пройден</span></span>
-        <span class="timer" role="timer" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one" data-step="F13.2">0:12</span>
+        <span class="timer" role="timer" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one limit-known-running limit-warning-running" data-step="F13.2">0:12</span>
         <span class="timer" role="timer" data-state="stream-lost">0:18</span>
       </div>
       <p class="disabled-reason" id="reason-check-starting" data-state="env-creating env-starting env-slow actions-not-running after-run-starting">Окружение запускается, проверка станет доступна после запуска</p>
       <p class="disabled-reason" id="reason-check-stopped" data-state="docker-down image-missing limits rejected stopped after-run-stopped">Сначала запустите окружение</p>
       <p class="disabled-reason" id="reason-check-stream" data-state="stream-failed">Результат проверки ещё не получен</p>
       <p class="disabled-reason" id="reason-check-finished" data-state="closed closed-limit-unknown passed-paid-only" data-step="F14.4">Проверки завершены</p>
-      <p class="disabled-reason" id="reason-check-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost">Дождитесь окончания проверки</p>
+      <p class="disabled-reason" id="reason-check-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running">Дождитесь окончания проверки</p>
     </section>
-    <template data-live-source="check-status" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one">Идёт проверка</template>
+    <template data-live-source="check-status" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one limit-known-running limit-warning-running">Идёт проверка</template>
     <template data-live-source="check-status" data-state="results after-run-stopped after-run-starting results-limit-known">Пройдено: 0 из 1</template>
     <template data-live-source="check-status" data-state="lesson-passed passed-last-failed passed-paid-only">Урок пройден</template>
     <template data-live-source="check-status" data-state="limit-warning">Пройдено: 0 из 1. Осталась 1 попытка</template>
@@ -974,7 +1009,7 @@ claude</code></pre>
 
       <div class="env-statusbar" data-step="F8.4">
         <div class="env-status" data-step="F8.1">
-          <span class="status-icon" data-status="success" aria-hidden="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only"></span>
+          <span class="status-icon" data-status="success" aria-hidden="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running"></span>
           <span class="status-icon" data-status="warning" aria-hidden="true" data-state="reconnecting"></span>
           <span class="status-icon" data-status="destructive" aria-hidden="true" data-state="docker-down image-missing limits rejected reconnect-failed"></span>
           <span class="status-icon" data-status="muted" aria-hidden="true" data-state="stopped after-run-stopped shell-exited"></span>
@@ -994,10 +1029,10 @@ claude</code></pre>
             <button class="button" type="button" data-variant="outline" data-size="sm" id="actions-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu" data-open-in-states="actions-open actions-check-running actions-not-running" data-step="F11.1">Действия</button>
             <div class="dropdown-menu" id="actions-menu" role="menu" aria-label="Действия">
               <button class="dropdown-item" type="button" role="menuitem" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error stream-failed budget-lesson budget-dialog budget-dialog-one statuses-agent passed-paid-only" data-goto-state="env-starting" data-focus="#actions-trigger" data-step="F11.2"><span class="dropdown-item-body">Перезапустить окружение</span></button>
-              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-restart-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="reason-restart-wait">Дождитесь окончания проверки</span></span></button>
+              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-restart-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="reason-restart-wait">Дождитесь окончания проверки</span></span></button>
               <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-restart-env" data-state="env-creating env-starting env-slow docker-down image-missing limits rejected stopped actions-not-running after-run-stopped after-run-starting"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="reason-restart-env">Доступно, когда окружение работает</span></span></button>
               <button class="dropdown-item" type="button" role="menuitem" data-dialog-open="reset-dialog" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error stream-failed budget-lesson budget-dialog budget-dialog-one statuses-agent passed-paid-only"><span class="dropdown-item-body">Сбросить рабочую папку</span></button>
-              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-reset-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost"><span class="dropdown-item-body">Сбросить рабочую папку<span class="dropdown-item-reason" aria-hidden="true" id="reason-reset-wait">Дождитесь окончания проверки</span></span></button>
+              <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-reset-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"><span class="dropdown-item-body">Сбросить рабочую папку<span class="dropdown-item-reason" aria-hidden="true" id="reason-reset-wait">Дождитесь окончания проверки</span></span></button>
               <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-reset-env" data-state="env-creating env-starting env-slow docker-down image-missing limits rejected stopped actions-not-running after-run-stopped after-run-starting"><span class="dropdown-item-body">Сбросить рабочую папку<span class="dropdown-item-reason" aria-hidden="true" id="reason-reset-env">Доступно, когда окружение работает</span></span></button>
               <div class="dropdown-separator" role="separator"></div>
               <button class="dropdown-item" type="button" role="menuitemcheckbox" aria-checked="false"><span class="dropdown-check" aria-hidden="true"></span>Режим для экранного диктора</button>
@@ -1005,7 +1040,7 @@ claude</code></pre>
           </div>
         </div>
         <pre class="error-details" id="env-details" hidden><span data-state="docker-down">Cannot connect to the Docker daemon. Is the docker daemon running?</span><span data-state="image-missing">Error response from daemon: No such image: academy-workspace:dev</span><span data-state="limits">container exited: OOMKilled=true, exit code 137, memory limit 2g</span><span data-state="rejected">403 Forbidden: environment belongs to another user</span></pre>
-        <p class="env-hint" id="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only" data-step="F9.4"><kbd class="kbd">F6</kbd> или <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd class="kbd">.</kbd> (клавиша Ю): следующая область</p>
+        <p class="env-hint" id="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-step="F9.4"><kbd class="kbd">F6</kbd> или <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd class="kbd">.</kbd> (клавиша Ю): следующая область</p>
       </div>
 
       <div class="env-tabs tabs">
@@ -1013,7 +1048,7 @@ claude</code></pre>
           <button class="tabs-trigger" type="button" role="tab" id="tab-terminal" aria-controls="panel-terminal" aria-selected="true" data-step="F9.5">Терминал</button>
         </div>
         <div class="tabs-content" role="tabpanel" id="panel-terminal" aria-labelledby="tab-terminal" data-step="F8.2">
-          <div class="terminal-frame" id="terminal-session" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only" data-step="F9.1">
+          <div class="terminal-frame" id="terminal-session" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-step="F9.1">
 <pre class="terminal-output" data-step="F9.2"><span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ ls
 README.md  cards.json  routing.json
 <span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ python3 -m json.tool routing.json &gt; /dev/null &amp;&amp; echo ok
@@ -1043,7 +1078,7 @@ exit</pre>
         </div>
       </div>
     </section>
-    <template data-live-source="env-status" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only"><span>Окружение работает</span></template>
+    <template data-live-source="env-status" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running"><span>Окружение работает</span></template>
     <template data-live-source="env-status" data-state="api-key"><span>Окружение работает</span><span class="env-status-note" data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true" data-step="F8.3"></span>Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу.</span></template>
     <template data-live-source="env-status" data-state="volume-recreated"><span>Окружение работает</span><span class="env-status-note">Рабочая папка не найдена, создано новое окружение из исходных файлов урока.</span></template>
     <template data-live-source="env-status" data-state="reset-done"><span>Окружение работает</span><span class="env-status-note">Рабочая папка сброшена</span></template>

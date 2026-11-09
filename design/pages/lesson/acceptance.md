@@ -91,12 +91,12 @@ The course error (the course cannot be read) is not drawn in this prototype: it 
 | F11.3 | the AlertDialog "Сбросить рабочую папку?" | `#state-reset-dialog` |
 | F11.4 | "Сбросить" in the dialog | `#state-reset-dialog`; result `#state-reset-done` |
 | F13.1 | "Проверить" (enabled) | `#state-theory`; the budget confirmation it opens in `#state-budget-dialog` and `#state-budget-dialog-one` (from #37 / #39); nothing to run in `#state-passed-paid-only` (and `#state-closed`, F14.4) |
-| F13.2 | the check bar timer | `#state-check-running` (also `#state-budget-running`) |
-| F13.3 | the check list while running | `#state-check-running` (Проверки tab); also `#state-mixed-running`, `#state-budget-running`, `#state-budget-running-one` |
+| F13.2 | the check bar timer | `#state-check-running` (also `#state-budget-running`, `#state-limit-known-running`, `#state-limit-warning-running`) |
+| F13.3 | the check list while running | `#state-check-running` (Проверки tab); also `#state-limit-known-running`, `#state-limit-warning-running`, `#state-mixed-running`, `#state-budget-running`, `#state-budget-running-one` |
 | F13.4 | the check bar status (the end texts of `checks.md` "Check bar status line") | `#state-results`, `#state-lesson-passed`, `#state-results-limit-known`, `#state-limit-warning`, `#state-closed`, `#state-mixed`, `#state-passed-last-failed`, `#state-runner-error`, `#state-statuses-agent` |
 | F13.5 | the open row: grader message and "Неудачных попыток: 3" | `#state-results` (limit unknown); "Неудачных попыток: 3 из 10" in `#state-results-limit-known` (limit known) |
 | F14.1 | the last-attempt warning "Осталась 1 попытка" in the row meta | `#state-limit-warning` |
-| F14.2 | that row's open panel (the run that spends the last attempt starts from its "Проверить") | `#state-limit-warning` |
+| F14.2 | "Проверить" pressed on the last attempt (its own variant in the prototype); the run it starts keeps the row's "Осталась 1 попытка" and "Неудачных попыток: 9 из 10" | `#state-limit-warning`; the run `#state-limit-warning-running` |
 | F14.3 | the closed row's open panel: closed note, closing message, "Неудачных попыток: 10 из 10" | `#state-closed` |
 | F14.4 | the reason "Проверки завершены" of the `aria-disabled` "Проверить" (status "Урок завершён: не пройден. Пройдено: 0 из 1") | `#state-closed`, `#state-closed-limit-unknown`; mixed outcome in `#state-mixed` |
 
@@ -211,8 +211,10 @@ enabled, status line empty), tab Теория.
 | `#state-check-running` | check bar: spinner, "Идёт проверка", timer "0:12", "Проверить" `aria-disabled` "Дождитесь окончания проверки"; tab badge "Проверки, идёт проверка"; the selected tab stays (A17, opened from the States index: Теория); Проверки row "Идёт" "0:12 из 0:30". It is also the attached state (a run found on load, after a refused "Проверить", "Запустить" or "Действия" item, B3, B5-B7): the same UI by design (`checks.md` F13 error states, S8) |
 | `#state-results` | "Пройдено: 0 из 1" with "Открыть результаты"; row "Не пройдено" open: "2 из 6 карточек неверны." and "Неудачных попыток: 3" (limit unknown) |
 | `#state-statuses` | sample rows, one per check status of `checks.md` (the from-#39 budget variant is in `#state-statuses-agent`): the seven v1 rows, then "Время вышло, попытка не засчитана" with "лимит 0:30", "Сбой проверки, попытка не засчитана" (open: "Подробности" collapsed, then the counter), "Закрыта: не пройдено" (lock, no meta; open: the closed note and the counter); check bar as `#state-check-running` |
-| `#state-results-limit-known` | F13.5 limit known (from #68): as `#state-results`, the counter "Неудачных попыток: 3 из 10" |
-| `#state-limit-warning` | F14.1 limit known: row "Не пройдено" with the meta warning "Осталась 1 попытка" (warning icon, `foreground` words); open: "2 из 6 карточек неверны.", "Неудачных попыток: 9 из 10"; status "Пройдено: 0 из 1. Осталась 1 попытка" with "Открыть результаты" |
+| `#state-results-limit-known` | F13.5 limit known (from #68): as `#state-results`, the counter "Неудачных попыток: 3 из 10"; "Проверить" starts `#state-limit-known-running` |
+| `#state-limit-known-running` | the run from `#state-results-limit-known` (from #68): check bar as `#state-check-running`; the same row, still open, "Идёт" "0:12 из 0:30", panel "Неудачных попыток: 3 из 10" |
+| `#state-limit-warning` | F14.1 limit known: row "Не пройдено" with the meta warning "Осталась 1 попытка" (warning icon, `foreground` words); open: "2 из 6 карточек неверны.", "Неудачных попыток: 9 из 10"; status "Пройдено: 0 из 1. Осталась 1 попытка" with "Открыть результаты"; "Проверить" (F14.2) starts `#state-limit-warning-running` |
+| `#state-limit-warning-running` | F14.2, the run on the last attempt (from #68): check bar as `#state-check-running`; the same row, still open, "Идёт" "0:12 из 0:30" and "Осталась 1 попытка", panel "Неудачных попыток: 9 из 10" |
 | `#state-closed` | F14.3-F14.4 limit known: row lock icon, "Закрыта: не пройдено", no meta; open: "Проверка закрыта: попытки исчерпаны. Сброс рабочей папки и перезапуск окружения её не откроют.", "2 из 6 карточек неверны.", "Неудачных попыток: 10 из 10". Check bar: "Проверить" `aria-disabled` "Проверки завершены", no "К окружению", "Открыть результаты", status "Урок завершён: не пройден. Пройдено: 0 из 1" rendered with the page (in the markup of the container, not announced) |
 | `#state-closed-limit-unknown` | as `#state-closed` on a later visit (index tab Теория), the counter "Неудачных попыток: 10" |
 | `#state-mixed` | F14.4 sample data, four checks: (a) "Пройдено", no meta, open: "Проверка уже засчитана. Последний результат: сбой проверки", "Подробности" (collapsed), "Неудачных попыток: 0"; (b) lock, "Закрыта: не пройдено", "Неудачных попыток: 10 из 10"; (c) "Не пройдено", "Осталась 1 попытка", "Неудачных попыток: 9 из 10"; (d) "Время вышло", "лимит 0:30", "Осталась 1 попытка", "Неудачных попыток: 2 из 3" (sample limit). Status "Пройдено: 1 из 4. Закрытых проверок: 1. Проверок на последней попытке: 2. Проверок со сбоем: 1"; "Проверить" enabled, "Открыть результаты" |
@@ -287,7 +289,11 @@ enabled, status line empty), tab Теория.
   "Войти снова" carries it in `next`. The one-pane switch "Урок / Окружение" does not touch the URL.
 - **"Содержание":** Enter on a link moves focus to that h2 (`tabindex="-1"`) and scrolls it into view.
 - **"Копировать":** copies the block's text; on denial the label changes (see Accessibility notes).
-- **"Проверить":** starts a run over the checks of `checks.md` "Run composition" (S1, S2, S11); focus stays
+- **"Проверить":** starts a run over the checks of `checks.md` "Run composition" (S1, S2, S11); the rows of
+  the run continue the rows it started from: the same checks, the same counter and limit form ("из M"),
+  open rows stay open, "Осталась 1 попытка" stays under "Идёт" and "В очереди", a closed check keeps its
+  word (`#state-limit-known-running`, `#state-limit-warning-running`, `#state-mixed-running`,
+  `#state-budget-running`, `#state-budget-running-one`); focus stays
   on the same button, now `aria-disabled` (one element in the app; several in the prototype only because a
   static file swaps markup, each marked `data-check-run`). No tab switch (A17). When the run includes a
   check that spends tokens and is not passed (from #37 / #39), it opens the budget confirmation first, on
@@ -361,8 +367,10 @@ enabled, status line empty), tab Теория.
   "Проверить" when the budget confirmation closes. Focus never falls back to `body`. The prototype stands
   for a change with `window.proto.setState(<state>)`, which treats an equal text of another state as the B9
   re-set; a background change that keeps an equal text silent (B20, B22 after a run) is shown with a typed
-  `#state-` hash instead, which repairs focus the same way and sets nothing. The check bar and every
-  `.check-row-panel` carry `data-focus-fallback`. Each row, with the prototype pair that shows it:
+  `#state-` hash instead, which repairs focus the same way and sets nothing. The check bar, every check row
+  (`li`) and every `.check-row-panel` carry `data-focus-fallback`; a row names its own check
+  (`[data-check-row='<check id>']`), so a focused row button stays on that check's row button in the new
+  state. Each row, with the prototype pair that shows it:
 
   | # | Change | Status text | Focus when it removed the focused control | Prototype |
   |---|--------|-------------|-------------------------------------------|-----------|
@@ -536,16 +544,17 @@ Every string above is in the `ia.md` register (closed sets, page copy "lesson, a
   list; modal, so the page behind is inert and the idle warning in "Уведомления" is behind it (design note,
   residuals); the dialog does not count as activity.
 - **Evidence (headless over http, kept out of the ACs because the counts change with every state).** #69
-  run (`plans/69-lesson-check.mjs`, 61 states): 37158 checks, 0 findings. 4317 control activations at 1280
-  px and 3105 at 375 px (click and Enter, from each left-pane tab the state shows; 12 clicks skipped where an
+  run (`plans/69-lesson-check.mjs`, 63 states): 38672 checks, 0 findings. 4461 control activations at 1280
+  px and 3213 at 375 px (click and Enter, from each left-pane tab the state shows; 12 clicks skipped where an
   open menu lies over the control), 282 and 270 Backs (Back into a dialog state lands on "Отмена"), 0 tab or
-  query changes outside "Открыть результаты"; 6524 UI strings matched against the `ia.md` register; 116
-  `F6` cycles; 500 AC13 checks; 30 cross-page round trips; 24 status transitions and 26 background focus
-  pairs. Nine guard breaks each turn it red: closed icon, "Переподключиться" removed, a status text
-  changed, "лимит 0:30" under "Пройдено", no check bar fallback, `role="timer"` on a row time, a zero text
-  gap, Back focus on the remembered dialog button (36 findings) and a non-wrapping check bar status at 320
-  px (1). The #50 run recorded 1748 activations at 1280 px and 2120 at
-  375 px (269 Backs each) and "Войти снова" `next` matching the selected tab in all 33 / 42 checks.
+  query changes outside "Открыть результаты"; 6750 UI strings matched against the `ia.md` register; 120
+  `F6` cycles; 518 AC13 checks; 30 cross-page round trips; 24 status transitions; 56 background focus pairs
+  (30 of them with focus on a row button); 24 rows checked for run continuity. Eleven guard breaks each turn
+  it red: closed icon, "Переподключиться" removed, a status text changed, "лимит 0:30" under "Пройдено", no
+  check bar fallback, `role="timer"` on a row time, a zero text gap, Back focus on the remembered dialog
+  button, a non-wrapping check bar status at 320 px, no row fallback, and the last-attempt warning dropped
+  from the run on the last attempt. The #50 run recorded 1748 activations at 1280 px and 2120 at 375 px (269
+  Backs each) and "Войти снова" `next` matching the selected tab in all 33 / 42 checks.
 - **Handle hit area (2.5.8).** The visible handle is `0.75rem`, its hit box `min-width: var(--hit-min)`
   (24 px; measured 24 px wide at 1280) across the full pane height.
 - **Handle tooltip (1.4.13).** Opens on hover and on focus, stays while the pointer is over it, and Esc hides
@@ -674,7 +683,8 @@ Every string above is in the `ia.md` register (closed sets, page copy "lesson, a
   and its panel starts with "Проверка уже засчитана. Последний результат: не пройдено" (or "...: сбой
   проверки"); its later failures do not change the counter.
 - AC27, background changes: every row of the "Background changes and focus" table above moves focus to the
-  named target, never to `body`, and sets the status text it names; controls of the new state are there at
+  named target, never to `body`, and sets the status text it names; a focused row button stays on the same
+  check's row button in B8-B14 and B19; controls of the new state are there at
   once and only the status text waits for the gap; a waiting text equal to the one shown is dropped, except
   the B9 re-set, which empties the line and sets the same text one gap later.
 - AC28, row time: no `role="timer"` inside any `.check-row-trigger`; every in-row running time is a
@@ -683,9 +693,11 @@ Every string above is in the `ia.md` register (closed sets, page copy "lesson, a
 - AC29, headless control run: `plans/69-lesson-check.mjs` (design note §7) passes with its expected counts:
   every state at 1280 and 375 px, every control by click and by Enter from each left-pane tab, Back after
   each, the cross-page round trips, the register closure, R1 to R3, AC1 and AC13, the status text per
-  transition and B8-B23 (last run: 37158 checks, 0 findings); each guard break of §7 item 10 turns it red,
-  and so do the two added with the system fixes: Back focus into a dialog state on the remembered button
-  instead of "Отмена", and a check bar status that does not wrap at 320 px.
+  transition, B8-B23 including a focused row button, and the run continuity of every run transition (last
+  run: 38672 checks, 0 findings); each guard break of §7 item 10 turns it red, and so do the four added
+  since: Back focus into a dialog state on the remembered button instead of "Отмена", a check bar status
+  that does not wrap at 320 px, the row fallback removed, and the warning dropped from the last-attempt
+  run.
 
 ## Open questions
 
