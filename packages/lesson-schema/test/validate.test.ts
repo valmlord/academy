@@ -396,7 +396,7 @@ ${bugHuntCheck(limitBlock(2))}`);
     ]);
   });
 
-  it("reports unknown check keys when the lesson also fails to parse", () => {
+  it("reports unknown check keys when the lesson also fails schema validation", () => {
     validCourse();
     write(`${L}/quiz.yaml`, "q: 1\n");
 
@@ -448,6 +448,110 @@ ${bugHuntCheck(limitBlock(2))}`);
 
     write(`${L}/lesson.yaml`, withoutChecks.replace("type: agent-eval", "type: quiz"));
     expect(issueMessages()).toEqual(["checks: ready practice lessons need checks"]);
+  });
+});
+
+/** A ready theory lesson of 7 lines, so a line appended to it is line 8. */
+const THEORY_LESSON = `id: agents-md
+title: AGENTS.md
+type: theory
+outcomes: ["o"]
+estimatedMinutes: 60
+status: ready
+sources: [{ title: Docs, url: "https://example.com/docs", checkedAt: "2026-10-01" }]
+`;
+
+describe("YAML the runtime loaders reject", () => {
+  it("reports an unresolved tag in course.yaml and skips its modules", () => {
+    validCourse();
+    write(
+      "c/course.yaml",
+      "id: c\ntitle: C\ndescription: d\nmodules: [01-intro]\nextra: !foo bar\n",
+    );
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: "c/course.yaml", message: "invalid YAML at line 5 (TAG_RESOLVE_FAILED)" },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 0, 0]);
+  });
+
+  it("reports a duplicate key in module.yaml and still validates the next module", () => {
+    validCourse();
+    write("c/course.yaml", "id: c\ntitle: C\ndescription: d\nmodules: [01-intro, 02-next]\n");
+    write("c/02-next/module.yaml", "id: next\ntitle: Next\nsummary: s\nstatus: planned\n");
+    write(
+      `${M}/module.yaml`,
+      "id: intro\ntitle: Intro\nsummary: s\nstatus: ready\nlessons: [01-agents-md]\ntitle: Again\n",
+    );
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: `${M}/module.yaml`, message: "invalid YAML at line 6 (DUPLICATE_KEY)" },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 2, 0]);
+  });
+
+  it("reports a second YAML document in lesson.yaml without checking its check keys", () => {
+    validCourse();
+    const misspelled = readLesson().replace("timeoutSec: 120 }", "timeoutSec: 120, attempt: 3 }");
+    write(`${L}/lesson.yaml`, `${misspelled}---\nid: other\n`);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: `${L}/lesson.yaml`, message: "invalid YAML at line 12 (MULTIPLE_DOCS)" },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+  });
+
+  it("reports a YAML syntax error in lesson.yaml at the line the parser stops", () => {
+    validCourse();
+    write(`${L}/lesson.yaml`, `${THEORY_LESSON}run: [unclosed\n`);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: `${L}/lesson.yaml`, message: "invalid YAML at line 9 (BAD_INDENT)" },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+  });
+
+  it("reports an unresolved alias in lesson.yaml without a line number", () => {
+    validCourse();
+    write(`${L}/lesson.yaml`, `${THEORY_LESSON}extra: *nope\n`);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      {
+        file: `${L}/lesson.yaml`,
+        message: "invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)",
+      },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+  });
+
+  it("still validates the next lesson after a lesson.yaml with a YAML warning", () => {
+    validCourse();
+    write(
+      `${M}/module.yaml`,
+      "id: intro\ntitle: Intro\nsummary: s\nstatus: ready\nlessons: [01-agents-md, 02-missing]\n",
+    );
+    write(`${L}/lesson.yaml`, `${readLesson()}extra: !foo bar\n`);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: `${L}/lesson.yaml`, message: "invalid YAML at line 12 (TAG_RESOLVE_FAILED)" },
+      {
+        file: `${M}/02-missing`,
+        message: "lesson listed in module.yaml but lesson.yaml is missing",
+      },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
   });
 });
 
