@@ -188,9 +188,9 @@ yours. The run name (`t31`, the default, or `t32`) picks the project `academy-<r
 workspace instance and the host ports (`t31`: 55432 and 53080, `t32`: 55433 and 53081). A preflight stops the
 script before anything starts, and so removes nothing, when objects of that project, instance or images are left
 over from an earlier run, or when a Docker listing fails. `--e2e` adds the seed, the whole e2e suite with the
-terminal specs (the region keys in all three engines) and the service-down spec. The last line is
-`T32 RESULT OK` (the prefix is the run name), or `RESULT FAIL (run rc=..., check status=..., teardown
-failed=...)`, where `check status` covers the probes, the red runs and the e2e stages.
+terminal specs (the region keys in Chromium and WebKit; Firefox is checked by hand) and the service-down spec.
+The last line is `T32 RESULT OK` (the prefix is the run name), or `RESULT FAIL (run rc=..., check status=...,
+teardown failed=...)`, where `check status` covers the probes, the red runs and the e2e stages.
 
 ### Sweep of test leftovers
 
