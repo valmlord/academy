@@ -23,8 +23,8 @@ import {
   volumeInspectSchema,
   volumeListSchema,
 } from "./schemas.js";
-import type { ContainerCreateBody, ExecCreateBody } from "./spec.js";
-import { execStartBody } from "./spec.js";
+import type { ContainerCreateBody, ExecCreateBody, KillExecCreateBody } from "./spec.js";
+import { detachedExecStartBody, execStartBody } from "./spec.js";
 
 // The only module that talks to dockerode (U-boundary). The Engine API is HTTP over the daemon's unix socket;
 // every response is validated before use.
@@ -248,7 +248,10 @@ export class DockerEngine {
   }
 
   /** Returns the new exec's Id; a stopped container is 409 and a missing one 404, both as `DockerApiError`. */
-  async createExec(containerId: string, body: ExecCreateBody): Promise<string> {
+  async createExec(
+    containerId: string,
+    body: ExecCreateBody | KillExecCreateBody,
+  ): Promise<string> {
     const handle = await call("create exec", () =>
       this.#docker.getContainer(containerId).exec({ _query: {}, _body: body }),
     );
@@ -267,6 +270,18 @@ export class DockerEngine {
     if (!isHijackedStream(stream)) throw new DockerResponseShapeError("start exec", "stream");
     stream.setTimeout(0);
     return stream;
+  }
+
+  /**
+   * Starts the exec detached and resolves once Docker started it. dockerode always asks docker-modem for a stream
+   * here, so it resolves with the response itself, which would keep its socket open: it is destroyed like a HEAD
+   * response. Docker sends the headers only after the process was started, so this cannot cancel the start.
+   */
+  async startDetachedExec(execId: string): Promise<void> {
+    const response = await call("start detached exec", () =>
+      this.#docker.getExec(execId).start({ _body: detachedExecStartBody() }),
+    );
+    destroyStream("start detached exec", response);
   }
 
   /** The TTY size of a running exec; an exec that ended answers 404 or 409 (`DockerApiError`). */
@@ -291,8 +306,8 @@ function isHijackedStream(value: unknown): value is HijackedStream {
 }
 
 /**
- * dockerode resolves `HEAD /archive` with the response stream itself. An unconsumed stream keeps its socket
- * open, so every successful HEAD ends here, before its result is used.
+ * dockerode resolves `HEAD /archive` and a detached exec start with the response stream itself. An unconsumed
+ * stream keeps its socket open, so every successful one ends here, before its result is used.
  */
 function destroyStream(operation: string, response: unknown): void {
   if (

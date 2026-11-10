@@ -33,6 +33,8 @@ const ORPHAN_TEST_TIMEOUT_MS = 90_000;
 const POLL_MS = 250;
 const SHELL_COMMAND = "/bin/sh -l";
 const SLEEP_COMMAND = "sleep 4242";
+/** I-exec-echo's `ids` line: the shell's pid, then its process group, session and pid file, all equal. */
+const SESSION_IDS = /(^|\n)ids (\d+) \2 \2 \2\r?\n/;
 
 /** Everything the shell printed so far, and a wait for a pattern in it. */
 interface ShellOutput {
@@ -113,11 +115,18 @@ describe("terminal exec on the real daemon", () => {
     await output.waitFor(line("/workspace/home/work"));
     shell.stream.write("echo $TERM\r");
     await output.waitFor(line("xterm-256color"));
+    // pid, process group, session and the pid file: all one number (#110). The echoed command line holds `$1` etc.,
+    // not digits, so only the output matches.
+    shell.stream.write(
+      'read -r s < /proc/$$/stat; set -- $s; echo "ids $1 $5 $6 $(cat /tmp/.terminal-*.pid)"\r',
+    );
+    await output.waitFor(SESSION_IDS);
 
     expect(output.text()).toMatch(line("ok"));
     expect(output.text()).toMatch(line("1000"));
     expect(output.text()).toMatch(line("/workspace/home/work"));
     expect(output.text()).toMatch(line("xterm-256color"));
+    expect(output.text()).toMatch(SESSION_IDS);
   });
 
   it(

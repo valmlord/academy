@@ -229,11 +229,14 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
     shape of a response; every response is validated before use.
 12. **Checks** (how `checks/` reaches the grader) are left to #34.
 13. **Terminal** (#32, ADR-0011). The decision's "docker exec with a TTY over WebSocket" is a service-held exec per
-    workspace: `Cmd [TERMINAL_SHELL, "-l"]` (`TERMINAL_SHELL`, default `/bin/bash` since #33, which the image of
-    item 10 has), `User 1000:1000`, `WorkingDir /workspace/home/work`, `Env` adds `TERM=xterm-256color` and
+    workspace: `Cmd ["/bin/sh", "-c", <wrapper>, TERMINAL_SHELL, <tag>]` (the wrapper records the shell's session
+    id and `exec`s `TERMINAL_SHELL -l`, ADR-0011 item 4; `TERMINAL_SHELL`, default `/bin/bash` since #33, which the
+    image of item 10 has), `User 1000:1000`, `WorkingDir /workspace/home/work`, `Env` adds `TERM=xterm-256color` and
     `LANG=C.UTF-8` to the container's `HOME`; the exec create and start bodies are exact allowlists like the
-    container create body.
-    Item 9's `WorkspaceRuntime` gains `openShell`. Residual 3 of item 6 is now in effect: web holds
+    container create body. A second exact allowlist, the kill exec (no TTY, nothing attached, `WorkingDir /`, started
+    detached), ends the shell's session when its terminal session ends (#110). The image must provide `/bin/sh`,
+    `pkill` with `-s`, `sleep` and `rm`: the #33 image (procps) and `node:22.23.4-alpine` (busybox) do.
+    Item 9's `WorkspaceRuntime` gains `openShell`, whose handle can `terminate` the shell. Residual 3 of item 6 is now in effect: web holds
     `WORKSPACE_SERVICE_SECRET` and relays long-lived terminal connections; a workspace that reaches web's port still
     needs a ticket minted for a signed-in session to open one, and malformed requests cannot stop web.
 
