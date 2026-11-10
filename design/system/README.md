@@ -65,7 +65,7 @@ Sizes are Tailwind's, so every value is a class in the app.
 | `text-xs` | 0.75rem / 1rem | badges, key hint, R1 reason in a menu item, gallery notes |
 | `text-sm` | 0.875rem / 1.25rem | controls, labels, status bars, check rows, alerts, breadcrumbs, tables, code |
 | `text-base` | 1rem / 1.5rem | body text, inputs (16px avoids iOS zoom on focus) |
-| `text-lg` | 1.125rem / 1.75rem | card and dialog titles; empty-state titles; h4 in prose |
+| `text-lg` | 1.125rem / 1.75rem | card and dialog titles; empty-state titles; h3 on pages (quiz question); h4 in prose |
 | `text-xl` | 1.25rem / 1.75rem | h2 on pages; h3 in prose |
 | `text-2xl` | 1.5rem / 2rem | page h1; h2 in prose |
 | `text-3xl` | 1.875rem / 2.25rem | h1 in prose (rare: the lesson title is the page h1) |
@@ -94,7 +94,8 @@ padding `space-6`.
 Border widths: 1px for boundaries (cards, inputs, separators, rules), 2px for strokes (status icons, the
 Collapsible chevron, blockquote rule, the focus ring); in a Badge the status icon
 uses 1px. Fixed sizes: status icon 1.25rem (`space-5`, one `text-sm` line), in a Badge 1rem (one
-`text-xs` line, glyph `text-xs`); chevron `space-1-5`.
+`text-xs` line, glyph `text-xs`); radio and checkbox 1rem (shadcn `size-4`, also the review's
+`.choice-indicator`); the radio dot and the "Ваш ответ" dot `space-2`; chevron `space-1-5`.
 
 Links: underline offset `--underline-offset` (0.2em, so it scales with the text and clears descenders),
 hover thickens the underline to `--underline-hover-width` (2px, the stroke width above); both in
@@ -103,10 +104,15 @@ hover thickens the underline to `--underline-hover-width` (2px, the stroke width
 ## Radius
 
 `--radius: 0.625rem` (shadcn default) and the steps of `@theme inline`, aliased with identical values in
-`proto.css`: sm 0.6x (controls inside menus, kbd), md 0.8x (buttons, inputs, badges, tabs), lg 1x (alerts,
-dialogs, tab lists, check list), xl 1.4x (cards), full (`--radius-full: calc(infinity * 1px)`, Tailwind's
-`rounded-full`; the Progress track and status icons). 2xl-4xl exist for parity and are unused in v1.
-`--radius-full` lives only in `proto.css`: `rounded-full` is a Tailwind utility, not a theme token.
+`proto.css`: sm 0.6x (controls inside menus, kbd, the checkbox and its review indicator, the warning status
+icon), md 0.8x (buttons, inputs, badges, tabs, code blocks), lg 1x (alerts, dialogs, tab lists, check list),
+xl 1.4x (cards), full (`--radius-full: calc(infinity * 1px)`, Tailwind's `rounded-full`; the Progress track,
+status icons, the radio and its review indicator, the radio dot, the "Ваш ответ" dot and the top of the lock
+shackle). 2xl-4xl exist for parity and are unused in v1. `--radius-full` lives only in `proto.css`:
+`rounded-full` is a Tailwind utility, not a theme token. One value is not a step: the `pre` of a header-less
+code block (a quiz prompt) is `calc(var(--radius-md) - 1px)`, the block's inner radius inside its 1px border,
+so the focus ring the `pre` takes when it overflows follows the block's corners (in the app
+`rounded-[calc(var(--radius-md)-1px)]`).
 
 ## Motion and reduced motion
 
@@ -303,7 +309,8 @@ Markup, in DOM order (ids are the page's):
 
 - `.quiz`: parts `space-6` apart; `.quiz-intro` keeps the heading and the header `space-2` apart. The button
   keeps its own width.
-- `.quiz-header`: muted `text-sm` items `space-4` apart, wrapping, like `.lesson-meta`; the warning is the
+- `.quiz-header`: muted `text-sm` items, wrapping, as in `.lesson-meta` (the colour, size and wrap; not its
+  gap): `space-4` between items in a line, `space-1` between wrapped lines; the warning is the
   check row's `[data-tone="warning"]` element (Check row, above).
 - `.question`: `space-3` between its parts; `scroll-margin-top: space-4`. A `single` question uses
   `role="radiogroup"` and `input.radio` with one `name`; a `multiple` one `role="group"` and `input.checkbox`
@@ -311,20 +318,46 @@ Markup, in DOM order (ids are the page's):
   same muted `text-sm`); the message is `.field-error`, plain text: never the app's `FieldError`, which renders
   `role="alert"` (`ui/field.tsx:204`), but a plain `p` as sign-in's `FieldErrorText`
   (`components/sign-in-form.tsx:208-215`). `aria-describedby` lists prompt, note, error, only those shown.
-- RadioGroup and Checkbox (`.choice-group`, `.choice`, `.radio`, `.checkbox`): shadcn's size-4 controls drawn
-  on native inputs. Boundary `input` (never `border`, 1.260:1); checked: border and dot (radio) or border and
-  fill with a `primary-foreground` check mark (checkbox) in `primary`; focus: the global 2px `ring` outline,
-  2px outside the control, not shadcn's `ring-ring/50` halo ("Focus ring"). shadcn's
-  `dark:bg-input/30` and `disabled:opacity-50` are not used: the control sits on `background` in both themes
-  and nothing turns translucent. `.choice-group` is one class for both groups, `space-3` apart (shadcn's
-  RadioGroup `grid gap-3`; shadcn has no checkbox group), a custom name because neither shadcn name covers
-  both. The `label.choice` wraps the control and `.choice-text`, so the whole label is the target: `text-base`
-  400 (option text is content, not a control label), at least `--hit-min` (24px) tall, as wide as its text.
-  shadcn's examples pair `RadioGroupItem` and `Label` by `id` / `htmlFor`; the app may wrap instead, as the
-  "Choice Card" example does with `FieldLabel`, as long as the label text is the target. No hover fill: an
-  `accent` row would put the `input` boundary on `muted`, 2.757:1 in dark. `.choice-text` wraps anywhere, so
-  an option of long inline code (`.choice-text code`, the `.prose code` look) never widens the page at 320px
-  (WCAG 1.4.10). No letter prefixes. Forced colours fall back to the native controls.
+- RadioGroup and Checkbox (`.choice-group`, `.choice`, `.radio`, `.checkbox`): native inputs drawn after
+  shadcn's `new-york-v4` `ui/radio-group.tsx` and `ui/checkbox.tsx` (`size-4`, `shrink-0`, `border border-input`,
+  `text-primary`). Kept as upstream: a radio is `rounded-full`, its checked state is only the `size-2`
+  `fill-primary` dot (the border stays `input`); a checked checkbox is `border-primary bg-primary
+  text-primary-foreground` in both themes. Boundary `input` (3.641:1 / 3.606:1 on `background`; never `border`,
+  1.260:1). The app vendors both files and changes exactly these classes, nothing else:
+  - checkbox `rounded-[4px]` -> `rounded-sm` (6px, the sm step, "Radius"): an arbitrary 4px is off the scale
+    every other control uses.
+  - `focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50` -> removed; the global 2px
+    `ring` outline with a 2px offset ("Focus ring"), because the 50 % halo halves its measured contrast. The
+    border stays `input` on focus.
+  - `dark:bg-input/30` -> removed: the control sits on `background` in both themes (a translucent fill is not
+    measured).
+  - `shadow-xs` -> removed: shadows only on cards, menus and dialogs ("Dark-mode rules", Elevation).
+  - `transition-[color,box-shadow]` (radio), `transition-shadow` (checkbox) -> removed: with no halo and no
+    shadow nothing is left to animate.
+  - `disabled:cursor-not-allowed disabled:opacity-50` -> not reached: options are never `disabled`, only
+    `aria-disabled` while sending, which keeps the look and sets `cursor-not-allowed` (below); no opacity on
+    text ("Dark-mode rules").
+  - `aria-invalid:border-destructive aria-invalid:ring-destructive/20` and `dark:aria-invalid:ring-destructive/40`
+    -> not reached: no option carries `aria-invalid`; a question's error is the `.field-error` text in the
+    group's `aria-describedby`.
+  - Check mark: the app keeps upstream's lucide `CheckIcon className="size-3.5"`. The prototype draws a
+    `\2713` glyph at `text-xs` 600 in its place because it loads no icon set; the glyph is not the target.
+  `.choice-group` is one class for both groups, `space-3` apart (shadcn's RadioGroup `grid gap-3`; shadcn has
+  no checkbox group), a custom name because neither shadcn name covers both. The `label.choice` wraps the
+  control and `.choice-text`, so the whole label is the target: `text-base` 400 (option text is content, not a
+  control label), at least `--hit-min` (24px) tall, as wide as its text. shadcn's examples pair
+  `RadioGroupItem` and `Label` by `id` / `htmlFor`; the app may wrap instead, as the "Choice Card" example does
+  with `FieldLabel`, as long as the label text is the target. No hover fill: an `accent` row would put the
+  `input` boundary on `muted`, 2.757:1 in dark. `.choice-text` wraps anywhere, so an option of long inline code
+  (`.choice-text code`, the `.prose code` look) never widens the page at 320px (WCAG 1.4.10). No letter
+  prefixes. Forced colours: the inputs fall back to the native controls (`appearance: auto`). The review drawing
+  has no native control: the chosen radio's dot, the "Ваш ответ" dot and the closed lock's body are
+  `background: currentColor`, which forced colours paint `Canvas`, and the text backplate behind a glyph cuts
+  the top and bottom of the checked checkbox box and of the glyph status rings. So `.choice-indicator` and
+  `.status-icon` take `forced-color-adjust: none` and draw in system colours: `CanvasText` strokes, dots and
+  glyphs on `Canvas` (the running icon keeps its open right side). The app checks the same states (chosen
+  radio, checked checkbox, review marks, closed lock) under forced colours and does the same for any fill or
+  glyph it draws there.
 - Locked while sending: `aria-disabled="true"` on every option input and on its group, never `disabled`
   (R1). The look stays (a muted fill fails as above; the busy button holds the reason); only the cursor turns
   `not-allowed`. proto.js cancels the change (click, Space, arrow keys); the app cancels value changes and the
