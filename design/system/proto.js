@@ -254,7 +254,13 @@
 
   // A control remembered inside a dialog is not Back's target: the dialog opens on its own initial
   // control every time, so Back to a dialog state lands on "Отмена", never on the action (F11.3, F13.1).
-  function backFocusTarget(control) {
+  // A control remembered inside a live container ("Открыть квиз" in the quiz notice) belonged to a clone
+  // of its template, which the next state change detached; Back finds the re-rendered control by its id.
+  function backFocusTarget(remembered) {
+    var control =
+      remembered && !remembered.isConnected && remembered.id
+        ? document.getElementById(remembered.id)
+        : remembered;
     if (!control || !isRendered(control)) return null;
     var dialog = control.closest("dialog");
     return dialog ? dialogInitialControl(dialog) : control;
@@ -826,8 +832,9 @@
   /* ---------- Simulated outcome: data-goto-state + data-focus ---------- */
 
   // A control with data-goto-state="<name>" fakes its outcome: a new history entry #state-<name> (Back
-  // returns to the previous state through hashchange), the state is shown with every tab list keeping its
-  // tab (A17), data-select-tab="<tab id>" then selects a tab the action names, and data-focus is focused.
+  // returns to the previous state through popstate or hashchange), the state is shown with every tab list
+  // keeping its tab (A17), data-select-tab="<tab id>" then selects a tab the action names, and data-focus is
+  // focused.
   function gotoState(trigger) {
     var name = trigger.getAttribute("data-goto-state");
     var dialog = trigger.closest("dialog");
@@ -1051,10 +1058,31 @@
   // A typed or history-restored anchor hash moves focus and leaves the state as it is. A state hash (Back,
   // Forward, a typed #state-, the state index) returns focus to the control activated from that entry, else
   // repairs focus the change left on nothing.
-  window.addEventListener("hashchange", function () {
+  function onHistoryMove() {
     if (!window.location.hash || isStateHash(window.location.hash))
       setState(null, { repairFocus: true, focusReturn: rememberedControl() });
     else focusAnchor(anchorId(window.location.hash));
+  }
+
+  // Back and Forward between two entries whose query differs as well as the hash (a page that writes its
+  // query with replaceState, as the lesson writes ?tab=) fire popstate and no hashchange, so the state
+  // follows popstate. A move that fires both is handled once: by popstate, which comes first.
+  var popstateEntry = null;
+
+  function historyEntryKey() {
+    var state = history.state;
+    var entry = state && typeof state.protoEntry === "string" ? state.protoEntry : "";
+    return window.location.hash + " " + entry;
+  }
+
+  window.addEventListener("popstate", function () {
+    popstateEntry = historyEntryKey();
+    onHistoryMove();
+  });
+  window.addEventListener("hashchange", function () {
+    var isHandled = popstateEntry === historyEntryKey();
+    popstateEntry = null;
+    if (!isHandled) onHistoryMove();
   });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();

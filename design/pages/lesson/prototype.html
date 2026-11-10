@@ -94,6 +94,31 @@
 <template data-state="one-pane-env" data-state-label="Environment running, new terminal session, Environment shown (one pane below 1024px)"></template>
 <template data-state="split-focused" data-state-label="F9.3 split handle focused, tooltip"></template>
 <template data-state="split-cycled" data-state-label="F9.3 split handle cycled to 35 %"></template>
+<template data-state="quiz-loading" data-state-label="F15 loading: the quiz is being read (from #36)"></template>
+<template data-state="quiz" data-state-label="F15.1-F15.3 quiz before the first attempt (from #36)"></template>
+<template data-state="quiz-partial" data-state-label="F15.2 some questions answered"></template>
+<template data-state="quiz-blocked" data-state-label="F15.3 send blocked: two questions unanswered"></template>
+<template data-state="quiz-blocked-one" data-state-label="F15.3 after a blocked send, question 4 answered"></template>
+<template data-state="quiz-sending" data-state-label="F15.3 sending, answers locked"></template>
+<template data-state="quiz-failed" data-state-label="F15.4 failed attempt (also the return visit)"></template>
+<template data-state="quiz-last-attempt" data-state-label="F15.4 failed, one attempt left"></template>
+<template data-state="quiz-passed" data-state-label="F15.5 passed: review (lesson passed by it)"></template>
+<template data-state="quiz-closed" data-state-label="F15.5 closed after the last failure: review"></template>
+<template data-state="quiz-row" data-state-label="F15 entry: quiz check row in Checks, before any attempt"></template>
+<template data-state="quiz-row-closed" data-state-label="F15.6 quiz check row closed"></template>
+<template data-state="quiz-send-error" data-state-label="F15 error: answers not sent"></template>
+<template data-state="quiz-load-error" data-state-label="F15 error: quiz load error"></template>
+<template data-state="quiz-session-expired" data-state-label="F15 error: session expired while answering (F2.1)"></template>
+<template data-state="quiz-restored" data-state-label="F15 error: answers restored after sign-in (?tab=quiz)"></template>
+<template data-state="quiz-limit-unknown" data-state-label="F15.4 failed, limit unknown (R7)"></template>
+<template data-state="quiz-code" data-state-label="F15.2 question with code that overflows at 320px (sample data, lesson 05)"></template>
+<template data-state="quiz-passed-after-run" data-state-label="F15.5 pass after a run on this page view: status line emptied, P7 (sample data)"></template>
+<template data-state="quiz-closed-finished" data-state-label="F15.6 close that finishes the lesson, not passed: P8 (sample data)"></template>
+<template data-state="quiz-answered-away" data-state-label="F15 away: failed result while on Checks, quiz notice, P9 (sample data)"></template>
+<template data-state="quiz-notice-env" data-state-label="F15 away: close answered with Environment shown, S3 (sample data)"></template>
+<template data-state="quiz-notice-send-error" data-state-label="F15 away: send failed while on Theory (sample data)"></template>
+<template data-state="quiz-notice-two-pane" data-state-label="F15 away: result while in the terminal, two panes (sample data)"></template>
+<template data-state="quiz-refused" data-state-label="F15 error: send refused, the quiz changed in another tab (sample data)"></template>
 <a class="skip-link" href="#main">К содержимому</a>
 
 <div class="app" data-layout="lesson">
@@ -120,10 +145,11 @@
 
   <div class="notifications" data-notifications data-region>
     <h2 class="sr-only" id="notifications-heading" data-notifications-heading>Уведомления</h2>
-    <div class="live" role="alert" data-live-key="page-alert"></div>
-    <div class="live" role="status" data-live-key="page-status"></div>
+    <div class="live" role="alert" aria-live="assertive" data-live-key="page-alert"></div>
+    <div class="live" role="status" aria-live="polite" data-live-key="page-status"></div>
+    <div class="live" role="status" aria-live="polite" data-live-key="quiz-notice" data-state="quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused"></div>
   </div>
-  <template data-live-source="page-alert" data-state="session-expired">
+  <template data-live-source="page-alert" data-state="session-expired quiz-session-expired">
     <div class="alert" data-variant="destructive" data-step="F2.1">
       <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
       <p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p>
@@ -135,6 +161,37 @@
       <span class="status-icon" data-status="info" aria-hidden="true"></span>
       <p class="alert-title">Окружение остановится через 5 мин без активности. Файлы сохранятся.</p>
       <div class="alert-actions"><button class="button" type="button" data-size="sm" data-goto-state="theory" data-focus=".is-one-pane > .pane[data-pane=&quot;lesson&quot;] [data-show-pane=&quot;lesson&quot;], #crumb-course" data-step="F10.2">Продолжить работу</button></div>
+    </div>
+  </template>
+
+  <!-- The quiz notice (P9): the idle warning's composition, no role on the Alert. "Открыть квиз" names no pane:
+       the outcome state shows "Урок" (page script), so the entry it leaves keeps its own ?tab= (M2). -->
+  <template data-live-source="quiz-notice" data-state="quiz-answered-away">
+    <div class="alert">
+      <span class="status-icon" data-status="info" aria-hidden="true"></span>
+      <p class="alert-title">Ответы квиза проверены. Верно 4 из 6. Нужно 5.</p>
+      <div class="alert-actions"><button class="button" type="button" data-size="sm" id="open-quiz" data-goto-state="quiz-failed" data-select-tab="tab-quiz" data-focus="#quiz-result-failed">Открыть квиз</button></div>
+    </div>
+  </template>
+  <template data-live-source="quiz-notice" data-state="quiz-notice-env">
+    <div class="alert">
+      <span class="status-icon" data-status="info" aria-hidden="true"></span>
+      <p class="alert-title">Квиз не пройден: попытки исчерпаны. Урок завершён: не пройден. Пройдено: 0 из 2.</p>
+      <div class="alert-actions"><button class="button" type="button" data-size="sm" id="open-quiz" data-goto-state="quiz-closed-finished" data-select-tab="tab-quiz" data-focus="#quiz-result-closed-finished">Открыть квиз</button></div>
+    </div>
+  </template>
+  <template data-live-source="quiz-notice" data-state="quiz-notice-send-error">
+    <div class="alert">
+      <span class="status-icon" data-status="info" aria-hidden="true"></span>
+      <p class="alert-title">Ответы квиза не отправлены. Попробуйте снова.</p>
+      <div class="alert-actions"><button class="button" type="button" data-size="sm" id="open-quiz" data-goto-state="quiz-send-error" data-select-tab="tab-quiz" data-focus="#quiz-send-error">Открыть квиз</button></div>
+    </div>
+  </template>
+  <template data-live-source="quiz-notice" data-state="quiz-notice-two-pane">
+    <div class="alert">
+      <span class="status-icon" data-status="info" aria-hidden="true"></span>
+      <p class="alert-title">Ответы квиза проверены. Верно 3 из 6. Нужно 5. Осталась 1 попытка.</p>
+      <div class="alert-actions"><button class="button" type="button" data-size="sm" id="open-quiz" data-goto-state="quiz-last-attempt" data-select-tab="tab-quiz" data-focus="#quiz-result-last">Открыть квиз</button></div>
     </div>
   </template>
 
@@ -163,7 +220,7 @@
           <p class="lesson-meta"><span class="badge" data-variant="outline">артефакт</span><span>около 40 мин</span></p>
           <div class="outcomes">
             <h2>Чему научитесь</h2>
-            <ul data-state="theory task text-error copy-denied no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
+            <ul data-state="theory task text-error copy-denied no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused">
               <li>Выбирает модель, уровень ризонинга и облачный или локальный запуск под конкретную задачу и называет ограничение, которое определило выбор: качество, задержка, цена, контекст или приватность.</li>
             </ul>
             <div class="stack" data-gap="2" data-state="outcomes-collapsed outcomes-expanded">
@@ -188,9 +245,10 @@
 
         <div class="tabs">
           <div class="tabs-list" role="tablist" aria-label="Разделы урока" data-step="F2.4">
-            <button class="tabs-trigger" type="button" role="tab" id="tab-theory" aria-controls="panel-theory" aria-selected="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-select-in-states="theory outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done check-running after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled closed-limit-unknown stream-lost stream-failed">Теория</button>
+            <button class="tabs-trigger" type="button" role="tab" id="tab-theory" aria-controls="panel-theory" aria-selected="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-select-in-states="theory outcomes-collapsed outcomes-expanded text-error copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done check-running after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled closed-limit-unknown stream-lost stream-failed quiz-notice-send-error">Теория</button>
             <button class="tabs-trigger" type="button" role="tab" id="tab-task" aria-controls="panel-task" aria-selected="false" data-select-in-states="task no-theory">Задание</button>
-            <button class="tabs-trigger" type="button" role="tab" id="tab-checks" aria-controls="panel-checks" aria-selected="false" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-select-in-states="checks-before results statuses lesson-passed results-limit-known limit-warning closed mixed mixed-running passed-last-failed runner-error budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">Проверки<span class="status-icon" data-status="running" aria-hidden="true" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"></span><span class="sr-only" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running">, идёт проверка</span></button>
+            <button class="tabs-trigger" type="button" role="tab" id="tab-checks" aria-controls="panel-checks" aria-selected="false" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-select-in-states="checks-before results statuses lesson-passed results-limit-known limit-warning closed mixed mixed-running passed-last-failed runner-error budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-row quiz-row-closed quiz-answered-away">Проверки<span class="status-icon" data-status="running" aria-hidden="true" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"></span><span class="sr-only" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running">, идёт проверка</span></button>
+            <button class="tabs-trigger" type="button" role="tab" id="tab-quiz" aria-controls="panel-quiz" aria-selected="false" data-state="quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-select-in-states="quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-notice-env quiz-notice-two-pane quiz-refused">Квиз</button>
           </div>
 
           <!-- Теория -->
@@ -201,7 +259,7 @@
               <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="theory" data-focus="#panel-theory">Повторить</button></div>
             </div>
 
-            <div data-state="theory task outcomes-collapsed outcomes-expanded copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
+            <div data-state="theory task outcomes-collapsed outcomes-expanded copy-denied no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused">
               <nav class="toc" aria-labelledby="toc-heading" data-step="F7.3">
                 <h2 id="toc-heading">Содержание</h2>
                 <ol>
@@ -279,7 +337,7 @@
                 </ul>
                 <div class="code-block">
                   <div class="code-block-header">
-                    <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="theory task outcomes-collapsed outcomes-expanded text-error no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-step="F7.5">Копировать</button>
+                    <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="theory task outcomes-collapsed outcomes-expanded text-error no-theory no-sources prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-step="F7.5">Копировать</button>
                     <button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#code-ollama" data-copy-denied="Не скопировано, выделите текст вручную" data-state="copy-denied">Не скопировано, выделите текст вручную</button>
                   </div>
                   <pre><code id="code-ollama">export ANTHROPIC_BASE_URL=http:&#47;&#47;localhost:11434
@@ -313,7 +371,7 @@ claude</code></pre>
                 <p>Вы разберёте шесть карточек задач. В каждой одно ограничение связывает руки, остальные ослаблены. Для каждой выберите уровень модели, effort и место запуска и назовите ограничение, которое решило выбор. Потом квиз на механизмы: что меняет effort, как проверить настройку, когда оправдана локальная модель.</p>
               </article>
 
-              <div class="sources" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
+              <div class="sources" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory prerequisite session-expired user-menu m0 env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused">
                 <h2>Источники</h2>
                 <ul>
                   <li><a href="https://platform.claude.com/docs/en/about-claude/models/overview">Anthropic: Models overview (линейка, цены, окно контекста, effort по умолчанию)</a> <span class="muted">проверено 2026-10-27</span></li>
@@ -943,6 +1001,468 @@ claude</code></pre>
                   </div>
                 </li>
               </ul>
+
+              <!-- From #36: the command check row and the quiz check row (quiz.md "Quiz check row in Проверки"), per quiz
+                   state; the quiz row is open in every quiz state, so Back after "Пройти квиз" finds it rendered. -->
+              <ul class="check-list" data-state="quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-row quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-notice-send-error">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-qa-mr">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-qa-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <p class="text-sm muted">Неудачных попыток: 0 из 10</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-qa-quiz" data-open-in-states="quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-row quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-notice-send-error">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+                    <span class="check-row-status">Ответы не отправлялись</span>
+                  </button>
+                  <div class="check-row-panel" id="row-qa-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 0 из 3</p>
+                    <button class="button" type="button" data-variant="outline" data-size="sm" data-quiz-take data-goto-state="quiz" data-select-tab="tab-quiz" data-focus="#panel-quiz h2:not([hidden])">Пройти квиз</button>
+                  </div>
+                </li>
+              </ul>
+              <ul class="check-list" data-state="quiz-code">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-code-mr">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-code-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <p class="text-sm muted">Неудачных попыток: 0 из 10</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-code-quiz" data-open-in-states="quiz-code">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: какие файлы инструкций загрузятся при настройках по умолчанию</span>
+                    <span class="check-row-status">Ответы не отправлялись</span>
+                  </button>
+                  <div class="check-row-panel" id="row-code-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 0 из 3</p>
+                    <button class="button" type="button" data-variant="outline" data-size="sm" data-quiz-take data-goto-state="quiz" data-select-tab="tab-quiz" data-focus="#panel-quiz h2:not([hidden])">Пройти квиз</button>
+                  </div>
+                </li>
+              </ul>
+              <ul class="check-list" data-state="quiz-failed quiz-answered-away">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-f1-mr">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-f1-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <p class="text-sm muted">Неудачных попыток: 0 из 10</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-f1-quiz" data-open-in-states="quiz-failed quiz-answered-away">
+                    <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+                    <span class="check-row-status">Не пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-f1-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 1 из 3</p>
+                    <button class="button" type="button" data-variant="outline" data-size="sm" data-quiz-take data-goto-state="quiz" data-select-tab="tab-quiz" data-focus="#panel-quiz h2:not([hidden])">Пройти квиз</button>
+                  </div>
+                </li>
+              </ul>
+              <ul class="check-list" data-state="quiz-last-attempt quiz-notice-two-pane quiz-refused">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-f2-mr">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-f2-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <p class="text-sm muted">Неудачных попыток: 0 из 10</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-f2-quiz" data-open-in-states="quiz-last-attempt quiz-notice-two-pane quiz-refused">
+                    <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+                    <span class="check-row-status">Не пройдено</span>
+                    <span class="check-row-meta"><span data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span></span>
+                  </button>
+                  <div class="check-row-panel" id="row-f2-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 2 из 3</p>
+                    <button class="button" type="button" data-variant="outline" data-size="sm" data-quiz-take data-goto-state="quiz" data-select-tab="tab-quiz" data-focus="#panel-quiz h2:not([hidden])">Пройти квиз</button>
+                  </div>
+                </li>
+              </ul>
+              <ul class="check-list" data-state="quiz-limit-unknown">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-lu-mr">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-lu-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <p class="text-sm muted">Неудачных попыток: 0</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-lu-quiz" data-open-in-states="quiz-limit-unknown">
+                    <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+                    <span class="check-row-status">Не пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-lu-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 1</p>
+                    <button class="button" type="button" data-variant="outline" data-size="sm" data-quiz-take data-goto-state="quiz" data-select-tab="tab-quiz" data-focus="#panel-quiz h2:not([hidden])">Пройти квиз</button>
+                  </div>
+                </li>
+              </ul>
+              <ul class="check-list" data-state="quiz-passed quiz-passed-after-run">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-p-mr">
+                    <span class="status-icon" data-status="success" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-p-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <pre class="check-row-message">Пройдено: не меньше 5 из 6 карточек верны.</pre>
+                    <p class="text-sm muted">Неудачных попыток: 1 из 10</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-p-quiz" data-open-in-states="quiz-passed quiz-passed-after-run">
+                    <span class="status-icon" data-status="success" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+                    <span class="check-row-status">Пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-p-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 1 из 3</p>
+                  </div>
+                </li>
+              </ul>
+              <ul class="check-list" data-state="quiz-closed quiz-row-closed">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-c-mr">
+                    <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Не запускалась</span>
+                  </button>
+                  <div class="check-row-panel" id="row-c-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <p class="text-sm muted">Неудачных попыток: 0 из 10</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-c-quiz" data-open-in-states="quiz-closed quiz-row-closed" data-step="F15.6">
+                    <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+                    <span class="check-row-status">Закрыта: не пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-c-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 3 из 3</p>
+                  </div>
+                </li>
+              </ul>
+              <ul class="check-list" data-state="quiz-closed-finished quiz-notice-env">
+                <li data-focus-fallback="[data-check-row='model-routing']">
+                  <button class="check-row-trigger" type="button" data-check-row="model-routing" data-collapsible aria-expanded="false" aria-controls="row-cf-mr">
+                    <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+                    <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+                    <span class="check-row-status">Закрыта: не пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-cf-mr" data-focus-fallback="[data-check-row='model-routing']" hidden>
+                    <p class="text-sm">Проверка закрыта: попытки исчерпаны. Сброс рабочей папки и перезапуск окружения её не откроют.</p>
+                    <pre class="check-row-message">2 из 6 карточек неверны.</pre>
+                    <p class="text-sm muted">Неудачных попыток: 10 из 10</p>
+                  </div>
+                </li>
+                <li data-focus-fallback="[data-check-row='models-effort-quiz']">
+                  <button class="check-row-trigger" type="button" data-check-row="models-effort-quiz" data-collapsible aria-expanded="true" aria-controls="row-cf-quiz" data-open-in-states="quiz-closed-finished quiz-notice-env">
+                    <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+                    <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+                    <span class="check-row-status">Закрыта: не пройдено</span>
+                  </button>
+                  <div class="check-row-panel" id="row-cf-quiz" data-focus-fallback="[data-check-row='models-effort-quiz']">
+                    <p class="text-sm muted">Неудачных попыток: 3 из 3</p>
+                  </div>
+                </li>
+              </ul>
+              <p class="text-sm muted" data-state="quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused">Попыток пока нет. Нажмите "Проверить", когда будете готовы.</p>
+            </div>
+          </div>
+
+          <!-- Квиз (F15, from #36; R6: only in the quiz states). Sample data: models-effort-quiz of this lesson
+               (quiz.yaml, 6 questions, passScore 0.8 so K = 5 as task.md says, attempts.limit 3). The answers of
+               each state, the lock while sending and the descriptions of each group are set by the page script
+               (QUIZ_ANSWERS below), because one set of inputs serves every state. -->
+          <div class="tabs-content" role="tabpanel" id="panel-quiz" aria-labelledby="tab-quiz" tabindex="0" hidden>
+            <div class="quiz">
+              <div class="quiz-intro">
+                <h2 id="quiz-heading" tabindex="-1" data-state="quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused">Квиз: effort, поверхности и локальные модели</h2>
+                <h2 id="quiz-code-heading" tabindex="-1" data-state="quiz-code">Квиз: какие файлы инструкций загрузятся при настройках по умолчанию</h2>
+                <div class="quiz-header" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-step="F15.1">
+                  <p data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-passed quiz-passed-after-run quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">Нужно 5 из 6</p>
+                  <p data-state="quiz-code">Нужно 6 из 8</p>
+                  <p data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-code quiz-notice-send-error">Попытка 1 из 3</p>
+                  <p data-state="quiz-failed quiz-answered-away">Попытка 2 из 3</p>
+                  <p data-state="quiz-last-attempt quiz-notice-two-pane quiz-refused">Попытка 3 из 3</p>
+                  <p data-state="quiz-limit-unknown">Попытка 2</p>
+                  <span data-tone="warning" data-state="quiz-last-attempt quiz-notice-two-pane quiz-refused"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span>
+                </div>
+              </div>
+              <div class="stack" data-gap="3" aria-hidden="true" data-state="quiz-loading">
+                <span class="skeleton" style="width: 40%"></span>
+                <span class="skeleton" style="width: 90%"></span>
+                <span class="skeleton" style="width: 70%"></span>
+                <span class="skeleton" style="width: 80%"></span>
+                <span class="skeleton" style="width: 60%"></span>
+                <span class="skeleton" style="width: 75%"></span>
+              </div>
+              <div class="alert" data-variant="destructive" data-state="quiz-load-error">
+                <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-load-error-title">Не удалось загрузить квиз</p>
+                <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" aria-describedby="quiz-load-error-title" data-goto-state="quiz-loading" data-focus="#quiz-heading">Повторить</button></div>
+              </div>
+              <div class="alert" id="quiz-result-failed" role="group" tabindex="-1" aria-labelledby="quiz-result-failed-title" aria-describedby="quiz-result-failed-line1" data-quiz-outcome data-state="quiz-failed quiz-answered-away" data-step="F15.4">
+                <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-result-failed-title">Верно 4 из 6. Нужно 5.</p>
+                <p class="alert-description" id="quiz-result-failed-line1">Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки.</p>
+              </div>
+              <div class="alert" id="quiz-result-last" role="group" tabindex="-1" aria-labelledby="quiz-result-last-title" aria-describedby="quiz-result-last-line1" data-quiz-outcome data-state="quiz-last-attempt quiz-notice-two-pane">
+                <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-result-last-title">Верно 3 из 6. Нужно 5.</p>
+                <p class="alert-description" id="quiz-result-last-line1">Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки.</p>
+              </div>
+              <div class="alert" id="quiz-result-limit-unknown" role="group" tabindex="-1" aria-labelledby="quiz-result-limit-unknown-title" aria-describedby="quiz-result-limit-unknown-line1" data-quiz-outcome data-state="quiz-limit-unknown">
+                <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-result-limit-unknown-title">Верно 4 из 6. Нужно 5.</p>
+                <p class="alert-description" id="quiz-result-limit-unknown-line1">Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения.</p>
+              </div>
+              <div class="alert" id="quiz-result-passed" role="group" tabindex="-1" aria-labelledby="quiz-result-passed-title" aria-describedby="quiz-result-passed-line1 quiz-result-passed-line2 quiz-result-passed-line3" data-quiz-outcome data-state="quiz-passed quiz-passed-after-run" data-step="F15.5">
+                <span class="status-icon" data-status="success" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-result-passed-title">Квиз пройден</p>
+                <p class="alert-description" id="quiz-result-passed-line1">Верно 5 из 6.</p>
+                <p class="alert-description" id="quiz-result-passed-line2">Ниже верные ответы и пояснения.</p>
+                <p class="alert-description" id="quiz-result-passed-line3">Урок пройден</p>
+              </div>
+              <div class="alert" id="quiz-result-closed" role="group" tabindex="-1" aria-labelledby="quiz-result-closed-title" aria-describedby="quiz-result-closed-line1 quiz-result-closed-line2" data-quiz-outcome data-state="quiz-closed quiz-row-closed">
+                <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-result-closed-title">Квиз не пройден: попытки исчерпаны</p>
+                <p class="alert-description" id="quiz-result-closed-line1">Верно 4 из 6. Нужно 5.</p>
+                <p class="alert-description" id="quiz-result-closed-line2">Ниже верные ответы и пояснения.</p>
+              </div>
+              <div class="alert" id="quiz-result-closed-finished" role="group" tabindex="-1" aria-labelledby="quiz-result-closed-finished-title" aria-describedby="quiz-result-closed-finished-line1 quiz-result-closed-finished-line2 quiz-result-closed-finished-line3" data-quiz-outcome data-state="quiz-closed-finished quiz-notice-env">
+                <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-result-closed-finished-title">Квиз не пройден: попытки исчерпаны</p>
+                <p class="alert-description" id="quiz-result-closed-finished-line1">Верно 4 из 6. Нужно 5.</p>
+                <p class="alert-description" id="quiz-result-closed-finished-line2">Ниже верные ответы и пояснения.</p>
+                <p class="alert-description" id="quiz-result-closed-finished-line3">Урок завершён: не пройден. Пройдено: 0 из 2</p>
+              </div>
+              <div class="alert" id="quiz-result-refused" role="group" tabindex="-1" aria-labelledby="quiz-result-refused-title" aria-describedby="quiz-result-refused-line1" data-quiz-outcome data-state="quiz-refused">
+                <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-result-refused-title">Ответы не приняты: квиз изменился в другой вкладке.</p>
+                <p class="alert-description" id="quiz-result-refused-line1">Последний результат: Верно 3 из 6. Нужно 5.</p>
+              </div>
+              <div class="alert" data-variant="destructive" id="quiz-summary" role="group" tabindex="-1" aria-labelledby="quiz-summary-title" data-state="quiz-blocked quiz-blocked-one">
+                <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-summary-title">Ответьте на все вопросы: осталось <span id="quiz-summary-count">2</span></p>
+                <ul class="alert-links" role="list">
+                  <li data-summary-for="q1" hidden><a href="#q1-a">Вопрос 1 из 6: выберите ответ</a></li>
+                  <li data-summary-for="q2" hidden><a href="#q2-a">Вопрос 2 из 6: выберите ответ</a></li>
+                  <li data-summary-for="q3" hidden><a href="#q3-a">Вопрос 3 из 6: выберите ответ</a></li>
+                  <li data-summary-for="q4" data-state="quiz-blocked"><a href="#q4-a">Вопрос 4 из 6: выберите ответ</a></li>
+                  <li data-summary-for="q5" hidden><a href="#q5-a">Вопрос 5 из 6: выберите хотя бы один вариант</a></li>
+                  <li data-summary-for="q6" data-state="quiz-blocked quiz-blocked-one"><a href="#q6-a">Вопрос 6 из 6: выберите хотя бы один вариант</a></li>
+                </ul>
+              </div>
+              <div class="question" data-anchor-block data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-passed quiz-passed-after-run quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                <h3 id="q1-heading">Вопрос 1 из 6 <span class="verdict" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верно</span></h3>
+                <div class="prose" id="q1-prompt"><p>Агент на высоком уровне усилия (effort) делает 40 вызовов инструментов за задачу и работает заметно медленнее, чем на <code>low</code>. Что именно меняет уровень усилия в таком запуске?</p></div>
+                <p class="field-error" id="q1-error" hidden>Выберите ответ</p>
+                <div class="choice-group" role="radiogroup" aria-labelledby="q1-heading" aria-describedby="q1-prompt" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-step="F15.2">
+                  <label class="choice"><input class="radio" type="radio" name="q1" id="q1-a" value="a"><span class="choice-text">Только длину скрытого рассуждения перед финальным ответом пользователю</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q1" id="q1-b" value="b"><span class="choice-text">Расход токенов на весь вывод модели, включая вызовы инструментов</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q1" id="q1-c" value="c"><span class="choice-text">Жёсткий лимит токенов на запрос, который модель не может превысить</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q1" id="q1-d" value="d"><span class="choice-text">Количество инструментов, которые харнесс разрешает модели вызвать</span></label>
+                </div>
+                <ul class="review-options" role="list" data-state="quiz-passed quiz-passed-after-run">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Только длину скрытого рассуждения перед финальным ответом пользователю</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Расход токенов на весь вывод модели, включая вызовы инструментов</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Жёсткий лимит токенов на запрос, который модель не может превысить</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Количество инструментов, которые харнесс разрешает модели вызвать</span></span></li>
+                </ul>
+                <ul class="review-options" role="list" data-state="quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Только длину скрытого рассуждения перед финальным ответом пользователю</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Расход токенов на весь вывод модели, включая вызовы инструментов</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Жёсткий лимит токенов на запрос, который модель не может превысить</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Количество инструментов, которые харнесс разрешает модели вызвать</span></span></li>
+                </ul>
+                <div class="explanation" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env">
+                  <h4>Пояснение</h4>
+                  <div class="prose"><p>Effort - поведенческий сигнал, а не жёсткий бюджет токенов, и он действует на весь вывод модели: текст, рассуждение и вызовы инструментов (вызов инструмента - тоже вывод модели). Поэтому в агентном запуске с десятками вызовов разница в уровне усилия умножается.</p></div>
+                </div>
+              </div>
+              <div class="question" data-anchor-block data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-passed quiz-passed-after-run quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                <h3 id="q2-heading">Вопрос 2 из 6 <span class="verdict" data-state="quiz-passed quiz-passed-after-run"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верно</span> <span class="verdict" data-state="quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Неверно</span></h3>
+                <div class="prose" id="q2-prompt"><p>Вы отлаживали промпт через API, потом перенесли тот же сценарий в CLI-агента на той же модели, и ответы стали заметно менее глубокими. Что разумно сделать первым?</p></div>
+                <p class="field-error" id="q2-error" hidden>Выберите ответ</p>
+                <div class="choice-group" role="radiogroup" aria-labelledby="q2-heading" aria-describedby="q2-prompt" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused">
+                  <label class="choice"><input class="radio" type="radio" name="q2" id="q2-a" value="a"><span class="choice-text">Дописать в промпт просьбу думать тщательнее и повторить запуск</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q2" id="q2-b" value="b"><span class="choice-text">Перейти на модель уровнем выше, раз эта не справляется в CLI</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q2" id="q2-c" value="c"><span class="choice-text">Считать, что дефолт усилия везде один, и искать причину в промпте</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q2" id="q2-d" value="d"><span class="choice-text">Проверить, какое усилие реально выставлено в этой поверхности</span></label>
+                </div>
+                <ul class="review-options" role="list" data-state="quiz-passed quiz-passed-after-run">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Дописать в промпт просьбу думать тщательнее и повторить запуск</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Перейти на модель уровнем выше, раз эта не справляется в CLI</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Считать, что дефолт усилия везде один, и искать причину в промпте</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Проверить, какое усилие реально выставлено в этой поверхности</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                </ul>
+                <ul class="review-options" role="list" data-state="quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Дописать в промпт просьбу думать тщательнее и повторить запуск</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Перейти на модель уровнем выше, раз эта не справляется в CLI</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Считать, что дефолт усилия везде один, и искать причину в промпте</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Проверить, какое усилие реально выставлено в этой поверхности</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                </ul>
+                <div class="explanation" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env">
+                  <h4>Пояснение</h4>
+                  <div class="prose"><p>Дефолты усилия могут отличаться между поверхностями одной модели (датированный пример из теории: Sonnet 5.5 по умолчанию high в API и medium в Claude Code). Привычка: назвать поверхность и проверить фактическую настройку (<code>/effort</code>, конфиг, документация этого инструмента), а не полагаться на дефолт, запомненный в другом месте.</p></div>
+                </div>
+              </div>
+              <div class="question" data-anchor-block data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-passed quiz-passed-after-run quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                <h3 id="q3-heading">Вопрос 3 из 6 <span class="verdict" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верно</span></h3>
+                <div class="prose" id="q3-prompt"><p>В Claude Code 2.1.311 вы пишете в одном сообщении "think hard about this", а в другом слово <code>ultrathink</code>. Чем различаются эти два сообщения для харнесса?</p></div>
+                <p class="field-error" id="q3-error" hidden>Выберите ответ</p>
+                <div class="choice-group" role="radiogroup" aria-labelledby="q3-heading" aria-describedby="q3-prompt" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused">
+                  <label class="choice"><input class="radio" type="radio" name="q3" id="q3-a" value="a"><span class="choice-text"><code>ultrathink</code> углубляет рассуждение на один ход, think hard - текст</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q3" id="q3-b" value="b"><span class="choice-text">Оба выражения переключают уровень усилия до конца всей текущей сессии</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q3" id="q3-c" value="c"><span class="choice-text">think hard задаёт бюджет рассуждения, а <code>ultrathink</code> его снимает</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q3" id="q3-d" value="d"><span class="choice-text">Ничем: оба выражения - обычный текст, харнесс их не распознаёт</span></label>
+                </div>
+                <ul class="review-options" role="list" data-state="quiz-passed quiz-passed-after-run">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text"><code>ultrathink</code> углубляет рассуждение на один ход, think hard - текст</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Оба выражения переключают уровень усилия до конца всей текущей сессии</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">think hard задаёт бюджет рассуждения, а <code>ultrathink</code> его снимает</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Ничем: оба выражения - обычный текст, харнесс их не распознаёт</span></span></li>
+                </ul>
+                <ul class="review-options" role="list" data-state="quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text"><code>ultrathink</code> углубляет рассуждение на один ход, think hard - текст</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Оба выражения переключают уровень усилия до конца всей текущей сессии</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">think hard задаёт бюджет рассуждения, а <code>ultrathink</code> его снимает</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Ничем: оба выражения - обычный текст, харнесс их не распознаёт</span></span></li>
+                </ul>
+                <div class="explanation" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env">
+                  <h4>Пояснение</h4>
+                  <div class="prose"><p>В Claude Code 2.1.311 <code>ultrathink</code> - ключевое слово, которое запрашивает более глубокое рассуждение на один ход. Фразы вроде "think hard" харнесс не распознаёт: модель видит их как обычный текст промпта. Это поведение конкретного инструмента и версии.</p></div>
+                </div>
+              </div>
+              <div class="question" data-anchor-block data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-passed quiz-passed-after-run quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                <h3 id="q4-heading">Вопрос 4 из 6 <span class="verdict" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верно</span></h3>
+                <div class="prose" id="q4-prompt"><p>Пример из блога двухлетней давности задаёт параметр рассуждения, который ваша текущая модель отвергает с ошибкой. Какой ход надёжнее всего?</p></div>
+                <p class="field-error" id="q4-error" data-state="quiz-blocked">Выберите ответ</p>
+                <div class="choice-group" role="radiogroup" aria-labelledby="q4-heading" aria-describedby="q4-prompt" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused">
+                  <label class="choice"><input class="radio" type="radio" name="q4" id="q4-a" value="a"><span class="choice-text">Подобрать значение параметра, при котором ошибка пропадёт</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q4" id="q4-b" value="b"><span class="choice-text">Откатиться на модель того поколения, для которой писали пример</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q4" id="q4-c" value="c"><span class="choice-text">Открыть текущую документацию этой модели и взять способ оттуда</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="q4" id="q4-d" value="d"><span class="choice-text">Заменить параметр похожим по названию из нового API</span></label>
+                </div>
+                <ul class="review-options" role="list" data-state="quiz-passed quiz-passed-after-run">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Подобрать значение параметра, при котором ошибка пропадёт</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Откатиться на модель того поколения, для которой писали пример</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Открыть текущую документацию этой модели и взять способ оттуда</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Заменить параметр похожим по названию из нового API</span></span></li>
+                </ul>
+                <ul class="review-options" role="list" data-state="quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Подобрать значение параметра, при котором ошибка пропадёт</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Откатиться на модель того поколения, для которой писали пример</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Открыть текущую документацию этой модели и взять способ оттуда</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Заменить параметр похожим по названию из нового API</span></span></li>
+                </ul>
+                <div class="explanation" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env">
+                  <h4>Пояснение</h4>
+                  <div class="prose"><p>Способы управлять рассуждением меняются между поколениями моделей (датированный пример из теории: <code>budget_tokens</code> у новых моделей не принимается, вместо него effort). Сниппет описывает старую модель; источник истины - документация текущей модели.</p></div>
+                </div>
+              </div>
+              <div class="question" data-anchor-block data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-passed quiz-passed-after-run quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                <h3 id="q5-heading">Вопрос 5 из 6 <span class="verdict" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Неверно</span></h3>
+                <div class="prose" id="q5-prompt"><p>Локальная модель запущена с окном контекста 4096 токенов, и агент на ней постоянно ломает вызовы инструментов. Какие изменения могут помочь? Выберите все верные.</p></div>
+                <p class="field-description" id="q5-note">Засчитывается только точный набор ответов</p>
+                <p class="field-error" id="q5-error" hidden>Выберите хотя бы один вариант</p>
+                <div class="choice-group" role="group" aria-labelledby="q5-heading" aria-describedby="q5-prompt q5-note" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused">
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q5" id="q5-a" value="a"><span class="choice-text">Увеличить окно контекста модели в настройках локального сервера</span></label>
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q5" id="q5-b" value="b"><span class="choice-text">Взять локальную модель, которая обучена вызывать инструменты</span></label>
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q5" id="q5-c" value="c"><span class="choice-text">Поднять уровень усилия, чтобы модель лучше запоминала инструменты</span></label>
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q5" id="q5-d" value="d"><span class="choice-text">Сократить число подключённых инструментов и их описаний</span></label>
+                </div>
+                <ul class="review-options" role="list" data-state="quiz-passed quiz-passed-after-run">
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Увеличить окно контекста модели в настройках локального сервера</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Взять локальную модель, которая обучена вызывать инструменты</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Поднять уровень усилия, чтобы модель лучше запоминала инструменты</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Сократить число подключённых инструментов и их описаний</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                </ul>
+                <ul class="review-options" role="list" data-state="quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Увеличить окно контекста модели в настройках локального сервера</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Взять локальную модель, которая обучена вызывать инструменты</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Поднять уровень усилия, чтобы модель лучше запоминала инструменты</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Сократить число подключённых инструментов и их описаний</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                </ul>
+                <div class="explanation" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env">
+                  <h4>Пояснение</h4>
+                  <div class="prose"><p>Типичные поломки локального запуска: маленькое окно (определения инструментов, системный промпт и история просто не помещаются) и слабое умение модели вызывать инструменты. Помогают большее окно, модель с поддержкой инструментов и меньше определений в контексте. Уровень усилия не расширяет окно и не учит модель формату вызовов.</p></div>
+                </div>
+              </div>
+              <div class="question" data-anchor-block data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-passed quiz-passed-after-run quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                <h3 id="q6-heading">Вопрос 6 из 6 <span class="verdict" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верно</span></h3>
+                <div class="prose" id="q6-prompt"><p>Команда спорит, переводить ли часть работы агента на локальную модель. Какие доводы действительно оправдывают локальный запуск? Выберите все верные.</p></div>
+                <p class="field-description" id="q6-note">Засчитывается только точный набор ответов</p>
+                <p class="field-error" id="q6-error" data-state="quiz-blocked quiz-blocked-one">Выберите хотя бы один вариант</p>
+                <div class="choice-group" role="group" aria-labelledby="q6-heading" aria-describedby="q6-prompt q6-note" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused">
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q6" id="q6-a" value="a"><span class="choice-text">Код или данные по договору не могут покидать машину разработчика</span></label>
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q6" id="q6-b" value="b"><span class="choice-text">Локальная модель бесплатна, значит любая задача на ней выйдет дешевле</span></label>
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q6" id="q6-c" value="c"><span class="choice-text">Работа идёт в закрытом контуре или офлайн, без доступа к облаку</span></label>
+                  <label class="choice"><input class="checkbox" type="checkbox" name="q6" id="q6-d" value="d"><span class="choice-text">Локальная модель того же размера даёт то же качество, что облачная</span></label>
+                </div>
+                <ul class="review-options" role="list" data-state="quiz-passed quiz-passed-after-run">
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Код или данные по договору не могут покидать машину разработчика</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Локальная модель бесплатна, значит любая задача на ней выйдет дешевле</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Работа идёт в закрытом контуре или офлайн, без доступа к облаку</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Локальная модель того же размера даёт то же качество, что облачная</span></span></li>
+                </ul>
+                <ul class="review-options" role="list" data-state="quiz-closed quiz-row-closed quiz-closed-finished quiz-notice-env">
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Код или данные по договору не могут покидать машину разработчика</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Локальная модель бесплатна, значит любая задача на ней выйдет дешевле</span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Работа идёт в закрытом контуре или офлайн, без доступа к облаку</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+                  <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Локальная модель того же размера даёт то же качество, что облачная</span></span></li>
+                </ul>
+                <div class="explanation" data-state="quiz-passed quiz-closed quiz-row-closed quiz-passed-after-run quiz-closed-finished quiz-notice-env">
+                  <h4>Пояснение</h4>
+                  <div class="prose"><p>Локальный запуск оправдан приватностью, офлайном и закрытым контуром. "Бесплатно" - заблуждение: есть железо, электричество, время и больше ходов на слабой модели. Паритет качества с облачными моделями не доказан; теория его не утверждает.</p></div>
+                </div>
+              </div>
+              <div class="question" data-anchor-block data-state="quiz-code">
+                <h3 id="qc-heading">Вопрос 2 из 8</h3>
+                <div class="prose" id="qc-prompt">
+                  <p>Claude Code 2.1.311, настройки по умолчанию. Сессию запускают из <code>/srv/app</code>.</p>
+                  <div class="code-block"><pre data-scroll-label="Код к вопросу"><code>/srv/app/
+├── CLAUDE.md      (одна строка: @AGENTS.md)
+└── AGENTS.md</code></pre></div>
+                  <p>Что окажется в контексте при запуске?</p>
+                </div>
+                <div class="choice-group" role="radiogroup" aria-labelledby="qc-heading" aria-describedby="qc-prompt">
+                  <label class="choice"><input class="radio" type="radio" name="qc" id="qc-a" value="a"><span class="choice-text">CLAUDE.md и через импорт содержимое AGENTS.md, один раз</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="qc" id="qc-b" value="b"><span class="choice-text">Только CLAUDE.md: при наличии CLAUDE.md файл AGENTS.md игнорируется</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="qc" id="qc-c" value="c"><span class="choice-text">AGENTS.md дважды: сам по себе и ещё раз через импорт в CLAUDE.md</span></label>
+                  <label class="choice"><input class="radio" type="radio" name="qc" id="qc-d" value="d"><span class="choice-text">Только AGENTS.md: строка импорта заменяет собой файл CLAUDE.md</span></label>
+                </div>
+              </div>
+              <div class="alert" data-variant="destructive" id="quiz-send-error" role="group" tabindex="-1" aria-labelledby="quiz-send-error-title" data-quiz-outcome data-state="quiz-send-error quiz-notice-send-error">
+                <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+                <p class="alert-title" id="quiz-send-error-title">Ответы не отправлены. Попробуйте снова.</p>
+              </div>
+              <button class="button" type="button" id="quiz-send" data-goto-state="quiz-sending" data-focus="#quiz-send-busy" data-state="quiz quiz-partial quiz-blocked quiz-blocked-one quiz-failed quiz-last-attempt quiz-row quiz-send-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-step="F15.3">Отправить ответы</button>
+              <button class="button" type="button" id="quiz-send-busy" aria-disabled="true" aria-busy="true" data-state="quiz-sending"><span class="spinner" aria-hidden="true"></span>Отправляем...</button>
             </div>
           </div>
         </div>
@@ -950,10 +1470,10 @@ claude</code></pre>
     </section>
 
     <!-- Region "Проверка" (check bar): a sibling of "Урок", drawn under it -->
-    <section class="check-bar" data-region aria-labelledby="check-region-heading" data-focus-fallback="[data-check-run]" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running">
+    <section class="check-bar" data-region aria-labelledby="check-region-heading" data-focus-fallback="[data-check-run]" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused">
       <h2 class="sr-only" id="check-region-heading">Проверка</h2>
       <div class="check-bar-controls">
-        <button class="button" type="button" data-check-run data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed one-pane-env split-focused split-cycled passed-last-failed runner-error" data-goto-state="check-running" data-focus="#check-run-wait" data-step="F13.1">Проверить</button>
+        <button class="button" type="button" data-check-run data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed one-pane-env split-focused split-cycled passed-last-failed runner-error quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-answered-away quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-goto-state="check-running" data-focus="#check-run-wait" data-step="F13.1">Проверить</button>
         <button class="button" type="button" data-check-run aria-disabled="true" aria-describedby="reason-check-starting" data-state="env-creating env-starting env-slow actions-not-running after-run-starting">Проверить</button>
         <button class="button" type="button" data-check-run aria-disabled="true" aria-describedby="reason-check-stopped" data-state="docker-down image-missing limits rejected stopped after-run-stopped">Проверить</button>
         <button class="button" type="button" id="check-run-wait" data-check-run aria-disabled="true" aria-describedby="reason-check-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running">Проверить</button>
@@ -963,21 +1483,21 @@ claude</code></pre>
         <button class="button" type="button" data-check-run data-state="budget-lesson budget-dialog" data-goto-state="budget-dialog" data-focus="#budget-cancel">Проверить</button>
         <button class="button" type="button" data-check-run data-state="statuses-agent budget-dialog-one" data-goto-state="budget-dialog-one" data-focus="#budget-one-cancel">Проверить</button>
         <button class="button" type="button" id="check-stream-wait" data-check-run aria-disabled="true" aria-describedby="reason-check-stream" data-state="stream-failed">Проверить</button>
-        <button class="button" type="button" id="check-finished" data-check-run aria-disabled="true" aria-describedby="reason-check-finished" data-state="closed closed-limit-unknown passed-paid-only">Проверить</button>
+        <button class="button" type="button" id="check-finished" data-check-run aria-disabled="true" aria-describedby="reason-check-finished" data-state="closed closed-limit-unknown passed-paid-only quiz-closed-finished quiz-notice-env">Проверить</button>
         <button class="button" type="button" data-variant="outline" data-show-pane="environment" data-focus="[data-status-action]:not([hidden])" data-state="docker-down image-missing limits rejected stopped after-run-stopped">К окружению</button>
         <button class="button" type="button" data-variant="outline" data-state="stream-failed" data-goto-state="stream-lost" data-focus="#check-run-wait">Переподключиться</button>
-        <button class="button" type="button" data-variant="ghost" data-show-pane="lesson" data-select-tab="tab-checks" data-focus="#checks-heading" data-state="results lesson-passed after-run-stopped after-run-starting results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error statuses-agent budget-dialog-one passed-paid-only">Открыть результаты</button>
+        <button class="button" type="button" data-variant="ghost" data-show-pane="lesson" data-select-tab="tab-checks" data-focus="#checks-heading" data-state="results lesson-passed after-run-stopped after-run-starting results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error statuses-agent budget-dialog-one passed-paid-only quiz-passed-after-run quiz-closed-finished quiz-notice-env">Открыть результаты</button>
       </div>
       <div class="check-bar-status" data-step="F13.4">
         <span class="spinner" aria-hidden="true" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"></span>
-        <span role="status" data-live-key="check-status"><span data-state="closed closed-limit-unknown">Урок завершён: не пройден. Пройдено: 0 из 1</span><span data-state="passed-paid-only">Урок пройден</span></span>
+        <span role="status" aria-live="polite" data-live-key="check-status"><span data-state="closed closed-limit-unknown">Урок завершён: не пройден. Пройдено: 0 из 1</span><span data-state="passed-paid-only">Урок пройден</span></span>
         <span class="timer" role="timer" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one limit-known-running limit-warning-running" data-step="F13.2">0:12</span>
         <span class="timer" role="timer" data-state="stream-lost">0:18</span>
       </div>
       <p class="disabled-reason" id="reason-check-starting" data-state="env-creating env-starting env-slow actions-not-running after-run-starting">Окружение запускается, проверка станет доступна после запуска</p>
       <p class="disabled-reason" id="reason-check-stopped" data-state="docker-down image-missing limits rejected stopped after-run-stopped">Сначала запустите окружение</p>
       <p class="disabled-reason" id="reason-check-stream" data-state="stream-failed">Результат проверки ещё не получен</p>
-      <p class="disabled-reason" id="reason-check-finished" data-state="closed closed-limit-unknown passed-paid-only" data-step="F14.4">Проверки завершены</p>
+      <p class="disabled-reason" id="reason-check-finished" data-state="closed closed-limit-unknown passed-paid-only quiz-closed-finished quiz-notice-env" data-step="F14.4">Проверки завершены</p>
       <p class="disabled-reason" id="reason-check-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running">Дождитесь окончания проверки</p>
     </section>
     <template data-live-source="check-status" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one limit-known-running limit-warning-running">Идёт проверка</template>
@@ -1009,12 +1529,12 @@ claude</code></pre>
 
       <div class="env-statusbar" data-step="F8.4">
         <div class="env-status" data-step="F8.1">
-          <span class="status-icon" data-status="success" aria-hidden="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running"></span>
+          <span class="status-icon" data-status="success" aria-hidden="true" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused"></span>
           <span class="status-icon" data-status="warning" aria-hidden="true" data-state="reconnecting"></span>
           <span class="status-icon" data-status="destructive" aria-hidden="true" data-state="docker-down image-missing limits rejected reconnect-failed"></span>
           <span class="status-icon" data-status="muted" aria-hidden="true" data-state="stopped after-run-stopped shell-exited"></span>
           <span class="spinner" aria-hidden="true" data-state="env-creating env-starting env-slow actions-not-running after-run-starting"></span>
-          <span class="env-status-text" role="status" data-live-key="env-status"></span>
+          <span class="env-status-text" role="status" aria-live="polite" data-live-key="env-status"></span>
           <span class="timer" role="timer" data-state="env-creating env-starting actions-not-running after-run-starting">0:07</span>
           <span class="timer" role="timer" data-state="env-slow">1:32</span>
         </div>
@@ -1028,10 +1548,10 @@ claude</code></pre>
           <div class="dropdown">
             <button class="button" type="button" data-variant="outline" data-size="sm" id="actions-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu" data-open-in-states="actions-open actions-check-running actions-not-running" data-step="F11.1">Действия</button>
             <div class="dropdown-menu" id="actions-menu" role="menu" aria-label="Действия">
-              <button class="dropdown-item" type="button" role="menuitem" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error stream-failed budget-lesson budget-dialog budget-dialog-one statuses-agent passed-paid-only" data-goto-state="env-starting" data-focus="#actions-trigger" data-step="F11.2"><span class="dropdown-item-body">Перезапустить окружение</span></button>
+              <button class="dropdown-item" type="button" role="menuitem" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error stream-failed budget-lesson budget-dialog budget-dialog-one statuses-agent passed-paid-only quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-goto-state="env-starting" data-focus="#actions-trigger" data-step="F11.2"><span class="dropdown-item-body">Перезапустить окружение</span></button>
               <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-restart-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="reason-restart-wait">Дождитесь окончания проверки</span></span></button>
               <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-restart-env" data-state="env-creating env-starting env-slow docker-down image-missing limits rejected stopped actions-not-running after-run-stopped after-run-starting"><span class="dropdown-item-body">Перезапустить окружение<span class="dropdown-item-reason" aria-hidden="true" id="reason-restart-env">Доступно, когда окружение работает</span></span></button>
-              <button class="dropdown-item" type="button" role="menuitem" data-dialog-open="reset-dialog" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error stream-failed budget-lesson budget-dialog budget-dialog-one statuses-agent passed-paid-only"><span class="dropdown-item-body">Сбросить рабочую папку</span></button>
+              <button class="dropdown-item" type="button" role="menuitem" data-dialog-open="reset-dialog" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open reset-dialog reset-done checks-before results lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed passed-last-failed runner-error stream-failed budget-lesson budget-dialog budget-dialog-one statuses-agent passed-paid-only quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused"><span class="dropdown-item-body">Сбросить рабочую папку</span></button>
               <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-reset-wait" data-state="check-running actions-check-running statuses mixed-running budget-running budget-running-one stream-lost limit-known-running limit-warning-running"><span class="dropdown-item-body">Сбросить рабочую папку<span class="dropdown-item-reason" aria-hidden="true" id="reason-reset-wait">Дождитесь окончания проверки</span></span></button>
               <button class="dropdown-item" type="button" role="menuitem" aria-disabled="true" aria-describedby="reason-reset-env" data-state="env-creating env-starting env-slow docker-down image-missing limits rejected stopped actions-not-running after-run-stopped after-run-starting"><span class="dropdown-item-body">Сбросить рабочую папку<span class="dropdown-item-reason" aria-hidden="true" id="reason-reset-env">Доступно, когда окружение работает</span></span></button>
               <div class="dropdown-separator" role="separator"></div>
@@ -1040,7 +1560,7 @@ claude</code></pre>
           </div>
         </div>
         <pre class="error-details" id="env-details" hidden><span data-state="docker-down">Cannot connect to the Docker daemon. Is the docker daemon running?</span><span data-state="image-missing">Error response from daemon: No such image: academy-workspace:dev</span><span data-state="limits">container exited: OOMKilled=true, exit code 137, memory limit 2g</span><span data-state="rejected">403 Forbidden: environment belongs to another user</span></pre>
-        <p class="env-hint" id="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-step="F9.4"><kbd class="kbd">F6</kbd> или <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd class="kbd">.</kbd> (клавиша Ю): следующая область</p>
+        <p class="env-hint" id="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused reconnecting reconnect-failed shell-exited idle-warning volume-recreated actions-open actions-check-running reset-dialog reset-done checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-step="F9.4"><kbd class="kbd">F6</kbd> или <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Shift</kbd>+<kbd class="kbd">.</kbd> (клавиша Ю): следующая область</p>
       </div>
 
       <div class="env-tabs tabs">
@@ -1048,7 +1568,7 @@ claude</code></pre>
           <button class="tabs-trigger" type="button" role="tab" id="tab-terminal" aria-controls="panel-terminal" aria-selected="true" data-step="F9.5">Терминал</button>
         </div>
         <div class="tabs-content" role="tabpanel" id="panel-terminal" aria-labelledby="tab-terminal" data-step="F8.2">
-          <div class="terminal-frame" id="terminal-session" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running" data-step="F9.1">
+          <div class="terminal-frame" id="terminal-session" role="group" tabindex="0" aria-label="Терминал" aria-describedby="env-hint" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu api-key terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused" data-step="F9.1">
 <pre class="terminal-output" data-step="F9.2"><span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ ls
 README.md  cards.json  routing.json
 <span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ python3 -m json.tool routing.json &gt; /dev/null &amp;&amp; echo ok
@@ -1078,7 +1598,7 @@ exit</pre>
         </div>
       </div>
     </section>
-    <template data-live-source="env-status" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running"><span>Окружение работает</span></template>
+    <template data-live-source="env-status" data-state="theory task outcomes-collapsed outcomes-expanded text-error copy-denied no-theory no-sources prerequisite session-expired user-menu terminal-focused idle-warning actions-open actions-check-running reset-dialog checks-before check-running results statuses lesson-passed no-checks one-pane-env split-focused split-cycled results-limit-known limit-warning closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only limit-known-running limit-warning-running quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused"><span>Окружение работает</span></template>
     <template data-live-source="env-status" data-state="api-key"><span>Окружение работает</span><span class="env-status-note" data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true" data-step="F8.3"></span>Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу.</span></template>
     <template data-live-source="env-status" data-state="volume-recreated"><span>Окружение работает</span><span class="env-status-note">Рабочая папка не найдена, создано новое окружение из исходных файлов урока.</span></template>
     <template data-live-source="env-status" data-state="reset-done"><span>Окружение работает</span><span class="env-status-note">Рабочая папка сброшена</span></template>
@@ -1133,7 +1653,7 @@ exit</pre>
 
 <div class="proto-chrome" lang="en">
   <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
-  <span>Prototype only, not product UI. Lesson page, designs #50 and #69.</span>
+  <span>Prototype only, not product UI. Lesson page, designs #50, #69 and #70.</span>
   <details>
     <summary>States</summary>
     <nav class="proto-chrome-index" data-state-index aria-label="Prototype states"></nav>
@@ -1142,8 +1662,9 @@ exit</pre>
 
 <script src="../../system/proto.js"></script>
 <script>
-  /* Page-only behaviour for the prototype: per-state layout attributes and the ?tab= deep link.
-     Simulated transitions (data-goto-state + data-focus) and Back come from proto.js. */
+  /* Page-only behaviour for the prototype: per-state layout attributes, the ?tab= deep link and the Квиз
+     panel's per-state answers. Simulated transitions (data-goto-state + data-focus) and Back come from
+     proto.js. */
   (function () {
     "use strict";
 
@@ -1153,12 +1674,34 @@ exit</pre>
       "one-pane-env", "terminal-focused", "actions-open", "actions-check-running", "actions-not-running",
       "reset-dialog", "reset-done", "reconnecting", "reconnect-failed", "shell-exited", "env-creating",
       "env-starting", "env-slow", "api-key", "docker-down", "image-missing", "rejected", "limits",
-      "volume-recreated"
+      "volume-recreated", "quiz-notice-env", "quiz-notice-two-pane"
     ];
     // ?tab= of the route (ia.md "Deep links"): the dashboard's "Продолжить" and the sign-in next redirect
-    // send ?tab=task. "theory" or an unknown value keeps the default state.
-    var TAB_QUERY_STATES = { task: "task", checks: "checks-before" };
-    var STATE_FOCUS = { "terminal-focused": "#terminal-session", "split-focused": ".resizable-handle" };
+    // send ?tab=task; from #36 the F2 return from a quiz sends ?tab=quiz, which lands on the answers restored
+    // after sign-in (quiz.md "Error states"). "theory" or an unknown value keeps the default state.
+    var TAB_QUERY_STATES = { task: "task", checks: "checks-before", quiz: "quiz-restored" };
+    // Where focus is in each state as drawn: after the action that leads to it, or, for the away states,
+    // where the learner left it (quiz.md "Focus targets").
+    var STATE_FOCUS = {
+      "terminal-focused": "#terminal-session",
+      "split-focused": ".resizable-handle",
+      "quiz-blocked": "#quiz-summary",
+      "quiz-blocked-one": "#q4-c",
+      "quiz-sending": "#quiz-send-busy",
+      "quiz-failed": "#quiz-result-failed",
+      "quiz-last-attempt": "#quiz-result-last",
+      "quiz-passed": "#quiz-result-passed",
+      "quiz-closed": "#quiz-result-closed",
+      "quiz-send-error": "#quiz-send-error",
+      "quiz-limit-unknown": "#quiz-result-limit-unknown",
+      "quiz-passed-after-run": "#quiz-result-passed",
+      "quiz-closed-finished": "#quiz-result-closed-finished",
+      "quiz-refused": "#quiz-result-refused",
+      "quiz-answered-away": "#tab-checks",
+      "quiz-notice-env": ".is-one-pane > .pane[data-pane=\"environment\"] [data-show-pane=\"environment\"], #actions-trigger",
+      "quiz-notice-send-error": "#tab-theory",
+      "quiz-notice-two-pane": "#terminal-session"
+    };
     var CYCLED_SPLIT_PERCENT = 35; // the second preset of "50 35 65" (F9.3)
     var DEFAULT_SPLIT_PERCENT = 50;
 
@@ -1170,11 +1713,164 @@ exit</pre>
     // proto.js reads data-default-state when the URL has no #state- hash, so an explicit state still wins.
     if (tabState) root.setAttribute("data-default-state", tabState);
 
+    function isRendered(el) {
+      return !el.closest("[hidden]") && el.getClientRects().length > 0;
+    }
+
     function setSplit(percent) {
       layout.style.setProperty("--split-left", percent + "%");
       handle.setAttribute("aria-valuenow", String(percent));
       handle.setAttribute("aria-valuetext", percent + " %");
     }
+
+    /* ---------- Квиз panel (F15, from #36) ---------- */
+
+    // One set of inputs serves every quiz state, so each state's answers are data: question name -> the
+    // chosen option ids of quiz.yaml. A simulated action keeps the answers on the page (the same inputs, as
+    // the app keeps them above the tab panels); a hash load, Back, Forward and the state index show the
+    // state's own answers.
+    function withAnswers(base, changes) {
+      var answers = {};
+      Object.keys(base).forEach(function (name) { answers[name] = base[name]; });
+      Object.keys(changes).forEach(function (name) { answers[name] = changes[name]; });
+      return answers;
+    }
+    var PARTIAL_ANSWERS = { q1: ["b"], q2: ["a"], q3: ["a"], q5: ["a", "c"] };
+    var FIRST_ATTEMPT_ANSWERS = withAnswers(PARTIAL_ANSWERS, { q4: ["c"], q6: ["a", "c"] }); // 4 of 6 correct
+    var SECOND_ATTEMPT_ANSWERS = withAnswers(FIRST_ATTEMPT_ANSWERS, { q4: ["b"] }); // 3 of 6 correct
+    var QUIZ_ANSWERS = {
+      "quiz": {},
+      "quiz-row": {},
+      "quiz-code": {},
+      "quiz-partial": PARTIAL_ANSWERS,
+      "quiz-blocked": PARTIAL_ANSWERS,
+      "quiz-session-expired": PARTIAL_ANSWERS,
+      "quiz-restored": PARTIAL_ANSWERS,
+      "quiz-blocked-one": withAnswers(PARTIAL_ANSWERS, { q4: ["c"] }),
+      "quiz-sending": FIRST_ATTEMPT_ANSWERS,
+      "quiz-failed": FIRST_ATTEMPT_ANSWERS,
+      "quiz-send-error": FIRST_ATTEMPT_ANSWERS,
+      "quiz-limit-unknown": FIRST_ATTEMPT_ANSWERS,
+      "quiz-answered-away": FIRST_ATTEMPT_ANSWERS,
+      "quiz-notice-send-error": FIRST_ATTEMPT_ANSWERS,
+      "quiz-last-attempt": SECOND_ATTEMPT_ANSWERS,
+      "quiz-notice-two-pane": SECOND_ATTEMPT_ANSWERS,
+      // The unsent selection the refusal keeps: the learner changed question 2 after the first failure.
+      "quiz-refused": withAnswers(FIRST_ATTEMPT_ANSWERS, { q2: ["d"] })
+    };
+    var SUMMARY_STATES = ["quiz-blocked", "quiz-blocked-one"];
+    // "Пройти квиз" shows the Квиз panel of the state it is pressed in, as one history entry; where the drawn
+    // state has another tab or pane in front of an outcome, the entry is the state of that outcome.
+    var TAKE_QUIZ_TARGETS = {
+      "quiz-row": "quiz",
+      "quiz-answered-away": "quiz-failed",
+      "quiz-notice-send-error": "quiz-send-error",
+      "quiz-notice-two-pane": "quiz-last-attempt"
+    };
+
+    var quizPanel = document.getElementById("panel-quiz");
+    var summary = document.getElementById("quiz-summary");
+    var summaryCount = document.getElementById("quiz-summary-count");
+    var noticeContainer = document.querySelector("[data-live-key='quiz-notice']");
+    var isGotoTransition = false;
+    var isSummaryActive = false;
+    var wasPanelShown = null;
+
+    function openGroups() {
+      return Array.prototype.filter.call(quizPanel.querySelectorAll(".choice-group"), function (group) {
+        return !group.hidden && !group.closest(".question").hidden;
+      });
+    }
+
+    function isAnswered(group) {
+      return Boolean(group.querySelector("input:checked"));
+    }
+
+    function questionName(group) {
+      return group.getAttribute("aria-labelledby").replace("-heading", "");
+    }
+
+    function applyAnswers(state) {
+      var answers = QUIZ_ANSWERS[state];
+      if (!answers) return;
+      quizPanel.querySelectorAll(".choice-group input").forEach(function (input) {
+        input.checked = (answers[input.name] || []).indexOf(input.value) >= 0;
+      });
+    }
+
+    // Locked while sending (quiz.md "Sending"): aria-disabled on every option and group; proto.js cancels
+    // the change.
+    function applyLock(isLocked) {
+      quizPanel.querySelectorAll(".choice-group, .choice-group input").forEach(function (el) {
+        if (isLocked) el.setAttribute("aria-disabled", "true");
+        else el.removeAttribute("aria-disabled");
+      });
+    }
+
+    // aria-describedby lists the prompt, the note and the message, only those shown (README "Quiz panel").
+    function syncDescriptions() {
+      quizPanel.querySelectorAll(".choice-group").forEach(function (group) {
+        var name = questionName(group);
+        var ids = [name + "-prompt", name + "-note", name + "-error"].filter(function (id) {
+          var el = document.getElementById(id);
+          return el && !el.hidden;
+        });
+        group.setAttribute("aria-describedby", ids.join(" "));
+      });
+    }
+
+    // While the summary is shown it lists the questions unanswered now, and each of them shows its message
+    // (quiz.md "Error summary and per-question messages"); once none is left it goes until the next blocked
+    // send. The markup draws the two blocked states; the links and messages they do not show are hidden.
+    function syncSummary() {
+      var unanswered = isSummaryActive
+        ? openGroups().filter(function (group) { return !isAnswered(group); }).map(questionName)
+        : [];
+      if (unanswered.length === 0) isSummaryActive = false;
+      summary.hidden = !isSummaryActive;
+      summaryCount.textContent = String(unanswered.length);
+      summary.querySelectorAll("[data-summary-for]").forEach(function (item) {
+        item.hidden = unanswered.indexOf(item.getAttribute("data-summary-for")) < 0;
+      });
+      quizPanel.querySelectorAll(".question .field-error").forEach(function (error) {
+        error.hidden = unanswered.indexOf(error.id.replace("-error", "")) < 0;
+      });
+      syncDescriptions();
+    }
+
+    function openQuizTarget() {
+      var button = noticeContainer.querySelector("#open-quiz");
+      return button ? document.querySelector(button.getAttribute("data-focus")) : null;
+    }
+
+    function removeNotice() {
+      noticeContainer.replaceChildren();
+      window.proto.syncNotifications();
+    }
+
+    // The element a press in the panel lands on: an option (a press on its label text included), a link, a
+    // button or a tabindex target (heading, result block, send error, summary, an overflowing code block).
+    function pressedFocusable(el) {
+      var label = el.closest("label");
+      if (label && label.control) return label.control;
+      var target = el.closest("a[href], button, input, [tabindex]");
+      return target && target !== quizPanel ? target : null;
+    }
+
+    // Registered before the layout hook, so the answers are in place when it focuses an option.
+    document.addEventListener("proto:statechange", function (event) {
+      var state = event.detail.state;
+      if (!isGotoTransition) applyAnswers(state);
+      isGotoTransition = false;
+      applyLock(state === "quiz-sending");
+      if (state === "quiz-loading") quizPanel.setAttribute("aria-busy", "true");
+      else quizPanel.removeAttribute("aria-busy");
+      isSummaryActive = SUMMARY_STATES.indexOf(state) >= 0;
+      syncSummary();
+      document.querySelectorAll("[data-quiz-take]").forEach(function (button) {
+        button.setAttribute("data-goto-state", TAKE_QUIZ_TARGETS[state] || state);
+      });
+    });
 
     // Runs before proto.js applies data-focus, so the pane that holds the focus target is already shown.
     document.addEventListener("proto:statechange", function (event) {
@@ -1187,9 +1883,67 @@ exit</pre>
       if (target) target.focus();
     });
 
+    // The state as drawn is the baseline of "the Квиз panel becomes shown": taken after the pane is shown and
+    // before ?tab= re-selects the learner's tab, so a state drawn with the panel and the notice both shown
+    // (quiz-notice-two-pane) keeps the notice, and a tab the query selects on arrival removes it.
+    document.addEventListener("proto:statechange", function () {
+      wasPanelShown = isRendered(quizPanel);
+    });
+
+    // A blocked send asks nothing of the server, so it is drawn in place with no history entry: the summary
+    // takes focus and follows the answers. A send with every question answered goes on to quiz-sending.
+    // Capture phase, so it runs before proto.js handles data-goto-state; the flag tells the state hook that a
+    // simulated action, not a hash, changed the state.
+    document.addEventListener("click", function (event) {
+      if (event.target.closest("#quiz-send") && openGroups().some(function (group) { return !isAnswered(group); })) {
+        event.stopImmediatePropagation();
+        isSummaryActive = true;
+        syncSummary();
+        summary.focus();
+        return;
+      }
+      if (event.target.closest("[data-goto-state]")) isGotoTransition = true;
+    }, true);
+
+    // Answering removes a message and its link, emptying a multiple question adds them; focus on the summary
+    // or a removed link moves to the option just changed (a mouse press in Safari leaves it on the link).
+    quizPanel.addEventListener("change", function (event) {
+      if (!isSummaryActive) return;
+      var hadFocus = summary.contains(document.activeElement);
+      syncSummary();
+      if (hadFocus && (summary.hidden || !isRendered(document.activeElement))) event.target.focus();
+    });
+
+    // The quiz notice goes silently when the Квиз panel becomes shown, when focus or a pointer press moves
+    // into the shown panel, and when a send starts (quiz.md "Removal"). Focus in the notice is read at
+    // pointerdown, before the browser blurs anything: it moves to the pressed element, else to the element
+    // "Открыть квиз" would focus.
+    document.addEventListener("pointerdown", function (event) {
+      if (!noticeContainer.childNodes.length || !quizPanel.contains(event.target) || !isRendered(quizPanel)) return;
+      var hadFocus = noticeContainer.contains(document.activeElement);
+      var target = pressedFocusable(event.target) || openQuizTarget();
+      removeNotice();
+      if (hadFocus && target) window.setTimeout(function () { target.focus(); }, 0);
+    }, true);
+    quizPanel.addEventListener("focusin", function () {
+      if (noticeContainer.childNodes.length) removeNotice();
+    });
+    new ResizeObserver(function () {
+      var isShown = isRendered(quizPanel);
+      if (wasPanelShown === false && isShown && noticeContainer.childNodes.length) {
+        var hadFocus = noticeContainer.contains(document.activeElement);
+        var target = openQuizTarget();
+        removeNotice();
+        if (hadFocus && target) target.focus();
+      }
+      if (wasPanelShown !== null) wasPanelShown = isShown;
+    }).observe(quizPanel);
+
+    /* ---------- ?tab= ---------- */
+
     // Write side of ?tab=: the selected left-pane tab replaces the query (no new history entry, as the app's
     // history.replaceState), the #state- hash stays, and "Войти снова" carries the tab in next (F2.1, F2.4).
-    var TAB_BY_ID = { "tab-theory": "theory", "tab-task": "task", "tab-checks": "checks" };
+    var TAB_BY_ID = { "tab-theory": "theory", "tab-task": "task", "tab-checks": "checks", "tab-quiz": "quiz" };
     var LESSON_APP_PATH = "/courses/ai-for-developers/lessons/intro-models-effort";
     var SIGN_IN_PROTOTYPE = "../sign-in/prototype.html";
     // "Войти снова" lives in a <template> that proto.js clones into "Уведомления" on each state change, so
