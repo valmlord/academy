@@ -1,0 +1,27 @@
+{
+  "_comment": "Written by hand from the published rules (US: 2nd Sunday of March 02:00 / 1st Sunday of November 02:00 local; EU: last Sunday of March and October 01:00 UTC; NSW: 1st Sunday of April 03:00 / 1st Sunday of October 02:00 local), not generated from a zoneinfo. The 7.7 self-check compares the runtime's zoneinfo with it.",
+  "from": "2026-01-01T00:00:00+00:00",
+  "to": "2029-01-01T00:00:00+00:00",
+  "zones": {
+    "America/New_York": {"initialOffsetMinutes": -300, "changes": [
+      ["2026-03-08T07:00:00Z", -240], ["2026-11-01T06:00:00Z", -300],
+      ["2027-03-14T07:00:00Z", -240], ["2027-11-07T06:00:00Z", -300],
+      ["2028-03-12T07:00:00Z", -240], ["2028-11-05T06:00:00Z", -300]]},
+    "America/Los_Angeles": {"initialOffsetMinutes": -480, "changes": [
+      ["2026-03-08T10:00:00Z", -420], ["2026-11-01T09:00:00Z", -480],
+      ["2027-03-14T10:00:00Z", -420], ["2027-11-07T09:00:00Z", -480],
+      ["2028-03-12T10:00:00Z", -420], ["2028-11-05T09:00:00Z", -480]]},
+    "Europe/Berlin": {"initialOffsetMinutes": 60, "changes": [
+      ["2026-03-29T01:00:00Z", 120], ["2026-10-25T01:00:00Z", 60],
+      ["2027-03-28T01:00:00Z", 120], ["2027-10-31T01:00:00Z", 60],
+      ["2028-03-26T01:00:00Z", 120], ["2028-10-29T01:00:00Z", 60]]},
+    "Australia/Sydney": {"initialOffsetMinutes": 660, "changes": [
+      ["2026-04-04T16:00:00Z", 600], ["2026-10-03T16:00:00Z", 660],
+      ["2027-04-03T16:00:00Z", 600], ["2027-10-02T16:00:00Z", 660],
+      ["2028-04-01T16:00:00Z", 600], ["2028-09-30T16:00:00Z", 660]]},
+    "Asia/Kolkata": {"initialOffsetMinutes": 330, "changes": []},
+    "Asia/Kathmandu": {"initialOffsetMinutes": 345, "changes": []},
+    "Europe/Moscow": {"initialOffsetMinutes": 180, "changes": []},
+    "UTC": {"initialOffsetMinutes": 0, "changes": []}
+  }
+}

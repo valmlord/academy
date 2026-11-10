@@ -1,0 +1,1032 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Booking calendar",
+    "description": "Booking calendar: a host's schedules and event types, free slots, and bookings.",
+    "version": "0.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/bookings": {
+      "post": {
+        "operationId": "Bookings_create",
+        "description": "Book a free slot.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Optional retry key.",
+            "schema": {
+              "$ref": "#/components/schemas/IdempotencyKey"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The request has succeeded and a new resource has been created as a result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400: the request does not match the contract.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409: the request conflicts with the current state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conflict"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422: the request is well-formed but can never succeed as sent.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unprocessable"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "Bookings_list",
+        "description": "Bookings whose start lies in [from, to), sorted by start.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Range start, inclusive.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "explode": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "Range end, exclusive; at most 31 days after from.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Booking"
+                      },
+                      "description": "The items, sorted as the operation states."
+                    }
+                  },
+                  "unevaluatedProperties": {
+                    "not": {}
+                  },
+                  "description": "A list response."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400: the request does not match the contract.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}/cancel": {
+      "post": {
+        "operationId": "Bookings_cancel",
+        "description": "Cancel a booking; a repeated cancel returns the same body.",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: the resource does not exist.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/event-types": {
+      "post": {
+        "operationId": "EventTypes_create",
+        "description": "Create an event type on an existing schedule.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "The request has succeeded and a new resource has been created as a result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventType"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400: the request does not match the contract.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422: the request is well-formed but can never succeed as sent.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unprocessable"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventTypeFields"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "EventTypes_list",
+        "description": "List all event types.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EventType"
+                      },
+                      "description": "The items, sorted as the operation states."
+                    }
+                  },
+                  "unevaluatedProperties": {
+                    "not": {}
+                  },
+                  "description": "A list response."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/event-types/{eventTypeId}": {
+      "get": {
+        "operationId": "EventTypes_read",
+        "description": "Read one event type.",
+        "parameters": [
+          {
+            "name": "eventTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventType"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: the resource does not exist.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/event-types/{eventTypeId}/slots": {
+      "get": {
+        "operationId": "EventTypes_slots",
+        "description": "Free slots of an event type whose start lies in [from, to), sorted by start.",
+        "parameters": [
+          {
+            "name": "eventTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Range start, inclusive.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "explode": false
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "Range end, exclusive; at most 31 days after from.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Slot"
+                      },
+                      "description": "The items, sorted as the operation states."
+                    }
+                  },
+                  "unevaluatedProperties": {
+                    "not": {}
+                  },
+                  "description": "A list response."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400: the request does not match the contract.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404: the resource does not exist.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/schedules": {
+      "post": {
+        "operationId": "Schedules_create",
+        "description": "Create a schedule.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "The request has succeeded and a new resource has been created as a result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schedule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "400: the request does not match the contract.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleFields"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BadRequest": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Problem type URI reference."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status, repeated in the body."
+          },
+          "code": {
+            "$ref": "#/components/schemas/ProblemCode",
+            "description": "Machine-readable code."
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "400: the request does not match the contract."
+      },
+      "Booking": {
+        "type": "object",
+        "required": [
+          "id",
+          "eventTypeId",
+          "start",
+          "inviteeName",
+          "inviteeEmail",
+          "inviteeTimeZone",
+          "end",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Opaque identifier."
+          },
+          "eventTypeId": {
+            "type": "string",
+            "description": "The event type to book."
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start of the chosen slot."
+          },
+          "inviteeName": {
+            "$ref": "#/components/schemas/DisplayText",
+            "description": "Invitee's name."
+          },
+          "inviteeEmail": {
+            "type": "string",
+            "format": "email",
+            "description": "Invitee's email address."
+          },
+          "inviteeTimeZone": {
+            "type": "string",
+            "description": "Invitee's IANA time zone."
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Meeting end."
+          },
+          "status": {
+            "$ref": "#/components/schemas/BookingStatus",
+            "description": "Confirmed or cancelled."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the booking was created."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A booked meeting: what the invitee sent, plus the end, the status and when it was created."
+      },
+      "BookingRequest": {
+        "type": "object",
+        "required": [
+          "eventTypeId",
+          "start",
+          "inviteeName",
+          "inviteeEmail",
+          "inviteeTimeZone"
+        ],
+        "properties": {
+          "eventTypeId": {
+            "type": "string",
+            "description": "The event type to book."
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start of the chosen slot."
+          },
+          "inviteeName": {
+            "$ref": "#/components/schemas/DisplayText",
+            "description": "Invitee's name."
+          },
+          "inviteeEmail": {
+            "type": "string",
+            "format": "email",
+            "description": "Invitee's email address."
+          },
+          "inviteeTimeZone": {
+            "type": "string",
+            "description": "Invitee's IANA time zone."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "What an invitee sends to book a slot."
+      },
+      "BookingStatus": {
+        "type": "string",
+        "enum": [
+          "confirmed",
+          "cancelled"
+        ],
+        "description": "Lifecycle state of a booking."
+      },
+      "Conflict": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Problem type URI reference."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status, repeated in the body."
+          },
+          "code": {
+            "$ref": "#/components/schemas/ProblemCode",
+            "description": "Machine-readable code."
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "409: the request conflicts with the current state."
+      },
+      "DateOverride": {
+        "type": "object",
+        "required": [
+          "date",
+          "intervals"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "The local date the override applies to."
+          },
+          "intervals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeInterval"
+            },
+            "description": "Availability windows on that date."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A date override: replaces the weekly rules of its date; no intervals means a day off."
+      },
+      "DisplayText": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "description": "A text field shown to people: a schedule name, an event type title, an invitee name."
+      },
+      "EventType": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "durationMinutes",
+          "slotIncrementMinutes",
+          "bufferBeforeMinutes",
+          "bufferAfterMinutes",
+          "minimumNoticeMinutes",
+          "bookingWindowDays",
+          "scheduleId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Opaque identifier."
+          },
+          "title": {
+            "$ref": "#/components/schemas/DisplayText",
+            "description": "Title shown to invitees."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 5,
+            "maximum": 480,
+            "description": "Meeting length."
+          },
+          "slotIncrementMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 5,
+            "maximum": 240,
+            "description": "Distance between candidate starts."
+          },
+          "bufferBeforeMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 240,
+            "description": "Free time required before a meeting."
+          },
+          "bufferAfterMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 240,
+            "description": "Free time required after a meeting."
+          },
+          "minimumNoticeMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 43200,
+            "description": "How long before its start a slot can still be booked."
+          },
+          "bookingWindowDays": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 365,
+            "description": "How many days ahead slots are offered."
+          },
+          "scheduleId": {
+            "type": "string",
+            "description": "The schedule that provides availability."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A kind of meeting an invitee can book."
+      },
+      "EventTypeFields": {
+        "type": "object",
+        "required": [
+          "title",
+          "durationMinutes",
+          "slotIncrementMinutes",
+          "bufferBeforeMinutes",
+          "bufferAfterMinutes",
+          "minimumNoticeMinutes",
+          "bookingWindowDays",
+          "scheduleId"
+        ],
+        "properties": {
+          "title": {
+            "$ref": "#/components/schemas/DisplayText",
+            "description": "Title shown to invitees."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 5,
+            "maximum": 480,
+            "description": "Meeting length."
+          },
+          "slotIncrementMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 5,
+            "maximum": 240,
+            "description": "Distance between candidate starts."
+          },
+          "bufferBeforeMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 240,
+            "description": "Free time required before a meeting."
+          },
+          "bufferAfterMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 240,
+            "description": "Free time required after a meeting."
+          },
+          "minimumNoticeMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0,
+            "maximum": 43200,
+            "description": "How long before its start a slot can still be booked."
+          },
+          "bookingWindowDays": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 365,
+            "description": "How many days ahead slots are offered."
+          },
+          "scheduleId": {
+            "type": "string",
+            "description": "The schedule that provides availability."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "The fields of an event type that a client sends."
+      },
+      "IdempotencyKey": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_-]{8,64}$",
+        "description": "A client-chosen key that makes POST /bookings safe to retry."
+      },
+      "LocalTime": {
+        "type": "string",
+        "pattern": "^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$",
+        "description": "A local wall-clock time HH:MM; 24:00 is allowed only as the end of an interval."
+      },
+      "NotFound": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Problem type URI reference."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status, repeated in the body."
+          },
+          "code": {
+            "$ref": "#/components/schemas/ProblemCode",
+            "description": "Machine-readable code."
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "404: the resource does not exist."
+      },
+      "ProblemCode": {
+        "type": "string",
+        "enum": [
+          "validation_failed",
+          "not_found",
+          "unknown_reference",
+          "slot_unavailable",
+          "idempotency_mismatch",
+          "slot_taken",
+          "idempotency_in_progress"
+        ],
+        "description": "Machine-readable error codes."
+      },
+      "Schedule": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "timeZone",
+          "weekly",
+          "overrides"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Opaque identifier."
+          },
+          "name": {
+            "$ref": "#/components/schemas/DisplayText",
+            "description": "Name shown to the host."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "IANA time zone of the schedule."
+          },
+          "weekly": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklyRule"
+            },
+            "description": "Weekly availability rules."
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DateOverride"
+            },
+            "description": "Date overrides."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A host's availability: weekly rules and date overrides in one time zone."
+      },
+      "ScheduleFields": {
+        "type": "object",
+        "required": [
+          "name",
+          "timeZone",
+          "weekly",
+          "overrides"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/DisplayText",
+            "description": "Name shown to the host."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "IANA time zone of the schedule."
+          },
+          "weekly": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklyRule"
+            },
+            "description": "Weekly availability rules."
+          },
+          "overrides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DateOverride"
+            },
+            "description": "Date overrides."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "The fields of a schedule that a client sends."
+      },
+      "Slot": {
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start instant."
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End instant."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A bookable time slot."
+      },
+      "TimeInterval": {
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "properties": {
+          "start": {
+            "$ref": "#/components/schemas/LocalTime",
+            "description": "Start of the window, inclusive."
+          },
+          "end": {
+            "$ref": "#/components/schemas/LocalTime",
+            "description": "End of the window, exclusive."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "An availability window [start, end) in the schedule's local time."
+      },
+      "Unprocessable": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Problem type URI reference."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status, repeated in the body."
+          },
+          "code": {
+            "$ref": "#/components/schemas/ProblemCode",
+            "description": "Machine-readable code."
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "422: the request is well-formed but can never succeed as sent."
+      },
+      "WeeklyRule": {
+        "type": "object",
+        "required": [
+          "weekday",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "weekday": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 7,
+            "description": "ISO weekday, Monday = 1."
+          },
+          "start": {
+            "$ref": "#/components/schemas/LocalTime",
+            "description": "Start of the window, inclusive."
+          },
+          "end": {
+            "$ref": "#/components/schemas/LocalTime",
+            "description": "End of the window, exclusive."
+          }
+        },
+        "unevaluatedProperties": {
+          "not": {}
+        },
+        "description": "A weekly rule: availability on one ISO weekday."
+      }
+    }
+  }
+}

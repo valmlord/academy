@@ -1,0 +1,51 @@
+{
+  "id": "berlin-cancelled-booking-frees-slot",
+  "req": [
+    "REQ-10"
+  ],
+  "request": {
+    "now": "2026-03-01T08:00:00Z",
+    "schedule": {
+      "name": "Ирина",
+      "timeZone": "Europe/Berlin",
+      "weekly": [
+        {
+          "weekday": 3,
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "overrides": []
+    },
+    "eventType": {
+      "title": "Знакомство",
+      "durationMinutes": 60,
+      "slotIncrementMinutes": 60,
+      "bufferBeforeMinutes": 0,
+      "bufferAfterMinutes": 0,
+      "minimumNoticeMinutes": 0,
+      "bookingWindowDays": 60
+    },
+    "bookings": [
+      {
+        "start": "2026-03-25T09:00:00+01:00",
+        "end": "2026-03-25T10:00:00+01:00",
+        "bufferBeforeMinutes": 0,
+        "bufferAfterMinutes": 0,
+        "status": "cancelled"
+      }
+    ],
+    "from": "2026-03-25T00:00:00+01:00",
+    "to": "2026-03-26T00:00:00+01:00"
+  },
+  "expected": [
+    {
+      "start": "2026-03-25T09:00:00+01:00",
+      "end": "2026-03-25T10:00:00+01:00"
+    },
+    {
+      "start": "2026-03-25T10:00:00+01:00",
+      "end": "2026-03-25T11:00:00+01:00"
+    }
+  ]
+}

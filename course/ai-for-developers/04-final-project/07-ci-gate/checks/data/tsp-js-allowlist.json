@@ -1,0 +1,8 @@
+[
+  "@typespec/compiler/dist/src/lib/intrinsic/tsp-index.js",
+  "@typespec/compiler/dist/src/lib/tsp-index.js",
+  "@typespec/http/dist/src/tsp-index.js",
+  "@typespec/openapi3/dist/src/index.js",
+  "@typespec/openapi/dist/src/tsp-index.js",
+  "@typespec/openapi3/dist/src/tsp-index.js"
+]
