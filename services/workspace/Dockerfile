@@ -1,5 +1,5 @@
 # Build context: the repository root (docker-compose.yml, service workspace).
-# No syntax directive on purpose: the daemon's built-in frontend parses this file, its RUN --mount line included,
+# No syntax directive on purpose: the daemon's built-in frontend parses this file, its RUN --mount lines included,
 # and a directive would make every build fetch a frontend image from the registry (design 8.3).
 
 FROM node:22.23.4-alpine AS build
@@ -26,7 +26,9 @@ RUN pnpm ls -r --depth -1 --parseable > /tmp/projects.txt && sort /tmp/projects.
 # Builds @academy/lesson-schema first; the service imports its schema at runtime.
 RUN pnpm turbo run build --filter=@academy/workspace...
 # pnpm 10's deploy mode for a workspace without inject-workspace-packages; not a conflict bypass (16.5 H7).
-RUN pnpm --filter @academy/workspace deploy --legacy --prod /out/workspace
+# Mounts the same store: in the #113 measurements (`docker buildx du --verbose`) this step's build-cache record
+# was about 117 MB with the mount and about 280 MB without it.
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store,sharing=locked pnpm --filter @academy/workspace deploy --legacy --prod /out/workspace
 
 FROM node:22.23.4-alpine AS runner
 WORKDIR /app
