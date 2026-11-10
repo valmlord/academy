@@ -23,6 +23,9 @@ WebSocket). Facts, with sources:
   socket error handler before emitting `upgrade`, and Next's own server wraps upgrades in try/catch.
 - Docker cannot re-attach to a running exec (409 "already running"), and closing the attach connection of a TTY exec
   does not stop its process (observed on Docker Desktop 29.9.2, linux/arm64).
+- Every runc exec is a session leader (runc calls `setsid` for each process it starts), so a TTY shell's pid is its
+  process-group and session id; a job-control shell puts each job in its own process group; `setsid` in a session
+  leader forks and exits 0 (#110).
 - xterm's `reset()` neither clears queued writes nor resets the parser; RIS written in band does both, in order.
 - One terminal session per lesson; a new browser tab takes it over (Stepan, 2026-11-04).
 - ADR-0008 items 5 and 10 and ADR-0007 item 6 promise that sign-out, a password re-key and account deletion revoke
@@ -59,13 +62,18 @@ WebSocket). Facts, with sources:
    `min(dl, connect + TERMINAL_RELAY_MAX_SECONDS)` (default 900 s, 120-3600). Every raw socket gets an error listener before anything else and keeps one until it is gone, and every
    upgrade path runs inside a catch, so no malformed request or reset can stop the server; refusal and containment
    logs are rate-limited per reason and never carry an error object.
-4. **Session.** The workspace service holds at most one session per workspace: a TTY exec (`Cmd [TERMINAL_SHELL,
-   "-l"]`, `User 1000:1000`, `WorkingDir /workspace/home/work`, `Env TERM=xterm-256color, LANG=C.UTF-8`) and a
-   headless xterm (`allowProposedApi`) with `TERMINAL_SCROLLBACK_LINES` of scrollback, never reset, at most one
-   attached and one attaching socket. It outlives the browser and ends on shell exit, container stop and service
-   shutdown, always through one idempotent teardown. Every promise or callback started from a socket, stream or timer
-   listener has a stated failure action; a failed resize is ignored. A service restart ends every session; the
-   shells of sessions that ended this way keep running without a terminal until the container stops; files stay.
+4. **Session.** The workspace service holds at most one session per workspace: a TTY exec (`Cmd ["/bin/sh", "-c",
+   <wrapper>, TERMINAL_SHELL, <tag>]`: the wrapper writes its pid, which is the exec's session id, to
+   `/tmp/.terminal-<tag>.pid` and `exec`s `TERMINAL_SHELL -l`; `<tag>` is random per shell; `User 1000:1000`,
+   `WorkingDir /workspace/home/work`, `Env TERM=xterm-256color, LANG=C.UTF-8`) and a headless xterm
+   (`allowProposedApi`) with `TERMINAL_SCROLLBACK_LINES` of scrollback, never reset, at most one attached and one
+   attaching socket. It outlives the browser and ends on shell exit, container stop and service shutdown, always
+   through one idempotent teardown. Every promise or callback started from a socket, stream or timer listener has a
+   stated failure action; a failed resize or kill is logged and otherwise ignored. Every end except 4002 (the
+   container is stopping) starts a detached exec (`/bin/sh -c`, uid 1000, `WorkingDir /`, no TTY) that reads the pid
+   file, refuses anything but an integer above 1, sends HUP to every process of that session (`pkill -s`), waits 2 s,
+   sends KILL and removes the file; the service does not wait for it (#110). A service restart ends every session and
+   the processes of its shell; files stay.
 5. **Reconnect, renewal and takeover.** A connection attaches to the live session or creates one; the newest
    connection wins and every older attached or attaching socket is closed with 4001; only the current sockets'
    events change the session. An attach flushes the headless parser and sends the serialized screen before live
@@ -107,8 +115,13 @@ WebSocket). Facts, with sources:
 - Dropping standalone output for a classic custom server: loses the traced image and its course-leak checks.
 - Session in web: dies with every web restart; the web-to-service link would need its own reconnect.
 - tmux/dtach in the container: a session would survive a service restart, but the lesson image (#33) installs
-  neither; #110 (end the shell when its session ends) weighs tmux among the alternatives for the shells item 4
-  leaves running.
+  neither; #110 rejected it again: it duplicates the headless screen of item 7 and still loses processes that leave
+  the session.
+- Killing the shell's process group: job-control shells put each job in its own group. Killing by `inspectExec`'s
+  `Pid`: that pid is in the daemon's namespace and the Engine API has no exec kill. Killing every TTY session but
+  PID 1's: would hit a session opened right after, checks and a `docker exec`. Waiting out the HUP-to-KILL grace in
+  the service: counts against Docker's 10 s stop grace. An environment marker with a `/proc/*/environ` scan: depends
+  on dumpability and misses `env -i` (#110).
 - Raw byte replay: breaks full-screen programs. Session cookie on the upgrade: the custom server would need its own
   Better Auth and pool. A dedicated ticket secret: one more required secret.
 - Keeping a connection until the session's expiry: a revoked session's terminal would live up to 7 days.
@@ -131,8 +144,10 @@ WebSocket). Facts, with sources:
   the session). A Node upgrade (the image tag in `apps/web/Dockerfile`) must re-verify that `shouldUpgradeCallback` is
   honoured. The e2e job fails when web logs a server error during the suite.
 - The `ws` override in `pnpm-workspace.yaml` is removed with the fastify 5.12.8 bump.
-- Accepted residual (Stepan, 2026-11-04): a shell whose session ends while the shell is still running (service
-  restart, an end with code 1011, a failure after the exec started) keeps running inside the container, without a
-  terminal and with its children, until the container stops (idle stop or restart). It counts against the container's
-  memory and pids limits and can hold files or ports open. An integration test asserts this behaviour so a change in
-  Docker is noticed; an explicit kill of the shell's process group is a follow-up.
+- Accepted residuals (Stepan, 2026-11-10, #110): processes that left the shell's session (`setsid`, daemons) keep
+  running until the container stops; so do the shells of a service that crashed (SIGKILL, out of memory, a stop
+  slower than Docker's 10 s grace) until a startup sweep exists (#125); a kill that cannot start (Docker unreachable,
+  pids limit reached) is logged and the processes stay; a learner who edits the pid file can make the kill miss or
+  hit another of their own sessions, never PID 1's; a kill that runs after the session's last process is gone can
+  only hit a new session reusing its number, which needs the container's pid counter to wrap within 2 s. An `exit` in
+  the terminal also ends the jobs started in it (`npm run dev &`).

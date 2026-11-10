@@ -5,13 +5,13 @@ import { DockerEngine } from "../../src/docker/engine.js";
 import { DockerRuntime } from "../../src/docker/runtime.js";
 import type { WorkspaceKey } from "../../src/identity.js";
 import type { ShellHandle } from "../../src/runtime.js";
-import { docker } from "./docker-cli.js";
+import { inspectObject, processArgs } from "./docker-cli.js";
 import { FIXTURE_COURSE_ROOT, fixtureSpec, TEST_LIMITS } from "./fixtures.js";
 import { onCleanup, useTestInstance } from "./harness.js";
 
-// The terminal's exec primitives on the real daemon (design 3.2, 10.2): what the shell runs as, that an idle
-// shell outlives docker-modem's 30 s inactivity timeout, and that destroying the stream does NOT end the shell
-// (residual R-orphan, accepted as D16; this test turns red if Docker starts killing the exec, see follow-up 7.6).
+// The terminal's exec primitives on the real daemon (design 3.2, 10.2, #110): what the shell runs as, that its pid
+// file names its session, that an idle shell outlives docker-modem's 30 s inactivity timeout, and that the kill
+// refuses session 1.
 
 const { instance } = useTestInstance("terminal-exec.int.test.ts");
 
@@ -25,14 +25,13 @@ const OUTPUT_TIMEOUT_MS = 10_000;
 /** Longer than the engine's 30 s inactivity timeout (`ENGINE_TIMEOUT_MS`). */
 const IDLE_MS = 40_000;
 const IDLE_TEST_TIMEOUT_MS = 120_000;
-/** How long the shell's child may take to show up in `ps` after it was typed. */
-const START_DEADLINE_MS = 10_000;
-/** I-exec-close-orphans: the time Docker gets to end the exec after its connection closed (design 10.2). */
-const ORPHAN_WAIT_MS = 10_000;
-const ORPHAN_TEST_TIMEOUT_MS = 90_000;
+/** KILL_GRACE_SECONDS in src/docker/spec.ts: the kill script's wait between HUP and KILL. */
+const KILL_GRACE_MS = 2_000;
+/** After the grace: time for the kill exec to start, run both signals and for the container to stop if it would. */
+const KILL_SETTLE_MS = 2_000;
 const POLL_MS = 250;
 const SHELL_COMMAND = "/bin/sh -l";
-const SLEEP_COMMAND = "sleep 4242";
+const KEEPER_COMMAND = "sleep infinity";
 /** I-exec-echo's `ids` line: the shell's pid, then its process group, session and pid file, all equal. */
 const SESSION_IDS = /(^|\n)ids (\d+) \2 \2 \2\r?\n/;
 
@@ -88,21 +87,6 @@ async function openShell(): Promise<{
   return { shell, output: collect(shell.stream), containerId };
 }
 
-/** The command line of every process in the container, one per entry. */
-async function processes(containerId: string): Promise<string[]> {
-  const listing = await docker(["exec", containerId, "ps", "-o", "args"]);
-  return listing.split("\n").map((entry) => entry.trim());
-}
-
-async function waitForProcess(containerId: string, command: string): Promise<boolean> {
-  const deadline = Date.now() + START_DEADLINE_MS;
-  while (Date.now() <= deadline) {
-    if ((await processes(containerId)).includes(command)) return true;
-    await sleep(POLL_MS);
-  }
-  return false;
-}
-
 describe("terminal exec on the real daemon", () => {
   it("I-exec-echo: runs the shell as uid 1000 in the work directory with TERM set", async () => {
     const { shell, output } = await openShell();
@@ -146,23 +130,18 @@ describe("terminal exec on the real daemon", () => {
     IDLE_TEST_TIMEOUT_MS,
   );
 
-  it(
-    "I-exec-close-orphans: the shell and its child keep running after the stream is destroyed",
-    async () => {
-      const { shell, output, containerId } = await openShell();
-      shell.stream.write("echo started\r");
-      await output.waitFor(line("started"));
-      shell.stream.write(`${SLEEP_COMMAND}\r`);
-      const started = await waitForProcess(containerId, SLEEP_COMMAND);
+  it("I-exec-kill-refuses-init: a pid file rewritten to 1 does not stop the container", async () => {
+    const { shell, output, containerId } = await openShell();
+    // A loop, because busybox ash may not glob a redirection target.
+    shell.stream.write('for f in /tmp/.terminal-*.pid; do echo 1 > "$f"; done; echo tampered\r');
+    await output.waitFor(line("tampered"));
 
-      shell.stream.destroy();
-      await sleep(ORPHAN_WAIT_MS);
-      const after = await processes(containerId);
+    await shell.terminate();
+    await sleep(KILL_GRACE_MS + KILL_SETTLE_MS);
 
-      expect(started).toBe(true);
-      expect(after).toContain(SHELL_COMMAND);
-      expect(after).toContain(SLEEP_COMMAND);
-    },
-    ORPHAN_TEST_TIMEOUT_MS,
-  );
+    expect((await inspectObject("container", containerId))?.state).toBe("running");
+    const listing = await processArgs(containerId);
+    expect(listing, listing.join("\n")).toContain(KEEPER_COMMAND);
+    expect(listing, listing.join("\n")).toContain(SHELL_COMMAND);
+  });
 });

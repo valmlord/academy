@@ -390,17 +390,19 @@ started in the database (an enrollment and an `in-progress` `lesson_progress` ro
 **Before the first deploy:** build the lesson image and move off `WORKSPACE_IMAGE` ("Workspace image" above, step
 4). Without the image every lesson says that the environment image `academy-workspace:dev` is missing. The terminal
 runs `/bin/bash` (`TERMINAL_SHELL`), which the lesson image has and `node:22.23.4-alpine` does not: on that image
-the terminal does not open.
+the terminal closes right after it opens.
 
 - **`pnpm dev` has no terminal.** It runs `next dev` without web's custom server; the lesson's environment says it
   could not start. The terminal works in the compose stack on http://127.0.0.1:3080.
 - **The site does not depend on the workspace service.** Web starts after db only. With the service down or
   broken, every page works and only the lesson's terminal says the environment could not start, with a retry
   button; `docker compose up -d --build --wait` then exits non-zero after its wait timeout while web is up.
-- **Restarting or rebuilding the workspace service ends every open terminal session.** Each terminal reconnects
-  to a new shell; the old shells, and every program started in them, keep running in the background, invisible,
-  until the environment stops (idle stop after 30 minutes, or a restart). Files stay. Rebuilding web only makes
-  open terminals reconnect to the same session.
+- **Restarting or rebuilding the workspace service ends every open terminal session and its shell.** Each terminal
+  reconnects to a new shell; the old shell and the programs started in it get SIGHUP and, 2 seconds later, SIGKILL.
+  A program that detached itself with `setsid` (a daemon) keeps running until the environment stops (idle stop after
+  30 minutes, or a restart); so does everything if the service crashed instead of stopping. Files stay. Rebuilding
+  web only makes open terminals reconnect to the same session.
+- **`exit` in the terminal also stops its background jobs** (`npm run dev &`, `nohup ...`) the same way.
 - **An open terminal renews its connection silently about every 15 minutes** (`TERMINAL_RELAY_MAX_SECONDS`, 900),
   and each renewal checks the session again: after a sign-out in another tab or a re-key, an open terminal stops
   within that bound and the page shows the session alert. The shell keeps running across a renewal; a text
