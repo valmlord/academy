@@ -427,8 +427,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
   if it is still out of view, so an error summary link shows the question's heading above the focused option;
   focusing selects nothing. Arrival with an anchor hash
   (`catalog#<moduleId>`, e.g. `catalog#introduction`, from the dashboard) does the same once the page has loaded (after `load`, one
-  task later, so the browser's own fragment navigation cannot leave focus on `body`); a typed anchor hash
-  does it on `hashchange`. No page script is
+  task later, so the browser's own fragment navigation cannot leave focus on `body`); a typed or
+  history-restored anchor hash does it on the history move ("History moves" below). No page script is
   needed; a missing or hidden target leaves the link to the browser.
 - **Tabs.** `role="tablist"` / `role="tab"` with `aria-controls` and `aria-selected`, panels
   `role="tabpanel"`; roving tabindex, arrows, Home, End.
@@ -451,7 +451,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
 - **Simulated outcome ("go to state and focus").** The one API for a control that fakes its result
   ("Повторить", "Проверить", "Продолжить работу", "Запустить снова", a menu item, a dialog button):
   `data-goto-state="<name>"` plus `data-focus="<selector>"`. On click proto.js pushes `#state-<name>` as a
-  new history entry (Back returns to the previous state through `hashchange`), shows the state, then
+  new history entry (`proto.js:844`; Back returns to the previous state as a history move, "History
+  moves" below), shows the state, then
   focuses `data-focus` (a target that cannot take focus gets `tabindex="-1"`). It runs after the menu or
   dialog has closed, and a dialog does not return focus to its opener over it. `aria-disabled` controls
   do nothing (R1). `data-goto-focus` and `data-focus-after` are not read by proto.js: pages use
@@ -490,10 +491,23 @@ All behaviour is delegated on `document`; no per-page script is needed.
   attribute), else the next ancestor's, else `main`. A dialog's opener, while rendered, wins over the
   fallback. Focus a page moved itself in `proto:statechange`, or focus still on a rendered control, stays.
   `data-goto-state` does not repair: its `data-focus` names the target (A69-19, `ia.md` R2).
+- **History moves.** Back, Forward and a typed hash are handled on `popstate` and on `hashchange`
+  (`proto.js:1058-1086`): Back or Forward between two entries whose query differs as well as the hash (the
+  lesson writes `?tab=` with `replaceState`) fires `popstate` and no `hashchange`. A move that fires both is
+  handled once, by `popstate`, which comes first: the following `hashchange` is skipped when the hash and
+  `history.state.protoEntry` are still the ones `popstate` saw. A `#state-` hash or no hash shows that
+  state (focus return below, else the background focus repair); any other hash is an in-page anchor and
+  leaves the state as it is.
 - **Back focus.** `data-goto-state` remembers, for the history entry it leaves, the control that was
-  activated; Back (or Forward) to that entry focuses it while it is rendered, else the background focus
-  repair applies. Prototype only: the app pushes no history entry per action. Entries are marked in
-  `history.state.protoEntry`; a page that calls `history.replaceState` passes `history.state` on to keep it.
+  activated (`proto.js:325-347`, `:843`); Back (or Forward) to that entry focuses it while it is rendered,
+  else the background focus repair applies (`proto.js:250-252`). A remembered control inside a dialog is
+  not the target: the dialog's initial control is (`[autofocus]`, else its first focusable). A remembered
+  control that is no longer in the document (a clone of a live container's template, as "Открыть квиз" in
+  the quiz notice, which the next state change replaced) is found again by its `id`, so the template the
+  returned-to state renders repeats that `id` (the quiz notice's templates all use `open-quiz`); a control
+  without an `id` gets the background focus repair (`proto.js:255-268`). Prototype only: the app pushes
+  no history entry per action. Entries are marked in `history.state.protoEntry`; a page that calls
+  `history.replaceState` passes `history.state` on to keep it, or Back focus loses the entry.
 - **Collapsible.** `data-collapsible aria-expanded aria-controls`, optional `data-label-collapsed` /
   `data-label-expanded` (text goes into `[data-collapsible-label]` or the button).
 - **Tooltip.** Wrap in `.tooltip-anchor`; trigger `data-tooltip="<tip id>" aria-describedby="<tip id>"`;
