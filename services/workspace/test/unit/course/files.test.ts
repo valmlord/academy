@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { inspect } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readCourseFile } from "../../../src/course/files.js";
 import { parseYamlFile } from "../../../src/course/yaml.js";
@@ -27,6 +28,23 @@ async function refusal(rel: string, base: string = root): Promise<CourseReadErro
     throw error;
   }
   throw new Error(`readCourseFile accepted ${rel}`);
+}
+
+const ALIAS_REASON = "invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)";
+
+function yamlRefusal(text: string): CourseReadError {
+  try {
+    parseYamlFile(text, "x.yaml");
+  } catch (error: unknown) {
+    if (error instanceof CourseReadError) return error;
+    throw error;
+  }
+  throw new Error("parseYamlFile accepted the text");
+}
+
+/** An anchored scalar and a flow list of `count` aliases to it, the input for the alias limit. */
+function aliasList(count: number): string {
+  return `a: &a 1\nl: [${Array.from({ length: count }, () => "*a").join(", ")}]\n`;
 }
 
 describe("readCourseFile", () => {
@@ -111,5 +129,33 @@ describe("parseYamlFile", () => {
 
   it("fails on a second document", () => {
     expect(() => parseYamlFile("id: one\n---\nid: two\n", "x.yaml")).toThrow(CourseReadError);
+  });
+
+  it("refuses an alias without an anchor with a fixed reason and no library text", () => {
+    const error = yamlRefusal("id: one\nref: *CANARY-ALIAS\n");
+
+    expect({ file: error.file, reason: error.reason }).toEqual({
+      file: "x.yaml",
+      reason: ALIAS_REASON,
+    });
+    expect(inspect(error)).not.toContain("CANARY");
+  });
+
+  it("refuses one hundred aliases to one anchor", () => {
+    expect(yamlRefusal(aliasList(100)).reason).toBe(ALIAS_REASON);
+  });
+
+  it("accepts ninety-nine aliases to one anchor", () => {
+    expect(parseYamlFile(aliasList(99), "x.yaml")).toEqual({
+      a: 1,
+      l: Array.from({ length: 99 }, () => 1),
+    });
+  });
+
+  it("refuses a YAML 1.1 merge key without a map source with a fixed reason", () => {
+    const error = yamlRefusal("%YAML 1.1\n---\nid: one\nm:\n  <<: 5\n");
+
+    expect(error.reason).toBe("invalid YAML: document cannot be converted to a value");
+    expect(inspect(error)).not.toContain("Merge sources");
   });
 });
