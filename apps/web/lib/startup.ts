@@ -5,10 +5,16 @@ import {
   MigrationError,
 } from "@academy/db";
 import { type AuthSecretEnv, InvalidAuthSecretError, readAuthSecret } from "./auth/env";
+import {
+  checkWorkspaceServiceEnv,
+  InvalidWorkspaceServiceConfigError,
+  type WorkspaceServiceEnv,
+} from "./workspace/env";
 
 export interface StartupDeps {
   databaseUrl: string | undefined;
   authEnv: AuthSecretEnv;
+  workspaceEnv: WorkspaceServiceEnv;
   migrate: (url: string) => Promise<void>;
   exit: (code: number) => never;
   logError: (line: string) => void;
@@ -31,7 +37,9 @@ const IDENTIFIER = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
  * Checks the auth secret, then applies the database migrations before the server handles a request,
  * and exits the process on any failure: a server without its schema would answer 500 forever
  * (ADR-0007 item 8), and one without a valid secret would sign sessions with a guessable key
- * (ADR-0008 item 9). No log line ever carries the connection string or the secret.
+ * (ADR-0008 item 9). The workspace service settings are checked as values only, never by contacting the
+ * service, so web starts while the service is down (ADR-0010 item 10 amended). No log line ever carries the
+ * connection string or a secret.
  */
 export async function migrateOnStartup(deps: StartupDeps): Promise<void> {
   if (deps.databaseUrl === undefined || deps.databaseUrl === "") {
@@ -44,6 +52,13 @@ export async function migrateOnStartup(deps: StartupDeps): Promise<void> {
     readAuthSecret(deps.authEnv);
   } catch (error: unknown) {
     if (!(error instanceof InvalidAuthSecretError)) throw error;
+    deps.logError(`web: ${error.name}: ${error.message}`);
+    deps.exit(1);
+  }
+  try {
+    checkWorkspaceServiceEnv(deps.workspaceEnv);
+  } catch (error: unknown) {
+    if (!(error instanceof InvalidWorkspaceServiceConfigError)) throw error;
     deps.logError(`web: ${error.name}: ${error.message}`);
     deps.exit(1);
   }

@@ -48,15 +48,23 @@ checks:
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_late_fee.py"'
     timeoutSec: 300
     weight: 3
+    attempts:
+      limit: 10
+      mentorAfter: 5
   - id: stop-hook-tests
     title: "Stop-хук сам запускает тесты и не даёт закончить ход при красных тестах"
     kind: command
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_stop_hook.py"'
     timeoutSec: 480
     weight: 2
+    attempts:
+      limit: 10
+      mentorAfter: 5
   - id: verification-quiz
     title: "Квиз: /goal, детерминированные проверки, подделка тестов, Stop-хук"
     kind: quiz
     file: quiz.yaml
     passScore: 0.8
     weight: 1
+    attempts:
+      limit: 3

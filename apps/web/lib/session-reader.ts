@@ -10,6 +10,9 @@ export interface SessionUser {
 
 export interface SessionData {
   user: SessionUser;
+  // The terminal ticket's connection deadline never outlives the session (#32, ADR-0011 item 3). Declared as
+  // Better Auth types it; openTerminal still narrows it at runtime before use.
+  session: { expiresAt: Date };
 }
 
 export interface GetSessionInput {

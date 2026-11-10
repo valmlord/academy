@@ -46,3 +46,20 @@
     release, was published on 2026-11-02 and was too new to take; the bump to 5.12.8 is planned once it is two
     weeks old (after 2026-11-16) and before #32 adds a streaming response or a nonzero `handlerTimeout`. The guard
     stays after the bump.
+- #32 (Proposed): the browser terminal (ADR-0011) adds these choices.
+  - Workspace service: `@fastify/websocket@11.3.4` (11.3.6, which answers `HEAD` on WebSocket routes with 404, was
+    too new; the terminal route sets `exposeHeadRoute: false`, declares its own HTTP `handler` next to `wsHandler`,
+    and is declared in a child plugin so `buildApp` stays synchronous), `ws@8.22.0` pinned through `overrides` in
+    `pnpm-workspace.yaml` until the fastify 5.12.8 bump removes the pin (not a direct dependency), `@types/ws@8.18.2`
+    (dev), `@xterm/headless@6.0.0` (CommonJS: default import, then destructure; `allowProposedApi` for serialize) and
+    `@xterm/addon-serialize@0.14.0` for the server-held screen.
+  - Web: `@xterm/xterm@6.0.0`, `@xterm/addon-fit@0.11.0`, `zod@4.6.7` (the service's version, for the service
+    client in the bundle), `fast-check@4.10.2` (dev); a custom server compiled with `tsc` that imports only `node:*`
+    and `next` (ADR-0011 item 2).
+  - GHSA-3qgw-9275-xf8w stays unreachable with the terminal route. The advisory needs both a nonzero
+    `handlerTimeout` and a route that answers with a streaming response through Fastify's reply. `handlerTimeout`
+    stays `0` (the #31 guard still asserts the constructor gets none and no route declares one; the terminal route
+    is in the route table it walks). The terminal route sends no streaming reply: its HTTP `handler` answers a small
+    JSON 404, and for an upgrade `@fastify/websocket` calls `reply.hijack()`, after which Fastify never writes to the
+    response; the 101 answer and every frame are written by `ws` on the raw socket. The bump to 5.12.8 stays planned
+    after 2026-11-16 as its own change; the guard stays after it.

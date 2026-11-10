@@ -28,6 +28,8 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /repo/apps/web/public ./apps/web/public
+# The custom server (#32, ADR-0011 item 2), compiled by the build script; it wraps the standalone Next server.
+COPY --from=build /repo/apps/web/dist/server ./apps/web/server
 # migrateDatabase reads the SQL migrations at startup; standalone tracing does not include them (design 0.2).
 COPY --from=build /repo/packages/db/drizzle ./packages/db/drizzle
 # The pages read the course at request time (ADR-0009 item 1); root-owned like the code.
@@ -37,4 +39,5 @@ ENV COURSE_ROOT=/app/course
 RUN mkdir -p apps/web/.next/cache && chown node:node apps/web/.next/cache
 USER node
 EXPOSE 3000
-CMD ["node", "apps/web/server.js"]
+# Next's generated apps/web/server.js stays in the image, unused: it cannot relay the terminal's WebSocket.
+CMD ["node", "apps/web/server/main.js"]

@@ -36,3 +36,5 @@ checks:
     answers: checks/bugs.yaml
     minFound: 5
     weight: 2
+    attempts:
+      limit: 3

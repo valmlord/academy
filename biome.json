@@ -23,7 +23,8 @@
       "!**/playwright/.auth",
       "!packages/db/drizzle/meta/**",
       "!course/**/starter/**",
-      "!course/**/checks/**"
+      "!course/**/checks/**",
+      "!images/workspace/package-lock.json"
     ]
   },
   "formatter": {

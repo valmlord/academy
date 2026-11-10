@@ -113,6 +113,8 @@ function concreteUrl(pattern: string): string {
 describe("the route table", () => {
   it("answers 401 without the header on every route except GET and HEAD /healthz", async () => {
     const { app, routes } = openApp();
+    // Plugin routes (the terminal route, #32) are declared at `ready()`.
+    await app.ready();
     const guarded = routes.filter((route) => route.url !== "/healthz");
 
     const statuses: Record<string, number> = {};
@@ -143,9 +145,13 @@ describe("the route table", () => {
     }
   });
 
-  it("has no route that declares a handlerTimeout of its own", () => {
-    const { routes } = openApp();
+  it("has no route that declares a handlerTimeout of its own, the terminal route included", async () => {
+    const { app, routes } = openApp();
+    await app.ready();
 
+    expect(routes.map((route) => `${route.method} ${route.url}`)).toContain(
+      "GET /v1/users/:userId/courses/:courseId/lessons/:lessonId/workspace/terminal",
+    );
     expect(routes.filter((route) => route.hasHandlerTimeout)).toEqual([]);
   });
 });
