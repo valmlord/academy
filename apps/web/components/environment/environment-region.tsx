@@ -7,6 +7,8 @@ import {
   openTerminal,
   peekEnvironment,
   recordLessonStarted,
+  resetEnvironment,
+  restartEnvironment,
   startEnvironment,
 } from "@/app/(app)/courses/[courseId]/lessons/[lessonId]/actions";
 import type { EnvironmentActions } from "@/lib/terminal/machine";
@@ -40,6 +42,8 @@ export function EnvironmentRegion({
       startEnvironment: () => startEnvironment(courseId, lessonId),
       openTerminal: () => openTerminal(courseId, lessonId),
       recordLessonStarted: () => recordLessonStarted(courseId, lessonId),
+      restartEnvironment: () => restartEnvironment(courseId, lessonId),
+      resetEnvironment: () => resetEnvironment(courseId, lessonId),
     }),
     [courseId, lessonId],
   );

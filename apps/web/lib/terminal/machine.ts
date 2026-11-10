@@ -15,7 +15,7 @@ import {
   type TerminalSize,
   type TerminalSocket,
 } from "./protocol";
-import type { TerminalFailure, TerminalStatus } from "./state";
+import { isEnvironmentRunning, type TerminalFailure, type TerminalStatus } from "./state";
 
 // The browser terminal state machine of #32 design 3.6.1 (rows 1-38, rules G1-G6) with Delta 2's page-open rows
 // 0a-0h and rule G7. Row numbers in the comments are the design's. It holds no React state: the region feeds it
@@ -38,6 +38,8 @@ export interface EnvironmentActions {
   startEnvironment(): Promise<EnvironmentResult>;
   openTerminal(): Promise<OpenTerminalResult>;
   recordLessonStarted(): Promise<LessonStartedResult>;
+  restartEnvironment(): Promise<EnvironmentResult>;
+  resetEnvironment(): Promise<EnvironmentResult>;
 }
 
 /**
@@ -164,6 +166,8 @@ export class TerminalMachine {
   #isStartedInFlight = false;
   #startedFailedAt: number | null = null;
   #lastStatus = "";
+  /** Set by a reset that answered running; the note goes with the first status that is not connecting or running. */
+  #isResetNoteShown = false;
   #unmountedStatus: TerminalStatus = { kind: "connecting" };
   readonly #backoffTimer: TimerSlot;
   readonly #renewTimer: TimerSlot;
@@ -192,11 +196,13 @@ export class TerminalMachine {
         };
       case "CO":
       case "AP":
-        return { kind: "connecting" };
+        return this.#isResetNoteShown
+          ? { kind: "connecting", note: "workspace-reset" }
+          : { kind: "connecting" };
       case "RU":
-        return { kind: "running" };
+        return this.#runningStatus();
       case "RN":
-        return this.#isCurrentLost ? { kind: "reconnecting" } : { kind: "running" };
+        return this.#isCurrentLost ? { kind: "reconnecting" } : this.#runningStatus();
       case "RC":
         return { kind: "reconnecting" };
       case "TO":
@@ -212,6 +218,12 @@ export class TerminalMachine {
       case "unmounted":
         return this.#unmountedStatus;
     }
+  }
+
+  #runningStatus(): TerminalStatus {
+    return this.#isResetNoteShown
+      ? { kind: "running", note: "workspace-reset" }
+      : { kind: "running" };
   }
 
   /** Row 0a. */
@@ -292,6 +304,16 @@ export class TerminalMachine {
     }
   }
 
+  /** The menu's restart: stop and start the container; the files stay. */
+  restart(): void {
+    this.#maintain("starting", () => this.#options.actions.restartEnvironment(), false);
+  }
+
+  /** The menu's reset: create the workspace again from the lesson's starter. */
+  reset(): void {
+    this.#maintain("creating", () => this.#options.actions.resetEnvironment(), true);
+  }
+
   // --- state changes -------------------------------------------------------------------------------------
 
   /**
@@ -330,15 +352,16 @@ export class TerminalMachine {
 
   #emit(): void {
     const status = this.status;
+    if (status.kind !== "connecting" && status.kind !== "running") this.#isResetNoteShown = false;
     const serialized = JSON.stringify(status);
     if (serialized === this.#lastStatus) return;
     this.#lastStatus = serialized;
     this.#options.onStatus(status);
   }
 
-  #enterStarting(): void {
+  #enterStarting(copy: "creating" | "starting" = "starting"): void {
     this.#setState("ST");
-    this.#startCopy = "starting";
+    this.#startCopy = copy;
     this.#startedAt = this.#options.clock.now();
     this.#isSlow = false;
     // Row 0h.
@@ -474,6 +497,44 @@ export class TerminalMachine {
     this.#attempt = 0;
     this.#enterStarting();
     this.#start();
+  }
+
+  /**
+   * Restart and reset. After `unmount()` the status getter returns the last mounted status, which can read
+   * running, so the mount is checked first. The connection is dropped before the call: the service's stop then
+   * closes a socket the machine already ignores (G2), so its 4002 cannot show "stopped" in between.
+   */
+  #maintain(
+    copy: "creating" | "starting",
+    call: () => Promise<EnvironmentResult>,
+    isReset: boolean,
+  ): void {
+    if (!this.#isMounted || !isEnvironmentRunning(this.status)) return;
+    this.#releaseConnection();
+    this.#isResetNoteShown = false;
+    this.#attempt = 0;
+    this.#enterStarting(copy);
+    this.#call(
+      call,
+      (result) => {
+        if (result.kind !== "running") {
+          this.#onStartFailure(result);
+          return;
+        }
+        this.#attempt = 0;
+        if (isReset) this.#isResetNoteShown = true;
+        this.#openTerminal();
+      },
+      () => this.#enterFailed({ kind: "start-failed" }),
+    );
+  }
+
+  #releaseConnection(): void {
+    this.#drop(this.#current);
+    this.#current = null;
+    this.#backoffTimer.clear();
+    this.#awaitingSnapshot = false;
+    this.#isCurrentLost = false;
   }
 
   /** Rows 0e-0g. */

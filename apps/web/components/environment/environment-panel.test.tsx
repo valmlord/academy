@@ -127,6 +127,8 @@ interface Setup {
   starts: Deferred<EnvironmentResult>[];
   opens: Deferred<OpenTerminalResult>[];
   records: Deferred<LessonStartedResult>[];
+  restarts: Deferred<EnvironmentResult>[];
+  resets: Deferred<EnvironmentResult>[];
   unmount: () => void;
 }
 
@@ -136,6 +138,8 @@ function setup(options: { reconnectAttempts?: number; startSlowSeconds?: number 
   const starts: Deferred<EnvironmentResult>[] = [];
   const opens: Deferred<OpenTerminalResult>[] = [];
   const records: Deferred<LessonStartedResult>[] = [];
+  const restarts: Deferred<EnvironmentResult>[] = [];
+  const resets: Deferred<EnvironmentResult>[] = [];
   const next = <T,>(queue: Deferred<T>[]): Promise<T> => {
     const deferred = new Deferred<T>();
     queue.push(deferred);
@@ -146,6 +150,8 @@ function setup(options: { reconnectAttempts?: number; startSlowSeconds?: number 
     startEnvironment: () => next(starts),
     openTerminal: () => next(opens),
     recordLessonStarted: () => next(records),
+    restartEnvironment: () => next(restarts),
+    resetEnvironment: () => next(resets),
   };
   const { unmount } = render(
     <EnvironmentPanel
@@ -160,7 +166,7 @@ function setup(options: { reconnectAttempts?: number; startSlowSeconds?: number 
       startSlowSeconds={options.startSlowSeconds ?? 7}
     />,
   );
-  return { terminals, peeks, starts, opens, records, unmount };
+  return { terminals, peeks, starts, opens, records, restarts, resets, unmount };
 }
 
 async function answer<T>(queue: Deferred<T>[], value: T): Promise<void> {
