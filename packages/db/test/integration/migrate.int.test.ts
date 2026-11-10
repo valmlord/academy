@@ -1,8 +1,11 @@
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { MigrationError } from "../../src/errors.js";
-import { MIGRATION_LOCK_KEY, migrateDatabase } from "../../src/migrate.js";
+import { MIGRATION_LOCK_KEY, MIGRATIONS_FOLDER, migrateDatabase } from "../../src/migrate.js";
 import { causeCodes, rejectionOf } from "../assertions.js";
 import {
   expectNoSecret,
@@ -18,6 +21,7 @@ const BROKEN_MIGRATIONS = fileURLToPath(new URL("./fixtures/broken-migrations", 
 const SCHEMA_TABLES = [
   "accounts",
   "attempts",
+  "check_closures",
   "check_results",
   "enrollments",
   "lesson_progress",
@@ -70,6 +74,57 @@ async function waitForLockWaiter(url: string): Promise<void> {
     await sleep(LOCK_WAIT_POLL_MS);
   }
   throw new Error("migrateDatabase did not wait for the migration lock");
+}
+
+const PRE_101_MIGRATIONS = ["0000_init", "0001_auth"];
+// The columns 0002_check_limits adds, left out when a row is compared across the upgrade.
+const COLUMNS_OF_101 = [
+  "included_check_ids",
+  "included_check_kinds",
+  "is_format_error",
+  "is_budget_exhausted",
+  "message",
+  "raw_error",
+];
+const SEEDED_TABLES = ["users", "enrollments", "lesson_progress", "attempts", "check_results"];
+
+/** A migrations folder holding only the migrations merged before #101, with their journal. */
+async function pre101MigrationsFolder(): Promise<string> {
+  const folder = await mkdtemp(path.join(tmpdir(), "academy-pre-101-"));
+  await mkdir(path.join(folder, "meta"));
+  for (const tag of PRE_101_MIGRATIONS) {
+    await copyFile(path.join(MIGRATIONS_FOLDER, `${tag}.sql`), path.join(folder, `${tag}.sql`));
+  }
+  const journal: unknown = JSON.parse(
+    await readFile(path.join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8"),
+  );
+  if (
+    typeof journal !== "object" ||
+    journal === null ||
+    !("entries" in journal) ||
+    !Array.isArray(journal.entries)
+  ) {
+    throw new Error("meta/_journal.json has no entries array");
+  }
+  const entries = journal.entries.slice(0, PRE_101_MIGRATIONS.length);
+  await writeFile(path.join(folder, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));
+  return folder;
+}
+
+/** Every row of the seeded tables as jsonb text (timestamps as text), without the #101 columns. */
+async function seededRows(url: string): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  for (const table of SEEDED_TABLES) {
+    // The table names are the constants above, never input.
+    rows.push(
+      ...(await queryRows(
+        url,
+        `SELECT '${table}' AS source, (to_jsonb(t) - $1::text[])::text AS row FROM ${table} t ORDER BY 2`,
+        [COLUMNS_OF_101],
+      )),
+    );
+  }
+  return rows;
 }
 
 describe("migrateDatabase", () => {
@@ -147,6 +202,58 @@ describe("migrateDatabase", () => {
     } finally {
       await holder.end();
     }
+  });
+
+  it("I-upgrade adds the #101 columns to existing rows and leaves their data unchanged", async () => {
+    const url = await database();
+    const folder = await pre101MigrationsFolder();
+    try {
+      await migrateDatabase(url, { migrationsFolder: folder });
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
+    await queryRows(
+      url,
+      "INSERT INTO users (id, name, email) VALUES ('u-up', 'Learner', 'u-up@example.invalid')",
+    );
+    await queryRows(url, "INSERT INTO enrollments (user_id, course_id) VALUES ('u-up', 'c')");
+    await queryRows(
+      url,
+      `INSERT INTO lesson_progress (user_id, course_id, lesson_id, status, completed_at)
+       VALUES ('u-up', 'c', 'open', 'in-progress', NULL), ('u-up', 'c', 'done', 'completed', now())`,
+    );
+    const [attempt] = await queryRows(
+      url,
+      `INSERT INTO attempts (user_id, course_id, lesson_id, status, finished_at)
+       VALUES ('u-up', 'c', 'done', 'passed', now()) RETURNING id`,
+    );
+    await queryRows(
+      url,
+      `INSERT INTO check_results (attempt_id, check_id, check_kind, status, cost_usd)
+       VALUES ($1, 'a', 'command', 'passed', '0.5'), ($1, 'b', 'quiz', 'failed', NULL)`,
+      [attempt?.id],
+    );
+    const before = await seededRows(url);
+
+    await migrateDatabase(url);
+
+    expect(await seededRows(url)).toEqual(before);
+    expect(
+      await queryRows(
+        url,
+        "SELECT is_format_error, is_budget_exhausted, message, raw_error FROM check_results",
+      ),
+    ).toEqual([
+      { is_format_error: false, is_budget_exhausted: false, message: null, raw_error: null },
+      { is_format_error: false, is_budget_exhausted: false, message: null, raw_error: null },
+    ]);
+    expect(
+      await queryRows(
+        url,
+        "SELECT included_check_ids::text AS ids, included_check_kinds::text AS kinds FROM attempts",
+      ),
+    ).toEqual([{ ids: "{}", kinds: "{}" }]);
+    expect(await journalRows(url)).toHaveLength(PRE_101_MIGRATIONS.length + 1);
   });
 
   it("I12 reports a wrong password as stage connect without either password", async () => {
