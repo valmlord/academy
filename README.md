@@ -225,7 +225,8 @@ teardown failed=...)`, where `check status` covers the probes, the red runs and 
    no bash, "Browser terminal" below). On a rebuild nothing changed for the service or your workspaces, there is
    nothing to undo. After a failed smoke test or a failed `docker tag` the new build stays as
    `academy-workspace:dev-candidate` for the bug report; `docker image rm academy-workspace:dev-candidate`
-   removes it. On "no space left on device", `docker system df` shows what holds the Docker disk. A line
+   removes it. On "no space left on device", `docker system df` shows what holds the Docker disk. Its
+   `Build Cache` line is explained in "Build cache" below. A line
    `academy-workspace:dev is now sha256:... (tested; previous: ...)` means the new, tested build
    is already delivered and only the extra tag is left: `docker image rm academy-workspace:dev-candidate` removes it,
    and on the first build step 4a goes on to 4b. A line `academy-workspace:dev is ... (before this run: ...)` means
@@ -375,6 +376,30 @@ docker volume ls --filter label=academy.workspace.instance --format '{{.Name}} {
 docker network ls --filter label=academy.workspace.instance --format '{{.ID}} {{.Label "academy.workspace.instance"}}' \
   | grep -E "$pattern" | cut -d' ' -f1 | xargs -r docker network rm
 ```
+
+### Build cache
+
+Every build of the `web` and `workspace` images leaves build cache records on the Docker disk, also the builds
+of `isolated-stack.sh`, which removes its images but not the cache. A change to sources alone reuses the install
+step of both Dockerfiles. The install runs again when one of the files it is given changes: `pnpm-lock.yaml`,
+`pnpm-workspace.yaml`, the root `package.json`, or the `package.json` of `apps/web`, `packages/db`,
+`packages/lesson-schema` or `services/workspace`. Other `package.json` files, such as
+`images/workspace/package.json`, do not re-run it.
+`docker system df` shows the total on the `Build Cache` line. To free it, run these when no build is running:
+
+```zsh
+docker system df
+docker builder prune --filter 'type!=exec.cachemount'
+docker system df
+```
+
+This is not an academy-only clean-up. The prune works on the whole build cache of the current Docker builder: it
+removes the build cache of every project you have built on this Docker, not only of academy. It does not touch
+images, containers or volumes, and the filter is there to keep cache mounts, among them the pnpm package store both
+Dockerfiles mount (`--mount=type=cache,id=pnpm`). Without `-f` it asks for confirmation first.
+After it, expect the next build of each image to run its install and build steps again; with the store kept, the
+install should take its packages from the store instead of downloading them. No script or test in this repository
+prunes the build cache.
 
 ## Browser terminal
 
