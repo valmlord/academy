@@ -1,5 +1,5 @@
 # Build context: the repository root (docker-compose.yml, service workspace).
-# No syntax directive on purpose: the daemon's built-in frontend parses this file, its RUN --mount lines included,
+# No syntax directive on purpose: the daemon's built-in frontend parses this file, its RUN --mount line included,
 # and a directive would make every build fetch a frontend image from the registry (design 8.3).
 
 FROM node:22.23.4-alpine AS build
