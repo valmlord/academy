@@ -84,8 +84,8 @@ services:
 По справке compose `test` "can be either a string or a list", и у списка "the first item must be
 either `NONE`, `CMD` or `CMD-SHELL`". В справке пример записан в одну строку,
 `["CMD", "curl", "-f", "http://localhost"]`, но проверка курса принимает только блочный YAML,
-поэтому список здесь по строкам. Страница ждёт API через `depends_on` с `condition:
-service_healthy`: зависимость должна стать healthy "(as indicated by healthcheck) before starting a
+поэтому список здесь по строкам. Страница ждёт API через `depends_on` с
+`condition: service_healthy`: зависимость должна стать healthy "(as indicated by healthcheck) before starting a
 dependent service".
 
 Адрес API для страницы. В уроке 6 цель прокси `/api/` фиксировалась при сборке Nuxt. В образе это
