@@ -10,8 +10,23 @@ RUN corepack enable
 
 FROM base AS build
 WORKDIR /repo
+# Only what the install reads, so a change to sources alone reuses the install layer: the root package.json
+# (corepack takes the pnpm version from packageManager), the lockfile, pnpm-workspace.yaml and every workspace
+# package's manifest. A file the install starts to read (patches, a pnpmfile) goes here too.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json apps/web/
+COPY packages/db/package.json packages/db/
+COPY packages/lesson-schema/package.json packages/lesson-schema/
+COPY services/workspace/package.json services/workspace/
+# One store for both Dockerfiles. compose builds web and workspace at once, and pnpm 10's docs say nothing about two
+# installs sharing a store; locked makes the second RUN wait until the first releases the mount.
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store,sharing=locked pnpm install --frozen-lockfile \
+  && pnpm ls -r --depth -1 --parseable > /tmp/projects.txt && sort /tmp/projects.txt > /tmp/projects-installed
 COPY . .
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+# A workspace package whose package.json is missing from the COPY lines above was not installed: stop here.
+RUN pnpm ls -r --depth -1 --parseable > /tmp/projects.txt && sort /tmp/projects.txt > /tmp/projects-context \
+  && { diff /tmp/projects-installed /tmp/projects-context \
+    || { echo "workspace projects differ between the install and COPY . . (diff above): copy every package.json before the install"; exit 1; }; }
 ENV NEXT_TELEMETRY_DISABLED=1
 # Builds @academy/lesson-schema and @academy/db first; the export below imports the schema.
 RUN pnpm turbo run build --filter=@academy/web^...
