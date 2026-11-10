@@ -11,13 +11,12 @@ import { IdleTracker } from "../../src/idle.js";
 import { KeyedMutex } from "../../src/lock.js";
 import { type ServiceLog, WorkspaceManager } from "../../src/manager.js";
 import { TerminalRegistry } from "../../src/terminal/registry.js";
-import { TEST_IMAGE } from "./docker-cli.js";
+import { processArgs, TEST_IMAGE } from "./docker-cli.js";
 import { FIXTURE_COURSE_ROOT, TEST_LIMITS } from "./fixtures.js";
 import { onCleanup, useTestInstance } from "./harness.js";
 
-// The terminal route on the real daemon (design 10.2): `buildApp` with the Docker runtime, sockets through
-// Fastify's `injectWS`. Each test's workspace is removed by the harness afterwards, which also ends any shell
-// a closed session left running (R-orphan).
+// The terminal route on the real daemon (design 10.2, #110): `buildApp` with the Docker runtime, sockets through
+// Fastify's `injectWS`. Each test's workspace is removed by the harness afterwards.
 
 const { instance } = useTestInstance("terminal.int.test.ts");
 
@@ -36,6 +35,15 @@ const FLOW_SETTLE_DEADLINE_MS = 30_000;
 const HIGH_WATER_BYTES = 1024 * 1024;
 const FLOW_BOUND_BYTES = 1.5 * 1024 * 1024;
 const FLOW_TEST_TIMEOUT_MS = 60_000;
+/** The issue's bound (#110): every process of an ended session is gone this long after the end. */
+const KILL_DEADLINE_MS = 10_000;
+/** KILL_GRACE_SECONDS in src/docker/spec.ts: the kill script's wait between HUP and KILL. */
+const KILL_GRACE_MS = 2_000;
+/** How long typed jobs may take to show up in `ps`. */
+const JOBS_DEADLINE_MS = 10_000;
+const SHELL_COMMAND = "/bin/sh -l";
+const SLEEP_COMMAND = "sleep 4242";
+const NOHUP_SLEEP_COMMAND = "sleep 4243";
 
 function keyFor(userId: string): WorkspaceKey {
   return { userId, courseId: COURSE_ID, lessonId: LESSON_ID };
@@ -58,6 +66,7 @@ interface Client {
 
 interface Service {
   manager: WorkspaceManager;
+  terminals: TerminalRegistry;
   connect: (key: WorkspaceKey) => Promise<Client>;
 }
 
@@ -167,7 +176,7 @@ async function startService(): Promise<Service> {
     };
   }
 
-  return { manager, connect };
+  return { manager, terminals, connect };
 }
 
 async function attached(client: Client): Promise<void> {
@@ -176,6 +185,33 @@ async function attached(client: Client): Promise<void> {
     if (Date.now() > deadline) throw new Error("no attached frame");
     await sleep(POLL_MS);
   }
+}
+
+async function runningContainerId(service: Service, key: WorkspaceKey): Promise<string> {
+  const containerId = (await service.manager.ensure(key)).workspace.containerId;
+  if (containerId === null) throw new Error("ensure returned no container");
+  return containerId;
+}
+
+/**
+ * Polls the container's process list until `done` holds or `deadline` (epoch ms) passes, and returns the last
+ * listing either way, so the caller asserts on what was really there.
+ */
+async function listingUntil(
+  containerId: string,
+  done: (listing: readonly string[]) => boolean,
+  deadline: number,
+): Promise<string[]> {
+  let listing = await processArgs(containerId);
+  while (!done(listing) && Date.now() <= deadline) {
+    await sleep(POLL_MS);
+    listing = await processArgs(containerId);
+  }
+  return listing;
+}
+
+function count(listing: readonly string[], command: string): number {
+  return listing.filter((entry) => entry === command).length;
 }
 
 async function stoppedBytes(client: Client): Promise<number> {
@@ -254,11 +290,70 @@ describe("terminal sessions on the real daemon", () => {
     const closed = await first.closed;
     const second = await service.connect(key);
     await attached(second);
+    // The first session's kill, started at its 4000, runs its HUP and KILL meanwhile: the new shell must survive it.
+    await sleep(KILL_GRACE_MS + 1_000);
     second.type("echo ok");
 
     expect(closed).toEqual({ code: 4000, reason: "exit 3" });
     expect(second.texts[0]).toEqual({ t: "attached", resumed: false });
     await second.waitFor(line("ok"));
+  });
+
+  it("I-term-end-kills: the shell and all its jobs are gone within 10 s of the end", async () => {
+    const service = await startService();
+    const key = keyFor("t110-end");
+    const containerId = await runningContainerId(service, key);
+    const client = await service.connect(key);
+    await attached(client);
+    client.type(`${SLEEP_COMMAND} &`);
+    client.type(`nohup ${NOHUP_SLEEP_COMMAND} >/dev/null 2>&1 &`);
+    client.type(SLEEP_COMMAND);
+    const started = await listingUntil(
+      containerId,
+      (listing) => count(listing, SLEEP_COMMAND) === 2 && count(listing, NOHUP_SLEEP_COMMAND) === 1,
+      Date.now() + JOBS_DEADLINE_MS,
+    );
+    if (count(started, SLEEP_COMMAND) !== 2 || count(started, NOHUP_SLEEP_COMMAND) !== 1) {
+      throw new Error(`jobs did not start:\n${started.join("\n")}`);
+    }
+
+    service.terminals.closeAll();
+    const deadline = Date.now() + KILL_DEADLINE_MS;
+
+    expect(await client.closed).toEqual({ code: 1001, reason: "service shutting down" });
+    const ended = (listing: readonly string[]): boolean =>
+      [SHELL_COMMAND, SLEEP_COMMAND, NOHUP_SLEEP_COMMAND].every(
+        (command) => !listing.includes(command),
+      );
+    const last = await listingUntil(containerId, ended, deadline);
+    expect(ended(last), `still running after ${KILL_DEADLINE_MS} ms:\n${last.join("\n")}`).toBe(
+      true,
+    );
+  });
+
+  it("I-term-exit-kills-jobs: a background job left by exit is gone after the 4000", async () => {
+    const service = await startService();
+    const key = keyFor("t110-exit");
+    const containerId = await runningContainerId(service, key);
+    const client = await service.connect(key);
+    await attached(client);
+    client.type(`${SLEEP_COMMAND} &`);
+    const started = await listingUntil(
+      containerId,
+      (listing) => listing.includes(SLEEP_COMMAND),
+      Date.now() + JOBS_DEADLINE_MS,
+    );
+    if (!started.includes(SLEEP_COMMAND))
+      throw new Error(`job did not start:\n${started.join("\n")}`);
+
+    client.type("exit");
+
+    expect(await client.closed).toEqual({ code: 4000, reason: "exit 0" });
+    const gone = (listing: readonly string[]): boolean => !listing.includes(SLEEP_COMMAND);
+    const last = await listingUntil(containerId, gone, Date.now() + KILL_DEADLINE_MS);
+    expect(gone(last), `still running after ${KILL_DEADLINE_MS} ms:\n${last.join("\n")}`).toBe(
+      true,
+    );
   });
 
   it("I-term-stop: stopping the workspace closes the client with 4002", async () => {

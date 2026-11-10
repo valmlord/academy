@@ -15,7 +15,8 @@ import {
   waitForAttached,
 } from "../../support/terminal.js";
 
-// U-session-end (design 3.2.1 rows 2, 21, 24; 3.2.2 C5, C9) and U-resize-error (row 16, C1), design 10.1.
+// U-session-end (design 3.2.1 rows 2, 21, 24; 3.2.2 C5, C9), U-resize-error (row 16, C1), design 10.1, and
+// U-kill (#110).
 
 /** Arbitrary under the fake clock; the test advances three of these. */
 const HEARTBEAT_MS = 100;
@@ -41,8 +42,15 @@ function endLines(logged: readonly string[]): string[] {
   return logged.filter((line) => line.startsWith(`terminal ${ID} `) && line.includes(": ended "));
 }
 
-/** The common afterwards of every end path: nothing left in the service, and a second end is a no-op. */
-async function expectFullyEnded(current: TerminalSetup, screen: FakeScreen | undefined) {
+/**
+ * The common afterwards of every end path: nothing left in the service, the shell killed `kills` times, and a
+ * second end is a no-op (it kills no second time either).
+ */
+async function expectFullyEnded(
+  current: TerminalSetup,
+  screen: FakeScreen | undefined,
+  kills: 0 | 1,
+): Promise<void> {
   const { registry, shell, logged } = current;
   const linesBefore = endLines(logged).length;
   registry.closeAll();
@@ -50,6 +58,7 @@ async function expectFullyEnded(current: TerminalSetup, screen: FakeScreen | und
   expect(registry.size).toBe(0);
   expect(shell().stream.destroyed).toBe(true);
   expect(endLines(logged)).toHaveLength(linesBefore);
+  expect(shell().terminations).toBe(kills);
   if (screen !== undefined) {
     expect(screen.disposeCalls).toBe(1);
     expect(screen.resetCalls).toBe(0);
@@ -75,7 +84,7 @@ describe("session end paths (U-session-end)", () => {
 
     expect(await client.closed).toEqual({ code: 4000, reason: "exit 3" });
     expect(endLines(current.logged)).toEqual([`terminal ${ID} -: ended 4000`]);
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 1);
   });
 
   it("ends with `exit unknown` when Docker cannot report the exit code", async () => {
@@ -87,7 +96,7 @@ describe("session end paths (U-session-end)", () => {
     current.shell().peer.end();
 
     expect(await client.closed).toEqual({ code: 4000, reason: "exit unknown" });
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 1);
   });
 
   it("ends with 4002 when the exec ends after a stop was announced", async () => {
@@ -99,7 +108,7 @@ describe("session end paths (U-session-end)", () => {
     current.shell().peer.end();
 
     expect(await client.closed).toEqual({ code: 4002, reason: "environment stopped" });
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 0);
   });
 
   it("ends with 4002 when the container is no longer running", async () => {
@@ -113,7 +122,7 @@ describe("session end paths (U-session-end)", () => {
     current.shell().peer.end();
 
     expect(await client.closed).toEqual({ code: 4002, reason: "environment stopped" });
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 0);
   });
 
   it("ends with 1011 when the container inspect at the end rejects", async () => {
@@ -127,7 +136,7 @@ describe("session end paths (U-session-end)", () => {
     current.shell().peer.end();
 
     expect(await client.closed).toEqual({ code: 1011, reason: "terminal error" });
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 1);
   });
 
   it("ends every session with 1001 on closeAll", async () => {
@@ -138,7 +147,7 @@ describe("session end paths (U-session-end)", () => {
     current.registry.closeAll();
 
     expect(await client.closed).toEqual({ code: 1001, reason: "service shutting down" });
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 1);
   });
 
   it("stops the heartbeat when the session ends, so no interval outlives it", async () => {
@@ -196,7 +205,7 @@ describe("session end paths (U-session-end)", () => {
 
     expect(closed.code).toBe(1001);
     expect(texts(client)).toEqual([]);
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 1);
   });
 
   it("inspects once and ends once when the stream emits end, close and error", async () => {
@@ -213,7 +222,7 @@ describe("session end paths (U-session-end)", () => {
 
     expect(inspect).toHaveBeenCalledTimes(1);
     expect(endLines(current.logged)).toHaveLength(1);
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 1);
   });
 
   it("survives a headless write still queued when the session ends (real headless)", async () => {
@@ -227,7 +236,7 @@ describe("session end paths (U-session-end)", () => {
     await client.closed;
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    await expectFullyEnded(current, undefined);
+    await expectFullyEnded(current, undefined, 1);
   });
 
   it("ends with 1011 when a headless write callback body throws (C5)", async () => {
@@ -242,7 +251,7 @@ describe("session end paths (U-session-end)", () => {
     const second = await current.connect();
 
     expect(await second.closed).toEqual({ code: 1011, reason: "terminal error" });
-    await expectFullyEnded(current, screen);
+    await expectFullyEnded(current, screen, 1);
   });
 
   it("ignores an error emitted on the stream after the end (C9)", async () => {
@@ -254,7 +263,47 @@ describe("session end paths (U-session-end)", () => {
 
     current.shell().stream.emit("error", new Error("late"));
 
-    await expectFullyEnded(current, current.screens[0]);
+    await expectFullyEnded(current, current.screens[0], 1);
+  });
+});
+
+describe("shell kill (U-kill)", () => {
+  it.each([
+    ["DockerApiError", new DockerApiError("create exec", 409)],
+    ["DockerUnavailableError", new DockerUnavailableError("create exec", "ECONNREFUSED")],
+    ["Error", canaryNamedError()],
+    ["NonError", "canary"],
+  ])("logs a kill rejected with %s once and still ends the session", async (name, error) => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+    current.shell().terminateFailure = { when: "async", error };
+
+    current.registry.closeAll();
+
+    expect(await client.closed).toEqual({ code: 1001, reason: "service shutting down" });
+    // Two macrotask turns: the rejection's handler has run, or Node has reported it as unhandled.
+    expect(await spy?.seen()).toEqual([]);
+    expect(endLines(current.logged)).toEqual([`terminal ${ID} -: ended 1001`]);
+    expect(current.logged.filter((line) => line.includes("kill failed"))).toEqual([
+      `terminal ${ID} -: kill failed (${name})`,
+    ]);
+    expect(current.logged.filter((line) => line.includes("canary"))).toEqual([]);
+  });
+
+  it("a kill that throws synchronously still ends the session", async () => {
+    const current = await start();
+    const client = await current.connect();
+    await waitForAttached(client);
+    current.shell().terminateFailure = { when: "sync", error: new Error("sync") };
+
+    expect(() => current.registry.closeAll()).not.toThrow();
+
+    expect(await client.closed).toEqual({ code: 1001, reason: "service shutting down" });
+    expect(await spy?.seen()).toEqual([]);
+    expect(current.logged.filter((line) => line.includes("kill failed"))).toEqual([
+      `terminal ${ID} -: kill failed (Error)`,
+    ]);
   });
 });
 
