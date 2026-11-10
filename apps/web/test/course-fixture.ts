@@ -7,6 +7,8 @@ import path from "node:path";
 // carries VISIBLE_MARKER as the positive control.
 
 export const VISIBLE_MARKER = "VISIBLE-MARKER";
+/** A check title is learner text (ADR-0009 as amended by #101): the positive control of the check-state views. */
+export const VISIBLE_CHECK_TITLE = "VISIBLE-CHECK-TITLE";
 export const FIXTURE_COURSE_ID = "fixture-course";
 
 export interface CourseFixture {
@@ -68,7 +70,7 @@ ${SOURCES}workspace:
 checks:
   - id: run-check
     kind: command
-    title: CANARY-CHECKS-2-title
+    title: ${VISIBLE_CHECK_TITLE}
     run: python3 CANARY-CHECKS-3-run.py
     timeoutSec: 60
   - id: quiz-check
