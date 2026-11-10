@@ -26,8 +26,7 @@ RUN pnpm ls -r --depth -1 --parseable > /tmp/projects.txt && sort /tmp/projects.
 # Builds @academy/lesson-schema first; the service imports its schema at runtime.
 RUN pnpm turbo run build --filter=@academy/workspace...
 # pnpm 10's deploy mode for a workspace without inject-workspace-packages; not a conflict bypass (16.5 H7).
-# Its log names /pnpm/store/v10 as the store, and the store now lives only in the cache mount, so it mounts it too.
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store,sharing=locked pnpm --filter @academy/workspace deploy --legacy --prod /out/workspace
+RUN pnpm --filter @academy/workspace deploy --legacy --prod /out/workspace
 
 FROM node:22.23.4-alpine AS runner
 WORKDIR /app
