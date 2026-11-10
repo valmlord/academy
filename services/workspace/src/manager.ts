@@ -29,6 +29,17 @@ export interface ServiceLog {
   warn(message: string): void;
 }
 
+/**
+ * The terminal registry's view of a stop (design 3.2.1 rows 22 and 23): told before the runtime call, so the
+ * exec end that follows reads as the environment stopping, and told again if that call throws.
+ */
+export interface StopHooks {
+  onStopping(id: string): void;
+  onStopRejected(id: string): void;
+}
+
+const NO_STOP_HOOKS: StopHooks = { onStopping: () => undefined, onStopRejected: () => undefined };
+
 export interface ManagerOptions {
   runtime: WorkspaceRuntime;
   /** Reads the whole course; only an ensure calls it, so a lesson that left the course stays stoppable. */
@@ -41,6 +52,8 @@ export interface ManagerOptions {
   log: ServiceLog;
   /** The clock of the idle sweep; the same one the tracker uses. */
   now: () => number;
+  /** The terminal registry (#32); none when no terminal runs, as in the manager's own tests. */
+  stopHooks?: StopHooks;
 }
 
 export class WorkspaceManager {
@@ -86,9 +99,9 @@ export class WorkspaceManager {
   }
 
   async stop(key: WorkspaceKey): Promise<WorkspaceView> {
-    const { runtime, tracker, mutex } = this.#options;
+    const { runtime, tracker, mutex, instance } = this.#options;
     return mutex.run(this.lockKey(key), async () => {
-      const info = await runtime.stop(key);
+      const info = await this.#stopping(workspaceId(instance, key), () => runtime.stop(key));
       tracker.forget(info.id);
       return this.#view(info);
     });
@@ -97,21 +110,32 @@ export class WorkspaceManager {
   async remove(key: WorkspaceKey): Promise<void> {
     const { runtime, tracker, mutex, instance } = this.#options;
     await mutex.run(this.lockKey(key), async () => {
-      await runtime.remove(key);
-      tracker.forget(workspaceId(instance, key));
+      const id = workspaceId(instance, key);
+      await this.#stopping(id, () => runtime.remove(key));
+      tracker.forget(id);
     });
   }
 
   /**
-   * Moves the idle window (#32 calls it on terminal input and output). No Docker call: the tracker knows
-   * every workspace this process started or adopted, and an untracked one is not running as far as idle stop
-   * is concerned.
+   * `POST W/activity`: moves the idle window (#34 calls it at the start and the end of a check; terminal
+   * traffic goes through `touchFromTerminal`). No Docker call: the tracker knows every workspace this process
+   * started or adopted, and an untracked one is not running as far as idle stop is concerned.
    */
   activity(key: WorkspaceKey): void {
     const { tracker, instance } = this.#options;
     const id = workspaceId(instance, key);
     if (!tracker.isTracked(id)) throw new WorkspaceNotRunningError(id);
     tracker.touch(id, key);
+  }
+
+  /**
+   * Terminal activity (design 3.4, ADR-0010 item 9 amended): input, resize, and output while a browser is
+   * attached. A workspace the tracker does not know (after a restart, before reconcile adopts it) is ignored.
+   */
+  touchFromTerminal(key: WorkspaceKey): void {
+    const { tracker, instance } = this.#options;
+    const id = workspaceId(instance, key);
+    if (tracker.isTracked(id)) tracker.touch(id, key);
   }
 
   /**
@@ -133,7 +157,7 @@ export class WorkspaceManager {
   async #idleStop(id: string, key: WorkspaceKey): Promise<void> {
     const { runtime, tracker, log } = this.#options;
     try {
-      await runtime.stop(key);
+      await this.#stopping(id, () => runtime.stop(key));
       log.info(`idle stop: ${id}`);
     } catch (error: unknown) {
       const kind = error instanceof Error ? error.constructor.name : typeof error;
@@ -141,6 +165,18 @@ export class WorkspaceManager {
       if (error instanceof DockerUnavailableError) return;
     }
     tracker.forget(id);
+  }
+
+  /** A runtime call that stops the workspace's container, with the terminal told before and on failure. */
+  async #stopping<T>(id: string, stopCall: () => Promise<T>): Promise<T> {
+    const hooks = this.#options.stopHooks ?? NO_STOP_HOOKS;
+    hooks.onStopping(id);
+    try {
+      return await stopCall();
+    } catch (error: unknown) {
+      hooks.onStopRejected(id);
+      throw error;
+    }
   }
 
   #view(info: WorkspaceInfo): WorkspaceView {

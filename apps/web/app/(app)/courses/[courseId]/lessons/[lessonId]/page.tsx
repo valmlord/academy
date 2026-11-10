@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactElement } from "react";
 import { CourseError } from "@/components/course-error";
+import { EnvironmentRegion } from "@/components/environment/environment-region";
 import { FocusOnMount } from "@/components/focus-on-mount";
 import { LESSON_TITLE_ID, LessonHeader } from "@/components/lesson/lesson-header";
 import { type LessonTab, lessonTabOf } from "@/components/lesson/lesson-panels";
@@ -30,6 +31,7 @@ import { getCourse } from "@/lib/course/server";
 import { findLesson, toLessonView } from "@/lib/course/view";
 import { catalogPath, lessonPath, moduleAnchorPath } from "@/lib/routes";
 import { requireSession } from "@/lib/session";
+import { RECONNECT_ATTEMPTS, readIntegerSetting, START_SLOW_SECONDS } from "@/lib/workspace/env";
 
 type LessonPageProps = PageProps<"/courses/[courseId]/lessons/[lessonId]">;
 
@@ -51,10 +53,12 @@ export async function generateMetadata(props: LessonPageProps): Promise<Metadata
   return { title: found.node.lesson.title };
 }
 
-// design/pages/lesson `#state-m0`: the lesson region alone, full width: breadcrumb, header, the M0 line,
-// the prerequisite Alert, the theory and task tabs. `main` is no F6 stop of its own (ia.md R3: the
-// region is), so the second F6 lands on the breadcrumb's course link. A course that cannot be read uses
-// the catalog's error composition (#30 design notes, D2); an unknown, foreign or invisible lesson is not found.
+// The lesson region: breadcrumb, header, the prerequisite Alert, the theory and task tabs. A lesson with a
+// `workspace` gets the environment region next to it (#32 design 3.6: stacked below lg, two equal columns
+// from lg, no handle); one without keeps design/pages/lesson `#state-m0`, full width with the M0 line.
+// `main` is no F6 stop of its own (ia.md R3: the regions are), so the second F6 lands on the breadcrumb's
+// course link. A course that cannot be read uses the catalog's error composition (#30 design notes, D2); an
+// unknown, foreign or invisible lesson is not found.
 export default async function LessonPage(props: LessonPageProps): Promise<ReactElement> {
   await requireSession(await returnPath(props));
   const { courseId, lessonId } = await props.params;
@@ -72,8 +76,15 @@ export default async function LessonPage(props: LessonPageProps): Promise<ReactE
   if (found === undefined) notFound();
   const lesson = toLessonView(course.value, found);
   const initialTab: LessonTab = lessonTabOf((await props.searchParams).tab) ?? "theory";
+  const hasEnvironment = found.node.lesson.workspace !== undefined;
   return (
-    <main id="main" tabIndex={-1} className="w-full min-w-0">
+    <main
+      id="main"
+      tabIndex={-1}
+      className={
+        hasEnvironment ? "grid w-full min-w-0 grid-cols-1 lg:grid-cols-2" : "w-full min-w-0"
+      }
+    >
       <section
         data-region
         aria-labelledby="lesson-region-heading"
@@ -105,7 +116,9 @@ export default async function LessonPage(props: LessonPageProps): Promise<ReactE
         </Breadcrumb>
         <LessonHeader lesson={lesson} />
         <FocusOnMount id={LESSON_TITLE_ID} />
-        <p className="mb-4 text-sm text-muted-foreground">{m0LessonNote}</p>
+        {hasEnvironment ? null : (
+          <p className="mb-4 text-sm text-muted-foreground">{m0LessonNote}</p>
+        )}
         <PrerequisiteAlert courseId={lesson.courseId} prerequisites={lesson.prerequisites} />
         <LessonTabs
           initialTab={initialTab}
@@ -113,6 +126,22 @@ export default async function LessonPage(props: LessonPageProps): Promise<ReactE
           task={<LessonText lessonDir={found.node.dir} kind="task" sources={lesson.sources} />}
         />
       </section>
+      {hasEnvironment ? (
+        <EnvironmentRegion
+          courseId={lesson.courseId}
+          lessonId={lesson.id}
+          courseHref={catalogPath(lesson.courseId)}
+          // Read per request on the server; the startup check already refused an invalid value.
+          reconnectAttempts={readIntegerSetting(
+            { TERMINAL_RECONNECT_ATTEMPTS: process.env.TERMINAL_RECONNECT_ATTEMPTS },
+            RECONNECT_ATTEMPTS,
+          )}
+          startSlowSeconds={readIntegerSetting(
+            { ENVIRONMENT_START_SLOW_SECONDS: process.env.ENVIRONMENT_START_SLOW_SECONDS },
+            START_SLOW_SECONDS,
+          )}
+        />
+      ) : null}
     </main>
   );
 }

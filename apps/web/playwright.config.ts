@@ -19,6 +19,47 @@ const isCi = process.env.CI !== undefined;
 /** Holds the seeded user's live session cookie: git-ignored, never uploaded with the CI report. */
 export const STORAGE_STATE = "playwright/.auth/learner.json";
 
+export class InvalidE2eSwitchError extends Error {
+  constructor(name: string) {
+    super(`${name} must be 1 or unset`);
+    this.name = "InvalidE2eSwitchError";
+  }
+}
+
+/**
+ * The e2e switches of #32 (design 10.5, D12): exported in the shell only. A typo such as `E2E_TERMINAL=true`
+ * fails the run at config load instead of silently skipping the terminal specs.
+ */
+export function isSwitchOn(
+  name: "E2E_TERMINAL" | "E2E_WEBKIT" | "E2E_FIREFOX" | "E2E_SERVICE_DOWN",
+): boolean {
+  const value = process.env[name];
+  if (value === undefined || value === "") return false;
+  if (value !== "1") throw new InvalidE2eSwitchError(name);
+  return true;
+}
+
+export class RetiredE2eSwitchError extends Error {
+  constructor() {
+    super("E2E_ALL_BROWSERS was replaced by E2E_WEBKIT and E2E_FIREFOX");
+    this.name = "RetiredE2eSwitchError";
+  }
+}
+
+// An old invocation with E2E_ALL_BROWSERS would otherwise silently run Chromium only (D17).
+const retiredSwitch = process.env.E2E_ALL_BROWSERS;
+if (retiredSwitch !== undefined && retiredSwitch !== "") throw new RetiredE2eSwitchError();
+
+isSwitchOn("E2E_TERMINAL");
+isSwitchOn("E2E_SERVICE_DOWN");
+const isWebkit = isSwitchOn("E2E_WEBKIT");
+const isFirefox = isSwitchOn("E2E_FIREFOX");
+
+// The specs that type into a terminal run in their own projects after every other spec, so no other spec has
+// a page open on a terminal lesson and takes its session over meanwhile (design 10.5).
+const TERMINAL_SPECS = [/terminal\.spec\.ts/, /region-keys\.spec\.ts/];
+const REGION_KEYS_SPEC = /region-keys\.spec\.ts/;
+
 // No webServer: the tests run against the compose stack (or a server the caller started).
 export default defineConfig({
   testDir: "./e2e",
@@ -35,7 +76,38 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE },
+      testIgnore: TERMINAL_SPECS,
       dependencies: ["setup"],
     },
+    {
+      name: "terminal",
+      use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE },
+      testMatch: TERMINAL_SPECS,
+      dependencies: ["chromium"],
+    },
+    // The region keys in the other engines (D10). One engine at a time is on the region-keys lesson, so the chain
+    // is linear: terminal -> terminal-webkit -> terminal-firefox. WebKit runs with E2E_WEBKIT=1
+    // (isolated-stack.sh --e2e). Firefox is opt-in with E2E_FIREFOX=1 and runs last, because Playwright Firefox
+    // does not launch on macOS 27 (D17, follow-up 7.7). CI installs Chromium only.
+    ...(isWebkit
+      ? [
+          {
+            name: "terminal-webkit",
+            use: { ...devices["Desktop Safari"], storageState: STORAGE_STATE },
+            testMatch: REGION_KEYS_SPEC,
+            dependencies: ["terminal"],
+          },
+        ]
+      : []),
+    ...(isFirefox
+      ? [
+          {
+            name: "terminal-firefox",
+            use: { ...devices["Desktop Firefox"], storageState: STORAGE_STATE },
+            testMatch: REGION_KEYS_SPEC,
+            dependencies: [isWebkit ? "terminal-webkit" : "terminal"],
+          },
+        ]
+      : []),
   ],
 });

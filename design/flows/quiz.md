@@ -351,7 +351,7 @@ and with it not shown; "-" marks a combination that cannot occur.
 | "Уведомления" ("Войти снова", "Продолжить работу"; "Открыть квиз" cannot hold focus when an answer arrives, because the start of that send removed the notice, "Removal") | away ("in the region "Уведомления"") | away | the learner is answering a page alert: "Продолжить работу" answers the idle time limit (F10, WCAG 2.2.1), and a focus move off it could let the environment stop; "Войти снова" is the way back from an expired session; the quiz notice is announced in the same region, beside the focus. When "Продолжить работу" is then pressed and the outcome has replaced the element focus is to return to (the busy button or the options, now the review), focus goes to the result block or send error (`ia.md` R2, "Focus after a background change", item 1), which also removes the notice |
 | "Урок" with Квиз selected: the one-pane switch tab "Урок", breadcrumbs, lesson header ("Показать все"), prerequisite alert links (F6.2), the left-pane tab list, the Квиз panel | not away | - (with Квиз selected the panel is hidden only together with the whole "Урок" pane, one-pane mode with "Окружение" shown, and a hidden pane holds no focus) | the panel is shown |
 | "Урок" with another tab selected (Теория, Задание, Проверки) | - | away | the panel is not shown |
-| "Проверка": "Проверить" and its reason, "К окружению", "Открыть результаты", "Переподключиться" (#69's check bar control, wt69 `ia.md:235`) | not away | away (another left-pane tab selected, or one-pane mode with "Окружение" shown) | shown: the check bar sits under the panel and is pressed, not worked in; not shown: the panel axis |
+| "Проверка": "Проверить" and its reason, "К окружению", "Открыть результаты", "Переподключиться" (#69's check bar control, `ia.md:295`, R3) | not away | away (another left-pane tab selected, or one-pane mode with "Окружение" shown) | shown: the check bar sits under the panel and is pressed, not worked in; not shown: the panel axis |
 | the budget confirmation (from #37 / #39), a modal opened from "Проверка" | away ("an open menu or modal dialog anywhere on the page") | away | a send answered while a modal dialog is open must never pull focus out of it |
 | the split handle (belongs to no region, R3; two panes only) | away | away | it is operated by repeated arrow keys (F9.3); a focus move mid-adjust would send the next arrow key to the result block |
 | "Окружение", two panes: the status action ("Повторить", "Запустить снова", "Переподключиться", "Открыть новый сеанс", "Открыть курс"), "Подробности" and its content, "Действия", the Терминал / Редактор tab list, the terminal, the editor (from #40) | away | away | the learner works there; this is where `F6` into "Окружение" lands ("Действия", R3) |
@@ -799,7 +799,9 @@ phase's, built against main after #69 merges (Stepan's decision for round 4), no
 
 ## Seams with `checks.md` (for the merge with #69)
 
-Each item is a line the merge or the author phase's rebase must change; none is mechanical.
+Each item is a line the merge or the author phase's rebase must change; none is mechanical. "main" below
+is main at e469b09 (#69 merged), before this branch's merge; the merge of e469b09 applied every item
+except FU8's and the author phase's.
 
 - `checks.md` "Status of one check" picks "Не запускалась" when nothing else holds; for the quiz check row
   that word is "Ответы не отправлялись" (above). One sentence in `checks.md` pointing here is needed when
@@ -816,35 +818,35 @@ Each item is a line the merge or the author phase's rebase must change; none is 
   focus" for a quiz send (status line emptied, not announced; the P8 control changes; focus moves only when a
   removed control had it: "К окружению" or "Переподключиться" to "Проверить", as B10, and "Пройти квиз" to the
   quiz row's disclosure button, as the open-row cases B8-B10, B14).
-- `ia.md` R2, "Focus after a background change": #69 already states the same rule for the checks (wt69
-  `ia.md:211-221`: R3 landing of the region as it now is, "Проверить" in the check bar, the row's own disclosure
+- `ia.md` R2, "Focus after a background change": #69 already states the same rule for the checks (main
+  `ia.md:226-236`: R3 landing of the region as it now is, "Проверить" in the check bar, the row's own disclosure
   button in an open row panel, "Проверить" when the budget confirmation closes, B1-B25 as its cases), and every
   B row that moves focus on a background change (B8-B10, B14, B22, B23) matches this branch's order. This
   branch's bullet is wider: the Квиз panel (item 1), "Уведомления" (item 5: the idle stop's F10.3 target, F2.1,
   the quiz notice), the fallback to the shown pane's R3 landing in place of "the first focusable element of
   "Урок"" (item 6), the return target after "Продолжить работу", and `aria-disabled` keeping focus. The merge
   keeps one bullet, this branch's, folding in #69's B6 / B23 sentence (already quoted) and its pointer to `checks.md` B1-B25, and
-  changes #69's "Продолжить работу" sentence (wt69 `ia.md:198-200`) to this branch's.
+  changes #69's "Продолжить работу" sentence (main `ia.md:200-202`) to this branch's.
 - `ia.md`, the quiz set's Where: this branch cites "Осталась 1 попытка" in the check row note set, where it
-  is on main. #69 moves it to a new "check row meta" set (wt69 `ia.md`, row "check row meta"; the counters
+  is on main. #69 moves it to a new "check row meta" set (main `ia.md:64`, row "check row meta"; the counters
   stay in "check row note"). The merge rewrites the citation: "the check row meta set ("Осталась 1 попытка",
   also in the quiz header) and the check row note set ("Неудачных попыток: N", "Неудачных попыток: N из
   M")".
 - `ia.md`, the check status set's Where: this branch narrows "quiz check row (F15)" to the three words it
-  uses. #69's row (wt69 `ia.md`, row "check status") has the same "quiz check row (F15)"; the merge applies
+  uses. #69's row (main `ia.md:63`, row "check status") has the same "quiz check row (F15)"; the merge applies
   the same narrowing there.
 - `ia.md`, the lesson status set's When: #69 adds "The lesson page never shows a lesson status; its check
   bar says "Урок пройден" or "Урок завершён: не пройден. Пройдено: N из M" from the same server status". From
   #36 the quiz result block says it too after a send that changes it; the merge appends "and so does the
   quiz result block after a send that changes it (`quiz.md`, "Lesson outcome after a send")".
 - `ia.md` vocabulary, `ia.md` R7 and `checks.md` R7 table: #69 writes the quiz attempt line as "Попытка N из
-  M" / "Попытка N" in three places (grep of wt69 `design/`): wt69 `ia.md:33` (row "attempt (one check's
-  result)"), wt69 `ia.md:371` (R7: "A quiz follows the same rule ("Попытка N из M" / "Попытка N", D2)") and wt69
+  M" / "Попытка N" in three places (grep of main `design/`): main `ia.md:33` (row "attempt (one check's
+  result)"), main `ia.md:433` (R7: "A quiz follows the same rule ("Попытка N из M" / "Попытка N", D2)") and main
   `checks.md:204` ("Attempt limits" row "quiz attempt line"). This branch's letters are "Попытка A из M" /
-  "Попытка A" ("Placeholders" above); the merge rewrites all three. (wt69 `ia.md:73`, the quiz set row, is
-  replaced by this branch's row, and wt69 `quiz.md:36` is dropped with #69's paragraph.)
+  "Попытка A" ("Placeholders" above); the merge rewrites all three. (main `ia.md:73`, the quiz set row, is
+  replaced by this branch's row, and main `quiz.md:35-39` is dropped with #69's paragraph.)
 - `ia.md`, the check bar status line set's Where: this branch adds "emptied silently by a quiz send that
-  makes its text untrue or leaves nothing to run (P7, P8)". #69's row (wt69 `ia.md`, row "check bar status
+  makes its text untrue or leaves nothing to run (P7, P8)". #69's row (main `ia.md:66`, row "check bar status
   line") rewrites that cell ("empty on load except in the nothing-to-run state"); the merge appends the same
   clause to #69's text.
 - Strings that exist only in #69's register and arrive with its merge, before this branch's rebase:
@@ -857,12 +859,12 @@ Each item is a line the merge or the author phase's rebase must change; none is 
   the quiz outcome from the quiz notice", "Открыть квиз"), R2 (a third container in "Уведомления"; the focus rule when the notice
   goes; the explicit `aria-live` on every live container and no live role inside one; "Focus after a background change",
   item above), R3 (the "Уведомления" landing rows) and the Navigation model's list of page-level alerts. The "Away"
-  table also names #69's check bar "Переподключиться" in "Проверка" (wt69 `ia.md:235`, R3), which this branch's
-  R3 ("Проверка", `ia.md:253`) does not list yet; the merge brings it with #69's R3 text. #69 keeps
-  each of these rows or bullets with its main text (wt69 `ia.md` page alert row, Action labels, R2, R3,
-  Navigation model); the merge applies the same additions to #69's text. #69's lesson prototype has the
-  "Уведомления" wrapper with two containers (`page-alert`, `page-status`, wt69 lesson `prototype.html:103-107`);
-  the author phase adds the third.
+  table also names #69's check bar "Переподключиться" in "Проверка" (main `ia.md:252`, R3), which this branch's
+  R3 ("Проверка", ea9c8a1 `ia.md:253`) does not list yet; the merge brings it with #69's R3 text. #69 keeps
+  each of these rows or bullets with its main text (main `ia.md:72` page alert row, Action labels `:95`,
+  R2 `:174`, R3 `:239`, Navigation model `:469`); the merge applies the same additions to #69's text. #69's
+  lesson prototype has the "Уведомления" wrapper with two containers (`page-alert`, `page-status`, main
+  lesson `prototype.html:121-125`); the author phase adds the third.
 - `ia.md` closed-set placeholder sentence: this branch extends it with the quiz letters; #69 has the same
   sentence unchanged, so the merge keeps this branch's.
 

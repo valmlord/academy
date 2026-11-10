@@ -34,7 +34,8 @@ export interface WorkspaceBody {
 // Anything that is not a map of strings is no key at all; parseWorkspaceKey then names the first field.
 const pathParams = z.record(z.string(), z.string()).catch({});
 
-function keyOf(params: unknown): WorkspaceKey {
+/** The checked key of a lesson route; the first broken part throws `InvalidWorkspaceKeyError` (400). */
+export function keyOf(params: unknown): WorkspaceKey {
   return parseWorkspaceKey(pathParams.parse(params));
 }
 

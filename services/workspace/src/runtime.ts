@@ -1,3 +1,4 @@
+import type { Duplex } from "node:stream";
 import type { Labels, WorkspaceKey } from "./identity.js";
 
 // The port between the manager and whatever runs workspaces (design 4.8, ADR-0002's adapter promise). The
@@ -72,6 +73,24 @@ export interface ManagedVolume {
  */
 export type GcResult = "done" | "gone" | "state-changed";
 
+/** What a terminal shell needs besides the key (design 3.5): `TERMINAL_SHELL` from the config. */
+export interface ShellSpec {
+  shell: string;
+}
+
+/**
+ * One running terminal shell (design 3.5): the attached TTY stream in both directions. Destroying the stream
+ * releases only the service's side: Docker keeps a TTY exec running after its attach connection closes, so the
+ * shell lives on until it exits or the container stops (residual R-orphan, D16; I-exec-close-orphans).
+ */
+export interface ShellHandle {
+  stream: Duplex;
+  /** Rejects with the runtime's classified errors (an ended exec: 404 or 409); callers decide what to ignore. */
+  resize(cols: number, rows: number): Promise<void>;
+  /** The shell's exit code, `null` while it still runs or when Docker reports none. */
+  exitCode(): Promise<number | null>;
+}
+
 export interface WorkspaceRuntime {
   /** Converges to a running workspace (design 6.1); the caller holds the key lock. */
   ensureRunning(spec: WorkspaceSpec): Promise<EnsureResult>;
@@ -86,4 +105,6 @@ export interface WorkspaceRuntime {
   /** GC primitives, by Id, under the GC predicate of design 5.1 (not the key predicate). */
   stopContainer(containerId: string): Promise<GcResult>;
   removeContainer(containerId: string): Promise<GcResult>;
+  /** Opens a shell in the workspace's running container, after a fresh inspect with the label check. */
+  openShell(key: WorkspaceKey, spec: ShellSpec): Promise<ShellHandle>;
 }

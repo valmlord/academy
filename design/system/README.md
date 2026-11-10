@@ -166,10 +166,10 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 | Badge | `.badge` | dashboard, catalog, lesson | default, secondary, outline (+ `data-tone="muted"` or `"destructive"`), success, warning, info, muted (custom fills: one per status token). Check-status badges are deferred: no v1 page draws them (v1 check rows show the status icon and the word, F13.3); they serve recent attempts (F18.3, D4 in `ia.md`) |
 | Progress | `.progress`, `.progress-indicator` (`--progress-value`) | dashboard | one; track bordered in `input` |
 | Item | `.item-group`, `.item`, `.item-content`, `.item-title`, `.item-description`, `.item-actions`, `.item-note` | catalog, dashboard | link row, static row; `.item-note`: a note under a row (the prerequisite note F6.1), a `p` after the `.item` in the same `li`, so its links are not nested in the row link |
-| Collapsible | `[data-collapsible]` trigger, `.collapsible-trigger` chevron | lesson | outcomes, check row, "Подробности" |
+| Collapsible | `[data-collapsible]` trigger, `.collapsible-trigger` chevron | lesson | outcomes, check row, "Подробности" (environment status bar and check row panel: a ghost sm `.collapsible-trigger` controlling one `pre.error-details`) |
 | Resizable | `.lesson-layout`, `.resizable-handle` | lesson | horizontal, presets 50 / 35 / 65 |
 | ScrollArea | `.scroll-area` | lesson | native overflow (a styled scrollbar is the app's) |
-| AlertDialog | `dialog.alert-dialog` | lesson | one |
+| AlertDialog | `dialog.alert-dialog`, `.alert-dialog-title`, `.alert-dialog-description`, `.alert-dialog-list`, `.alert-dialog-footer` | lesson | reset (F11.3: destructive action "Сбросить"); budget confirmation (F13.1, from #37 / #39: default action "Запустить", the checks in a `.alert-dialog-list` after the description) |
 | Spinner | `.spinner` | lesson, sign-in | one |
 | Kbd | `.kbd` | lesson | one |
 | Tooltip | `.tooltip-anchor`, `.tooltip` (`data-side`) | lesson | top, right, left; the anchor may itself be the trigger (split handle) |
@@ -178,9 +178,16 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 | Separator | `.separator` (`data-orientation`) | catalog, lesson | horizontal, vertical |
 
 Custom pieces, each with its reason: `.status-icon` (`data-status` success, destructive, warning, info,
-queued, running, muted): one icon per status with a different shape, because colour is never the only
-signal (`checks.md`) and the app will use lucide icons with the same meaning; `.disabled-reason`: the R1
-reason text; `.timer` (`role="timer"`); `.icon-note`: a muted `text-sm` line with a leading `.status-icon`
+queued, running, muted, closed): one icon per status with a different shape, because colour is never the only
+signal (`checks.md`) and the app will use lucide icons with the same meaning; `closed` is a lock in the
+`destructive` ring, drawn by `::before` (shackle) and `::after` (body) on the same empty `aria-hidden` span as
+every other status, never an SVG child or a glyph, so it differs from the failed cross by shape (the app's
+icon: lucide `Lock`, `lucide-react` `^1.65.0` in `apps/web/package.json:21`); `.disabled-reason`: the R1
+reason text; `.timer`: a standalone elapsed time, `role="timer"`, used in the check bar and the environment
+status bar, a sibling of their `[data-live-key]` container, never inside a button or a live container;
+`.check-row-time`: the running time inside a check row button ("0:42 из 2:00"), no role, read as part of
+the button's name, because a button's children are presentational and a role there is dropped; one rule
+gives both the same look (`tabular-nums`, `muted-foreground`); `.icon-note`: a muted `text-sm` line with a leading `.status-icon`
 ("Прогресс недоступен" on dashboard and catalog), on a `p` or a heading (weight 400, the heading keeps
 its level), the icon on the first line when the text wraps. shadcn has no such piece; the Alert is too
 heavy for a one-line note.
@@ -188,8 +195,10 @@ heavy for a one-line note.
 Compositions (no new primitives): `.topbar` (with `.topbar-brand`, `.topbar-nav`, `.topbar-end`,
 `.user-email`), `.notifications` (R2), `.env-statusbar` (`.env-status`, `.env-status-text`,
 `.env-status-note`, `.env-status-note[data-tone="warning"]` with a leading warning `.status-icon` for
-the API key note F8.3, `.env-actions`, `.env-hint`, `.env-details`), `.check-bar` (`.check-bar-controls`,
-`.check-bar-status`), `.check-list` / `.check-row-trigger` / `.check-row-panel` / `.check-row-message`,
+the API key note F8.3, `.env-actions`, `.env-hint`, `.error-details`), `.check-bar` (`.check-bar-controls`,
+`.check-bar-status`), `.check-list` / `.check-row-trigger` (`.check-row-title`, `.check-row-status`,
+`.check-row-meta` with `.check-row-time` and `[data-tone="warning"]`) / `.check-row-panel` /
+`.check-row-message` / `.error-details`,
 `.prose` (`.table-wrap`, `.code-block`, `.toc`), `.terminal-frame` (`.terminal-output`, `.ansi-<color>`,
 `.ansi-bright-<color>`, `.terminal-cursor`, `.terminal-selection`, `data-connection="lost"`,
 `.terminal-placeholder`), `.lesson-layout` with `.pane`, `.pane-switch`, `.lesson-header`,
@@ -204,6 +213,42 @@ lists indented `space-6`, `text-sm`, items `space-1` apart; extra wrappers insid
 The collapsible variant (lesson, gallery "Collapsible") wraps the lists and the trigger in one stack:
 `<div class="outcomes"><hN>...</hN><div class="stack" data-gap="2"><ul>...</ul><ul id="..." hidden>...</ul>
 <button ... data-collapsible>...</button></div></div>`. Pages define neither.
+
+Check row (F13.3, F14; `design/flows/checks.md` "Check row fields" decides which item shows for which status
+word):
+- Collapsed: `button.check-row-trigger` holds, in order, the status icon, `.check-row-title`,
+  `.check-row-status` and, when the meta table says so, `.check-row-meta` with the running time
+  (`span.check-row-time`), "лимит M:SS" (a plain `span`), then the last-attempt warning
+  `<span data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span>`.
+  The warning's words are `foreground`, not muted (S4 asks for a visible warning, and colour alone is not
+  one), `accent-foreground` on the trigger's hover surface as the trigger itself; the 1.25rem icon equals
+  the `text-sm` line, so it stays on the first line when the words wrap. Same pattern as
+  `.env-status-note[data-tone="warning"]`.
+- Open: `.check-row-panel` holds, in order, the closed note and the sticky-pass note (`p.text-sm`), the
+  grader message (`pre.check-row-message`), "Подробности" (`button.button.collapsible-trigger`, ghost, sm,
+  `data-collapsible`, collapsed by default, controlling one `pre.error-details`: the environment's markup
+  and class), the cost and the counter (`p.text-sm.muted`). Items are `space-2` apart; a hidden item takes
+  no space.
+- `.error-details` is the one class for every "Подробности" block (environment status bar F8, check row
+  runner error F13): mono `text-xs` on `muted`, wrapping. It replaces `.env-details` (#69); the class was
+  renamed, not aliased, so a page still using `.env-details` renders unstyled.
+
+AlertDialog with a list (the budget confirmation): `p.alert-dialog-description` then
+`ul.alert-dialog-list`, siblings, because a `ul` cannot sit inside the description's `p` (shadcn's
+`AlertDialogDescription` renders Radix `Description`, `Primitive.p` in `@radix-ui/react-dialog` 1.3.1
+`dist/index.mjs:297`); `aria-describedby` names both ids. Radix points the content's `aria-describedby` at
+the Description's id alone, so the app either passes `aria-describedby` with both ids or renders the
+Description `asChild` on a `div` that holds the paragraph and the list. The list
+is on the `.outcomes` list scale (indent `space-6`, `text-sm`, items `space-1` apart; the app's outcome list
+is `list-disc pl-6 text-sm [&>li+li]:mt-1`, `apps/web/components/lesson/outcomes.tsx:56`) and muted like
+the description. Buttons: "Отмена" outline with initial focus, "Запустить" default; filled `destructive`
+stays reserved for "Сбросить".
+
+`apps/web` ships none of the check pieces yet: no check bar, check row, status icon, timer, AlertDialog,
+Collapsible or environment status bar under `apps/web/components` (checked for #69 on 2026-11-04; its
+`components/ui` holds alert, badge, breadcrumb, button, card, dropdown-menu, empty, field, input, item,
+label, progress, separator, spinner, tabs). #34 builds them from this section and `checks.md`; nothing here
+describes a shipped difference.
 
 Top bar rules, the same on every page: `<header class="topbar" data-region>` is the banner; the lesson
 page may name it with the register's region name "Верхняя панель" (an F6 stop). `.topbar-nav` is the
@@ -230,10 +275,26 @@ All behaviour is delegated on `document`; no per-page script is needed.
   `hidden`); put it on their children.
 - **Live containers (R2).** Put each container in the page once, empty, with `data-live-key="<key>"`
   (and its `role`). Its content per state comes from `<template data-live-source="<key>"
-  data-state="<names>">`; the container is never removed, only its children are replaced. Notifications
+  data-state="<names>">`; the container is never removed, only its children are replaced. Initial content:
+  a container may hold children with `data-state` in the page markup (the nothing-to-run states of the check
+  status line, A69-6); on the first render the children whose `data-state` lists the loaded state stay and no
+  template is applied, so the text is there before any script runs and is not announced; the other children
+  are removed. Every later state takes the container's content from its templates, so such a state also needs
+  a template for arrival by a transition. Notifications
   wrapper: `<div class="notifications" data-notifications data-region>` holding `<h2 class="sr-only"
   id="..." data-notifications-heading>Уведомления</h2>` and its two containers; proto.js gives it
   `role="region"` and `aria-labelledby` only while a container has content.
+- **Status-text gap (check status line only).** Every content change of the container
+  `data-live-key="check-status"` goes through one queue (`PROTO_STATUS_TEXT_GAP_MS` = 150, the prototype's
+  value of `CHECK_STATUS_TEXT_GAP_MS`, `checks.md` "Live regions"): two consecutive texts, the empty one of a
+  re-set included, are at least the gap apart, and the gap also counts from the last dialog close, so a text
+  due to a dialog button or to a state change that closes a dialog lands after the modal has gone and focus has
+  moved (B6, B23). A text due sooner waits; only the newest waiting text is set. A text equal to the one shown
+  sets nothing (B11) and drops a text still waiting (a waiting text that came back to the shown one), except a
+  `window.proto.setState` to another state while nothing waits, which stands for B9: the container is
+  emptied, then the text is set again a gap later.
+  Controls follow the state at once; only this text waits. Other containers and pages keep the immediate
+  replacement.
 - **State-driven openings.** `data-open-in-states="<names>"` on a menu trigger, a `<dialog>`, a tooltip
   trigger or a collapsible trigger opens it in those states; `data-select-in-states="<names>"` on a tab
   (or a one-pane switch tab) selects it. Focus is not moved. Tab selection follows decision A17:
@@ -300,7 +361,23 @@ All behaviour is delegated on `document`; no per-page script is needed.
   `role="menuitemcheckbox" aria-checked`; an item with `data-dialog-open="<id>"` opens that dialog and
   returns focus to the trigger on close.
 - **AlertDialog.** `<dialog class="alert-dialog" role="alertdialog" id>`; open with
-  `data-dialog-open="<id>"`, close with `data-dialog-close`; initial focus on `[autofocus]`.
+  `data-dialog-open="<id>"`, close with `data-dialog-close`; initial focus on `[autofocus]`. On close focus
+  returns to the opener while it is rendered; else, when focus was left on nothing, it goes to the first
+  rendered match of the dialog's own `data-focus-fallback="<selector>"`. A dialog opened by
+  `data-open-in-states` has no opener and sits outside the region it returns to, so it needs that attribute
+  (the budget confirmation: the shown "Проверить" variant) for Esc, "Отмена" and a state change that closes
+  it.
+- **Background focus repair.** A state change the learner did not activate here (`window.proto.setState`, a
+  hash, Back or Forward) that leaves focus on nothing (`body`, or a hidden or removed element) moves it to the
+  first rendered match of `data-focus-fallback="<selector>"` on the nearest ancestor of the element that had
+  focus (the check bar: the shown "Проверить" variant; `.check-row-panel`: its row button; a dialog: its own
+  attribute), else the next ancestor's, else `main`. A dialog's opener, while rendered, wins over the
+  fallback. Focus a page moved itself in `proto:statechange`, or focus still on a rendered control, stays.
+  `data-goto-state` does not repair: its `data-focus` names the target (A69-19, `ia.md` R2).
+- **Back focus.** `data-goto-state` remembers, for the history entry it leaves, the control that was
+  activated; Back (or Forward) to that entry focuses it while it is rendered, else the background focus
+  repair applies. Prototype only: the app pushes no history entry per action. Entries are marked in
+  `history.state.protoEntry`; a page that calls `history.replaceState` passes `history.state` on to keep it.
 - **Collapsible.** `data-collapsible aria-expanded aria-controls`, optional `data-label-collapsed` /
   `data-label-expanded` (text goes into `[data-collapsible-label]` or the button).
 - **Tooltip.** Wrap in `.tooltip-anchor`; trigger `data-tooltip="<tip id>" aria-describedby="<tip id>"`;
@@ -312,7 +389,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
 - **R1.** Any click on `[aria-disabled="true"]` is swallowed in the capture phase.
 - **Copy.** `data-copy="<selector>"` copies that element's text; on denial the label becomes
   `data-copy-denied`.
-- `window.proto` exposes `setState(name)`, `showPane(name)`, `syncNotifications()`, `setTheme(isDark)`,
+- `window.proto` exposes `setState(name)` (a change the learner did not make here: focus repair and the B9
+  re-set above), `showPane(name)`, `syncNotifications()`, `setTheme(isDark)`,
   `focusAnchor(id)` (the in-page anchor behaviour above; returns false when the target is missing or
   hidden).
 
@@ -434,6 +512,35 @@ alone), `input` on `muted` (shadcn's dark active border, rejected), `muted-foreg
 --background on --muted: oklch(0.145 0 0) on oklch(0.269 0 0): 1.308:1
 --input on --muted: oklch(0.52 0 0) on oklch(0.269 0 0): 2.757:1
 --muted-foreground on --muted: oklch(0.708 0 0) on oklch(0.269 0 0): 5.857:1
+--muted-foreground on --background: oklch(0.708 0 0) on oklch(0.145 0 0): 7.663:1
+```
+
+Check row and budget confirmation (#69), light then dark: every status icon colour on `accent`, the check
+row trigger's hover surface (icons 3:1), `muted-foreground` on `accent` (the meta items on hover),
+`accent-foreground` on `accent` (the warning words on hover), `foreground` on `background` (the warning
+words at rest), `foreground` on `muted` (`.error-details`, `.check-row-message`), `muted-foreground` on
+`background` (the dialog list on the dialog). No token changed.
+
+```
+## :root
+--destructive on --accent: oklch(0.55 0.2 27.325) on oklch(0.97 0 0): 4.940:1
+--warning on --accent: oklch(0.5 0.11 60) on oklch(0.97 0 0): 5.664:1
+--success on --accent: oklch(0.5 0.13 150) on oklch(0.97 0 0): 5.173:1
+--info on --accent: oklch(0.5 0.15 255) on oklch(0.97 0 0): 5.569:1
+--muted-foreground on --accent: oklch(0.53 0 0) on oklch(0.97 0 0): 4.816:1
+--accent-foreground on --accent: oklch(0.205 0 0) on oklch(0.97 0 0): 16.444:1
+--foreground on --background: oklch(0.145 0 0) on oklch(1 0 0): 19.798:1
+--foreground on --muted: oklch(0.145 0 0) on oklch(0.97 0 0): 18.160:1
+--muted-foreground on --background: oklch(0.53 0 0) on oklch(1 0 0): 5.251:1
+## .dark
+--destructive on --accent: oklch(0.704 0.182 22.216) on oklch(0.269 0 0): 5.307:1
+--warning on --accent: oklch(0.8 0.15 80) on oklch(0.269 0 0): 7.960:1
+--success on --accent: oklch(0.75 0.17 150) on oklch(0.269 0 0): 7.264:1
+--info on --accent: oklch(0.75 0.12 240) on oklch(0.269 0 0): 6.936:1
+--muted-foreground on --accent: oklch(0.708 0 0) on oklch(0.269 0 0): 5.857:1
+--accent-foreground on --accent: oklch(0.985 0 0) on oklch(0.269 0 0): 14.499:1
+--foreground on --background: oklch(0.985 0 0) on oklch(0.145 0 0): 18.968:1
+--foreground on --muted: oklch(0.985 0 0) on oklch(0.269 0 0): 14.499:1
 --muted-foreground on --background: oklch(0.708 0 0) on oklch(0.145 0 0): 7.663:1
 ```
 

@@ -51,6 +51,27 @@ declare module "dockerode" {
     putArchive(file: Buffer, options: { path: string }): Promise<unknown>;
     /** `HEAD /archive`: resolves with the open response stream, which the caller must destroy. */
     infoArchive(options: { path: string }): Promise<unknown>;
+    /**
+     * `POST /exec`: the create body goes as JSON (docker-modem sends `_body` when present, `modem.js:208`; the
+     * path has no `?`, so no query is built). Resolves with a handle whose `id` is the exec's Id.
+     */
+    exec(options: SplitRequest<Record<string, never>, object>): Promise<unknown>;
+  }
+
+  /** A handle on one exec by Id; nothing is requested until a method is called. */
+  interface ExecHandle {
+    /**
+     * `POST /exec/<id>/start` with `Connection: Upgrade`: resolves with the hijacked socket once the daemon
+     * answers 101. `_body` is the JSON body; `stdin` keeps the request open for input.
+     */
+    start(options: {
+      _body: { Detach: false; Tty: true };
+      hijack: true;
+      stdin: true;
+    }): Promise<unknown>;
+    /** `h` and `w` go in the query string. */
+    resize(options: { h: number; w: number }): Promise<unknown>;
+    inspect(): Promise<unknown>;
   }
 
   class Docker {
@@ -58,6 +79,7 @@ declare module "dockerode" {
     ping(): Promise<unknown>;
     version(): Promise<unknown>;
     getContainer(id: string): ContainerHandle;
+    getExec(id: string): ExecHandle;
     getVolume(name: string): Inspectable & Removable;
     getNetwork(id: string): Removable;
     getImage(name: string): Inspectable;

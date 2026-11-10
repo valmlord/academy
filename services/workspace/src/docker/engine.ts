@@ -1,3 +1,4 @@
+import { Duplex } from "node:stream";
 import Docker from "dockerode";
 import type { z } from "zod";
 import { DockerApiError, DockerResponseShapeError } from "../errors.js";
@@ -9,7 +10,9 @@ import {
   containerInspectSchema,
   containerListSchema,
   type EngineVersion,
+  type ExecInspect,
   engineVersionSchema,
+  execInspectSchema,
   type ImageInspect,
   idHandleSchema,
   imageInspectSchema,
@@ -20,7 +23,8 @@ import {
   volumeInspectSchema,
   volumeListSchema,
 } from "./schemas.js";
-import type { ContainerCreateBody } from "./spec.js";
+import type { ContainerCreateBody, ExecCreateBody } from "./spec.js";
+import { execStartBody } from "./spec.js";
 
 // The only module that talks to dockerode (U-boundary). The Engine API is HTTP over the daemon's unix socket;
 // every response is validated before use.
@@ -242,6 +246,48 @@ export class DockerEngine {
     destroyStream("stat path", response);
     return true;
   }
+
+  /** Returns the new exec's Id; a stopped container is 409 and a missing one 404, both as `DockerApiError`. */
+  async createExec(containerId: string, body: ExecCreateBody): Promise<string> {
+    const handle = await call("create exec", () =>
+      this.#docker.getContainer(containerId).exec({ _query: {}, _body: body }),
+    );
+    return parseResponse("create exec", idHandleSchema, handle).id;
+  }
+
+  /**
+   * Starts the exec attached, with a TTY, and returns the hijacked socket (raw TTY bytes both ways). The
+   * socket inherited docker-modem's inactivity timeout, which would cut an idle shell after `ENGINE_TIMEOUT_MS`;
+   * a terminal is idle for minutes, so the timeout is switched off (I-exec-idle).
+   */
+  async startExec(execId: string): Promise<Duplex> {
+    const stream = await call("start exec", () =>
+      this.#docker.getExec(execId).start({ _body: execStartBody(), hijack: true, stdin: true }),
+    );
+    if (!isHijackedStream(stream)) throw new DockerResponseShapeError("start exec", "stream");
+    stream.setTimeout(0);
+    return stream;
+  }
+
+  /** The TTY size of a running exec; an exec that ended answers 404 or 409 (`DockerApiError`). */
+  async resizeExec(execId: string, cols: number, rows: number): Promise<void> {
+    await call("resize exec", () => this.#docker.getExec(execId).resize({ h: rows, w: cols }));
+  }
+
+  async inspectExec(execId: string): Promise<ExecInspect> {
+    return parseResponse(
+      "inspect exec",
+      execInspectSchema,
+      await call("inspect exec", () => this.#docker.getExec(execId).inspect()),
+    );
+  }
+}
+
+/** The hijacked exec socket: a Duplex that can drop docker-modem's inactivity timeout. */
+type HijackedStream = Duplex & { setTimeout(timeoutMs: number): unknown };
+
+function isHijackedStream(value: unknown): value is HijackedStream {
+  return value instanceof Duplex && typeof Reflect.get(value, "setTimeout") === "function";
 }
 
 /**

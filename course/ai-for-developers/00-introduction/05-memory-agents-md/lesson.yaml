@@ -38,6 +38,8 @@ checks:
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_memory.py"'
     timeoutSec: 30
     weight: 2
+    attempts:
+      mentorAfter: 5
   - id: agents-md-rubric
     title: "Качество AGENTS.md (оценка ментора по рубрике)"
     kind: rubric
@@ -60,3 +62,5 @@ checks:
     file: quiz.yaml
     passScore: 0.75
     weight: 1
+    attempts:
+      limit: 3

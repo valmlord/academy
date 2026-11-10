@@ -76,6 +76,8 @@ checks:
     title: Quiz check
     file: checks/CANARY-CHECKS-4-file.yaml
     passScore: 0.5
+    attempts:
+      limit: 3
 `,
   "course/00-basics/02-second/theory.md": "# Second lesson\n\nSecond theory.\n",
   "course/00-basics/02-second/task.md": "# Task\n\nSecond task.\n",
