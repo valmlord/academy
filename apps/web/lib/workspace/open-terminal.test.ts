@@ -5,7 +5,8 @@ import { type CourseTree, readCourse } from "@/lib/course/read";
 import type { SessionData } from "@/lib/session-reader";
 import { createTicketVerifier, deriveTicketKey } from "@/server/ticket";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
-import type { Workspace, WorkspaceAnswer, WorkspaceClient, WorkspaceKey } from "./client";
+import { fakeWorkspaceClient } from "@/test/workspace-fakes";
+import type { Workspace, WorkspaceAnswer, WorkspaceKey } from "./client";
 import { createEnvironmentActions } from "./environment";
 
 // The marker throws outside Next's server layers; mint.ts is used as the real minter here.
@@ -60,13 +61,13 @@ function workspace(change: Partial<Workspace> = {}): Workspace {
 
 function setup(answer: WorkspaceAnswer = { kind: "workspace", workspace: workspace() }) {
   const keys: WorkspaceKey[] = [];
-  const client: WorkspaceClient = {
+  const client = fakeWorkspaceClient({
     get: async (key) => {
       keys.push(key);
       return answer;
     },
     ensure: async () => ({ kind: "failed" }),
-  };
+  });
   const actions = createEnvironmentActions({
     getCourse: async () => course,
     client,
@@ -182,10 +183,10 @@ describe("openTerminal (U-action-uid)", () => {
   it("answers failed when the ticket cannot be minted", async () => {
     const actions = createEnvironmentActions({
       getCourse: async () => course,
-      client: {
+      client: fakeWorkspaceClient({
         get: async () => ({ kind: "workspace", workspace: workspace() }),
         ensure: async () => ({ kind: "failed" }),
-      },
+      }),
       mintTicket: () => {
         throw new Error("no key");
       },

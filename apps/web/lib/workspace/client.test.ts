@@ -195,6 +195,143 @@ describe("workspace client (U-client)", () => {
   });
 });
 
+function noContent(_request: IncomingMessage, response: ServerResponse): void {
+  response.writeHead(204);
+  response.end();
+}
+
+type Client = ReturnType<typeof clientFor>["client"];
+
+const WORKSPACE_PATH = "/v1/users/user_1/courses/agentic-dev/lessons/first-lesson/workspace";
+const STOPPED = { ...WORKSPACE, state: "stopped", outcome: undefined, idle: null };
+
+describe("workspace client stop, remove and activity", () => {
+  it("sends POST W/stop with the Bearer secret and returns the validated workspace", async () => {
+    const { baseUrl, recorded } = await serve(json(200, STOPPED));
+    const { client, log } = clientFor(baseUrl);
+
+    const answer = await client.stop(KEY);
+
+    expect(answer).toEqual({ kind: "workspace", workspace: STOPPED });
+    expect(recorded).toEqual([
+      { method: "POST", url: `${WORKSPACE_PATH}/stop`, authorization: `Bearer ${SECRET}` },
+    ]);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("answers failed for a stop body outside the contract", async () => {
+    const { baseUrl } = await serve(json(200, { ...STOPPED, state: "paused" }));
+    const { client, log } = clientFor(baseUrl);
+
+    expect(await client.stop(KEY)).toEqual({ kind: "failed" });
+    expect(log.mock.calls).toEqual([
+      ["web: workspace service POST stop failed: invalid response (200)"],
+    ]);
+  });
+
+  it("answers not-found for a stop of a workspace that does not exist", async () => {
+    const { baseUrl } = await serve(
+      json(404, { error: { code: "workspace-not-found", message: "m" } }),
+    );
+    const { client, log } = clientFor(baseUrl);
+
+    expect(await client.stop(KEY)).toEqual({ kind: "not-found" });
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("sends DELETE W and answers removed on 204", async () => {
+    const { baseUrl, recorded } = await serve(noContent);
+    const { client } = clientFor(baseUrl);
+
+    const answer = await client.remove(KEY);
+
+    expect(answer).toEqual({ kind: "removed" });
+    expect(recorded).toEqual([
+      { method: "DELETE", url: WORKSPACE_PATH, authorization: `Bearer ${SECRET}` },
+    ]);
+  });
+
+  it("answers busy when the volume is still in use", async () => {
+    const { baseUrl } = await serve(json(409, { error: { code: "workspace-busy", message: "m" } }));
+    const { client, log } = clientFor(baseUrl);
+
+    expect(await client.remove(KEY)).toEqual({ kind: "busy" });
+    expect(log.mock.calls).toEqual([["web: workspace service DELETE failed: 409 workspace-busy"]]);
+  });
+
+  it("answers failed for a remove answered 200 instead of the contract's 204", async () => {
+    const { baseUrl } = await serve(json(200, {}));
+    const { client, log } = clientFor(baseUrl);
+
+    expect(await client.remove(KEY)).toEqual({ kind: "failed" });
+    expect(log.mock.calls).toEqual([
+      ["web: workspace service DELETE failed: invalid response (200)"],
+    ]);
+  });
+
+  it("answers failed for a remove refused as not found", async () => {
+    const { baseUrl } = await serve(
+      json(404, { error: { code: "workspace-not-found", message: "m" } }),
+    );
+    const { client } = clientFor(baseUrl);
+
+    expect(await client.remove(KEY)).toEqual({ kind: "failed" });
+  });
+
+  it("sends POST W/activity and answers recorded on 204", async () => {
+    const { baseUrl, recorded } = await serve(noContent);
+    const { client } = clientFor(baseUrl);
+
+    const answer = await client.activity(KEY);
+
+    expect(answer).toEqual({ kind: "recorded" });
+    expect(recorded).toEqual([
+      { method: "POST", url: `${WORKSPACE_PATH}/activity`, authorization: `Bearer ${SECRET}` },
+    ]);
+  });
+
+  it("answers not-running without a log line when the workspace is not running", async () => {
+    const { baseUrl } = await serve(
+      json(409, { error: { code: "workspace-not-running", message: "m" } }),
+    );
+    const { client, log } = clientFor(baseUrl);
+
+    expect(await client.activity(KEY)).toEqual({ kind: "not-running" });
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      operation: "POST stop",
+      call: (client: Client) => client.stop(KEY),
+    },
+    {
+      operation: "DELETE",
+      call: (client: Client) => client.remove(KEY),
+    },
+    {
+      operation: "POST activity",
+      call: (client: Client) => client.activity(KEY),
+    },
+  ])(
+    "answers failed for a refused connection on $operation and never logs the secret",
+    async ({ operation, call }) => {
+      const { baseUrl } = await serve(noContent);
+      await new Promise<void>((resolve) => server?.close(() => resolve()));
+      server = undefined;
+      const { client, log } = clientFor(baseUrl);
+
+      const answer = await call(client);
+
+      expect(answer).toEqual({ kind: "failed" });
+      expect(log.mock.calls).toEqual([
+        [`web: workspace service ${operation} failed: TypeError ECONNREFUSED`],
+      ]);
+      expect(logged(log)).not.toContain("canary");
+    },
+  );
+});
+
 describe("answerForError (U-state-map)", () => {
   const body = (code: string, extra: Record<string, string> = {}) => ({
     error: { code, message: "m", ...extra },

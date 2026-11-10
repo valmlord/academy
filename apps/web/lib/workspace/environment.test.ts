@@ -6,7 +6,8 @@ import type { StartedLesson } from "@/lib/progress/lesson-started";
 import type { SessionData } from "@/lib/session-reader";
 import type { TicketRequest } from "@/lib/terminal/mint";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
-import type { Workspace, WorkspaceAnswer, WorkspaceClient, WorkspaceKey } from "./client";
+import { fakeWorkspaceClient } from "@/test/workspace-fakes";
+import type { Workspace, WorkspaceAnswer, WorkspaceKey } from "./client";
 import { createEnvironmentActions } from "./environment";
 
 // The environment actions' logic (#32 design 3.3 layer 1, 3.6): the session first, the key from the session's
@@ -66,7 +67,7 @@ function workspace(change: Partial<Workspace>): Workspace {
 
 function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
   const calls: { method: "get" | "ensure"; key: WorkspaceKey }[] = [];
-  const client: WorkspaceClient = {
+  const client = fakeWorkspaceClient({
     get: async (key) => {
       calls.push({ method: "get", key });
       return answer;
@@ -75,7 +76,7 @@ function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
       calls.push({ method: "ensure", key });
       return answer;
     },
-  };
+  });
   const mintTicket = vi.fn((_request: TicketRequest) => ({ ticket: "minted", renewInMs: 1 }));
   const started: StartedLesson[] = [];
   const recordStarted = vi.fn(async (lesson: StartedLesson) => {
