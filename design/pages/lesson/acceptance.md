@@ -52,7 +52,7 @@ hidden-task check "Агент решает скрытую задачу с ваш
 quiz check `models-effort-quiz` is not listed anywhere (R6, A19), so the v1 count is "из 1": every state
 without the `quiz-` prefix draws this release.
 
-**From #36, the 25 `#state-quiz-*` states** (`quiz.md`, F15) draw the Квиз tab with the real quiz of this
+**From #36, the 30 `#state-quiz-*` states** (`quiz.md`, F15) draw the Квиз tab with the real quiz of this
 lesson: `models-effort-quiz` "Квиз: effort, поверхности и локальные модели", 6 questions in file order (2
 `multiple`), K = 5 (`passScore` 0.8, task.md "нужно 5 верных"), the limit 3 drawn as known (task.md "Квиз: не
 больше 3 попыток"; the server reports it from #68), and the quiz check counted, so the counts are "из 2".
@@ -61,8 +61,12 @@ lesson: `models-effort-quiz` "Квиз: effort, поверхности и лок
 check bar after a run on this page view (`#state-quiz-passed-after-run`), the closed `command` check that
 lets a quiz close finish the lesson (`#state-quiz-closed-finished`, `#state-quiz-notice-env`), the away
 answers (`#state-quiz-answered-away`, `-notice-env`, `-notice-send-error`, `-notice-two-pane`) and the
-refusal (`#state-quiz-refused`). The other notice texts of `quiz.md` "Quiz notice (P9)" differ only in the
-title text and are listed in Copy, not drawn.
+refusals (`#state-quiz-refused`, `#state-quiz-refused-closed`). A send keeps everything the state it starts
+from shows except the button and the lock (`quiz.md` "Sending"), so each attempt has its own sending state:
+`#state-quiz-sending` (attempt 1), `-sending-failed` (attempt 2, from `#state-quiz-failed` and
+`-answered-away`), `-sending-last` (attempt 3, from `-last-attempt` and `-notice-two-pane`), `-sending-refused`
+(from `-refused`) and `-sending-limit-unknown` (from `-limit-unknown`). The other notice texts of `quiz.md`
+"Quiz notice (P9)" differ only in the title text and are listed in Copy, not drawn.
 
 **Prototype limitations (prototype only, not app behaviour; the app behaviour is in the ACs named):**
 1. "Проверить", "Перезапустить окружение" and "Сбросить" pressed in a quiz state go to the v1 states they
@@ -81,6 +85,13 @@ title text and are listed in Copy, not drawn.
    answer with a menu or a dialog open (the prototype's native `dialog.showModal()` makes the page inert,
    which no attribute exempts, `quiz.md` "Away"); a second away answer replacing the notice text; the
    transition from `#state-quiz-loading` to the loaded quiz (AC35, AC51, AC50, AC44).
+5. `quiz.md` outcomes not drawn, each specified by its AC: the refusal that finds the quiz passed (AC43;
+   `#state-quiz-refused-closed` draws the closed one); a refusal or a send that changes the lesson status
+   (its lesson line, AC39, AC43); a pass with no lesson line (the lesson status unchanged, AC39); a pass that
+   finishes the lesson not passed (S3, AC39, AC40); the close with the limit unknown (AC38); the check bar
+   rows of "Check bar after a quiz send" other than empty, P7 and P8 (a run going, summary 4, summary 7 left
+   true, the line at 5 or 6 with a refusal: AC40, AC43); a 401 on load (AC54); "Повторить" failing again
+   (AC44).
 
 Limit known and limit unknown are both drawn (Stepan's decision B0, `ia.md` R7): the states marked "limit
 known (from #68)" show "из M" and the last-attempt warning; every other state shows the counter without
@@ -135,12 +146,12 @@ The course error (the course cannot be read) is not drawn in this prototype: it 
 | F14.2 | "Проверить" pressed on the last attempt (its own variant in the prototype); the run it starts keeps the row's "Осталась 1 попытка" and "Неудачных попыток: 9 из 10" | `#state-limit-warning`; the run `#state-limit-warning-running` |
 | F14.3 | the closed row's open panel: closed note, closing message, "Неудачных попыток: 10 из 10" | `#state-closed` |
 | F14.4 | the reason "Проверки завершены" of the `aria-disabled` "Проверить" (status "Урок завершён: не пройден. Пройдено: 0 из 1") | `#state-closed`, `#state-closed-limit-unknown`; mixed outcome in `#state-mixed` |
-| F15.1 | the quiz header ("Нужно 5 из 6", the attempt line, the last-attempt warning) | every `#state-quiz-*` state with questions; the warning in `#state-quiz-last-attempt`, `-notice-two-pane`, `-refused` (from #36) |
+| F15.1 | the quiz header ("Нужно 5 из 6", the attempt line, the last-attempt warning) | every `#state-quiz-*` state with questions; the warning in `#state-quiz-last-attempt`, `-notice-two-pane`, `-refused`, `-sending-last`, `-sending-refused` (from #36) |
 | F15.2 | the radio group of question 1 | `#state-quiz`, `#state-quiz-partial` and every state with inputs (from #36) |
-| F15.3 | "Отправить ответы" | `#state-quiz`; blocked in `#state-quiz-blocked`; busy in `#state-quiz-sending` (from #36) |
+| F15.3 | "Отправить ответы" | `#state-quiz`; blocked in `#state-quiz-blocked`; busy in `#state-quiz-sending`, `-sending-failed`, `-sending-last`, `-sending-refused`, `-sending-limit-unknown` (from #36) |
 | F15.4 | the failed result block "Верно 4 из 6. Нужно 5." | `#state-quiz-failed`; also `#state-quiz-last-attempt`, `-limit-unknown` (from #36) |
 | F15.5 | the passed result block "Квиз пройден" (the review follows it) | `#state-quiz-passed`; closed review in `#state-quiz-closed` (from #36) |
-| F15.6 | the quiz check row "Закрыта: не пройдено" | `#state-quiz-row-closed`, `#state-quiz-closed` (from #36) |
+| F15.6 | the quiz check row "Закрыта: не пройдено" | `#state-quiz-row-closed`, `#state-quiz-closed`, `#state-quiz-refused-closed` (from #36) |
 
 F13.6 (mentor, D3) is not drawn: no mentor or hint control in any state (R6). Before #36 no quiz control
 either; from #36 the quiz controls of F15 are drawn only in the `#state-quiz-*` states, and "Разобрать с
@@ -299,7 +310,11 @@ enabled, status line empty), tab Теория.
 **From #36: the quiz states** (`quiz.md` F15; the design note's state list). Unless stated: tab Квиз selected
 (the tab list then reads Теория, Задание, Проверки, Квиз), one-pane mode shows "Урок", the environment runs,
 the check bar is before any run (status line empty, "Проверить" enabled), Проверки lists the `command` check
-"Не запускалась" and the quiz check row, "Уведомления" is empty, and the limit is known (3).
+"Не запускалась" and the quiz check row, "Уведомления" is empty, and the limit is known (3). Under the rows
+Проверки shows "Попыток пока нет. Нажмите "Проверить", когда будете готовы." only in the states whose quiz
+row reads "Ответы не отправлялись" (`#state-quiz`, `#state-quiz-loading`, `-partial`, `-blocked`, `-blocked-one`,
+`-sending`, `-row`, `-send-error`, `-load-error`, `-session-expired`, `-restored`, `-code`,
+`-notice-send-error`); every other quiz state shows no text there (`quiz.md` "Empty states", AC41).
 
 | Anchor | What it shows |
 |--------|---------------|
@@ -308,13 +323,17 @@ the check bar is before any run (status line empty, "Проверить" enabled
 | `#state-quiz-partial` | questions 1-3 answered, question 5 with two boxes checked, questions 4 and 6 unanswered |
 | `#state-quiz-blocked` | "Отправить ответы" pressed with questions 4 and 6 unanswered: the error summary "Ответьте на все вопросы: осталось 2" above the questions, focused, with the links "Вопрос 4 из 6: выберите ответ" and "Вопрос 6 из 6: выберите хотя бы один вариант"; "Выберите ответ" under question 4, "Выберите хотя бы один вариант" under question 6 |
 | `#state-quiz-blocked-one` | after the blocked send, question 4 answered: "Ответьте на все вопросы: осталось 1" with the one link for question 6; the message only under question 6; focus on question 4's checked radio |
-| `#state-quiz-sending` | every question answered: "Отправляем..." busy (Spinner, `aria-busy`, `aria-disabled`), focused; every option and every group `aria-disabled="true"`, a click, Space or an arrow key changes nothing |
+| `#state-quiz-sending` | attempt 1, every question answered: "Отправляем..." busy (Spinner, `aria-busy`, `aria-disabled`), focused; every option and every group `aria-disabled="true"`, a click, Space or an arrow key changes nothing; the rest as the state it starts from: header "Попытка 1 из 3", quiz row "Ответы не отправлялись", "Неудачных попыток: 0 из 3", no result block |
+| `#state-quiz-sending-failed` | the send of attempt 2 from `#state-quiz-failed` or `-answered-away`: busy and locked as `#state-quiz-sending`; header "Попытка 2 из 3"; the result block "Верно 4 из 6. Нужно 5." of attempt 1 stays, not focused; quiz row "Не пройдено", "Неудачных попыток: 1 из 3" |
+| `#state-quiz-sending-last` | the send of attempt 3 from `#state-quiz-last-attempt` or `-notice-two-pane`: busy and locked; header "Попытка 3 из 3" and "Осталась 1 попытка"; the result block "Верно 3 из 6. Нужно 5." stays, not focused; quiz row "Не пройдено" with the meta "Осталась 1 попытка", "Неудачных попыток: 2 из 3" |
+| `#state-quiz-sending-refused` | the send from `#state-quiz-refused`: busy and locked; header "Попытка 3 из 3" and "Осталась 1 попытка"; the refusal block stays, not focused; quiz row as `#state-quiz-sending-last` |
+| `#state-quiz-sending-limit-unknown` | the send from `#state-quiz-limit-unknown`: busy and locked; header "Попытка 2", no warning; its result block stays, not focused; quiz row "Не пройдено", "Неудачных попыток: 1" |
 | `#state-quiz-failed` | F15.4: result block focused, "Верно 4 из 6. Нужно 5." with "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки."; header "Попытка 2 из 3"; the answers kept and editable; quiz row "Не пройдено", "Неудачных попыток: 1 из 3". Also the return visit after a failed attempt (same markup; on a load focus does not move) |
 | `#state-quiz-last-attempt` | after the 2nd failure: "Верно 3 из 6. Нужно 5."; header "Попытка 3 из 3" and "Осталась 1 попытка" (warning icon); quiz row "Не пройдено" with the meta "Осталась 1 попытка", "Неудачных попыток: 2 из 3" |
 | `#state-quiz-passed` | F15.5 review: result block focused, "Квиз пройден", "Верно 5 из 6.", "Ниже верные ответы и пояснения.", "Урок пройден" (the lesson line: the `command` check had passed, so the pass made the lesson passed); header "Нужно 5 из 6" only; every `h3` with "Верно" or "Неверно" (5 and 1), each option a static row with "Ваш ответ" / "Верный ответ" where they apply, "Пояснение" under each question; no "Отправить ответы"; check bar status line empty, as before the send (P6). Also the return visit after a pass |
 | `#state-quiz-closed` | F15.5-F15.6 review after the 3rd failure: result block focused, "Квиз не пройден: попытки исчерпаны", "Верно 4 из 6. Нужно 5.", "Ниже верные ответы и пояснения." (no lesson line: the lesson is not finished); verdicts 4 and 2; quiz row lock "Закрыта: не пройдено", "Неудачных попыток: 3 из 3"; no mentor control (R6). Also the return visit after the close |
 | `#state-quiz-row` | entry from Проверки (tab Проверки): quiz row open, muted dotted ring, "Ответы не отправлялись", "Неудачных попыток: 0 из 3", then "Пройти квиз" |
-| `#state-quiz-row-closed` | F15.6 in Проверки (tab Проверки): quiz row open, lock, "Закрыта: не пройдено", "Неудачных попыток: 3 из 3", no closed note, no action; the Квиз tab holds the review of `#state-quiz-closed` |
+| `#state-quiz-row-closed` | F15.6 in Проверки (tab Проверки): quiz row open, lock, "Закрыта: не пройдено", "Неудачных попыток: 3 из 3", no closed note, no action, no "Попыток пока нет" text under the rows; the Квиз tab holds the review of `#state-quiz-closed` |
 | `#state-quiz-send-error` | the send error "Ответы не отправлены. Попробуйте снова." focused, right before "Отправить ответы"; answers kept and unlocked; header "Попытка 1 из 3"; no "Повторить" |
 | `#state-quiz-load-error` | under the heading only the plain destructive Alert "Не удалось загрузить квиз" with "Повторить" (described by the Alert title); no focus move |
 | `#state-quiz-session-expired` | F2.1 "Сессия закончилась. Файлы в рабочей папке сохранены." in "Уведомления" over `#state-quiz-partial`; "Войти снова" `next` carries `?tab=quiz`; no send error |
@@ -328,6 +347,7 @@ the check bar is before any run (status line empty, "Проверить" enabled
 | `#state-quiz-notice-send-error` | sample data: tab Теория (the learner went back to read), focus on the Теория tab; the send failed: notice "Ответы квиза не отправлены. Попробуйте снова." with "Открыть квиз"; the Квиз panel, when shown, holds the send error before the button, answers kept and unlocked |
 | `#state-quiz-notice-two-pane` | sample data: two panes, Квиз selected and shown; the learner pressed "Отправить ответы" and clicked into the terminal; the failed result with one attempt left arrived: focus in the terminal (unchanged), the panel shows the `#state-quiz-last-attempt` content with the result block not focused, notice "Ответы квиза проверены. Верно 3 из 6. Нужно 5. Осталась 1 попытка." with "Открыть квиз". Tab, Shift+Tab, `F6` or a press back into the panel empties the notice. In one-pane mode "Окружение" is shown |
 | `#state-quiz-refused` | sample data: the send was refused, another browser tab had sent attempt 2: result block focused, "Ответы не приняты: квиз изменился в другой вкладке." then "Последний результат: Верно 3 из 6. Нужно 5."; header "Попытка 3 из 3" and "Осталась 1 попытка"; the learner's unsent selection kept and unlocked; no "Ответы остались выбранными" line |
+| `#state-quiz-refused-closed` | sample data: the send of attempt 3 was refused, another browser tab had sent the last attempt and it failed: result block focused, warning icon, title "Ответы не приняты: квиз изменился в другой вкладке.", then "Квиз не пройден: попытки исчерпаны" and "Ниже верные ответы и пояснения." (no score line; no lesson line, because the `command` check has not run and the lesson status did not change); the review of `#state-quiz-closed` (verdicts 4 and 2); header "Нужно 5 из 6" only; quiz row lock "Закрыта: не пройдено", "Неудачных попыток: 3 из 3"; check bar unchanged (refused row, quiz now closed, line empty) |
 
 ## Interactions and keyboard
 
@@ -542,7 +562,10 @@ the check bar is before any run (status line empty, "Проверить" enabled
     click, Space and the arrow keys check or toggle nothing (the app's controlled groups ignore value changes
     while sending and cancel the arrow keys before Radix handles them; the prototype cancels the click in
     proto.js's R1 capture and Space and the arrow keys in its keydown capture). No reason is tied to the
-    groups: the busy label on the focused button is the reason. When the server answers, the lock and the
+    groups: the busy label on the focused button is the reason. Nothing else changes while sending: the
+    header (attempt line, warning), the result block of the previous answer, the quiz check row and the
+    check bar stay as the state the press was made in showed them (`quiz.md` "Sending" changes only the
+    button and the options). When the server answers, the lock and the
     busy state end together, before focus moves. Leaving the panel is not locked (the tab list, the one-pane
     switch, `F6`, "К окружению" stay live).
   - **Focus targets (`quiz.md` "Focus targets"):**
@@ -746,7 +769,7 @@ the check bar is before any run (status line empty, "Проверить" enabled
 | quiz load error (from #36) | Не удалось загрузить квиз / Повторить |
 | result block, failed (from #36) | Верно C из Q. Нужно K. / Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки. (limit known) / Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения. (limit unknown) |
 | result block, passed or closed (from #36) | Квиз пройден / Верно C из Q. / Квиз не пройден: попытки исчерпаны / Верно C из Q. Нужно K. / Ниже верные ответы и пояснения. |
-| result block, refused (from #36) | Ответы не приняты: квиз изменился в другой вкладке. / Последний результат: Верно C из Q. Нужно K. (quiz still open) |
+| result block, refused (from #36) | Ответы не приняты: квиз изменился в другой вкладке. / Последний результат: Верно C из Q. Нужно K. (quiz still open) / Квиз пройден / Квиз не пройден: попытки исчерпаны / Ниже верные ответы и пояснения. (quiz now passed or closed) |
 | result block, lesson line (from #36; the check bar's strings) | Урок пройден / Урок завершён: не пройден. Пройдено: N из M |
 | review (from #36) | Верно / Неверно (verdict in the question heading) / Ваш ответ / Верный ответ (option marks) / Пояснение |
 | quiz check row (from #36) | Ответы не отправлялись / Не пройдено / Пройдено / Закрыта: не пройдено; meta Осталась 1 попытка; Неудачных попыток: N / Неудачных попыток: N из M; Пройти квиз |
@@ -893,9 +916,12 @@ number comes from the server; the page never computes K. Prompts, options and ex
   button, a non-wrapping check bar status at 320 px, no row fallback, and the last-attempt warning dropped
   from the run on the last attempt. The #50 run recorded 1748 activations at 1280 px and 2120 at 375 px (269
   Backs each) and "Войти снова" `next` matching the selected tab in all 33 / 42 checks.
-- **Evidence for the quiz (#70, headless over http, Chromium and WebKit).** The quiz run: 27774 checks, 0
-  failures over the 25 `#state-quiz-*` states (992 to 1246 per state), 631 controls clicked at 1280 px and
-  553 at 375 px per engine, each with Back and Forward; 76 "tab drop (v1 target)" lines, all "Проверить"
+- **Evidence for the quiz (#70, headless over http, Chromium and WebKit).** The quiz run: 35648 checks, 0
+  failures over the 30 `#state-quiz-*` states (1052 to 1306 per state), 786 controls clicked at 1280 px and
+  698 at 375 px per engine, each with Back and Forward; every transition between quiz states asserted to
+  keep the header, the quiz row, the result block, the empty history text and the check bar, and each
+  "Отправить ответы" its sending state (these assertions turn 14 checks red on the round 1 prototype, where
+  every send went to the attempt 1 state); 96 "tab drop (v1 target)" lines, all "Проверить"
   into `#state-check-running` (the sweep clicks no item inside the closed "Действия" menu or the reset
   dialog, whose "Перезапустить окружение" and "Сбросить" drop the tab the same way: Prototype, "Prototype
   limitations" item 1). The
@@ -1096,7 +1122,9 @@ From #36, the quiz (`quiz.md`; each AC names its source):
   macOS too, by script); every option control and every group has `aria-disabled="true"` and no `disabled`;
   a click, Space and an arrow key on an option change no answer; every option stays in the Tab order; the
   lock and the busy state end together when the server answers, before focus moves; the tab list, the
-  one-pane switch, `F6` and "К окружению" stay live during the send.
+  one-pane switch, `F6` and "К окружению" stay live during the send; the header (attempt line and warning),
+  the result block of the previous answer, the quiz check row and the check bar keep what they showed before
+  the press (a send of attempt 3 still reads "Попытка 3 из 3" and "Осталась 1 попытка").
 - AC36, Enter and implicit submission (F15 "Keyboard path"; Requirements for #36, item 9): Enter on a radio or
   a checkbox sends nothing; a radio group is one Tab stop, each checkbox its own; arrow keys in a radio group
   move and check; in the review no question holds a Tab stop except an overflowing code block.
@@ -1134,7 +1162,11 @@ From #36, the quiz (`quiz.md`; each AC names its source):
   attempt left); the open panel holds the counter ("Неудачных попыток: N" or "... из M"), then "Пройти квиз"
   while an attempt can be made, no closed note and no action after a pass or close; "Пройти квиз" selects
   Квиз, writes `?tab=quiz` and focuses the panel heading; with Проверки selected, the row open and focus on
-  "Пройти квиз", a pass removes it and focus moves to the quiz row's own button, never `body`.
+  "Пройти квиз", a pass removes it and focus moves to the quiz row's own button, never `body`. "Попыток пока
+  нет. Нажмите "Проверить", когда будете готовы." shows under the rows only while every `command` check row
+  reads "Не запускалась" and the quiz check row "Ответы не отправлялись" (`quiz.md` "Empty states"); after
+  the first quiz send the server counts (failed, passed or closed) it is gone, so it never stands under
+  "Неудачных попыток: N"; a send error, which counts nothing, leaves it as it was.
 - AC42, send error ("Error states", first bullet; "Focus targets" row 6): a failed send (network, server,
   timeout) with the learner not away focuses "Ответы не отправлены. Попробуйте снова.", right before
   "Отправить ответы", scrolled into view; the answers stay selected and editable; there is no "Повторить";
@@ -1144,8 +1176,11 @@ From #36, the quiz (`quiz.md`; each AC names its source):
   a stale attempt number counts nothing and focuses a result block titled "Ответы не приняты: квиз
   изменился в другой вкладке."; with the quiz still open it follows with "Последний результат: Верно C из Q.
   Нужно K.", the new attempt line and the unsent selection kept, with no "Ответы остались выбранными" line;
-  with the quiz now passed or closed it shows the review, its result title, the lesson line by AC39 and
-  "Ниже верные ответы и пояснения."; the check bar follows P7 or P8 by the current state and keeps its text
+  with the quiz now passed or closed the block keeps the refusal title and its warning icon, then the lines
+  "Квиз пройден" or "Квиз не пройден: попытки исчерпаны", "Ниже верные ответы и пояснения." and last the
+  lesson line by AC39, with no score line, and the review follows (closed drawn in
+  `#state-quiz-refused-closed`; passed not drawn: the same block with "Квиз пройден" and the review of
+  `#state-quiz-passed`); the check bar follows P7 or P8 by the current state and keeps its text
   and controls when it already showed summary 5 or 6; away, notice row 9, 10 or 11 instead.
 - AC44, loading and load error ("Loading", "The load error", "Focus targets" rows 10-12): while the quiz is
   read the heading stays, the rest is Skeleton (`aria-hidden`), the panel has `aria-busy="true"`, nothing is
@@ -1214,7 +1249,10 @@ From #36, the quiz (`quiz.md`; each AC names its source):
   result, quiz row, check bar, notice, live container attributes, focus, no sideways scroll, option labels
   at least 24 px), every rendered control clicked at 1280 and 375 px with Back and Forward after it, reload,
   `?tab=quiz` arrival and the F2 round trip, the send lock under Space and the arrow keys, the notice removal
-  and "Открыть квиз" with Back; its only listed exceptions are Prototype, "Prototype limitations" item 1.
+  and "Открыть квиз" with Back; its only listed exceptions are Prototype, "Prototype limitations" items 1
+  (the tab drop of "Проверить", "Перезапустить окружение", "Сбросить"), 2 (no notice after Back from a
+  control inside the panel in the four notice states: the sweep expects the notice empty there) and 3
+  (focus after Forward is the `data-focus-fallback` repair: the sweep asserts state and tab only).
   Every quiz UI string of the prototype matches a Copy row, and every Copy row is in the `ia.md` register.
 
 ## Open questions

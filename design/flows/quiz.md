@@ -659,7 +659,11 @@ would score nothing (course rule "answers open after a pass"); this also matches
   `sessionStorage`, #36), because Radix may unmount an inactive panel.
 
 **Empty states:** no quiz check: no Квиз tab, no quiz check row. Before the first attempt: the quiz check row
-reads "Ответы не отправлялись" and the panel shows the questions with no result block. A lesson with two
+reads "Ответы не отправлялись" and the panel shows the questions with no result block. Проверки shows
+"Попыток пока нет. Нажмите "Проверить", когда будете готовы." (`checks.md` "Empty states") only while no
+counted check has an attempt, every `command` check row "Не запускалась" and the quiz check row "Ответы не
+отправлялись", because the learner cannot tell the history's "попытка" from the quiz row's, so once a sent
+quiz shows "Неудачных попыток: N" or "Пройдено" beside it the text would read as false. A lesson with two
 quiz checks does not exist (13 lessons, one each) and is not designed: the quiz.yaml validation (#36)
 rejects it.
 
