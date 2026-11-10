@@ -8,6 +8,7 @@ import {
   lessonProgress,
   users,
 } from "@academy/db";
+import { eq, sql } from "drizzle-orm";
 import type { DbTransaction } from "@/lib/progress/facts";
 import { aggregateAttemptStatus, type IncludedCheck } from "@/lib/progress/rules";
 import type { CheckKind } from "@/lib/progress/shipped-kinds";
@@ -130,4 +131,16 @@ export async function failures(
   for (let index = 0; index < count; index += 1) {
     await finishedAttempt(db, key, [{ checkId, checkKind, status: "failed" }]);
   }
+}
+
+/** Sets a running attempt final, as #34's finish does once every included check has its row. */
+export async function finishAttempt(
+  db: Database | DbTransaction,
+  attemptId: string,
+  status: "passed" | "failed" | "error",
+): Promise<void> {
+  await db
+    .update(attempts)
+    .set({ status, finishedAt: sql`now()` })
+    .where(eq(attempts.id, attemptId));
 }
