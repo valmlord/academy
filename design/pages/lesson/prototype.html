@@ -160,7 +160,7 @@
     <div class="alert" data-step="F10.1">
       <span class="status-icon" data-status="info" aria-hidden="true"></span>
       <p class="alert-title">Окружение остановится через 5 мин без активности. Файлы сохранятся.</p>
-      <div class="alert-actions"><button class="button" type="button" data-size="sm" data-goto-state="theory" data-focus=".is-one-pane > .pane[data-pane=&quot;lesson&quot;] [data-show-pane=&quot;lesson&quot;], #crumb-course" data-step="F10.2">Продолжить работу</button></div>
+      <div class="alert-actions"><button class="button" type="button" data-size="sm" data-goto-state="theory" data-keep-pane data-focus=".is-one-pane > .pane[data-pane=&quot;lesson&quot;]:not([hidden]) [data-show-pane=&quot;lesson&quot;], .is-one-pane > .pane[data-pane=&quot;environment&quot;]:not([hidden]) [data-show-pane=&quot;environment&quot;], .lesson-layout:not(.is-one-pane) #crumb-course" data-step="F10.2">Продолжить работу</button></div>
     </div>
   </template>
 
@@ -1669,7 +1669,9 @@ exit</pre>
     "use strict";
 
     var NO_ENVIRONMENT_STATES = ["m0", "no-workspace"];
-    // In one-pane mode these states show "Окружение"; every other state shows "Урок".
+    // In one-pane mode these states show "Окружение"; every other state shows "Урок". A control marked
+    // data-keep-pane ("Продолжить работу") keeps the pane the learner had, because its R2 fallback is the R3
+    // landing of the shown pane (ia.md R2).
     var ENVIRONMENT_PANE_STATES = [
       "one-pane-env", "terminal-focused", "actions-open", "actions-check-running", "actions-not-running",
       "reset-dialog", "reset-done", "reconnecting", "reconnect-failed", "shell-exited", "env-creating",
@@ -1773,6 +1775,7 @@ exit</pre>
     var summaryCount = document.getElementById("quiz-summary-count");
     var noticeContainer = document.querySelector("[data-live-key='quiz-notice']");
     var isGotoTransition = false;
+    var keptPane = null;
     var isSummaryActive = false;
     var wasPanelShown = null;
 
@@ -1877,7 +1880,9 @@ exit</pre>
       var state = event.detail.state;
       if (NO_ENVIRONMENT_STATES.indexOf(state) >= 0) layout.setAttribute("data-environment", "none");
       else layout.removeAttribute("data-environment");
-      window.proto.showPane(ENVIRONMENT_PANE_STATES.indexOf(state) >= 0 ? "environment" : "lesson");
+      var statePane = ENVIRONMENT_PANE_STATES.indexOf(state) >= 0 ? "environment" : "lesson";
+      window.proto.showPane(keptPane || statePane);
+      keptPane = null;
       setSplit(state === "split-cycled" ? CYCLED_SPLIT_PERCENT : DEFAULT_SPLIT_PERCENT);
       var target = STATE_FOCUS[state] ? document.querySelector(STATE_FOCUS[state]) : null;
       if (target) target.focus();
@@ -1903,6 +1908,7 @@ exit</pre>
         return;
       }
       if (event.target.closest("[data-goto-state]")) isGotoTransition = true;
+      if (event.target.closest("[data-keep-pane]")) keptPane = layout.getAttribute("data-active-pane");
     }, true);
 
     // Answering removes a message and its link, emptying a multiple question adds them; focus on the summary
