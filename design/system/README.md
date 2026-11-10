@@ -319,27 +319,36 @@ Markup, in DOM order (ids are the page's):
   `role="alert"` (`ui/field.tsx:204`), but a plain `p` as sign-in's `FieldErrorText`
   (`components/sign-in-form.tsx:208-215`). `aria-describedby` lists prompt, note, error, only those shown.
 - RadioGroup and Checkbox (`.choice-group`, `.choice`, `.radio`, `.checkbox`): native inputs drawn after
-  shadcn's `new-york-v4` `ui/radio-group.tsx` and `ui/checkbox.tsx` (`size-4`, `shrink-0`, `border border-input`,
-  `text-primary`). Kept as upstream: a radio is `rounded-full`, its checked state is only the `size-2`
-  `fill-primary` dot (the border stays `input`); a checked checkbox is `border-primary bg-primary
-  text-primary-foreground` in both themes. Boundary `input` (3.641:1 / 3.606:1 on `background`; never `border`,
-  1.260:1). The app vendors both files and changes exactly these classes, nothing else:
+  shadcn's `new-york-v4` `ui/radio-group.tsx` and `ui/checkbox.tsx`. Boundary `input` (3.641:1 / 3.606:1 on
+  `background`; never `border`, 1.260:1). The app vendors both files and changes exactly the tokens marked
+  changed or removed below, nothing else; every token of the upstream class strings is listed.
+  - Kept, radio (`RadioGroupItem`): `aspect-square size-4 shrink-0 rounded-full border border-input
+    text-primary`; indicator `relative flex items-center justify-center`; `CircleIcon` `absolute top-1/2
+    left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 fill-primary`. So a checked radio is only the `size-2`
+    `primary` dot, the border stays `input`. `RadioGroup` keeps `grid gap-3`.
+  - Kept, checkbox: `peer size-4 shrink-0 border border-input data-[state=checked]:border-primary
+    data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground
+    dark:data-[state=checked]:bg-primary`; indicator `grid place-content-center text-current transition-none`.
+    `text-primary` is the radio's only: upstream's checkbox has no text colour until checked.
   - checkbox `rounded-[4px]` -> `rounded-sm` (6px, the sm step, "Radius"): an arbitrary 4px is off the scale
     every other control uses.
-  - `focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50` -> removed; the global 2px
-    `ring` outline with a 2px offset ("Focus ring"), because the 50 % halo halves its measured contrast. The
-    border stays `input` on focus.
-  - `dark:bg-input/30` -> removed: the control sits on `background` in both themes (a translucent fill is not
-    measured).
-  - `shadow-xs` -> removed: shadows only on cards, menus and dialogs ("Dark-mode rules", Elevation).
+  - `outline-none` (both) -> removed: the utility beats the global `:focus-visible` outline in `@layer base`
+    (`apps/web/app/globals.css:222`), so kept it would leave both controls with no visible focus (WCAG 2.4.7);
+    `ui/tabs.tsx:11` records the same removal.
+  - `focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50` (both) -> removed; the
+    global 2px `ring` outline with a 2px offset ("Focus ring") draws focus, because the 50 % halo halves its
+    measured contrast. The border stays `input` on focus.
+  - `dark:bg-input/30` (both) -> removed: the control sits on `background` in both themes (a translucent fill
+    is not measured).
+  - `shadow-xs` (both) -> removed: shadows only on cards, menus and dialogs ("Dark-mode rules", Elevation).
   - `transition-[color,box-shadow]` (radio), `transition-shadow` (checkbox) -> removed: with no halo and no
     shadow nothing is left to animate.
-  - `disabled:cursor-not-allowed disabled:opacity-50` -> not reached: options are never `disabled`, only
-    `aria-disabled` while sending, which keeps the look and sets `cursor-not-allowed` (below); no opacity on
-    text ("Dark-mode rules").
+  - `disabled:cursor-not-allowed disabled:opacity-50` (both) -> kept in the file, not reached: options are
+    never `disabled`, only `aria-disabled` while sending, which keeps the look and sets `cursor-not-allowed`
+    (below); no opacity on text ("Dark-mode rules").
   - `aria-invalid:border-destructive aria-invalid:ring-destructive/20` and `dark:aria-invalid:ring-destructive/40`
-    -> not reached: no option carries `aria-invalid`; a question's error is the `.field-error` text in the
-    group's `aria-describedby`.
+    (both) -> kept in the file, not reached: no option carries `aria-invalid`; a question's error is the
+    `.field-error` text in the group's `aria-describedby`.
   - Check mark: the app keeps upstream's lucide `CheckIcon className="size-3.5"`. The prototype draws a
     `\2713` glyph at `text-xs` 600 in its place because it loads no icon set; the glyph is not the target.
   `.choice-group` is one class for both groups, `space-3` apart (shadcn's RadioGroup `grid gap-3`; shadcn has

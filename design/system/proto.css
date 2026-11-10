@@ -338,18 +338,6 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
 .status-icon[data-status="closed"]::after {
   content: ""; width: var(--space-2); height: var(--space-1-5); background: currentColor;
 }
-/* Forced colours paint backgrounds Canvas, which would empty the chosen radio's dot, the "Ваш ответ" dot and
-   the lock body (all background: currentColor), and the text backplate behind a glyph cuts the top and bottom
-   of a 1rem box or ring. The review indicators and the status icons opt out and draw in system colours:
-   CanvasText strokes, dots and glyphs on Canvas. The selectors match the specificity of the coloured rules
-   above, so these win by order; the running icon keeps its transparent right border. */
-@media (forced-colors: active) {
-  .status-icon, .status-icon[data-status], .choice-indicator, .choice-indicator[data-type][data-checked] {
-    forced-color-adjust: none; color: CanvasText; border-color: CanvasText; background: Canvas;
-  }
-  .status-icon[data-status="running"] { border-right-color: transparent; }
-}
-
 /* ---------- Badge ---------- */
 
 .badge {
@@ -373,6 +361,19 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
   font-size: var(--text-xs); color: currentColor;
 }
 .badge .status-icon[data-status="closed"]::before { border-width: 1px; }
+/* Forced colours paint backgrounds Canvas, which would empty the chosen radio's dot, the "Ваш ответ" dot and
+   the lock body (all background: currentColor), and the text backplate behind a glyph cuts the top and bottom
+   of a 1rem box or ring. The review indicators and the status icons opt out and draw in system colours:
+   CanvasText strokes, dots and glyphs on Canvas. The block follows the Badge section, whose
+   `.badge .status-icon { color: currentColor }` would otherwise paint the badge lock --destructive; its
+   selectors match the specificity of every coloured rule above, so these win by order. The running icon
+   keeps its transparent right border. */
+@media (forced-colors: active) {
+  .status-icon, .status-icon[data-status], .choice-indicator, .choice-indicator[data-type][data-checked] {
+    forced-color-adjust: none; color: CanvasText; border-color: CanvasText; background: Canvas;
+  }
+  .status-icon[data-status="running"] { border-right-color: transparent; }
+}
 
 /* ---------- DropdownMenu ---------- */
 
