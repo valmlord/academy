@@ -15,6 +15,9 @@
   // least one rendered frame; #34 sets the app's value). Applies only to the container below.
   var PROTO_STATUS_TEXT_GAP_MS = 150;
   var GAPPED_LIVE_KEY = "check-status";
+  var LOCKABLE_INPUT = "input[type='radio'], input[type='checkbox']";
+  var LOCKED_KEYS = [" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+  var SCROLL_STOP = "[data-scroll-label]";
   var FOCUSABLE = [
     "a[href]",
     "button",
@@ -251,7 +254,13 @@
 
   // A control remembered inside a dialog is not Back's target: the dialog opens on its own initial
   // control every time, so Back to a dialog state lands on "Отмена", never on the action (F11.3, F13.1).
-  function backFocusTarget(control) {
+  // A control remembered inside a live container ("Открыть квиз" in the quiz notice) belonged to a clone
+  // of its template, which the next state change detached; Back finds the re-rendered control by its id.
+  function backFocusTarget(remembered) {
+    var control =
+      remembered && !remembered.isConnected && remembered.id
+        ? document.getElementById(remembered.id)
+        : remembered;
     if (!control || !isRendered(control)) return null;
     var dialog = control.closest("dialog");
     return dialog ? dialogInitialControl(dialog) : control;
@@ -789,12 +798,17 @@
     return target;
   }
 
+  // A target inside a [data-anchor-block] (an option of a quiz question) scrolls the block's top into view,
+  // so its heading and prompt show above the focused option; the second call brings the target back when
+  // the block is taller than the viewport, and does nothing when it is already in view.
   function focusAnchor(id) {
     var target = id && document.getElementById(id);
     if (!target || target.closest("[hidden]")) return false;
     var focusTarget = anchorFocusTarget(target);
+    var block = target.closest("[data-anchor-block]");
     focusTarget.focus({ preventScroll: true });
-    target.scrollIntoView({ block: "start" });
+    (block || target).scrollIntoView({ block: "start" });
+    if (block) target.scrollIntoView({ block: "nearest" });
     return true;
   }
 
@@ -818,8 +832,9 @@
   /* ---------- Simulated outcome: data-goto-state + data-focus ---------- */
 
   // A control with data-goto-state="<name>" fakes its outcome: a new history entry #state-<name> (Back
-  // returns to the previous state through hashchange), the state is shown with every tab list keeping its
-  // tab (A17), data-select-tab="<tab id>" then selects a tab the action names, and data-focus is focused.
+  // returns to the previous state through popstate or hashchange), the state is shown with every tab list
+  // keeping its tab (A17), data-select-tab="<tab id>" then selects a tab the action names, and data-focus is
+  // focused.
   function gotoState(trigger) {
     var name = trigger.getAttribute("data-goto-state");
     var dialog = trigger.closest("dialog");
@@ -843,6 +858,22 @@
         event.preventDefault();
         event.stopImmediatePropagation();
       }
+    },
+    true,
+  );
+
+  // R1 for a locked radio or checkbox (quiz answers while sending): Space and the arrow keys change
+  // nothing. The click capture above cancels the click that Space, and in Chromium and WebKit an arrow key,
+  // fires, and a cancelled click restores the checked state; but an arrow key still moves focus to the next
+  // radio, which is then focused and unchecked. Cancelling the keys here keeps focus on the option, as the
+  // app does by cancelling the arrow keys before Radix handles them (quiz.md "Sending").
+  document.addEventListener(
+    "keydown",
+    function (event) {
+      var el = event.target;
+      if (!el.matches || !el.matches(LOCKABLE_INPUT)) return;
+      if (!el.closest("[aria-disabled='true']")) return;
+      if (LOCKED_KEYS.indexOf(event.key) !== -1) event.preventDefault();
     },
     true,
   );
@@ -963,9 +994,42 @@
     if (handle) onHandleKey(event, handle);
   });
 
+  /* ---------- Scrollable code: a Tab stop only while it overflows (quiz prompt code, WCAG 2.1.1) ---------- */
+
+  // An element with data-scroll-label="<name>" that scrolls sideways takes tabindex="0", role="group" and
+  // that name; one that fits takes none of them, because there is nothing to scroll. A focused element
+  // keeps them until it loses focus, so a resize that makes it fit never drops focus to body.
+  function syncScrollStop(el) {
+    if (el.scrollWidth > el.clientWidth) {
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "group");
+      el.setAttribute("aria-label", el.getAttribute("data-scroll-label"));
+    } else if (document.activeElement !== el) {
+      el.removeAttribute("tabindex");
+      el.removeAttribute("role");
+      el.removeAttribute("aria-label");
+    }
+  }
+
+  // Showing, hiding and resizing an element all change its box, so one observer covers states, the
+  // one-pane switch and the window width.
+  var scrollStopObserver = new ResizeObserver(function (entries) {
+    entries.forEach(function (entry) {
+      syncScrollStop(entry.target);
+    });
+  });
+
+  document.addEventListener("focusout", function (event) {
+    var el = event.target;
+    if (el.matches && el.matches(SCROLL_STOP)) syncScrollStop(el);
+  });
+
   /* ---------- Start ---------- */
 
   function start() {
+    document.querySelectorAll(SCROLL_STOP).forEach(function (el) {
+      scrollStopObserver.observe(el);
+    });
     document.querySelectorAll(".dropdown-menu, .tooltip").forEach(function (el) {
       el.hidden = true;
     });
@@ -994,10 +1058,31 @@
   // A typed or history-restored anchor hash moves focus and leaves the state as it is. A state hash (Back,
   // Forward, a typed #state-, the state index) returns focus to the control activated from that entry, else
   // repairs focus the change left on nothing.
-  window.addEventListener("hashchange", function () {
+  function onHistoryMove() {
     if (!window.location.hash || isStateHash(window.location.hash))
       setState(null, { repairFocus: true, focusReturn: rememberedControl() });
     else focusAnchor(anchorId(window.location.hash));
+  }
+
+  // Back and Forward between two entries whose query differs as well as the hash (a page that writes its
+  // query with replaceState, as the lesson writes ?tab=) fire popstate and no hashchange, so the state
+  // follows popstate. A move that fires both is handled once: by popstate, which comes first.
+  var popstateEntry = null;
+
+  function historyEntryKey() {
+    var state = history.state;
+    var entry = state && typeof state.protoEntry === "string" ? state.protoEntry : "";
+    return window.location.hash + " " + entry;
+  }
+
+  window.addEventListener("popstate", function () {
+    popstateEntry = historyEntryKey();
+    onHistoryMove();
+  });
+  window.addEventListener("hashchange", function () {
+    var isHandled = popstateEntry === historyEntryKey();
+    popstateEntry = null;
+    if (!isHandled) onHistoryMove();
   });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();

@@ -47,7 +47,9 @@ word. The row shows exactly one status word, chosen in this order: during a run,
 each check the run includes (see "Run composition"); otherwise "Закрыта: не пройдено" if the check is
 closed; otherwise "Пройдено" if it ever passed (S1, sticky); otherwise the word of its latest result;
 otherwise "Не запускалась". A check the run does not include (closed, S2; passed and spending tokens, S11)
-keeps its word during the run.
+keeps its word during the run. From #36 the quiz check row says "Ответы не отправлялись" in place of
+"Не запускалась" and uses only "Пройдено", "Не пройдено" and "Закрыта: не пройдено" besides (`quiz.md`,
+"Quiz check row in Проверки").
 
 | Status | Russian label (exact) | Token, icon shape | Counted as a failed attempt | Release | In the #69 prototype |
 |--------|-----------------------|-------------------|-----------------------------|---------|----------------------|
@@ -201,7 +203,7 @@ same in both cases: no number to count against.
 | last-attempt warning in the row meta | "Осталась 1 попытка", while M - N = 1 and the check is neither passed nor closed (row meta table) | never |
 | last-attempt note in the check bar after a run | "Осталась 1 попытка" (exactly one such check) or "Проверок на последней попытке: N" (two or more) | never |
 | closed state | when the server reports it; the warning showed from the run before | when the server reports it, with no warning before |
-| quiz attempt line (D2, `quiz.md`) | "Попытка N из M" | "Попытка N" |
+| quiz attempt line (D2, `quiz.md`) | "Попытка A из M" | "Попытка A" |
 
 The warning shows only when exactly one counted attempt remains (S4), so the learner sees it before the
 last attempt and not on every failure. It stays while that is true: a format error, a runner error or an
@@ -239,6 +241,11 @@ includes closed checks, which count as not passed. Summaries 5 and 6 come from t
 server reports, never from the browser's own count, because the bar and the dashboard must say the same
 (ADR-0007 completion counts every check id today, including unshipped kinds; data requirement). A closed
 check is never passed (S1, S2), so "Урок пройден" never shows while a counted check is closed.
+
+From #36 a quiz send also changes this line: which notes of summary 7 count the quiz, and the two
+exceptions to this section after a quiz send ("Открыть результаты" shown with an empty line, P7 and P8;
+in S3 an empty line in place of summary 6 until a reload, P8), are in `quiz.md` "Check bar after a quiz
+send".
 
 Examples:
 
@@ -336,8 +343,9 @@ Every transition that adds, removes or replaces a check-bar control or a control
 whether the learner activated it or not. "Проверить" is never removed in a lesson with checks the
 platform runs (R1 keeps it in place), and the row buttons are never removed (the rows are the lesson's
 counted checks). The controls that can go are "К окружению", "Переподключиться", "Открыть результаты" and
-"Подробности" in an open row. R2 states the focus rule once; this table is every case of it. The prototype
-and the acceptance run test each row (design note, author phase).
+"Подробности" in an open row, and from #36 "Пройти квиз" in an open quiz check row (B26). R2 states the
+focus rule once; this table is every case of it. The prototype and the acceptance run test each row (design
+note, author phase).
 
 | # | Transition (who triggers it) | Status line text (announced) | Controls removed or replaced | Focus, if a removed control had it |
 |---|------------------------------|------------------------------|------------------------------|------------------------------------|
@@ -366,6 +374,7 @@ and the acceptance run test each row (design note, author phase).
 | B23 | Budget confirmation open, and a change alters its list, its sum or the state of "Проверить" (B8-B10, B20, B22, any re-read) | as that change, set after the dialog has closed and focus is on "Проверить" | the dialog closes, nothing runs | "Проверить" |
 | B24 | Budget confirmation: "Отмена" or Esc | unchanged | the dialog closes | "Проверить" |
 | B25 | Learner presses "Открыть результаты" | unchanged | - | the Проверки panel heading (F13.4) |
+| B26 | A quiz send is answered (from #36; `quiz.md` "Check bar after a quiz send") | emptied silently when the send makes its text untrue (P7) or leaves nothing to run (P8), nothing set, not announced (the quiz result block or the quiz notice says the outcome); otherwise unchanged | P8: "К окружению", "Переподключиться"; "Проверить" becomes `aria-disabled` "Проверки завершены", silently; "Открыть результаты" is shown (kept if it was there). A pass or close: "Пройти квиз" in an open quiz check row | "Проверить" (as B10); the quiz row's own disclosure button for "Пройти квиз" (as B8-B10, B14) |
 
 A change that removes nothing the learner has focus on never moves focus: the page moves focus only when the
 focused element is removed or the dialog holding it closes.
