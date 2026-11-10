@@ -5,7 +5,9 @@ and `proto.js` serve the prototypes only and are never imported by the app; `com
 component below in both themes. Base: shadcn/ui, default neutral theme
 (ui.shadcn.com/docs/theming, fetched through Context7 `/websites/ui_shadcn` on 2026-10-29) and the
 `new-york-v4` Button source (github.com/shadcn-ui/ui, `apps/v4/registry/new-york-v4/ui/button.tsx`,
-fetched 2026-10-29). Validator: `python3 -I scripts/design_tokens.py check design`.
+fetched 2026-10-29). RadioGroup and Checkbox (#70): the `new-york-v4` sources `ui/radio-group.tsx` and
+`ui/checkbox.tsx` of the same repository and ui.shadcn.com/docs/components/radix/radio-group, fetched
+2026-11-10. Validator: `python3 -I scripts/design_tokens.py check design`.
 
 ## Token decisions
 
@@ -158,8 +160,10 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 |------------------|-----------------|---------|----------------|
 | Button | `.button` | all | default, secondary, outline, ghost, link, destructive; sizes default, sm, icon; `aria-disabled` + `.disabled-reason` (R1), cursor `not-allowed`; busy: `aria-busy` plus `aria-disabled` with Spinner, the busy label is the reason (R1), cursor `progress` |
 | Card | `.card`, `.card-header`, `.card-title`, `.card-description`, `.card-footer` | sign-in, dashboard | one |
-| Field, Label, Input | `.field`, `.label`, `.input`, `.field-description`, `.field-error` | sign-in | default, `aria-invalid="true"` |
-| Alert | `.alert`, `.alert-title`, `.alert-description`, `.alert-actions` | all | default, destructive, warning (custom: border in `warning`, words in `foreground`; for the prerequisite alert F6.2 and the API key note). A message that takes focus instead of a live region (sign-in, R2) is `<div class="alert" role="group" tabindex="-1" aria-labelledby="<title id>" [aria-describedby="<description id>"]>`: a name on a `div` without a role is not exposed |
+| Field, Label, Input | `.field`, `.label`, `.input`, `.field-description`, `.field-error` | sign-in; lesson, Квиз (`.field-description` and `.field-error` in the question block) | default, `aria-invalid="true"` |
+| RadioGroup | `.choice-group` (`role="radiogroup"`), `label.choice`, `input.radio`, `.choice-text` | lesson, Квиз (from #36) | unchecked, checked, focused, locked (`aria-disabled="true"` on the group and every option). Not in `apps/web` yet |
+| Checkbox | `.choice-group` (`role="group"`), `label.choice`, `input.checkbox`, `.choice-text` | lesson, Квиз (from #36) | as RadioGroup. Not in `apps/web` yet (only the menu's `DropdownMenuCheckboxItem`, `ui/dropdown-menu.tsx:76`, a menu item, not a form control) |
+| Alert | `.alert`, `.alert-title`, `.alert-description`, `.alert-actions`, `.alert-links` | all | default, destructive, warning (custom: border in `warning`, words in `foreground`; for the prerequisite alert F6.2 and the API key note). A message that takes focus instead of a live region (sign-in, R2; the quiz result block, error summary and send error) is `<div class="alert" role="group" tabindex="-1" aria-labelledby="<title id>" [aria-describedby="<description ids>"]>`: a name on a `div` without a role is not exposed. Every part after the leading icon sits in the text column, however many `p.alert-description` lines follow (the app's `col-start-2`, `ui/alert.tsx:47`, `:58`). `.alert-links`: a `ul role="list"` of links after the title (the quiz error summary), each link at least `--hit-min` tall |
 | DropdownMenu | `.dropdown`, `.dropdown-menu`, `.dropdown-item`, `.dropdown-item-reason`, `.dropdown-check`, `.dropdown-label`, `.dropdown-separator` | top bar, lesson | item (`button`), link item (`a.dropdown-item`, for an item that navigates: "Выйти"; no underline), checkbox item, `aria-disabled` item with a reason line (`.dropdown-item-reason` is `aria-hidden="true"` with an `id`, tied to the item by `aria-describedby` only, so the name is the label alone). The user menu is named by its trigger (`aria-labelledby="<trigger id>"`, the email), never by an `aria-label`. A menu owns only items, groups and separators, so a `.dropdown-label` is `role="presentation"` with an `id` and names a `<div role="group" aria-labelledby="<label id>">` wrapping the label, the separator and the items it heads |
 | Breadcrumb | `.breadcrumb` (`nav > ol > li`) | lesson | links plus `aria-current="page"` |
 | Tabs | `.tabs`, `.tabs-list`, `.tabs-trigger`, `.tabs-content` | lesson | left pane, environment, one-pane switch (`.pane-switch`) |
@@ -178,11 +182,15 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 | Separator | `.separator` (`data-orientation`) | catalog, lesson | horizontal, vertical |
 
 Custom pieces, each with its reason: `.status-icon` (`data-status` success, destructive, warning, info,
-queued, running, muted, closed): one icon per status with a different shape, because colour is never the only
+queued, running, muted, closed, chosen): one icon per status with a different shape, because colour is never the only
 signal (`checks.md`) and the app will use lucide icons with the same meaning; `closed` is a lock in the
 `destructive` ring, drawn by `::before` (shackle) and `::after` (body) on the same empty `aria-hidden` span as
 every other status, never an SVG child or a glyph, so it differs from the failed cross by shape (the app's
-icon: lucide `Lock`, `lucide-react` `^1.65.0` in `apps/web/package.json:21`); `.disabled-reason`: the R1
+icon: lucide `Lock`, `lucide-react` `^1.65.0` in `apps/web/package.json:23`); `chosen` is not a status but the
+quiz review mark "Ваш ответ": a solid `foreground` ring with a dot, a shape no status uses, so the mark never
+reads as a result ("Верный ответ" takes the `success` check mark); `.choice-indicator`
+(`data-type="radio|checkbox"`, `data-checked="true"`, `aria-hidden`): the RadioGroup or Checkbox drawing on a
+span, for the quiz review, which shows answers without inputs; `.disabled-reason`: the R1
 reason text; `.timer`: a standalone elapsed time, `role="timer"`, used in the check bar and the environment
 status bar, a sibling of their `[data-live-key]` container, never inside a button or a live container;
 `.check-row-time`: the running time inside a check row button ("0:42 из 2:00"), no role, read as part of
@@ -202,7 +210,9 @@ the API key note F8.3, `.env-actions`, `.env-hint`, `.error-details`), `.check-b
 `.prose` (`.table-wrap`, `.code-block`, `.toc`), `.terminal-frame` (`.terminal-output`, `.ansi-<color>`,
 `.ansi-bright-<color>`, `.terminal-cursor`, `.terminal-selection`, `data-connection="lost"`,
 `.terminal-placeholder`), `.lesson-layout` with `.pane`, `.pane-switch`, `.lesson-header`,
-`.lesson-meta`, `.toc` (sizes its heading `text-sm` at any level); page shell `.app`, `.page`, `.column`, `.skip-link`, `.sr-only`; `.outcomes`; prototype chrome `.proto-chrome`
+`.lesson-meta`, `.toc` (sizes its heading `text-sm` at any level); `.quiz` (`.quiz-intro`, `.quiz-header`,
+`.question`, `.verdict`, `.review-options`, `.review-option`, `.review-option-body`, `.review-marks`,
+`.review-mark`, `.explanation`; "Quiz panel" below); page shell `.app`, `.page`, `.column`, `.skip-link`, `.sr-only`; `.outcomes`; prototype chrome `.proto-chrome`
 (state index, theme toggle; not product UI).
 
 `.column` is the one readable column inside `.page` (dashboard, catalog): `<div class="column">`, children
@@ -223,12 +233,21 @@ word):
   The warning's words are `foreground`, not muted (S4 asks for a visible warning, and colour alone is not
   one), `accent-foreground` on the trigger's hover surface as the trigger itself; the 1.25rem icon equals
   the `text-sm` line, so it stays on the first line when the words wrap. Same pattern as
-  `.env-status-note[data-tone="warning"]`.
+  `.env-status-note[data-tone="warning"]`. The quiz header shows the same element with the same markup
+  (`.quiz-header > [data-tone="warning"]`, one rule with the row's in `proto.css`), because one string has
+  one look wherever it shows (`quiz.md`, "Quiz panel, in DOM order").
 - Open: `.check-row-panel` holds, in order, the closed note and the sticky-pass note (`p.text-sm`), the
   grader message (`pre.check-row-message`), "Подробности" (`button.button.collapsible-trigger`, ghost, sm,
   `data-collapsible`, collapsed by default, controlling one `pre.error-details`: the environment's markup
-  and class), the cost and the counter (`p.text-sm.muted`). Items are `space-2` apart; a hidden item takes
-  no space.
+  and class), the cost and the counter (`p.text-sm.muted`), then the quiz row's "Пройти квиз". Items are
+  `space-2` apart; a hidden item takes no space.
+- The quiz check row (F15, from #36; `quiz.md` "Quiz check row in Проверки"): status "Ответы не
+  отправлялись" with the `muted` dotted ring before any attempt; no closed note; the panel holds the counter,
+  then, while an attempt can be made, "Пройти квиз": `button.button`, outline, sm, a direct child of the
+  panel drawn on a line of its own (`.check-row-panel > .button`). Outline, not default, because the page's
+  one default action in the check area is "Проверить" and this is a way into another tab; sm, as
+  "Подробности", the other button a panel holds; 2rem tall, above the 24px target minimum. Its boundary is
+  `input` on `background` (3.641:1 / 3.606:1, validator).
 - `.error-details` is the one class for every "Подробности" block (environment status bar F8, check row
   runner error F13): mono `text-xs` on `muted`, wrapping. It replaces `.env-details` (#69); the class was
   renamed, not aliased, so a page still using `.env-details` renders unstyled.
@@ -244,11 +263,102 @@ is `list-disc pl-6 text-sm [&>li+li]:mt-1`, `apps/web/components/lesson/outcomes
 the description. Buttons: "Отмена" outline with initial focus, "Запустить" default; filled `destructive`
 stays reserved for "Сбросить".
 
-`apps/web` ships none of the check pieces yet: no check bar, check row, status icon, timer, AlertDialog,
-Collapsible or environment status bar under `apps/web/components` (checked for #69 on 2026-11-04; its
-`components/ui` holds alert, badge, breadcrumb, button, card, dropdown-menu, empty, field, input, item,
-label, progress, separator, spinner, tabs). #34 builds them from this section and `checks.md`; nothing here
-describes a shipped difference.
+`apps/web` ships none of the check pieces yet: no check bar, check row, status icon, AlertDialog or
+Collapsible under `apps/web/components` (rechecked for #70 on 2026-11-10; its `components/ui` holds alert,
+badge, breadcrumb, button, card, dropdown-menu, empty, field, input, item, label, progress, separator,
+spinner, tabs). The environment status bar and its timer shipped with #105
+(`components/environment/environment-panel.tsx:178`, `:262`), after this paragraph was first written. #34
+builds the check pieces from this section and `checks.md`; nothing here describes a shipped difference.
+
+### Quiz panel (F15, from #36)
+
+The Квиз tab panel, `design/flows/quiz.md` "Quiz panel, in DOM order" and "Question block". None of it is in
+`apps/web` yet: no RadioGroup, Checkbox, quiz component or `chosen` icon; #36 builds them from this section.
+Markup, in DOM order (ids are the page's):
+
+```html
+<div class="quiz">
+  <div class="quiz-intro">
+    <h2 id="quiz-heading" tabindex="-1"><!-- the quiz check title --></h2>
+    <div class="quiz-header">
+      <p>Нужно 5 из 6</p>
+      <p>Попытка 3 из 3</p>
+      <span data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span>
+    </div>
+  </div>
+  <!-- result block, error summary: focusable Alerts (below) -->
+  <div class="question" data-anchor-block>
+    <h3 id="q5-heading">Вопрос 5 из 6</h3>
+    <div class="prose" id="q5-prompt"><!-- the prompt Markdown --></div>
+    <p class="field-description" id="q5-note">Засчитывается только точный набор ответов</p>
+    <p class="field-error" id="q5-error">Выберите хотя бы один вариант</p>
+    <div class="choice-group" role="group" aria-labelledby="q5-heading" aria-describedby="q5-prompt q5-note q5-error">
+      <label class="choice"><input class="checkbox" type="checkbox" name="q5" id="q5-a"><span class="choice-text">...</span></label>
+    </div>
+  </div>
+  <!-- send error: a focusable destructive Alert -->
+  <button class="button" type="button" id="quiz-send">Отправить ответы</button>
+</div>
+```
+
+- `.quiz`: parts `space-6` apart; `.quiz-intro` keeps the heading and the header `space-2` apart. The button
+  keeps its own width.
+- `.quiz-header`: muted `text-sm` items `space-4` apart, wrapping, like `.lesson-meta`; the warning is the
+  check row's `[data-tone="warning"]` element (Check row, above).
+- `.question`: `space-3` between its parts; `scroll-margin-top: space-4`. A `single` question uses
+  `role="radiogroup"` and `input.radio` with one `name`; a `multiple` one `role="group"` and `input.checkbox`
+  plus the note. The note is `.field-description` (the app's `FieldDescription`, `ui/field.tsx:123-136`, the
+  same muted `text-sm`); the message is `.field-error`, plain text: never the app's `FieldError`, which renders
+  `role="alert"` (`ui/field.tsx:204`), but a plain `p` as sign-in's `FieldErrorText`
+  (`components/sign-in-form.tsx:208-215`). `aria-describedby` lists prompt, note, error, only those shown.
+- RadioGroup and Checkbox (`.choice-group`, `.choice`, `.radio`, `.checkbox`): shadcn's size-4 controls drawn
+  on native inputs. Boundary `input` (never `border`, 1.260:1); checked: border and dot (radio) or border and
+  fill with a `primary-foreground` check mark (checkbox) in `primary`; focus: the global 2px `ring` outline,
+  2px outside the control, not shadcn's `ring-ring/50` halo ("Focus ring"). shadcn's
+  `dark:bg-input/30` and `disabled:opacity-50` are not used: the control sits on `background` in both themes
+  and nothing turns translucent. `.choice-group` is one class for both groups, `space-3` apart (shadcn's
+  RadioGroup `grid gap-3`; shadcn has no checkbox group), a custom name because neither shadcn name covers
+  both. The `label.choice` wraps the control and `.choice-text`, so the whole label is the target: `text-base`
+  400 (option text is content, not a control label), at least `--hit-min` (24px) tall, as wide as its text.
+  shadcn's examples pair `RadioGroupItem` and `Label` by `id` / `htmlFor`; the app may wrap instead, as the
+  "Choice Card" example does with `FieldLabel`, as long as the label text is the target. No hover fill: an
+  `accent` row would put the `input` boundary on `muted`, 2.757:1 in dark. `.choice-text` wraps anywhere, so
+  an option of long inline code (`.choice-text code`, the `.prose code` look) never widens the page at 320px
+  (WCAG 1.4.10). No letter prefixes. Forced colours fall back to the native controls.
+- Locked while sending: `aria-disabled="true"` on every option input and on its group, never `disabled`
+  (R1). The look stays (a muted fill fails as above; the busy button holds the reason); only the cursor turns
+  `not-allowed`. proto.js cancels the change (click, Space, arrow keys); the app cancels value changes and the
+  arrow keys before Radix handles them (`quiz.md` "Sending").
+- Prompt code: the `.code-block` composition without its header; the `pre` carries
+  `data-scroll-label="Код к вопросу"`, and proto.js gives it `tabindex="0"`, `role="group"` and that
+  `aria-label` only while it overflows ("proto.js API"). Its focus ring is the global outline, rounded to the
+  block's corners.
+- Result block, error summary, send error: the focusable-message Alert (inventory, Alert), never
+  `role="alert"`; the app's `Alert` renders `role="alert"` (`ui/alert.tsx:36`) and is overridden with
+  `role="group" tabIndex={-1}` as sign-in does (`components/sign-in-form.tsx:232-238`). Result block: default
+  variant, leading icon by outcome (`destructive` cross failed, `success` check mark passed, `closed` lock
+  closed, `warning` refused), the title, then one `p.alert-description` per line, the lesson line last, every
+  line id in `aria-describedby`. Error summary: destructive variant, the title, then `ul.alert-links`, one link
+  per unanswered question to its first option (`href="#<option id>"`). Each link is at least 24px tall, so it
+  meets WCAG 2.5.8 by size; the spacing exception is not needed. Send error: destructive variant, the title
+  only. Load error: the plain destructive Alert (no role, no tabindex) with "Повторить" (secondary, sm)
+  described by the title.
+- Review (F15.5): the group is replaced by `ul.review-options` (`role="list"`, because `list-style: none`
+  drops the list role in Safari). Each `li.review-option` holds the `.choice-indicator` (`aria-hidden`, the
+  control's look, `data-checked="true"` for the learner's choice), then `.review-option-body` with
+  `.choice-text` and, when a mark applies, `.review-marks`: `span.review-mark` "Ваш ответ" with the `chosen`
+  icon, "Верный ответ" with the `success` check mark, `text-sm` in `foreground`, a space between the two
+  marks. Not inputs: `readonly` does not apply to radios and checkboxes, `disabled` drops Tab and contrast
+  (`quiz.md` "Question block").
+- Verdict in the h3: `<h3 id="q5-heading">Вопрос 5 из 6 <span class="verdict"><span class="status-icon"
+  data-status="destructive" aria-hidden="true"></span>Неверно</span></h3>` (`success` check mark with
+  "Верно"). Inline, not flex, so the space before the verdict is rendered and the heading's name reads "Вопрос
+  5 из 6 Неверно" (checked in Chromium's accessibility tree); the heading keeps its size and weight, which
+  `.icon-note` would drop.
+- Explanation: `div.explanation` holding `h4` "Пояснение" (the base h4: `text-base`, 600) and the rendered
+  Markdown in `.prose`, `space-2` apart, after the review list.
+- Quiz notice (P9): the idle warning's composition (default Alert, info icon, title, sm "Открыть квиз" in
+  `.alert-actions`, no role on the Alert) in a third container of `.notifications`; no new class.
 
 Top bar rules, the same on every page: `<header class="topbar" data-region>` is the banner; the lesson
 page may name it with the register's region name "Верхняя панель" (an F6 stop). `.topbar-nav` is the
@@ -273,8 +383,10 @@ All behaviour is delegated on `document`; no per-page script is needed.
   a state names it in `<nav class="proto-chrome" data-state-index>`, which proto.js fills with
   `#state-` links. Do not put `data-state` on `.pane` elements (the one-pane switch owns their
   `hidden`); put it on their children.
-- **Live containers (R2).** Put each container in the page once, empty, with `data-live-key="<key>"`
-  (and its `role`). Its content per state comes from `<template data-live-source="<key>"
+- **Live containers (R2).** Put each container in the page once, empty, with `data-live-key="<key>"`,
+  its `role` and an explicit `aria-live` matching it (`polite` with `role="status"`, `assertive` with
+  `role="alert"`), because a modal menu or dialog's `hideOthers` spares only `[aria-live]` nodes (`ia.md`
+  R2); content placed in it carries no live role of its own (an Alert there has no `role`). Its content per state comes from `<template data-live-source="<key>"
   data-state="<names>">`; the container is never removed, only its children are replaced. Initial content:
   a container may hold children with `data-state` in the page markup (the nothing-to-run states of the check
   status line, A69-6); on the first render the children whose `data-state` lists the loaded state stay and no
@@ -282,7 +394,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
   are removed. Every later state takes the container's content from its templates, so such a state also needs
   a template for arrival by a transition. Notifications
   wrapper: `<div class="notifications" data-notifications data-region>` holding `<h2 class="sr-only"
-  id="..." data-notifications-heading>Уведомления</h2>` and its two containers; proto.js gives it
+  id="..." data-notifications-heading>Уведомления</h2>` and its containers (F2.1 `page-alert`, F10.1
+  `page-status`, and on a lesson with a quiz the quiz notice's, in that order); proto.js gives it
   `role="region"` and `aria-labelledby` only while a container has content.
 - **Status-text gap (check status line only).** Every content change of the container
   `data-live-key="check-status"` goes through one queue (`PROTO_STATUS_TEXT_GAP_MS` = 150, the prototype's
@@ -309,7 +422,10 @@ All behaviour is delegated on `document`; no per-page script is needed.
   "Содержание", catalog module links) moves focus to its target and scrolls it to the top, without
   changing the URL, so a reload keeps the `#state-` hash. The focus lands on the target when it is
   focusable or has `tabindex`, else on its first `h1`-`h4` with `tabindex="-1"` (a `section` whose
-  heading is the landing point), else on the target made `tabindex="-1"`. Arrival with an anchor hash
+  heading is the landing point), else on the target made `tabindex="-1"`. A target inside a
+  `[data-anchor-block]` (the quiz question block) scrolls that block's top into view instead, then the target
+  if it is still out of view, so an error summary link shows the question's heading above the focused option;
+  focusing selects nothing. Arrival with an anchor hash
   (`catalog#<moduleId>`, e.g. `catalog#introduction`, from the dashboard) does the same once the page has loaded (after `load`, one
   task later, so the browser's own fragment navigation cannot leave focus on `body`); a typed anchor hash
   does it on `hashchange`. No page script is
@@ -386,7 +502,16 @@ All behaviour is delegated on `document`; no per-page script is needed.
   closes it unless the trigger has keyboard focus (a click's focus does not pin it). A transparent
   `.tooltip::before` bridge covers the `space-2` gap on the tip's side, so the pointer can travel from the
   trigger onto the tip without the tip closing (WCAG 1.4.13; traced on the split handle).
-- **R1.** Any click on `[aria-disabled="true"]` is swallowed in the capture phase.
+- **R1.** Any click on `[aria-disabled="true"]` is swallowed in the capture phase. For a radio or checkbox
+  inside `[aria-disabled="true"]` (itself or its group: the quiz answers while sending) Space and the arrow
+  keys are cancelled too, in the capture phase: the click capture alone keeps the checked state (a
+  cancelled click restores it), but an arrow key would still move focus to an unchecked radio; with the keys
+  cancelled nothing changes and focus stays on the option (Chromium and WebKit, headless; Firefox not run).
+- **Scrollable code.** `data-scroll-label="<name>"` on a `pre` (the quiz prompt's code block,
+  `aria-label` "Код к вопросу"): while its lines overflow it has `tabindex="0"`, `role="group"` and
+  `aria-label="<name>"`, otherwise none of them, decided by a `ResizeObserver` (load, state changes, the
+  one-pane switch, the window width); a focused one that stops overflowing keeps them until it loses focus.
+  Only elements present at start are observed.
 - **Copy.** `data-copy="<selector>"` copies that element's text; on denial the label becomes
   `data-copy-denied`.
 - `window.proto` exposes `setState(name)` (a change the learner did not make here: focus repair and the B9
@@ -542,6 +667,29 @@ words at rest), `foreground` on `muted` (`.error-details`, `.check-row-message`)
 --foreground on --background: oklch(0.985 0 0) on oklch(0.145 0 0): 18.968:1
 --foreground on --muted: oklch(0.985 0 0) on oklch(0.269 0 0): 14.499:1
 --muted-foreground on --background: oklch(0.708 0 0) on oklch(0.145 0 0): 7.663:1
+```
+
+Quiz controls and review (#70), light then dark: `primary` on `background` (the checked radio border and
+dot, the checked checkbox fill: 3:1 as a control state, WCAG 1.4.11), `primary-foreground` on `primary` (the
+check mark), `foreground` on `background` (the `chosen` mark, the verdict and mark words) and on `card` (the
+error summary links), `input` on `muted` in dark (why options have no hover fill: below 3:1, a reason, not
+a pass). Pairs the validator already measures are not repeated: `input` and `ring` on `background` (the
+unchecked boundary and the focus ring), `muted-foreground` on `background` (the quiz header, the exact-set
+note), `destructive` on `background` (the per-question error). The locked options keep every value above.
+No token changed.
+
+```
+## :root
+--primary on --background: oklch(0.205 0 0) on oklch(1 0 0): 17.928:1
+--primary-foreground on --primary: oklch(0.985 0 0) on oklch(0.205 0 0): 17.176:1
+--foreground on --background: oklch(0.145 0 0) on oklch(1 0 0): 19.798:1
+--foreground on --card: oklch(0.145 0 0) on oklch(1 0 0): 19.798:1
+## .dark
+--primary on --background: oklch(0.922 0 0) on oklch(0.145 0 0): 15.717:1
+--primary-foreground on --primary: oklch(0.205 0 0) on oklch(0.922 0 0): 14.232:1
+--foreground on --background: oklch(0.985 0 0) on oklch(0.145 0 0): 18.968:1
+--foreground on --card: oklch(0.985 0 0) on oklch(0.205 0 0): 17.176:1
+--input on --muted: oklch(0.52 0 0) on oklch(0.269 0 0): 2.757:1
 ```
 
 ## Validator output

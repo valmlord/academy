@@ -22,12 +22,17 @@
     .demo-narrow { max-width: 20rem; border: 1px solid var(--border); border-radius: var(--radius-lg); }
     /* The page h1 at its own size, inside the gallery's heading outline (h2 column, h3 section). */
     .gallery-h1 { font-size: var(--text-2xl); line-height: var(--text-2xl-line); }
+    /* The quiz panel h2 and the question h3 at their page sizes. */
+    .gallery-h2 { font-size: var(--text-xl); line-height: var(--text-xl-line); }
+    .gallery-h3 { font-size: var(--text-lg); line-height: var(--text-lg-line); }
+    /* The explanation h4, one level down in the gallery outline: the base h4 look (text-base, 600). */
+    .gallery-h4 { margin: 0; font-size: var(--text-base); line-height: var(--text-base-line); font-weight: 600; }
   </style>
 </head>
 <body>
 <header class="page stack" data-gap="2">
   <h1>Design system v1: component gallery</h1>
-  <p class="muted">Every component of the inventory in <code>design/system/README.md</code> and the seven compositions, light on the left (or on top), dark on the right. Russian text is UI copy. Opens by double-click; nothing loads from the network.</p>
+  <p class="muted">Every component of the inventory in <code>design/system/README.md</code> and every composition, light on the left (or on top), dark on the right. Russian text is UI copy. Opens by double-click; nothing loads from the network.</p>
 </header>
 
 <div class="gallery">
@@ -73,6 +78,34 @@
       </div>
       <div class="card-footer"><button class="button" type="submit">Войти</button></div>
     </form>
+  </div>
+
+  <div class="gallery-section">
+    <h3>RadioGroup and Checkbox</h3>
+    <div class="stack" data-gap="6" lang="ru">
+      <div class="question">
+        <h4 class="gallery-h3" id="g-rq1-heading">Вопрос 1 из 6</h4>
+        <div class="choice-group" role="radiogroup" aria-labelledby="g-rq1-heading">
+          <label class="choice"><input class="radio" type="radio" name="g-rq1"><span class="choice-text">Только длину скрытого рассуждения перед финальным ответом пользователю</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-rq1" checked><span class="choice-text">Расход токенов на весь вывод модели, включая вызовы инструментов</span></label>
+        </div>
+      </div>
+      <div class="question">
+        <h4 class="gallery-h3" id="g-rq5-heading">Вопрос 5 из 6</h4>
+        <div class="choice-group" role="group" aria-labelledby="g-rq5-heading">
+          <label class="choice"><input class="checkbox" type="checkbox" checked><span class="choice-text">Увеличить окно контекста модели в настройках локального сервера</span></label>
+          <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text">Поднять уровень усилия, чтобы модель лучше запоминала инструменты</span></label>
+        </div>
+      </div>
+      <div class="question">
+        <h4 class="gallery-h3" id="g-rq2-heading">Вопрос 2 из 6</h4>
+        <div class="choice-group" role="radiogroup" aria-labelledby="g-rq2-heading" aria-disabled="true">
+          <label class="choice"><input class="radio" type="radio" name="g-rq2" aria-disabled="true"><span class="choice-text">Дописать в промпт просьбу думать тщательнее и повторить запуск</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-rq2" aria-disabled="true" checked><span class="choice-text">Проверить, какое усилие реально выставлено в этой поверхности</span></label>
+        </div>
+      </div>
+    </div>
+    <p class="gallery-note">Native inputs drawn as shadcn's RadioGroupItem and Checkbox (size-4): boundary --input, checked --primary, the 2px --ring focus ring. The label wraps the control and its text, so the whole label is the target, at least 24px tall. Third group: locked while sending, aria-disabled on the group and every option; the look does not change (only the cursor), click, Space and the arrow keys change nothing, and the options stay in the Tab order. On the page the heading is the question h3 (here h4 in the gallery outline).</p>
   </div>
 
   <div class="gallery-section">
@@ -321,12 +354,13 @@
       </header>
       <div class="notifications" role="region" aria-labelledby="g-notifications-heading">
         <h2 class="sr-only" id="g-notifications-heading">Уведомления</h2>
-        <div class="live" role="alert"><div class="alert" data-variant="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p><div class="alert-actions"><a class="button" data-size="sm" href="#g-sign-in">Войти снова</a></div></div></div>
-        <div class="live" role="status"></div>
+        <div class="live" role="alert" aria-live="assertive"><div class="alert" data-variant="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p><div class="alert-actions"><a class="button" data-size="sm" href="#g-sign-in">Войти снова</a></div></div></div>
+        <div class="live" role="status" aria-live="polite"></div>
+        <div class="live" role="status" aria-live="polite"><div class="alert"><span class="status-icon" data-status="info" aria-hidden="true"></span><p class="alert-title">Ответы квиза проверены. Верно 4 из 6. Нужно 5.</p><div class="alert-actions"><button class="button" type="button" data-size="sm">Открыть квиз</button></div></div></div>
       </div>
       <div class="page"><p class="muted text-sm">main</p></div>
     </div>
-    <p class="gallery-note">Static here. On pages the containers are filled by proto.js from templates (data-live-key, data-live-source) and the wrapper is a region only while one holds content (R2). The bar is the pages' markup: header data-region with no aria-label on every page (the banner role names it), the only nav without a label, the user menu with data-menu-trigger.</p>
+    <p class="gallery-note">Static here. On pages the containers are filled by proto.js from templates (data-live-key, data-live-source) and the wrapper is a region only while one holds content (R2). Each container carries an explicit aria-live matching its role (assertive with alert, polite with status), so a modal menu or dialog, whose hideOthers spares only [aria-live] nodes, never hides it; the Alert inside has no role, the container is the only live element. Containers in order: the F2.1 session alert, the F10.1 idle warning (empty here), the quiz notice (F15, from #36): the idle warning's composition with "Открыть квиз". The bar is the pages' markup: header data-region with no aria-label on every page (the banner role names it), the only nav without a label, the user menu with data-menu-trigger.</p>
   </div>
 
   <div class="gallery-section">
@@ -356,7 +390,7 @@
     <h3>Composition: environment status bar and terminal frame</h3>
     <div class="stack" data-gap="2" lang="ru">
       <div class="env-statusbar">
-        <div class="env-status"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="env-status-text"><span role="status">Окружение работает</span><span class="env-status-note">Рабочая папка сброшена</span></span></div>
+        <div class="env-status"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="env-status-text"><span role="status" aria-live="polite">Окружение работает</span><span class="env-status-note">Рабочая папка сброшена</span></span></div>
         <div class="env-actions"><button class="button" type="button" data-variant="outline" data-size="sm">Действия</button></div>
         <p class="env-hint" id="g-env-hint"><kbd class="kbd">F6</kbd> или Ctrl+Shift+. (клавиша Ю): следующая область</p>
       </div>
@@ -370,14 +404,14 @@
 <span class="ansi-green">learner@academy</span>:<span class="ansi-blue">~/work</span>$ <span class="terminal-cursor"> </span></pre>
       </div>
       <div class="env-statusbar">
-        <div class="env-status"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="env-status-text"><span role="status">Соединение с терминалом потеряно. Переподключаемся...</span></span></div>
+        <div class="env-status"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="env-status-text"><span role="status" aria-live="polite">Соединение с терминалом потеряно. Переподключаемся...</span></span></div>
       </div>
       <div class="env-statusbar">
-        <div class="env-status"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="env-status-text" role="status"><span>Окружение работает</span><span class="env-status-note" data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу.</span></span></div>
+        <div class="env-status"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="env-status-text" role="status" aria-live="polite"><span>Окружение работает</span><span class="env-status-note" data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу.</span></span></div>
       </div>
       <div class="terminal-frame" data-connection="lost" aria-label="Терминал"><pre class="terminal-output">learner@academy:~/work$ <span class="terminal-cursor"> </span></pre></div>
       <div class="env-statusbar">
-        <div class="env-status"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="env-status-text" role="status"><span>Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".</span></span></div>
+        <div class="env-status"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="env-status-text" role="status" aria-live="polite"><span>Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".</span></span></div>
         <div class="env-actions">
           <button class="button" type="button" data-size="sm">Повторить</button>
           <button class="button collapsible-trigger" type="button" data-variant="ghost" data-size="sm" data-collapsible aria-expanded="true" aria-controls="g-env-details">Подробности</button>
@@ -396,12 +430,12 @@
           <button class="button" type="button" data-variant="outline">К окружению</button>
           <button class="button" type="button" data-variant="ghost">Открыть результаты</button>
         </div>
-        <div class="check-bar-status"><span role="status">Пройдено: 2 из 3</span></div>
+        <div class="check-bar-status"><span role="status" aria-live="polite">Пройдено: 2 из 3</span></div>
         <p class="disabled-reason" id="g-check-reason">Сначала запустите окружение</p>
       </div>
       <div class="check-bar">
         <div class="check-bar-controls"><button class="button" type="button" aria-disabled="true" aria-describedby="g-check-reason-2">Проверить</button></div>
-        <div class="check-bar-status"><span class="spinner" aria-hidden="true"></span><span role="status">Идёт проверка</span><span class="timer" role="timer">0:42</span></div>
+        <div class="check-bar-status"><span class="spinner" aria-hidden="true"></span><span role="status" aria-live="polite">Идёт проверка</span><span class="timer" role="timer">0:42</span></div>
         <p class="disabled-reason" id="g-check-reason-2">Дождитесь окончания проверки</p>
       </div>
       <ul class="check-list">
@@ -470,9 +504,218 @@
             <p class="text-sm muted">Неудачных попыток: 10 из 10</p>
           </div>
         </li>
+        <li>
+          <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-row-quiz">
+            <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+            <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+            <span class="check-row-status">Ответы не отправлялись</span>
+          </button>
+          <div class="check-row-panel" id="g-row-quiz">
+            <p class="text-sm muted">Неудачных попыток: 0 из 3</p>
+            <button class="button" type="button" data-variant="outline" data-size="sm">Пройти квиз</button>
+          </div>
+        </li>
+        <li>
+          <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-row-quiz-closed">
+            <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+            <span class="check-row-title">Квиз: effort, поверхности и локальные модели</span>
+            <span class="check-row-status">Закрыта: не пройдено</span>
+          </button>
+          <div class="check-row-panel" id="g-row-quiz-closed">
+            <p class="text-sm muted">Неудачных попыток: 3 из 3</p>
+          </div>
+        </li>
       </ul>
     </div>
-    <p class="gallery-note">Rows: failed, running, timeout, failed with one attempt left (meta warning: warning icon, words in foreground, accent-foreground on hover), runner error (no meta; "Подробности" is the environment's ghost sm collapsible with the same .error-details block), closed (lock, no meta; the closed note first). The in-row time is .check-row-time with no role: it is part of the row button's name. .timer with role="timer" is the standalone time of the check bar and the environment status bar, a sibling of their status container. Titles and grader messages are sample data.</p>
+    <p class="gallery-note">Rows: failed, running, timeout, failed with one attempt left (meta warning: warning icon, words in foreground, accent-foreground on hover), runner error (no meta; "Подробности" is the environment's ghost sm collapsible with the same .error-details block), closed (lock, no meta; the closed note first), the quiz check before any attempt ("Ответы не отправлялись", muted dotted ring; the counter, then "Пройти квиз", outline sm, on a line of its own, the panel's only action) and the closed quiz (no closed note, no action). The in-row time is .check-row-time with no role: it is part of the row button's name. .timer with role="timer" is the standalone time of the check bar and the environment status bar, a sibling of their status container. Titles and grader messages are sample data.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: quiz panel, blocked send</h3>
+    <div class="quiz" lang="ru">
+      <div class="quiz-intro">
+        <h4 class="gallery-h2" id="g-quiz-heading" tabindex="-1">Квиз: effort, поверхности и локальные модели</h4>
+        <div class="quiz-header">
+          <p>Нужно 5 из 6</p>
+          <p>Попытка 3 из 3</p>
+          <span data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span>
+        </div>
+      </div>
+      <div class="alert" data-variant="destructive" id="g-quiz-summary" role="group" tabindex="-1" aria-labelledby="g-quiz-summary-title">
+        <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+        <p class="alert-title" id="g-quiz-summary-title">Ответьте на все вопросы: осталось 2</p>
+        <ul class="alert-links" role="list">
+          <li><a href="#g-q4-a">Вопрос 4 из 6: выберите ответ</a></li>
+          <li><a href="#g-q6-a">Вопрос 6 из 6: выберите хотя бы один вариант</a></li>
+        </ul>
+      </div>
+      <div class="question" data-anchor-block>
+        <h4 class="gallery-h3" id="g-q4-heading">Вопрос 4 из 6</h4>
+        <div class="prose" id="g-q4-prompt"><p>Пример из блога двухлетней давности задаёт параметр рассуждения, который ваша текущая модель отвергает с ошибкой. Какой ход надёжнее всего?</p></div>
+        <p class="field-error" id="g-q4-error">Выберите ответ</p>
+        <div class="choice-group" role="radiogroup" aria-labelledby="g-q4-heading" aria-describedby="g-q4-prompt g-q4-error">
+          <label class="choice"><input class="radio" type="radio" name="g-q4" id="g-q4-a"><span class="choice-text">Подобрать значение параметра, при котором ошибка пропадёт</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-q4"><span class="choice-text">Откатиться на модель того поколения, для которой писали пример</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-q4"><span class="choice-text">Открыть текущую документацию этой модели и взять способ оттуда</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-q4"><span class="choice-text">Заменить параметр похожим по названию из нового API</span></label>
+        </div>
+      </div>
+      <div class="question" data-anchor-block>
+        <h4 class="gallery-h3" id="g-q6-heading">Вопрос 6 из 6</h4>
+        <div class="prose" id="g-q6-prompt"><p>Команда спорит, переводить ли часть работы агента на локальную модель. Какие доводы действительно оправдывают локальный запуск? Выберите все верные.</p></div>
+        <p class="field-description" id="g-q6-note">Засчитывается только точный набор ответов</p>
+        <p class="field-error" id="g-q6-error">Выберите хотя бы один вариант</p>
+        <div class="choice-group" role="group" aria-labelledby="g-q6-heading" aria-describedby="g-q6-prompt g-q6-note g-q6-error">
+          <label class="choice"><input class="checkbox" type="checkbox" id="g-q6-a"><span class="choice-text">Код или данные по договору не могут покидать машину разработчика</span></label>
+          <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text">Локальная модель бесплатна, значит любая задача на ней выйдет дешевле</span></label>
+          <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text">Работа идёт в закрытом контуре или офлайн, без доступа к облаку</span></label>
+          <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text">Локальная модель того же размера даёт то же качество, что облачная</span></label>
+        </div>
+      </div>
+      <button class="button" type="button">Отправить ответы</button>
+    </div>
+    <p class="gallery-note">Panel order: heading (the check title, data; h2 tabindex="-1" on the page), header, result block, error summary, questions, send error, "Отправить ответы". The header's last-attempt warning is the check row meta's [data-tone="warning"] element. The error summary is the focusable-message Alert (role="group", tabindex="-1", never role="alert") with .alert-links: every link is at least 24px tall and goes to the question's first option; the question block (data-anchor-block) scrolls into view with its heading. Per question: h3 naming the group (aria-labelledby), prompt (.prose), the exact-set note (.field-description, multiple only), the plain-text .field-error (not the app's FieldError, which renders role="alert"), then the group, described by prompt, note and error in that order. Questions are sample data from models-effort-quiz.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: quiz panel, sending</h3>
+    <div class="quiz" lang="ru">
+      <div class="question">
+        <h4 class="gallery-h3" id="g-qs1-heading">Вопрос 1 из 6</h4>
+        <div class="prose" id="g-qs1-prompt"><p>Агент на высоком уровне усилия (effort) делает 40 вызовов инструментов за задачу и работает заметно медленнее, чем на <code>low</code>. Что именно меняет уровень усилия в таком запуске?</p></div>
+        <div class="choice-group" role="radiogroup" aria-labelledby="g-qs1-heading" aria-describedby="g-qs1-prompt" aria-disabled="true">
+          <label class="choice"><input class="radio" type="radio" name="g-qs1" aria-disabled="true"><span class="choice-text">Только длину скрытого рассуждения перед финальным ответом пользователю</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-qs1" aria-disabled="true" checked><span class="choice-text">Расход токенов на весь вывод модели, включая вызовы инструментов</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-qs1" aria-disabled="true"><span class="choice-text">Жёсткий лимит токенов на запрос, который модель не может превысить</span></label>
+          <label class="choice"><input class="radio" type="radio" name="g-qs1" aria-disabled="true"><span class="choice-text">Количество инструментов, которые харнесс разрешает модели вызвать</span></label>
+        </div>
+      </div>
+      <button class="button" type="button" aria-disabled="true" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Отправляем...</button>
+    </div>
+    <p class="gallery-note">While sending: the Button busy pattern (aria-busy plus aria-disabled, Spinner, the busy label is the reason, R1) and every option and group aria-disabled; nothing else changes look.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: quiz result block, send error, load error</h3>
+    <div class="stack" lang="ru">
+      <div class="alert" id="g-result-failed" role="group" tabindex="-1" aria-labelledby="g-result-failed-title" aria-describedby="g-result-failed-description">
+        <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+        <p class="alert-title" id="g-result-failed-title">Верно 4 из 6. Нужно 5.</p>
+        <p class="alert-description" id="g-result-failed-description">Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки.</p>
+      </div>
+      <div class="alert" id="g-result-passed" role="group" tabindex="-1" aria-labelledby="g-result-passed-title" aria-describedby="g-result-passed-score g-result-passed-review g-result-passed-lesson">
+        <span class="status-icon" data-status="success" aria-hidden="true"></span>
+        <p class="alert-title" id="g-result-passed-title">Квиз пройден</p>
+        <p class="alert-description" id="g-result-passed-score">Верно 5 из 6.</p>
+        <p class="alert-description" id="g-result-passed-review">Ниже верные ответы и пояснения.</p>
+        <p class="alert-description" id="g-result-passed-lesson">Урок пройден</p>
+      </div>
+      <div class="alert" id="g-result-closed" role="group" tabindex="-1" aria-labelledby="g-result-closed-title" aria-describedby="g-result-closed-score g-result-closed-review">
+        <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+        <p class="alert-title" id="g-result-closed-title">Квиз не пройден: попытки исчерпаны</p>
+        <p class="alert-description" id="g-result-closed-score">Верно 4 из 6. Нужно 5.</p>
+        <p class="alert-description" id="g-result-closed-review">Ниже верные ответы и пояснения.</p>
+      </div>
+      <div class="alert" id="g-result-refused" role="group" tabindex="-1" aria-labelledby="g-result-refused-title" aria-describedby="g-result-refused-latest">
+        <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+        <p class="alert-title" id="g-result-refused-title">Ответы не приняты: квиз изменился в другой вкладке.</p>
+        <p class="alert-description" id="g-result-refused-latest">Последний результат: Верно 3 из 6. Нужно 5.</p>
+      </div>
+      <div class="alert" data-variant="destructive" id="g-send-error" role="group" tabindex="-1" aria-labelledby="g-send-error-title">
+        <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+        <p class="alert-title" id="g-send-error-title">Ответы не отправлены. Попробуйте снова.</p>
+      </div>
+      <div class="alert" data-variant="destructive">
+        <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+        <p class="alert-title" id="g-quiz-load-error-title">Не удалось загрузить квиз</p>
+        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" aria-describedby="g-quiz-load-error-title">Повторить</button></div>
+      </div>
+    </div>
+    <p class="gallery-note">Result block (failed, passed with the lesson line, closed, refused while the quiz is open) and send error: focusable messages (role="group", tabindex="-1", aria-labelledby the title, aria-describedby every line in order), never role="alert". Default variant with the icon of the outcome: cross (failed), check mark (passed), lock (closed), warning (refused); the send error is the destructive variant. One p.alert-description per line; the lesson line comes last. Load error: the plain destructive Alert of the lesson text load error (no role, no tabindex), its "Повторить" described by the title.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: quiz review</h3>
+    <div class="quiz" lang="ru">
+      <div class="question">
+        <h4 class="gallery-h3" id="g-r1-heading">Вопрос 1 из 6 <span class="verdict"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верно</span></h4>
+        <div class="prose"><p>Агент на высоком уровне усилия (effort) делает 40 вызовов инструментов за задачу и работает заметно медленнее, чем на <code>low</code>. Что именно меняет уровень усилия в таком запуске?</p></div>
+        <ul class="review-options" role="list">
+          <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Только длину скрытого рассуждения перед финальным ответом пользователю</span></span></li>
+          <li class="review-option"><span class="choice-indicator" data-type="radio" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Расход токенов на весь вывод модели, включая вызовы инструментов</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+          <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Жёсткий лимит токенов на запрос, который модель не может превысить</span></span></li>
+          <li class="review-option"><span class="choice-indicator" data-type="radio" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Количество инструментов, которые харнесс разрешает модели вызвать</span></span></li>
+        </ul>
+        <div class="explanation">
+          <h5 class="gallery-h4">Пояснение</h5>
+          <div class="prose"><p>Effort - поведенческий сигнал, а не жёсткий бюджет токенов, и он действует на весь вывод модели: текст, рассуждение и вызовы инструментов.</p></div>
+        </div>
+      </div>
+      <div class="question">
+        <h4 class="gallery-h3" id="g-r5-heading">Вопрос 5 из 6 <span class="verdict"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Неверно</span></h4>
+        <div class="prose"><p>Локальная модель запущена с окном контекста 4096 токенов, и агент на ней постоянно ломает вызовы инструментов. Какие изменения могут помочь? Выберите все верные.</p></div>
+        <p class="field-description">Засчитывается только точный набор ответов</p>
+        <ul class="review-options" role="list">
+          <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Увеличить окно контекста модели в настройках локального сервера</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span> <span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+          <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Взять локальную модель, которая обучена вызывать инструменты</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+          <li class="review-option"><span class="choice-indicator" data-type="checkbox" data-checked="true" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Поднять уровень усилия, чтобы модель лучше запоминала инструменты</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="chosen" aria-hidden="true"></span>Ваш ответ</span></span></span></li>
+          <li class="review-option"><span class="choice-indicator" data-type="checkbox" aria-hidden="true"></span><span class="review-option-body"><span class="choice-text">Сократить число подключённых инструментов и их описаний</span><span class="review-marks"><span class="review-mark"><span class="status-icon" data-status="success" aria-hidden="true"></span>Верный ответ</span></span></span></li>
+        </ul>
+        <div class="explanation">
+          <h5 class="gallery-h4">Пояснение</h5>
+          <div class="prose"><p>Помогают большее окно, модель с поддержкой инструментов и меньше определений в контексте. Уровень усилия не расширяет окно и не учит модель формату вызовов.</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="gallery-note">Review (F15.5): a static list, no inputs and no Tab stop. The verdict sits inside the h3 (.verdict: status icon plus "Верно" or "Неверно", heading size and weight), separated from "Вопрос I из Q" by a space, so the heading's name reads both. Each option: the drawn indicator (.choice-indicator, aria-hidden, the RadioGroup or Checkbox look), its text, then its marks as words with icons of their own shape: "Ваш ответ" a ring with a dot (data-status="chosen"), "Верный ответ" the check mark. A chosen wrong option shows only "Ваш ответ", a missed correct one only "Верный ответ". The explanation: h4 "Пояснение" (h5 in the gallery outline) and the rendered Markdown. Explanations are shortened sample data.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: quiz questions with code at 320px</h3>
+    <div class="demo-narrow" lang="ru">
+      <div class="quiz page">
+        <div class="question">
+          <h4 class="gallery-h3" id="g-qc1-heading">Вопрос 1 из 5</h4>
+          <div class="prose" id="g-qc1-prompt">
+            <p>Claude Code 2.1.311, настройки по умолчанию. Ни в одном каталоге дерева нет <code>CLAUDE.md</code>, <code>.claude/CLAUDE.md</code> или <code>CLAUDE.local.md</code>. Сессию запускают из <code>/work/mono/packages/api</code>.</p>
+            <div class="code-block"><pre data-scroll-label="Код к вопросу"><code>/work/mono/
+├── AGENTS.md
+└── packages/
+    ├── api/
+    │   ├── AGENTS.md
+    │   └── .claude/
+    │       └── AGENTS.md
+    └── web/
+        └── AGENTS.md</code></pre></div>
+            <p>Какие файлы Claude Code загрузит при запуске? Выберите все верные.</p>
+          </div>
+          <p class="field-description" id="g-qc1-note">Засчитывается только точный набор ответов</p>
+          <div class="choice-group" role="group" aria-labelledby="g-qc1-heading" aria-describedby="g-qc1-prompt g-qc1-note">
+            <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text"><code>/work/mono/AGENTS.md</code></span></label>
+            <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text"><code>/work/mono/packages/api/AGENTS.md</code></span></label>
+            <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text"><code>/work/mono/packages/api/.claude/AGENTS.md</code></span></label>
+            <label class="choice"><input class="checkbox" type="checkbox"><span class="choice-text"><code>/work/mono/packages/web/AGENTS.md</code></span></label>
+          </div>
+        </div>
+        <div class="question">
+          <h4 class="gallery-h3" id="g-qc2-heading">Вопрос 2 из 5</h4>
+          <div class="prose" id="g-qc2-prompt">
+            <p>Claude Code 2.1.311, настройки по умолчанию. Сессию запускают из <code>/srv/app</code>.</p>
+            <div class="code-block"><pre data-scroll-label="Код к вопросу"><code>/srv/app/
+├── CLAUDE.md      (одна строка: @AGENTS.md)
+└── AGENTS.md</code></pre></div>
+            <p>Что окажется в контексте при запуске?</p>
+          </div>
+          <div class="choice-group" role="radiogroup" aria-labelledby="g-qc2-heading" aria-describedby="g-qc2-prompt">
+            <label class="choice"><input class="radio" type="radio" name="g-qc2"><span class="choice-text">CLAUDE.md и через импорт содержимое AGENTS.md, один раз</span></label>
+            <label class="choice"><input class="radio" type="radio" name="g-qc2"><span class="choice-text">Только CLAUDE.md: при наличии CLAUDE.md файл AGENTS.md игнорируется</span></label>
+            <label class="choice"><input class="radio" type="radio" name="g-qc2"><span class="choice-text">AGENTS.md дважды: сам по себе и ещё раз через импорт в CLAUDE.md</span></label>
+            <label class="choice"><input class="radio" type="radio" name="g-qc2"><span class="choice-text">Только AGENTS.md: строка импорта заменяет собой файл CLAUDE.md</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="gallery-note">A prompt code block is .code-block without its header (no "Копировать"); it keeps its lines and scrolls sideways inside itself. data-scroll-label makes proto.js give the pre tabindex="0", role="group" and aria-label="Код к вопросу" only while it overflows, and keep them until blur when a focused block stops overflowing. In this 20rem box the first tree (25 characters a line) fits and is no Tab stop; the second (44 characters) overflows and is one. Option text with long inline code wraps (overflow-wrap: anywhere), so no option widens the page at 320px. Sample data from 05-memory-agents-md.</p>
   </div>
 
   <div class="gallery-section">
@@ -537,7 +780,7 @@
         <section class="check-bar" aria-labelledby="g2-check-h">
           <h2 class="sr-only" id="g2-check-h">Проверка</h2>
           <div class="check-bar-controls"><button class="button" type="button">Проверить</button></div>
-          <div class="check-bar-status"><span role="status"></span></div>
+          <div class="check-bar-status"><span role="status" aria-live="polite"></span></div>
         </section>
         <div class="resizable-handle tooltip-anchor" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Граница панелей" aria-valuemin="25" aria-valuemax="75" aria-valuenow="50" data-presets="50 35 65" data-tooltip="g2-tip-handle" aria-describedby="g2-tip-handle">
           <span class="resizable-handle-grip" aria-hidden="true"></span>
@@ -545,7 +788,7 @@
         </div>
         <section class="pane" data-pane="environment" aria-labelledby="g2-env-h">
           <h2 class="sr-only" id="g2-env-h">Окружение</h2>
-          <div class="env-statusbar"><div class="env-status"><span class="spinner" aria-hidden="true"></span><span role="status">Запускаем окружение</span><span class="timer" role="timer">0:07</span></div></div>
+          <div class="env-statusbar"><div class="env-status"><span class="spinner" aria-hidden="true"></span><span role="status" aria-live="polite">Запускаем окружение</span><span class="timer" role="timer">0:07</span></div></div>
           <div class="env-tabs"><div class="terminal-placeholder">Запускаем окружение</div></div>
         </section>
       </div>
@@ -587,7 +830,7 @@
             <button class="button" type="button" aria-disabled="true" aria-describedby="g1-reason">Проверить</button>
             <button class="button" type="button" data-variant="outline" data-show-pane="environment" data-focus="#g1-restart">К окружению</button>
           </div>
-          <div class="check-bar-status"><span role="status"></span></div>
+          <div class="check-bar-status"><span role="status" aria-live="polite"></span></div>
           <p class="disabled-reason" id="g1-reason">Сначала запустите окружение</p>
         </section>
         <section class="pane" data-pane="environment" aria-labelledby="g1-env-h">
@@ -597,7 +840,7 @@
             <button class="tabs-trigger" type="button" role="tab" data-show-pane="environment">Окружение<span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="sr-only"> остановлено</span></button>
           </div></div>
           <div class="env-statusbar">
-            <div class="env-status"><span class="status-icon" data-status="muted" aria-hidden="true"></span><span role="status">Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены.</span></div>
+            <div class="env-status"><span class="status-icon" data-status="muted" aria-hidden="true"></span><span role="status" aria-live="polite">Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены.</span></div>
             <div class="env-actions"><button class="button" type="button" data-size="sm" id="g1-restart">Запустить снова</button></div>
           </div>
           <div class="env-tabs"><div class="terminal-placeholder">Окружение остановлено</div></div>
@@ -612,7 +855,8 @@
      so the light and dark copies never share an id. */
   (function () {
     var template = document.getElementById("gallery-content");
-    var idAttributes = ["aria-controls", "aria-labelledby", "aria-describedby", "for", "data-tooltip", "data-dialog-open"];
+    // name: a radio group is one per name in a document, so each column's copy needs its own.
+    var idAttributes = ["aria-controls", "aria-labelledby", "aria-describedby", "for", "data-tooltip", "data-dialog-open", "name"];
     // data-open-in-states names a state, suffixed like a selector so each column's dialog opens alone.
     var selectorAttributes = ["data-copy", "data-focus", "data-focus-fallback", "data-open-in-states"];
     document.querySelectorAll("[data-gallery-col]").forEach(function (column) {
@@ -626,6 +870,11 @@
       });
       selectorAttributes.forEach(function (name) {
         copy.querySelectorAll("[" + name + "]").forEach(function (el) { el.setAttribute(name, el.getAttribute(name) + suffix); });
+      });
+      // An in-page link to an element of the copy (an error summary link) points at this column's element.
+      copy.querySelectorAll("a[href^='#']").forEach(function (link) {
+        var target = link.getAttribute("href").slice(1) + suffix;
+        if (copy.getElementById(target)) link.setAttribute("href", "#" + target);
       });
       column.appendChild(copy);
     });
