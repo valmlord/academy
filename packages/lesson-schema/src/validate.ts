@@ -24,17 +24,50 @@ type YamlRead =
 // so this reason names the two causes and gives no line rather than a guessed one.
 const ALIAS_REASON = "invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)";
 
+type TextRead =
+  | { readonly ok: true; readonly text: string }
+  | { readonly ok: false; readonly reason: string };
+
+// Node's own non-fs errors (ERR_*) also carry a string code; the underscore keeps them out.
+const ERRNO_CODE = /^E[A-Z0-9]+$/;
+
+/**
+ * `unreadable (<errno code>)` for a read that failed with an errno, the reason ADR-0009 item 7 gives a
+ * file that exists but cannot be read. An error without an errno code is not a file state item 7 names,
+ * so this returns undefined and the caller rethrows it. Only the code is used: the message can hold the
+ * absolute path.
+ */
+function readFailureReason(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
+  const { code } = error;
+  if (typeof code !== "string" || !ERRNO_CODE.test(code)) return undefined;
+  return `unreadable (${code})`;
+}
+
+function readText(file: string): TextRead {
+  try {
+    return { ok: true, text: readFileSync(file, "utf8") };
+  } catch (error: unknown) {
+    const reason = readFailureReason(error);
+    if (reason === undefined) throw error;
+    return { ok: false, reason };
+  }
+}
+
 /**
  * Fails the file closed under ADR-0009 item 7's rules, with the options and the errors-then-warnings
  * order of the web and workspace loaders (the other two copies), so content:validate does not pass YAML
- * that they reject. The reason gives the line and the code, a closed library enum, so neither the
- * library's message nor any file text is printed. A ReferenceError from toJS() is the only shape the
- * library uses for an alias it cannot resolve; anything else is not an author error and propagates.
+ * that they reject. A file that cannot be read gives `unreadable (<errno code>)`, a YAML failure gives the
+ * line and the library's code, a closed enum; neither the system error's message (it can hold the
+ * absolute path) nor the library's message nor any file text is printed. A ReferenceError from toJS() is
+ * the only shape the library uses for an alias it cannot resolve. A read error without an errno code, or
+ * an error from toJS() other than ReferenceError, is not an author error and propagates.
  */
 function readYaml(file: string): YamlRead {
-  const text = readFileSync(file, "utf8");
+  const read = readText(file);
+  if (!read.ok) return read;
   const lineCounter = new LineCounter();
-  const doc = parseDocument(text, { lineCounter, prettyErrors: false, logLevel: "error" });
+  const doc = parseDocument(read.text, { lineCounter, prettyErrors: false, logLevel: "error" });
   const first = doc.errors[0] ?? doc.warnings[0];
   if (first !== undefined) {
     const { line } = lineCounter.linePos(first.pos[0]);
@@ -97,8 +130,8 @@ function unknownKeysOfCheck(element: unknown, index: number): string[] {
  * check whose keys cannot be compared (not an object, no kind, a kind no check defines, or `checks` not
  * a list). Works on the raw YAML value because zod strips unknown keys from the parsed lesson. The caller
  * runs it before the schema check and whatever that check's outcome, so a misspelled `attempts` is still
- * reported when it also makes the schema check fail. A lesson.yaml that is not valid YAML is reported
- * once with its YAML error and never reaches this function.
+ * reported when it also makes the schema check fail. A lesson.yaml that cannot be read or is not valid
+ * YAML is reported once with that reason and never reaches this function.
  */
 function unknownCheckKeys(rawLesson: unknown): string[] {
   if (!isRecord(rawLesson) || rawLesson.status !== "ready") return [];
@@ -273,7 +306,13 @@ export function validateCourses(root: string): ValidationResult {
         }
         for (const visible of ["theory.md", "task.md"]) {
           const p = join(lessonDir, visible);
-          if (existsSync(p) && readFileSync(p, "utf8").includes(`${HIDDEN_DIR}/`)) {
+          if (!existsSync(p)) continue;
+          const read = readText(p);
+          if (!read.ok) {
+            issue(p, read.reason);
+            continue;
+          }
+          if (read.text.includes(`${HIDDEN_DIR}/`)) {
             issue(p, `learner-visible file references ${HIDDEN_DIR}/ (leak)`);
           }
         }
