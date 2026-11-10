@@ -1,0 +1,31 @@
+# Local deployment: `docker compose up --build`, then open http://localhost:3000/book/<eventTypeId>.
+services:
+  api:
+    build:
+      context: backend
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+      - CALENDAR_DATA_DIR=/tmp
+    healthcheck:
+      # Block form on purpose: the distroless image has no shell, curl or wget, so the server checks itself.
+      test:
+        - CMD
+        - /app/server
+        - healthcheck
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  web:
+    build:
+      context: frontend
+      args:
+        - CALENDAR_API_URL=http://api:8080
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - CALENDAR_API_URL=http://api:8080
+      - NUXT_API_BASE=http://api:8080
+    ports:
+      - "3000:3000"

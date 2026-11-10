@@ -1,0 +1,57 @@
+id: final-api-bookings
+title: "Итоговый проект: бронирования, идемпотентность и параллельные запросы"
+type: project
+outcomes:
+  - "Реализует по контракту создание, список и отмену бронирований: 409 и 422 по правилам курса, конфликты с буферами между видами встреч хоста, синтаксис ключа идемпотентности, повтор и несовпадение ключа, освобождение слота при отмене."
+  - "Делает проверку и запись бронирования атомарными: при параллельных запросах на конфликтующие слоты и при повторах с одним ключом создаётся ровно одно бронирование, а задержка шва стоит между проверкой и записью, и конкурирующий запрос ждёт, пока судьба слота решится, и только потом получает 409."
+estimatedMinutes: 105
+status: ready
+prerequisites:
+  - final-api-read-side
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Go 1.27.3: package sync (Mutex: zero value, Lock blocks; RWMutex: many readers; values must not be copied)"
+    url: https://pkg.go.dev/sync
+    checkedAt: "2026-11-04"
+  - title: "Go 1.27.3: package net/http (Serve: a goroutine per connection; Header.Get: case-insensitive, \"\" when absent)"
+    url: https://pkg.go.dev/net/http
+    checkedAt: "2026-11-04"
+  - title: "draft-ietf-httpapi-idempotency-key-header-08, 22 October 2026 (2.1 String value, 2.2 no reuse, 2.7 SHOULD 422 and 409)"
+    url: https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-08.html
+    checkedAt: "2026-11-04"
+  - title: "RFC 9651: Structured Field Values for HTTP, 3.3.3 Strings (delimited with double quotes)"
+    url: https://www.rfc-editor.org/rfc/rfc9651.html
+    checkedAt: "2026-11-04"
+  - title: "RFC 9110: HTTP Semantics, 5.1 Field Names (case-insensitive)"
+    url: https://www.rfc-editor.org/rfc/rfc9110.html
+    checkedAt: "2026-11-04"
+  - title: "SQLite: Transaction (DEFERRED upgrade fails with SQLITE_BUSY, BEGIN IMMEDIATE)"
+    url: https://www.sqlite.org/lang_transaction.html
+    checkedAt: "2026-11-04"
+  - title: "SQLite: sqlite3_busy_timeout (the busy handler sleeps and retries, then SQLITE_BUSY)"
+    url: https://www.sqlite.org/c3ref/busy_timeout.html
+    checkedAt: "2026-11-04"
+  - title: "modernc.org/sqlite v1.61.1 (CGo-free SQLite driver for database/sql)"
+    url: https://pkg.go.dev/modernc.org/sqlite
+    checkedAt: "2026-11-04"
+  - title: "MDN: JavaScript execution model, run-to-completion"
+    url: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Execution_model
+    checkedAt: "2026-11-04"
+  - title: "RFC 9457: Problem Details for HTTP APIs"
+    url: https://www.rfc-editor.org/rfc/rfc9457.html
+    checkedAt: "2026-11-04"
+checks:
+  - id: api-bookings-conformance
+    title: "API отвечает по контракту и как модель заказчика: пробы урока 4, бронирования, 409/422, девять форм Idempotency-Key, порядок ошибок, отмена"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_bookings_api.py"'
+    timeoutSec: 420
+    weight: 3
+  - id: booking-integrity
+    title: "Нет двойного бронирования: 12 раундов параллельных запросов (правила a, b, c) и 4 одновременных запроса с одним ключом"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_integrity.py"'
+    timeoutSec: 300
+    weight: 3

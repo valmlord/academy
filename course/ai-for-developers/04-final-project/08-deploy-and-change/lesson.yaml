@@ -1,0 +1,106 @@
+id: final-deploy-and-change
+title: "Итоговый проект: развёртывание в Docker и изменение требования"
+type: project
+outcomes:
+  - "Пишет многостадийные Dockerfile для API и страницы и compose.yaml, которые проходят статическую проверку: закреплённые базовые образы, последняя стадия не от root, проверка здоровья вызывает сам сервер, наружу открыт только web."
+  - "Вносит видимое изменение требования (GET /bookings/{bookingId}) так, что контракт совпадает с обязательным, пробы API урока 5 по-прежнему проходят, а make ci падает на двух новых подложенных ошибках этой операции."
+  - "Доводит репозиторий до состояния, в котором скрытое изменение, выполненное агентом, проходит те же проверки (hidden-task, исполняется после #39)."
+estimatedMinutes: 90
+status: ready
+prerequisites:
+  - final-ci-gate
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Dockerfile reference (FROM, AS name, default latest tag, USER, ENTRYPOINT exec and shell forms, last CMD/ENTRYPOINT)"
+    url: https://docs.docker.com/reference/dockerfile/
+    checkedAt: "2026-11-04"
+  - title: "BuildKit: frontend/dockerfile/instructions/parse.go (stage name lowercased, validStageName)"
+    url: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/instructions/parse.go
+    checkedAt: "2026-11-04"
+  - title: "BuildKit: frontend/dockerfile/parser/parser.go (line continuation regex, empty continuation lines, heredoc words, directive trimming)"
+    url: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/parser/parser.go
+    checkedAt: "2026-11-10"
+  - title: "BuildKit: frontend/dockerfile/parser/directives.go (DirectiveParser, DetectSyntax, BOM and #! handling)"
+    url: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/parser/directives.go
+    checkedAt: "2026-11-10"
+  - title: "BuildKit: frontend/dockerfile/builder/build.go (BUILDKIT_SYNTAX build arg forwards to another frontend)"
+    url: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/builder/build.go
+    checkedAt: "2026-11-10"
+  - title: "BuildKit: frontend/dockerfile/dockerfile2llb/convert.go (resolveStages and ONBUILD of the direct base, findStateByName)"
+    url: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/dockerfile2llb/convert.go
+    checkedAt: "2026-11-10"
+  - title: "compose-go: paths/context.go (remote, service and home-relative build contexts)"
+    url: https://github.com/compose-spec/compose-go/blob/main/paths/context.go
+    checkedAt: "2026-11-10"
+  - title: "moby/sys: user/user.go (a numeric user is parsed as a number)"
+    url: https://github.com/moby/sys/blob/main/user/user.go
+    checkedAt: "2026-11-10"
+  - title: "Compose file reference: services (healthcheck test, depends_on service_healthy, environment, env_file, ports as quoted strings)"
+    url: https://docs.docker.com/reference/compose-file/services/
+    checkedAt: "2026-11-04"
+  - title: "docker compose up (--build)"
+    url: https://docs.docker.com/reference/cli/docker/compose/up/
+    checkedAt: "2026-11-04"
+  - title: "Compose: Merge Compose files (by default compose.yaml and an optional compose.override.yaml)"
+    url: https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/
+    checkedAt: "2026-11-10"
+  - title: "Compose: pre-defined environment variables (COMPOSE_FILE; set through the .env file in the working directory)"
+    url: https://docs.docker.com/compose/how-tos/environment-variables/envvars/
+    checkedAt: "2026-11-10"
+  - title: "distroless README (no shells, tags nonroot, ENTRYPOINT in vector form, Debian 13 base)"
+    url: https://github.com/GoogleContainerTools/distroless
+    checkedAt: "2026-11-04"
+  - title: "distroless base/README (gcr.io/distroless/static contents: tzdata)"
+    url: https://github.com/GoogleContainerTools/distroless/blob/main/base/README.md
+    checkedAt: "2026-11-04"
+  - title: "Go: package time/tzdata"
+    url: https://pkg.go.dev/time/tzdata
+    checkedAt: "2026-11-04"
+  - title: "YAML 1.1: Integer type (base 60)"
+    url: https://yaml.org/type/int.html
+    checkedAt: "2026-11-04"
+  - title: "YAML 1.1: Boolean type"
+    url: https://yaml.org/type/bool.html
+    checkedAt: "2026-11-04"
+checks:
+  - id: docker-static
+    title: "compose.yaml и Dockerfile проходят статическую проверку (образы не собираются и не запускаются)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_docker.py"'
+    timeoutSec: 60
+    weight: 1
+  - id: visible-change-applied
+    title: "GET /bookings/{bookingId} в контракте и сервере, пробы уроков 2 и 5 по-прежнему проходят"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_visible_change.py"'
+    timeoutSec: 600
+    weight: 2
+  - id: visible-change-gate
+    title: "make ci ловит 18 ошибок урока 7 и 2 ошибки GET /bookings/{bookingId} и проходит на корректных API"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_visible_gate.py"'
+    timeoutSec: 1800
+    weight: 2
+  - id: hidden-change
+    title: "Скрытое изменение требования, выполненное агентом, проходит те же проверки"
+    kind: hidden-task
+    task: checks/hidden-change/task.md
+    verify: checks/verify_hidden.py
+    timeoutSec: 3600
+    budgetUsd: 8
+    weight: 2
+  - id: deploy-rubric
+    title: "README воспроизводит docker compose up, данные часовых поясов в образе, вывод локального запуска, AGENTS.md (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric.md
+    artifacts:
+      - compose.yaml
+      - "**/Dockerfile"
+      - README.md
+      - AGENTS.md
+      - docs/deploy-run.md
+      - backend/**/*.go
+    passScore: 0.7
+    weight: 1

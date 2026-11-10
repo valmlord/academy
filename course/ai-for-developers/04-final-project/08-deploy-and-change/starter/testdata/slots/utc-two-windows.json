@@ -1,0 +1,52 @@
+{
+  "id": "utc-two-windows",
+  "req": [
+    "REQ-05"
+  ],
+  "request": {
+    "now": "2026-03-01T08:00:00Z",
+    "schedule": {
+      "name": "Ирина",
+      "timeZone": "UTC",
+      "weekly": [
+        {
+          "weekday": 3,
+          "start": "10:00",
+          "end": "11:00"
+        },
+        {
+          "weekday": 3,
+          "start": "14:00",
+          "end": "15:30"
+        }
+      ],
+      "overrides": []
+    },
+    "eventType": {
+      "title": "Знакомство",
+      "durationMinutes": 45,
+      "slotIncrementMinutes": 45,
+      "bufferBeforeMinutes": 0,
+      "bufferAfterMinutes": 0,
+      "minimumNoticeMinutes": 0,
+      "bookingWindowDays": 90
+    },
+    "bookings": [],
+    "from": "2026-05-06T00:00:00Z",
+    "to": "2026-05-07T00:00:00Z"
+  },
+  "expected": [
+    {
+      "start": "2026-05-06T10:00:00Z",
+      "end": "2026-05-06T10:45:00Z"
+    },
+    {
+      "start": "2026-05-06T14:00:00Z",
+      "end": "2026-05-06T14:45:00Z"
+    },
+    {
+      "start": "2026-05-06T14:45:00Z",
+      "end": "2026-05-06T15:30:00Z"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+id: final-ci-gate
+title: "Итоговый проект: тесты API и единая команда make ci"
+type: project
+outcomes:
+  - "Пишет интеграционный набор тестов API, который работает против сервера из CALENDAR_API_URL или запускает свой и падает на каждой из 12 подложенных ошибок движка слотов и 6 ошибок API, поданных через HTTP, но проходит на корректных реализациях с другими id, заголовками и текстами ошибок."
+  - "Собирает команду make ci, которая падает на каждой подложенной регрессии API, на контракте, изменённом без перегенерации, и на ручной правке сгенерированного клиента, и проходит на корректных реализациях и после make gen."
+estimatedMinutes: 125
+status: ready
+prerequisites:
+  - final-booking-page
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Go: package testing (TestMain, T.Run, T.Skipf, T.SkipNow, T.Cleanup)"
+    url: https://pkg.go.dev/testing
+    checkedAt: "2026-11-04"
+  - title: "Go: cmd/go, test caching (go test -count=1)"
+    url: https://pkg.go.dev/cmd/go
+    checkedAt: "2026-11-04"
+  - title: "git diff (--exit-code, changes relative to the index)"
+    url: https://git-scm.com/docs/git-diff
+    checkedAt: "2026-11-04"
+checks:
+  - id: ci-gate
+    title: "make ci проходит без CALENDAR_API_URL и на 5 корректных API, падает на 18 подложенных ошибках API и на дрейфе контракта и клиента, проходит после make gen"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_ci.py"'
+    timeoutSec: 1800
+    weight: 3

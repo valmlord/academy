@@ -1,0 +1,58 @@
+{
+  "id": "ny-days-by-calendar-date",
+  "req": [
+    "REQ-01",
+    "REQ-03"
+  ],
+  "request": {
+    "now": "2026-03-01T08:00:00Z",
+    "schedule": {
+      "name": "Ирина",
+      "timeZone": "America/New_York",
+      "weekly": [
+        {
+          "weekday": 6,
+          "start": "09:00",
+          "end": "10:00"
+        },
+        {
+          "weekday": 7,
+          "start": "09:00",
+          "end": "10:00"
+        },
+        {
+          "weekday": 1,
+          "start": "09:00",
+          "end": "10:00"
+        }
+      ],
+      "overrides": []
+    },
+    "eventType": {
+      "title": "Знакомство",
+      "durationMinutes": 60,
+      "slotIncrementMinutes": 60,
+      "bufferBeforeMinutes": 0,
+      "bufferAfterMinutes": 0,
+      "minimumNoticeMinutes": 0,
+      "bookingWindowDays": 60
+    },
+    "bookings": [],
+    "from": "2026-03-07T00:00:00-05:00",
+    "to": "2026-03-10T00:00:00-04:00"
+  },
+  "expected": [
+    {
+      "start": "2026-03-07T09:00:00-05:00",
+      "end": "2026-03-07T10:00:00-05:00"
+    },
+    {
+      "start": "2026-03-08T09:00:00-04:00",
+      "end": "2026-03-08T10:00:00-04:00"
+    },
+    {
+      "start": "2026-03-09T09:00:00-04:00",
+      "end": "2026-03-09T10:00:00-04:00"
+    }
+  ]
+}

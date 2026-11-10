@@ -1,0 +1,45 @@
+id: final-slot-engine
+title: "Итоговый проект: движок слотов на Go"
+type: project
+outcomes:
+  - "Пишет тестовые случаи движка слотов, которые совпадают с моделью заказчика и ловят каждую из двенадцати подложенных ошибок в решениях о времени."
+  - "Пишет реализацию движка за CLI-швом, которая проходит скрытые случайные пробы в восьми часовых поясах обоих полушарий, в дни перевода часов и в обычные дни."
+estimatedMinutes: 105
+status: ready
+prerequisites:
+  - final-contract-typespec
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Go 1.27.3: package time (Date, AddDate, Add, Equal, Zone, Weekday, LoadLocation)"
+    url: https://pkg.go.dev/time
+    checkedAt: "2026-11-04"
+  - title: "Go 1.27.3: package encoding/json (nil slice encodes as null)"
+    url: https://pkg.go.dev/encoding/json
+    checkedAt: "2026-11-04"
+  - title: "Go Modules Reference: go directive, vendoring, -mod=vendor"
+    url: https://go.dev/ref/mod
+    checkedAt: "2026-11-04"
+  - title: "Go Toolchains (GOTOOLCHAIN=local, the go line as a minimum)"
+    url: https://go.dev/doc/toolchain
+    checkedAt: "2026-11-04"
+  - title: "Command go: environment variables (GOFLAGS, GOWORK, GOENV) and the -mod flag"
+    url: https://pkg.go.dev/cmd/go
+    checkedAt: "2026-11-04"
+  - title: "RFC 3339: Date and Time on the Internet: Timestamps, раздел 5.6 и 4.3"
+    url: https://www.rfc-editor.org/rfc/rfc3339.html
+    checkedAt: "2026-11-04"
+checks:
+  - id: slots-accepted
+    title: "bin/slots отвечает как модель заказчика на 160 случайных пробах (8 поясов, дни перехода времени, все признаки расписания)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_slots.py"'
+    timeoutSec: 300
+    weight: 3
+  - id: slot-cases-kill-mutants
+    title: "Случаи в testdata/slots совпадают с моделью и различают все двенадцать решений о времени"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_cases.py"'
+    timeoutSec: 60
+    weight: 2
