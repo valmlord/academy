@@ -203,6 +203,347 @@ Each item can be accepted or overturned on its own.
   it can only mark the signed-in user's own lesson as started. Item 6: account deletion reaches an open terminal
   within `TERMINAL_RELAY_MAX_SECONDS` (ADR-0011 item 3).
 
+### Amended by #101 (Proposed), 2026-11-09
+
+Item 10: changes items 4, 5 and 6, the Consequences sweep bullet and the Follow-ups for #34; Proposed until Stepan
+accepts it in the #101 PR, then this line reads Accepted. The ADR's own status stays Accepted. Where a bullet below
+replaces or retires a sentence (list S1-S16 at its end), the original text stays above and the replacement here wins
+once accepted.
+
+Words. An **attempt** (record) is one grading run, a row of `attempts`; `attemptId`, `runningAttemptId`,
+`latestFinishedAttempt`, "per attempt" and "finished attempts" mean the record. A **check result** is one check's row
+in a record (`check_results`). `attemptLimit`, `failedCount` and `lastAttemptCount` count check results of one check
+(or checks), never records. Below, "attempt" is used only for the record and "result" for a check result. The
+**grader has started** when the workspace service's exec start for that check's command succeeded (rule 3).
+
+#### Item 4 additions: vocabularies and result facts
+
+- `LESSON_PROGRESS_STATUSES` = `in-progress`, `completed`, `not-passed`. `not-passed`: no counted check of the lesson
+  is open and at least one is closed; `completed_at` stays NULL. No row still means not started.
+- New result facts on `check_results`, each a writer fact, never derived later:
+  - `is_format_error boolean NOT NULL DEFAULT false`: a format error or a stage-0 rejection. Status `failed`; for a
+    `command` check set exactly when the grader exited with code 3 (rule 3). A format error or stage-0 rejection is
+    decided before any comparison with grader material (key, hidden tests), and before the check's first pass an
+    uncounted result, platform errors included, shows the learner no score, count or message derived from that
+    material; a check of that material that runs later is counted (as task.md 01/01:133-135 says).
+  - `is_budget_exhausted boolean NOT NULL DEFAULT false`: a `hidden-task` run stopped because it spent `budgetUsd`;
+    status `failed`.
+  - `message text NULL`: the learner-facing grader message of this result (for a command check its stdout as #34
+    captures and normalises it, R34-5). Never grader secrets (item 5); for a format-error result only stage-0 text;
+    NULL on an `error` result, because no grader output exists for it under rule 3. The check-state read reports it
+    as `details`.
+  - `raw_error text NULL`: set only on an `error` result, exactly the `rawError` that `classifyResult` returns
+    (`pre-start: <stage>` or `platform-stop: <reason>`, closed sets in rule 3); never grader stdout, stderr,
+    `checks/` content, Docker or OS error text, or any path.
+  - `created_at` (exists): the result's `finishedAt`. Writers never set it; #34 inserts each result in a transaction
+    it opens when the check ends (R34-3), so the column's `now()` is the check's end.
+- `attempts.included_check_ids text[] NOT NULL DEFAULT '{}'` and `attempts.included_check_kinds text[] NOT NULL
+  DEFAULT '{}'`: the check ids the server put into the run and their kinds at start, position by position (rule 5).
+  The kinds are stored because a missing result is counted under the kind it was included with (rule 2), the same
+  reason `check_results.check_kind` exists.
+- The partial unique index `attempts_one_running_idx` on `attempts (user_id, course_id, lesson_id) WHERE status =
+  'running'`: at most one running attempt per learner and lesson (R34-1).
+- New table `check_closures` (item 6 below).
+
+#### Item 5 rules
+
+1. **Counted checks** (with rules 2 and 4 replaces the whole "Completion" bullet, S7). A check is counted iff its kind
+   is in `SHIPPED_CHECK_KINDS` (`apps/web/lib/progress/shipped-kinds.ts`; v1: `command`). Each runner issue (#36
+   quiz, #37 rubric, #39 hidden-task, the bug-hunt issue) adds its kind there in its own PR. Completion, closure, the
+   lesson outcome and the course percentage consider counted checks only; a check of another kind is reported as not
+   counted, never run and part of no count (`design/flows/ia.md` R6).
+2. **Counted results; timeouts and budget.** A result of a check is counted iff (a) its status is `passed`, `failed`
+   or `timeout`; (b) it is not a format error; (c) its check id is a current check id of the lesson and its stored
+   `check_kind` equals that check's current kind; (d) no earlier counted `passed` result of that check exists,
+   attempts ordered by `(started_at, id)`. A result counts from the moment it is committed, whatever the status of its
+   attempt (running, or set final by the finish, a sweep or the deadline, with any final status). An included check
+   of an attempt that has left `running` and has no result row counts as one `failed` result of the kind it was
+   included with (`included_check_kinds`), so (c) applies to it; writers never leave such a gap (R34-3, R34-14,
+   R34-15). `timeout` and an exhausted hidden-task budget count as failed. Never counted: format errors including
+   stage-0 rejections, `error` results (rule 3 says when a result is `error`), and any result after the check's first
+   pass. Every result is reported with `isCounted`; a budget-exhausted result is reported as status `failed` with
+   `isBudgetExhausted`. A format error or stage-0 rejection is decided before any comparison with grader material
+   (key, hidden tests), and before the check's first pass an uncounted result, platform errors included, shows the
+   learner no score, count or message derived from that material; a check of that material that runs later is
+   counted (as task.md 01/01:133-135 says).
+3. **Grader ends: format errors, stage 0, platform errors.** #34 maps how each check's grader ended to its stored
+   result with `classifyResult` (`apps/web/lib/progress/rules.ts`). The grader has started when the workspace
+   service's exec start for that check's command succeeded. Graders run learner code as their children in the
+   learner's own container, so anything that code can cause after the start spends the attempt; an uncounted end
+   there would be a free probe of grader material.
+   - Before the grader started, every failure is `error`, never counted, with `raw_error` `pre-start: <stage>`, stage
+     one of `exec-create`, `exec-start` (including a refused start because an earlier check's processes hold the pids
+     limit), `checks-missing` (detected by the service before the exec), `service-unreachable`,
+     `container-not-running`.
+   - After it: exit 0 is `passed`; exit 3 is `failed` with `is_format_error` (never counted); the platform's own kill
+     at `timeoutSec` (the runner's timer fired before any other end) is `timeout` (counted); every other end is
+     `failed` (counted): any other exit code, death by any signal (a child process killing the grader, an OOM kill),
+     the container stopping or vanishing (`kill -TERM 1`, an OOM kill of its init, any stop the platform did not
+     issue), the service stream ending without an end, and a missing result.
+   - The one exception after the start is a stop the platform issued and recorded: the workspace service's own stop
+     reported in the run's stream (R34-19) and web's startup sweep (R34-14). Each is `error` with `raw_error`
+     `platform-stop: <reason>` (`service-stop`, `web-restart`), never counted.
+   - The run deadline (R34-15) is not such a stop for a check whose grader started: it stops no grader (the runner's
+     timer at `timeoutSec` already did), so a started check it finds without a row has lost its result to a fault in
+     web's runner, and that result is a counted `failed` (`no-result`). Only an included check whose grader never
+     started gets `error` with `raw_error` `platform-stop: run-deadline`, never counted.
+   - A genuine platform fault after the start that is not such a recorded stop also counts as failed (Stepan's
+     decision D11 of #101).
+
+   A check script prints the learner-facing message on stdout. A script that exits with a code other than 3 for a
+   rejection the task text calls uncounted makes that result count toward the check's `attemptLimit`: content uses 3
+   for every such rejection and never passes a learner process's exit code through. A format error or stage-0
+   rejection is decided before any comparison with grader material (key, hidden tests), and before the check's first
+   pass an uncounted result, platform errors included, shows the learner no score, count or message derived from that
+   material; a check of that material that runs later is counted (as task.md 01/01:133-135 says).
+
+   The exit-code contract lives here and not in ADR-0001: ADR-0001 item 7 requires migrating every lesson in the
+   same PR, while the two module 00 scripts that still exit 1 on a format error are fixed by a content follow-up
+   (decision D3 of #101), which also documents the codes in `docs/course-reference.md`.
+4. **Lesson outcome and stickiness** (with rule 1 replaces "Completion", amends "Sticky", S7, S9). The stored outcome
+   is `lesson_progress.status`. Derived over counted checks: `completed` when the lesson has at least one counted
+   check and every counted check has passed; `not-passed` when no counted check is open (open = counted, not passed,
+   not closed) and at least one is closed; `in-progress` otherwise, including a lesson with no counted check.
+   `completed` is sticky as before: a check added later, or a newly shipped kind, never reopens it. `not-passed` is
+   recomputed while the lesson is not passed: a later recompute may move it to `in-progress` (an open check appeared)
+   or to `completed` (the closed check left the lesson). A lesson never becomes `completed` while a counted check is
+   closed.
+5. **Run composition.** The server computes the included set at start with `composeRun` (`rules.ts`): the checks with
+   `isInNextRun` = counted, not closed, and not (spends tokens and passed). It stores their ids and kinds in
+   `attempts.included_check_ids` and `included_check_kinds`, never takes them from the browser, and creates no
+   attempt when the set is empty. Replaces the "Attempt scope" sentence on results (S4): while the attempt runs, its
+   `check_results` are a subset of its included checks, each committed when its check ends. Once it has left
+   `running`, they are exactly the included checks, one per check id (R34-3, R34-14, R34-15).
+6. **Failed count, limit, closure, live changes.** The failed count of a check is the number of its counted results
+   that are not `passed`. A check is closed iff it has not passed and either a `check_closures` row exists for
+   `(user_id, course_id, lesson_id, check_id, check_kind)` with the check's current kind, or `attempts.limit` is set
+   and the failed count is at least `limit`. A closure row of another kind is ignored like a result of another kind.
+   The writer inserts the row, with the current kind, at the first recompute that sees the second condition. A
+   closure is final: no API reopens it; resetting the working folder or restarting the environment does not change
+   it; raising `limit` never reopens it; lowering `limit` to or below the failed count closes the check at the next
+   recompute; renaming a check id restarts its counter, because results and closures are keyed by check id and kind.
+   A closed check is never run. `attemptLimit` is `attempts.limit` one to one; `mentorAfter` is
+   `attempts.mentorAfter`, null when absent, and only reported.
+7. **One writer, when it runs** (replaces "One writer function", "Atomic finish" and the steps of "Isolation and
+   order", S5, S6, S10). `applyLessonOutcome` (`apps/web/lib/progress/outcome-writer.ts`) is the only writer of
+   `completed`, `not-passed` and `check_closures`. It runs (a) as the last step of every transaction that inserts
+   check results or sets an attempt final (R34-3, R34-14, R34-15), and (b) at web startup, after the migrations and
+   #34's stale sweep, once for every progress row whose lesson is visible, `completed` rows included: a lowered limit
+   can close a check of a completed lesson (a check added after completion), and that closure must be persisted
+   although the status stays `completed`. Each startup row runs in its own transaction with `lock_timeout` 2 s; a row
+   that fails is logged and skipped. Course content and `SHIPPED_CHECK_KINDS` change only with a new web process (the
+   image is immutable, ADR-0009 item 8), so (b) applies a lowered limit, an added or removed check and a newly shipped
+   kind before the first request. No read writes. Every such transaction is READ COMMITTED: (1) its own writes (result
+   rows, or the attempt's final status); (2) `applyLessonOutcome`, which takes `FOR NO KEY UPDATE` on the progress row
+   first and reads every result in later statements, so the READ COMMITTED reasoning of "Isolation and order" is
+   unchanged.
+8. **Dashboard and catalog** (replaces the second and third sentences of "Dashboard", S11). The dashboard and the
+   catalog read the lesson status from `lesson_progress.status` through `storedOutcome` alone. Counted lessons are
+   the visible lessons (ADR-0009 item 5) that have at least one counted check (`countedCheckCount` in `rules.ts`);
+   progress rows for other lesson ids count in neither numerator nor denominator. Course and module percentages =
+   `completed` counted lessons / counted lessons; a course with 0 counted lessons shows no percentage (never `0/0`,
+   `NaN` or `0%`). `not-passed` is finished but not passed: in the denominator, not the numerator. The next lesson is
+   the first counted lesson in catalog order that is not finished (finished = `completed` or `not-passed`); a course
+   with 0 counted lessons has no next lesson. A lesson with no counted check shows its status (not started or in
+   progress), counts in neither numerator nor denominator and is never the next lesson.
+
+#### Item 6 (replaces S12)
+
+Seven tables on one FK chain `users -> enrollments -> lesson_progress -> {attempts -> {check_results,
+mentor_reviews}, check_closures}`, every FK `ON DELETE CASCADE`. The cascade covers **Postgres rows in these seven
+tables only**. Natural key `check_closures (user_id, course_id, lesson_id, check_id, check_kind)`; the kind is in the
+key because the writer inserts `ON CONFLICT DO NOTHING`, and a key on the check id alone would swallow the closure of
+a check whose kind changed. `attempt_limit` and `failed_count` record the facts at closure, so a later limit change
+is explainable.
+
+#### Requirements on #34 (R34-1 to R34-19)
+
+1. One running attempt per `(user_id, course_id, lesson_id)`: the start inserts the attempt and relies on
+   `attempts_one_running_idx`; SQLSTATE 23505 on that constraint is answered as a conflict (HTTP 409 for a route,
+   `{ kind: "check-running", runningAttemptId }` for an action) carrying the running attempt's id.
+2. Run composition by rule 5 through `composeRun`; the browser sends no check list; the included ids and kinds go
+   into `included_check_ids` and `included_check_kinds` in `composeRun`'s order; an empty set is refused with no
+   attempt row (the UI never sends it: "Проверить" is disabled when `hasNextRun` is false).
+3. Commit before show. When a check ends, however it ends, #34 opens a transaction with `isolationLevel: "read
+   committed"` passed explicitly: (1) insert its `check_results` row with the facts `classifyResult` returns and the
+   normalised message (R34-5), never setting `created_at`; (2) `await applyLessonOutcome(tx, { userId, courseId,
+   lesson })`; commit. Only after the commit returns is the result streamed or released to the port's readers. 23505
+   on `check_results_pkey` means the deadline or a sweep already recorded that check: the result is discarded and
+   never streamed. An insert that fails for any other reason is retried once with `message` and `details` NULL and
+   the same status (a counted `failed` stays counted); if the retry fails too, nothing is streamed for that check, it
+   stays recorded as started, and the run is left to the deadline (R34-15), which commits it as a counted `failed`
+   (`no-result`). A check that cannot start gets its `pre-start` `error` row the same way. The finish, in its own
+   READ COMMITTED transaction: (1) `UPDATE attempts SET status = <aggregateAttemptStatus over the attempt's rows>,
+   finished_at = now() WHERE id = $1 AND status = 'running'` (0 rows: the deadline or a sweep finished it; stream
+   `end` from the stored attempt); (2) `applyLessonOutcome`. Every included check has its row before the finish, so
+   the finish inserts none. `lesson` is the `Lesson` parsed at the start of the run.
+4. Every grader end is mapped with `classifyResult` (rule 3); #34 never builds a status or `raw_error` itself. The
+   runner's own timer at `timeoutSec` commits the `timeout` result (R34-3) without waiting for the exec stream to
+   end, then kills, so a learner process that keeps the stream open cannot push a started check past the deadline.
+   `is_budget_exhausted` only for hidden-task (#39), with status `failed`.
+5. `message` and `raw_error` by item 4. One function normalises a grader message before both the insert and the
+   stream: U+0000 removed, lone surrogates replaced with U+FFFD, length capped at a #34 constant, and the capture is
+   bounded while reading, so grader output can neither fail the insert nor exhaust web's memory. No grader secrets;
+   for a format-error result only stage-0 text; NULL on an `error` result. The jsonb `details` of a `command` result
+   is NULL (its text is `message`); a later runner that puts a learner-derived string into `details` passes it
+   through the same function first, because jsonb rejects `\u0000` (SQLSTATE 22P05) as `text` rejects U+0000, so no
+   learner bytes can make the result insert fail. The audit of each stage-0 script against the format-error sentence
+   of rule 2 is content work.
+6. `apps/web` keeps consuming the service stream when no browser is attached, so leaving the page or a failed
+   reconnect never ends a run early.
+7. The browser opens the SSE stream only while a run is going (HTTP/1.1 allows 6 connections per browser and host
+   across tabs). `CHECK_STREAM_RECONNECT_ATTEMPTS` (UI side): failed reconnects before the page shows "Не удалось
+   получить результат проверки"; the learner's "Переподключиться" starts a new cycle of the same length. Added by #34
+   to compose, `.env.example`, turbo `passThroughEnv` and the startup check.
+8. Stream events: per check `queued`, `running` (with its start), `result`; a final `end` event; events carry ids. A
+   check's `result` event is sent only after its R34-3 transaction committed and carries the committed values; `end`
+   only after the finish committed. #34's tests include: an insert that fails streams no `result`. `readAttempt`
+   returns everything streamed so far (the same per-check fields), so a reconnecting page catches up.
+9. `CHECK_STATUS_TEXT_GAP_MS` (UI side, about 100-150 ms, at least one rendered frame): the minimum time between two
+   consecutive texts of the check status line, the empty one of an equal-text re-set included, so a screen reader
+   announces each.
+10. The check-state read is called on page load, on `visibilitychange` to visible in every tab that holds no live
+    result stream (never attached, its run ended, or reconnecting gave up), after every 409 and on every reconnect.
+11. The UI keeps a baseline, the latest finished attempt id it has read: from `latestFinishedAttempt` on load, then
+    the id of every run whose end it shows (its own or an attached run's end, a reconnect that finds the run ended, a
+    re-read that shows a newer run). On every visibility re-read it compares `latestFinishedAttempt.attemptId` with
+    the baseline, never with what the status line holds; a different id is a run this page did not see end, and the
+    UI builds that run's end text from it ("Проверок со сбоем: N" = `errorCheckCount`; every included check errored:
+    "Сбой проверки, попытка не засчитана").
+12. A start that cannot happen returns an error the UI shows as "Сбой проверки, попытка не засчитана" (no attempt row,
+    or an attempt marked `error` whose rows are `pre-start` errors). Optional: a short `reason` the UI may later show.
+13. Activity during a run: `POST W/activity` at the start, every 30 s while it runs, and at the end (ADR-0010
+    amendment by #101).
+14. Stale sweep at startup (Consequences), before the startup recompute of rule 7: for each attempt still `running`,
+    one READ COMMITTED transaction inserts the `classifyResult({ end: "platform-stop", reason: "web-restart" })` row
+    for every included check with no row (`ON CONFLICT (attempt_id, check_id) DO NOTHING`), sets the attempt's status
+    to `aggregateAttemptStatus` over its rows present after those inserts, with `finished_at`, and calls
+    `applyLessonOutcome`. Results committed before the restart stay as they are and count; an attempt whose every
+    included check already had a row gets no new row and ends `passed` or `failed`, never `error`. #34's test: a
+    swept attempt whose every included check has a committed `failed` row ends `failed` with no new row.
+15. Run deadline: a running attempt older than the sum of its included checks' `timeoutSec` plus a margin #34 names
+    is finished by the live process, so the unique index never blocks a learner until the next restart. One READ
+    COMMITTED transaction inserts, for every included check with no row (`ON CONFLICT (attempt_id, check_id) DO
+    NOTHING`): for a check whose grader started, `classifyResult({ end: "no-result" })`, a counted `failed`; for a
+    check whose grader never started, `classifyResult({ end: "platform-stop", reason: "run-deadline" })`, uncounted
+    (rule 3). Because of R34-4 a started check reaches the deadline without a row only when web's runner itself
+    failed, and that spends the attempt. "Started" is the live process's own record: the ids of the checks whose exec
+    start succeeded (the event that enters them into `LiveAttemptSource`, R34-17), kept for the attempt until it has
+    left `running`, whether or not the check's row committed. For an attempt this process holds no record of (only an
+    overlapping process can have started it), every rowless included check is treated as started. Then the
+    transaction sets the attempt's status to `aggregateAttemptStatus` over its rows present after those inserts, with
+    `finished_at`, and calls `applyLessonOutcome`. #34's test: in one run, a started check whose result insert and its
+    retry both fail ends, at the deadline, as a counted `failed` row (`raw_error` NULL, `failedCount` up by 1), and an
+    included check whose grader never started ends as an uncounted `platform-stop: run-deadline` error. Mutation:
+    label every rowless check `run-deadline`; the first assertion goes red.
+16. Every route or action that takes an attempt id checks `attempts.user_id` against the session user (item 8);
+    `readAttempt` already filters by user.
+17. `LiveAttemptSource` (`apps/web/lib/progress/check-state.ts`) reports, per running attempt, which included checks
+    are running and since when; a check enters it when its grader started and leaves it only after a row for it
+    committed (its R34-3 row, or the deadline's, R34-15). It never carries a result: `readCheckState` and
+    `readAttempt` take results from the database only.
+18. Reset and restart of the environment while a check runs are refused with the same conflict answer (#31 lock
+    "check running"). #106 builds the actions; the reset/restart action and the check start both take
+    `pg_advisory_xact_lock` on a key derived from (user, course, lesson) before deciding; reset/restart refuses when a
+    `running` attempt exists; a test starts both concurrently and asserts exactly one wins. No ADR-0010 error code.
+19. Platform-issued stops: a container stop counts as `platform-stop: service-stop` only when the workspace service
+    reports in the run's stream that it issued the stop itself (idle stop, restart, shutdown). Every other end of the
+    container after a grader started (the learner's `kill -TERM 1`, an OOM kill, a vanished container) is
+    `container-ended`, counted. #34 adds the stop report to the service's run stream.
+
+#### Consequences of this amendment
+
+- Between a content change and the next web start, a stored status can lag behind the lesson file. In the image this
+  window is empty (content changes only with a rebuild and restart); under `pnpm dev` it lasts until the next result
+  commit or restart.
+- A lesson completed while only `command` is shipped stays completed when another kind ships (rule 4).
+- A check can close, and a lesson can become `completed` or `not-passed`, while its run is still going: each result
+  is counted when it commits.
+- A web restart while a grader runs makes that check's result an uncounted `platform-stop: web-restart` error. The
+  learner cannot restart web from the workspace (R34-5 bounds what grader output can do to web); a restart by Stepan
+  during a run is accepted.
+- A platform fault after a grader started that is not a recorded platform stop spends the attempt.
+- The migration is additive; rolling back the web image leaves the new columns, table and index unused and harmless
+  (the old migrator applies nothing newer than its own journal). Main is squash-merged, so a code rollback reverts the
+  one #101 commit except `packages/db`, which keeps the migration (`git revert --no-commit <squash>`, then
+  `git checkout <squash> -- packages/db`, then commit); removing the schema is a later forward migration, because
+  the append-only step rejects a deleted `0002`.
+
+#### Sentences replaced or retired (S1-S16)
+
+Searched the whole ADR for `completed`, `in-progress`, `writer`, `error`, `finish`, `six` and `sweep`.
+
+- S1, item 4, `LESSON_PROGRESS_STATUSES` row: "`in-progress`, `completed` / No row means not started." Replaced by
+  the values and meaning in the item 4 additions above.
+- S2, item 4, `ATTEMPT_STATUSES` row, last sentences: "`error`: the platform could not grade (any `error`, or the
+  stream ended without a result); it does not count against the learner." Replaced: "`error`: at least one result is
+  `error`. The attempt status is a summary; counting is per check result (rule 2), so an `error` attempt may hold
+  counted results, and a stream that ended after a grader started gives that check a counted `failed` result (rule
+  3). Every writer that sets an attempt final (the finish, the sweep, the deadline: R34-3, R34-14, R34-15) computes
+  the status with `aggregateAttemptStatus` over the attempt's rows present after its own inserts, so an attempt is
+  `error` only when one of its rows is."
+- S3, item 4, `CHECK_RESULT_STATUSES` row: "`error` means the grader's infrastructure failed." Replaced: "`error`: no
+  grader process of the check started, or the platform issued and recorded the stop (rule 3); never counted."
+- S4, item 5 "Attempt scope", second clause: "its `check_results` are exactly that subset, one per check id."
+  Replaced by rule 5's sentence; "A lesson with `checks: []` has no attempts" stays.
+- S5, item 5 "Atomic finish": "Inserting the results, setting the attempt's final status and `finished_at`, and
+  evaluating completion happen in one transaction." Replaced by rule 7 and R34-3: each result in its own transaction
+  with the outcome evaluation, the finish in another.
+- S6, item 5 "Isolation and order in the finish transaction", the steps: "(1) Insert the results and set the attempt
+  final; (2) `SELECT ... FROM lesson_progress WHERE <pk> FOR NO KEY UPDATE`; (3) the completion query, ...; (4) the
+  update to `completed` if the rule holds." Replaced by rule 7's (1)-(2); the READ COMMITTED reasoning after the
+  steps stays and applies to every transaction of rule 7.
+- S7, item 5 "Completion", whole bullet: "A lesson is complete when every check id in its current `lesson.yaml` has
+  at least one `passed` result over all of this user's finished attempts (status not `running`) ..." Replaced by
+  rules 1, 2 and 4 (counted checks; counted results of every attempt, running ones included). Completing still sets
+  `status = 'completed'`, `completed_at = now()`, `updated_at = now()`.
+- S8, item 5 "Theory lessons": "*Theory lessons* (`checks: []`) are completed only by an explicit "mark as done"
+  action, refused for a lesson that has checks." Retired: no "mark as done" action exists; a lesson with no counted
+  check is never `completed` (rule 4; `design/flows/ia.md` R5).
+- S9, item 5 "Sticky", second sentence: "A lesson still `in-progress` is evaluated against its current checks."
+  Replaced: "A lesson that is not `completed` (`in-progress` or `not-passed`) is evaluated against its current
+  checks." The first sentence stays.
+- S10, item 5 "One writer function": "*One writer function* in `apps/web` implements the rule; no writer sets
+  `completed` any other way." Replaced by rule 7.
+- S11, item 5 "Dashboard", second and third sentences: "Counted lessons are the lessons with status `ready` currently
+  in the course tree; progress rows for other lesson ids count in neither numerator nor denominator. Course
+  percentage = completed counted lessons / counted lessons; a course with 0 counted lessons shows no percentage
+  (never `0/0`, `NaN` or `0%`)." Replaced by rule 8, clause by clause: "Counted lessons are the lessons with status
+  `ready` currently in the course tree" becomes the visible lessons with at least one counted check; "progress rows
+  for other lesson ids count in neither numerator nor denominator" is restated in rule 8 word for word; "Course
+  percentage = completed counted lessons / counted lessons" is restated in rule 8 over the new counted lessons; "a
+  course with 0 counted lessons shows no percentage (never `0/0`, `NaN` or `0%`)" is restated in rule 8 word for
+  word, and the dashboard view enforces it (no next lesson and no course progress bar when no visible lesson has a
+  counted check).
+- S12, item 6: "Six tables on one FK chain ..." and "The cascade covers **Postgres rows in these six tables only**".
+  Replaced by item 6 above (seven tables, `check_closures`).
+- S13, Consequences, fourth bullet: "`apps/web` marks an attempt `error` with `finished_at` when the service stream
+  for it ends without a final result, and at startup marks every attempt still `running` as `error` (one web process
+  assumed; ...)." Replaced: "A stream that ends after a grader started gives that check a counted `failed` result
+  (rule 3). At startup every attempt still `running` gets `platform-stop: web-restart` rows for its included checks
+  with no committed result, and its status from `aggregateAttemptStatus` over its rows present after those inserts
+  (R34-14; one web process assumed; a multi-instance deployment needs an owner or heartbeat column first)."
+- S14, Follow-ups for #34, first bullet: "If two web processes overlap (a dev restart), ... Decide whether the finish
+  update overwrites `error` ... or is guarded by `status = 'running'`. Either way, its passed results still count
+  toward completion." Decided: results the old process committed before the sweep stay and count; the sweep writes
+  rows only for checks without one; a later result of the old process hits 23505 on `check_results_pkey` and is
+  discarded unshown; the old process's finish matches 0 rows (`WHERE status = 'running'`, R34-3).
+- S15, Follow-ups for #34, second bullet: "Write step (4) as `UPDATE ... WHERE status = 'in-progress'`, or skip it
+  when the row read in step (2) is already `completed`, ..." Retired: `applyLessonOutcome` decides from the locked
+  row; `nextStoredStatus` keeps `completed` and its first `completed_at`, and allows `not-passed` -> `completed`
+  (rule 4), which that guard would block.
+- S16, Follow-ups for #34, third bullet: "Pass `isolationLevel: "read committed"` to `db.transaction` explicitly,
+  ..." Stays; applies to every transaction of R34-3, R34-14 and R34-15.
+
+Checked and left unchanged because they do not conflict: item 5 "Row creation" as amended by #32, "No grader secrets
+in `check_results.details`", item 8 "Every route or API that takes an attempt id checks `attempts.user_id`", the
+Consequences bullet "Writers upsert `enrollments` and `lesson_progress` ... before inserting an attempt", the #1
+amendment's "The stale-attempt sweep ships with #34", and these "Dashboard" sentences, which now apply over rule 8's
+counted lessons: "Lesson status comes from `lesson_progress.status` alone (no row = not started).", "Module status
+over its counted lessons: `completed` when it has at least one and all are completed; `in-progress` when any of them
+has a progress row and the module is not completed; otherwise `not started`." and "A module with 0 counted lessons
+has no status and no percentage."
+
 ### Follow-ups for #34 (the finish transaction and the stale-attempt sweep)
 - If two web processes overlap (a dev restart), the new process's startup sweep can mark the old
   process's in-flight attempt `error` before the old process finishes it. Decide whether the finish
