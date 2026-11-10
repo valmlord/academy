@@ -5,7 +5,7 @@ import { type CourseTree, readCourse } from "@/lib/course/read";
 import type { SessionData } from "@/lib/session-reader";
 import { createTicketVerifier, deriveTicketKey } from "@/server/ticket";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
-import { fakeWorkspaceClient } from "@/test/workspace-fakes";
+import { fakeWorkspaceClient, NO_SLEEP } from "@/test/workspace-fakes";
 import type { Workspace, WorkspaceAnswer, WorkspaceKey } from "./client";
 import { createEnvironmentActions } from "./environment";
 
@@ -75,6 +75,7 @@ function setup(answer: WorkspaceAnswer = { kind: "workspace", workspace: workspa
     now: () => NOW,
     recordStarted: async () => {},
     log: () => {},
+    sleep: NO_SLEEP,
   });
   return { actions, keys };
 }
@@ -193,6 +194,7 @@ describe("openTerminal (U-action-uid)", () => {
       now: () => NOW,
       recordStarted: async () => {},
       log: () => {},
+      sleep: NO_SLEEP,
     });
 
     expect(await actions.openTerminal(session("user_a"), FIXTURE_COURSE_ID, LESSON)).toEqual({

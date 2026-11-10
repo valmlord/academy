@@ -6,7 +6,7 @@ import type { Workspace } from "@/lib/workspace/client";
 import { createEnvironmentActions } from "@/lib/workspace/environment";
 import { deriveTicketKey } from "@/server/ticket";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
-import { fakeWorkspaceClient } from "@/test/workspace-fakes";
+import { fakeWorkspaceClient, NO_SLEEP } from "@/test/workspace-fakes";
 import { APP_HOST, createCredentialUser, sessionCookieOf, signIn, testAuth } from "./auth";
 import { type TestDatabase, testDatabase } from "./db";
 
@@ -64,6 +64,7 @@ describe("I-revoked", () => {
       now: () => Date.now(),
       recordStarted: async () => {},
       log: () => {},
+      sleep: NO_SLEEP,
     });
 
     const first = await actions.openTerminal(readSession, FIXTURE_COURSE_ID, LESSON);

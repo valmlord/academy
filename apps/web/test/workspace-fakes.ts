@@ -26,3 +26,6 @@ export function fakeWorkspaceClient(overrides: Partial<WorkspaceClient>): Worksp
     activity: overrides.activity ?? unexpected("activity"),
   };
 }
+
+/** The environment logic's `sleep` for tests: the retry waits are asserted by value, never waited out. */
+export const NO_SLEEP = async (_ms: number): Promise<void> => {};

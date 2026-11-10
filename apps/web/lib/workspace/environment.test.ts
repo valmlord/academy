@@ -6,8 +6,19 @@ import type { StartedLesson } from "@/lib/progress/lesson-started";
 import type { SessionData } from "@/lib/session-reader";
 import type { TicketRequest } from "@/lib/terminal/mint";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
-import { fakeWorkspaceClient } from "@/test/workspace-fakes";
-import type { Workspace, WorkspaceAnswer, WorkspaceKey } from "./client";
+import {
+  fakeWorkspaceClient,
+  NO_SLEEP,
+  UnexpectedWorkspaceCallError,
+} from "@/test/workspace-fakes";
+import type {
+  ActivityAnswer,
+  RemoveAnswer,
+  Workspace,
+  WorkspaceAnswer,
+  WorkspaceClient,
+  WorkspaceKey,
+} from "./client";
 import { createEnvironmentActions } from "./environment";
 
 // The environment actions' logic (#32 design 3.3 layer 1, 3.6): the session first, the key from the session's
@@ -90,6 +101,7 @@ function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
     now: () => NOW,
     recordStarted,
     log,
+    sleep: NO_SLEEP,
   });
   return { actions, calls, mintTicket, started, recordStarted, log };
 }
@@ -260,5 +272,232 @@ describe("recordLessonStarted action", () => {
 
     expect(result).toEqual({ kind: "failed" });
     expect(log.mock.calls).toEqual([["web: lesson started write failed: Error (23503)"]]);
+  });
+});
+
+// The service's answers for one test, each call recorded in order; a call the script has no answer for rejects.
+interface Script {
+  get?: WorkspaceAnswer;
+  ensure?: WorkspaceAnswer;
+  stop?: WorkspaceAnswer;
+  removes?: RemoveAnswer[];
+  activity?: ActivityAnswer;
+}
+
+function scripted(script: Script, readCourseTree = async () => course) {
+  const order: string[] = [];
+  const sleeps: number[] = [];
+  const removes = [...(script.removes ?? [])];
+  const answer = <T>(method: keyof WorkspaceClient, value: T | undefined) =>
+    value === undefined
+      ? undefined
+      : async (): Promise<T> => {
+          order.push(method);
+          return value;
+        };
+  const client = fakeWorkspaceClient({
+    get: answer("get", script.get),
+    ensure: answer("ensure", script.ensure),
+    stop: answer("stop", script.stop),
+    activity: answer("activity", script.activity),
+    remove: async () => {
+      order.push("remove");
+      const next = removes.shift();
+      if (next === undefined) throw new UnexpectedWorkspaceCallError("remove");
+      return next;
+    },
+  });
+  const actions = createEnvironmentActions({
+    getCourse: readCourseTree,
+    client,
+    mintTicket: () => ({ ticket: "minted", renewInMs: 1 }),
+    now: () => NOW,
+    recordStarted: async () => {},
+    log: () => {},
+    sleep: async (ms) => {
+      sleeps.push(ms);
+    },
+  });
+  return { actions, order, sleeps };
+}
+
+const RUNNING_ANSWER: WorkspaceAnswer = {
+  kind: "workspace",
+  workspace: workspace({ outcome: "started" }),
+};
+const STOPPED_ANSWER: WorkspaceAnswer = {
+  kind: "workspace",
+  workspace: workspace({ state: "stopped", exit: { code: 0, reason: "exited" } }),
+};
+const MINUTE_MS = 60_000;
+
+describe("restart, reset, idle and activity actions", () => {
+  it.each([
+    "restartEnvironment",
+    "resetEnvironment",
+    "readEnvironmentIdle",
+    "recordEnvironmentActivity",
+  ] as const)("%s answers unauthenticated without a session and calls nothing", async (name) => {
+    const getCourse = vi.fn(async () => course);
+    const { actions, order } = scripted(
+      {
+        get: RUNNING_ANSWER,
+        ensure: RUNNING_ANSWER,
+        stop: STOPPED_ANSWER,
+        removes: [{ kind: "removed" }],
+        activity: { kind: "recorded" },
+      },
+      getCourse,
+    );
+
+    const result = await actions[name](async () => null, FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "unauthenticated" });
+    expect(getCourse).not.toHaveBeenCalled();
+    expect(order).toEqual([]);
+  });
+
+  it.each<[string, WorkspaceAnswer]>([
+    ["a stopped workspace", STOPPED_ANSWER],
+    ["no workspace", { kind: "not-found" }],
+  ])("restart stops and then ensures after a stop answering %s", async (_case, stop) => {
+    const { actions, order } = scripted({ stop, ensure: RUNNING_ANSWER });
+
+    const result = await actions.restartEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "started" });
+    expect(order).toEqual(["stop", "ensure"]);
+  });
+
+  it("restart answers failed without an ensure when the stop answers running", async () => {
+    const { actions, order } = scripted({ stop: RUNNING_ANSWER, ensure: RUNNING_ANSWER });
+
+    const result = await actions.restartEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "failed" });
+    expect(order).toEqual(["stop"]);
+  });
+
+  it("restart returns a failed stop as it is and never ensures", async () => {
+    const { actions, order } = scripted({ stop: { kind: "docker-down" }, ensure: RUNNING_ANSWER });
+
+    const result = await actions.restartEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "docker-down" });
+    expect(order).toEqual(["stop"]);
+  });
+
+  it("reset retries a busy remove after 500 ms and ensures once it is removed", async () => {
+    const { actions, order, sleeps } = scripted({
+      removes: [{ kind: "busy" }, { kind: "removed" }],
+      ensure: RUNNING_ANSWER,
+    });
+
+    const result = await actions.resetEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "started" });
+    expect(order).toEqual(["remove", "remove", "ensure"]);
+    expect(sleeps).toEqual([500]);
+  });
+
+  it("reset gives up after three busy answers and never ensures the old volume", async () => {
+    const { actions, order, sleeps } = scripted({
+      removes: [{ kind: "busy" }, { kind: "busy" }, { kind: "busy" }],
+      ensure: RUNNING_ANSWER,
+    });
+
+    const result = await actions.resetEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "failed" });
+    expect(order).toEqual(["remove", "remove", "remove"]);
+    expect(sleeps).toEqual([500, 1000]);
+  });
+
+  it("reset returns the last failure of three and never ensures", async () => {
+    const { actions, order } = scripted({
+      removes: [{ kind: "docker-down" }, { kind: "docker-down" }, { kind: "docker-down" }],
+      ensure: RUNNING_ANSWER,
+    });
+
+    const result = await actions.resetEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "docker-down" });
+    expect(order).toEqual(["remove", "remove", "remove"]);
+  });
+
+  it("reads the idle schedule as durations from the server's clock", async () => {
+    const idle = {
+      warningAt: new Date(NOW + 10 * MINUTE_MS).toISOString(),
+      stopAt: new Date(NOW + 15 * MINUTE_MS).toISOString(),
+    };
+    const { actions, order } = scripted({
+      get: { kind: "workspace", workspace: workspace({ idle }) },
+    });
+
+    const result = await actions.readEnvironmentIdle(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({
+      kind: "idle",
+      warnInMs: 600_000,
+      stopInMs: 900_000,
+      warningMinutes: 5,
+    });
+    expect(order).toEqual(["get"]);
+  });
+
+  it.each<[string, WorkspaceAnswer]>([
+    ["a running workspace with no idle schedule", { kind: "workspace", workspace: workspace({}) }],
+    ["a stopped workspace", STOPPED_ANSWER],
+    ["no workspace", { kind: "not-found" }],
+    [
+      "an unparsable warning time",
+      {
+        kind: "workspace",
+        workspace: workspace({ idle: { warningAt: "x", stopAt: new Date(NOW).toISOString() } }),
+      },
+    ],
+    [
+      "a stop before the warning",
+      {
+        kind: "workspace",
+        workspace: workspace({
+          idle: {
+            warningAt: new Date(NOW + 2 * MINUTE_MS).toISOString(),
+            stopAt: new Date(NOW + MINUTE_MS).toISOString(),
+          },
+        }),
+      },
+    ],
+  ])("reads no idle schedule for %s", async (_case, get) => {
+    const { actions } = scripted({ get });
+
+    expect(await actions.readEnvironmentIdle(session("user_a"), FIXTURE_COURSE_ID, LESSON)).toEqual(
+      { kind: "none" },
+    );
+  });
+
+  it("answers failed for an idle read the service fails", async () => {
+    const { actions } = scripted({ get: { kind: "docker-down" } });
+
+    expect(await actions.readEnvironmentIdle(session("user_a"), FIXTURE_COURSE_ID, LESSON)).toEqual(
+      { kind: "failed" },
+    );
+  });
+
+  it.each<[ActivityAnswer, unknown]>([
+    [{ kind: "recorded" }, { kind: "recorded" }],
+    [{ kind: "not-running" }, { kind: "not-running" }],
+    [{ kind: "docker-down" }, { kind: "failed" }],
+  ])("passes the activity answer %j through as %j", async (activity, expected) => {
+    const { actions, order } = scripted({ activity });
+
+    const result = await actions.recordEnvironmentActivity(
+      session("user_a"),
+      FIXTURE_COURSE_ID,
+      LESSON,
+    );
+
+    expect(result).toEqual(expected);
+    expect(order).toEqual(["activity"]);
   });
 });

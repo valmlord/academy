@@ -4,7 +4,13 @@ import { describeDbError } from "../db-error";
 import type { StartedLesson } from "../progress/lesson-started";
 import type { SessionData } from "../session-reader";
 import type { TerminalTicket, TicketRequest } from "../terminal/mint";
-import type { WorkspaceClient, WorkspaceFailure, WorkspaceKey } from "./client";
+import type {
+  RemoveAnswer,
+  WorkspaceAnswer,
+  WorkspaceClient,
+  WorkspaceFailure,
+  WorkspaceKey,
+} from "./client";
 
 // The logic of the lesson page's environment actions (#32 design 3.3 layer 1); the server action module only
 // wires the data access layer in. Every action reads the session first, takes nothing but the course and
@@ -37,6 +43,23 @@ export type LessonStartedResult =
   | { kind: "unauthenticated" }
   | { kind: "failed" };
 
+/**
+ * `readEnvironmentIdle`'s answer. The durations are measured on the server against the service's times (one host
+ * clock in compose), because the browser's clock may be anywhere; `warningMinutes` is the warning window's length.
+ */
+export type IdleResult =
+  | { kind: "idle"; warnInMs: number; stopInMs: number; warningMinutes: number }
+  | { kind: "none" }
+  | { kind: "unauthenticated" }
+  | { kind: "failed" };
+
+/** `recordEnvironmentActivity`'s answer; `not-running` once the workspace has stopped. */
+export type ActivityResult =
+  | { kind: "recorded" }
+  | { kind: "not-running" }
+  | { kind: "unauthenticated" }
+  | { kind: "failed" };
+
 export interface EnvironmentDeps {
   getCourse: () => Promise<CourseTree>;
   client: WorkspaceClient;
@@ -44,7 +67,15 @@ export interface EnvironmentDeps {
   now: () => number;
   recordStarted: (lesson: StartedLesson) => Promise<void>;
   log: (line: string) => void;
+  sleep: (ms: number) => Promise<void>;
 }
+
+// ADR-0010 item 7: the caller retries DELETE on any non-204 answer. Bounded, so a volume that stays busy cannot
+// hold the request open: the first call and two retries, after these waits.
+export const REMOVE_ATTEMPTS = 3;
+export const REMOVE_RETRY_MS: readonly number[] = [500, 1000];
+
+const MINUTE_MS = 60_000;
 
 // ADR-0010 item 3: the service refuses any other user id with 400, so it is refused here first.
 const USER_ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -116,6 +147,30 @@ export interface EnvironmentActions {
     courseId: unknown,
     lessonId: unknown,
   ): Promise<LessonStartedResult>;
+  /** `POST W/stop`, then `PUT W`: the container restarts and the files stay. */
+  restartEnvironment(
+    readSession: ReadSession,
+    courseId: unknown,
+    lessonId: unknown,
+  ): Promise<EnvironmentResult>;
+  /** `DELETE W`, then `PUT W` only after a 204: the workspace is created again from the lesson's starter. */
+  resetEnvironment(
+    readSession: ReadSession,
+    courseId: unknown,
+    lessonId: unknown,
+  ): Promise<EnvironmentResult>;
+  /** `GET W`: when the idle warning of a running workspace starts and when the idle stop comes. */
+  readEnvironmentIdle(
+    readSession: ReadSession,
+    courseId: unknown,
+    lessonId: unknown,
+  ): Promise<IdleResult>;
+  /** `POST W/activity`: the learner chose to keep working, so the idle window moves. */
+  recordEnvironmentActivity(
+    readSession: ReadSession,
+    courseId: unknown,
+    lessonId: unknown,
+  ): Promise<ActivityResult>;
 }
 
 /** The session's expiry in epoch ms when it is a valid date after `now`; Better Auth's cache may hand back a string. */
@@ -126,7 +181,45 @@ function sessionExpiry(session: SessionData, now: number): number | undefined {
   return Number.isFinite(time) && time > now ? time : undefined;
 }
 
+/** Only a running workspace with two parsable times, the stop after the warning, has an idle schedule. */
+function idleOf(answer: WorkspaceAnswer, now: number): IdleResult {
+  if (answer.kind === "not-found") return { kind: "none" };
+  if (answer.kind !== "workspace") return { kind: "failed" };
+  const { workspace } = answer;
+  if (workspace.state !== "running" || workspace.idle === null) return { kind: "none" };
+  const warningAt = Date.parse(workspace.idle.warningAt);
+  const stopAt = Date.parse(workspace.idle.stopAt);
+  if (!Number.isFinite(warningAt) || !Number.isFinite(stopAt) || stopAt <= warningAt) {
+    return { kind: "none" };
+  }
+  return {
+    kind: "idle",
+    warnInMs: warningAt - now,
+    stopInMs: stopAt - now,
+    warningMinutes: Math.round((stopAt - warningAt) / MINUTE_MS),
+  };
+}
+
 export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActions {
+  async function ensureRunning(key: WorkspaceKey): Promise<EnvironmentResult> {
+    const answer = await deps.client.ensure(key);
+    // PUT never answers 404 workspace-not-found; a stopped answer would break ADR-0010's contract.
+    if (answer.kind === "not-found") return { kind: "failed" };
+    if (answer.kind !== "workspace") return answer;
+    const { workspace } = answer;
+    if (workspace.state !== "running") return { kind: "failed" };
+    return { kind: "running", outcome: workspace.outcome ?? null };
+  }
+
+  async function removeWithRetries(key: WorkspaceKey): Promise<RemoveAnswer> {
+    let answer = await deps.client.remove(key);
+    for (let attempt = 1; attempt < REMOVE_ATTEMPTS && answer.kind !== "removed"; attempt += 1) {
+      await deps.sleep(REMOVE_RETRY_MS[attempt - 1] ?? 0);
+      answer = await deps.client.remove(key);
+    }
+    return answer;
+  }
+
   return {
     async peekEnvironment(readSession, courseId, lessonId) {
       const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
@@ -142,13 +235,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
     async startEnvironment(readSession, courseId, lessonId) {
       const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
-      const answer = await deps.client.ensure(lookup.key);
-      // PUT never answers 404 workspace-not-found; a stopped answer would break ADR-0010's contract.
-      if (answer.kind === "not-found") return { kind: "failed" };
-      if (answer.kind !== "workspace") return answer;
-      const { workspace } = answer;
-      if (workspace.state !== "running") return { kind: "failed" };
-      return { kind: "running", outcome: workspace.outcome ?? null };
+      return ensureRunning(lookup.key);
     },
 
     async openTerminal(readSession, courseId, lessonId) {
@@ -185,6 +272,43 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
         deps.log(`web: lesson started write failed: ${describeDbError(error)}`);
         return { kind: "failed" };
       }
+    },
+
+    async restartEnvironment(readSession, courseId, lessonId) {
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      if (lookup.kind !== "key") return { kind: lookup.kind };
+      const stopped = await deps.client.stop(lookup.key);
+      if (stopped.kind === "workspace") {
+        // A stop that answers running would break ADR-0010's contract.
+        if (stopped.workspace.state === "running") return { kind: "failed" };
+      } else if (stopped.kind !== "not-found") {
+        return stopped;
+      }
+      return ensureRunning(lookup.key);
+    },
+
+    async resetEnvironment(readSession, courseId, lessonId) {
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      if (lookup.kind !== "key") return { kind: lookup.kind };
+      const removed = await removeWithRetries(lookup.key);
+      // A PUT after a failed DELETE would start the old volume and report a reset that did not happen.
+      if (removed.kind === "busy") return { kind: "failed" };
+      if (removed.kind !== "removed") return removed;
+      return ensureRunning(lookup.key);
+    },
+
+    async readEnvironmentIdle(readSession, courseId, lessonId) {
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      if (lookup.kind !== "key") return { kind: lookup.kind };
+      return idleOf(await deps.client.get(lookup.key), deps.now());
+    },
+
+    async recordEnvironmentActivity(readSession, courseId, lessonId) {
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      if (lookup.kind !== "key") return { kind: lookup.kind };
+      const answer = await deps.client.activity(lookup.key);
+      if (answer.kind === "recorded" || answer.kind === "not-running") return answer;
+      return { kind: "failed" };
     },
   };
 }
