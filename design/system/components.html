@@ -13,7 +13,11 @@
     .gallery-section { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-8); }
     .gallery-section > h3 { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.04em; }
     .gallery-note { font-size: var(--text-xs); line-height: var(--text-xs-line); color: var(--muted-foreground); }
-    .demo-layout { height: 30rem; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+    /* position: relative makes the demo the containing block of its .sr-only headings (position: absolute),
+       so its overflow clips them too; otherwise the two-pane demo's environment heading widens the page. */
+    .demo-layout { position: relative; height: 30rem; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+    /* The forced two-pane demo is wider than a 320px column: it scrolls sideways inside its own box. */
+    .demo-scroll-x { overflow-x: auto; }
     .demo-layout-short { height: 26rem; }
     .demo-narrow { max-width: 20rem; border: 1px solid var(--border); border-radius: var(--radius-lg); }
     /* The page h1 at its own size, inside the gallery's heading outline (h2 column, h3 section). */
@@ -112,7 +116,10 @@
       <span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройдено</span>
       <span class="badge" data-variant="outline" data-tone="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройдено</span>
       <span class="badge" data-variant="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Время вышло</span>
+      <span class="badge" data-variant="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Время вышло, попытка не засчитана</span>
       <span class="badge" data-variant="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Ошибка формата, попытка не засчитана</span>
+      <span class="badge" data-variant="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Сбой проверки, попытка не засчитана</span>
+      <span class="badge" data-variant="outline" data-tone="destructive"><span class="status-icon" data-status="closed" aria-hidden="true"></span>Закрыта: не пройдено</span>
     </div>
     <div class="row" lang="ru">
       <span class="status-icon" data-status="success" aria-hidden="true"></span>
@@ -122,8 +129,9 @@
       <span class="status-icon" data-status="queued" aria-hidden="true"></span>
       <span class="status-icon" data-status="running" aria-hidden="true"></span>
       <span class="status-icon" data-status="muted" aria-hidden="true"></span>
+      <span class="status-icon" data-status="closed" aria-hidden="true"></span>
     </div>
-    <p class="gallery-note">Lesson and module status sets of ia.md (v1), check status set (deferred, above). Fail is the outline badge with the destructive icon and word, never filled. Status icons differ in shape, not only in colour.</p>
+    <p class="gallery-note">Lesson and module status sets of ia.md (v1), check status set (deferred, above). Fail is the outline badge with the destructive icon and word, never filled; a closed check is the same outline badge with the lock. Status icons differ in shape, not only in colour: data-status success, destructive, warning, info, queued, running, muted, closed (the lock, drawn by CSS on the same empty span).</p>
   </div>
 
   <div class="gallery-section">
@@ -166,6 +174,35 @@
       </div>
     </dialog>
     <p class="gallery-note">Focus starts on "Отмена"; Esc cancels; focus returns to the opener (for a menu item, to the menu trigger).</p>
+    <div class="check-bar" lang="ru">
+      <div class="check-bar-controls"><button class="button" type="button" id="g-budget-check">Проверить</button></div>
+    </div>
+    <div class="row">
+      <button class="button" type="button" data-variant="outline" data-size="sm" id="g-budget-open-one" data-dialog-open="g-budget-dialog-one">Open: one check</button>
+      <button class="button" type="button" data-variant="outline" data-size="sm" id="g-budget-open-two" data-dialog-open="g-budget-dialog-two">Open: two checks</button>
+    </div>
+    <dialog class="alert-dialog" id="g-budget-dialog-one" role="alertdialog" aria-labelledby="g-budget-one-title" aria-describedby="g-budget-one-description g-budget-one-list" data-focus-fallback="#g-budget-check" data-open-in-states="gallery-budget-one" lang="ru">
+      <h4 class="alert-dialog-title" id="g-budget-one-title">Потратить до $2.00 с вашего ключа API?</h4>
+      <p class="alert-dialog-description" id="g-budget-one-description">Эта проверка расходует токены:</p>
+      <ul class="alert-dialog-list" id="g-budget-one-list"><li>Агент решает скрытую задачу с вашим AGENTS.md: до $2.00</li></ul>
+      <div class="alert-dialog-footer">
+        <button class="button" type="button" data-variant="outline" data-dialog-close autofocus>Отмена</button>
+        <button class="button" type="button" data-dialog-close>Запустить</button>
+      </div>
+    </dialog>
+    <dialog class="alert-dialog" id="g-budget-dialog-two" role="alertdialog" aria-labelledby="g-budget-two-title" aria-describedby="g-budget-two-description g-budget-two-list" data-focus-fallback="#g-budget-check" data-open-in-states="gallery-budget-two" lang="ru">
+      <h4 class="alert-dialog-title" id="g-budget-two-title">Потратить до $2.50 с вашего ключа API?</h4>
+      <p class="alert-dialog-description" id="g-budget-two-description">Эти проверки расходуют токены:</p>
+      <ul class="alert-dialog-list" id="g-budget-two-list">
+        <li>Качество AGENTS.md (оценка ментора по рубрике): до $0.50</li>
+        <li>Агент решает скрытую задачу с вашим AGENTS.md: до $2.00</li>
+      </ul>
+      <div class="alert-dialog-footer">
+        <button class="button" type="button" data-variant="outline" data-dialog-close autofocus>Отмена</button>
+        <button class="button" type="button" data-dialog-close>Запустить</button>
+      </div>
+    </dialog>
+    <p class="gallery-note">Budget confirmation (F13.1, sample data from #37 / #39), the second AlertDialog: the list follows the description paragraph as .alert-dialog-list (a ul cannot sit inside the p), both named by aria-describedby; one listed check takes the singular description. "Запустить" is the default variant, not destructive. The dialog's own data-focus-fallback names "Проверить": a page opens it by data-open-in-states, with no opener, so Esc, "Отмена" and a state change that closes it focus "Проверить"; opened by a button (the two above, gallery chrome), focus returns to that button while it is rendered.</p>
   </div>
 
   <div class="gallery-section">
@@ -345,7 +382,7 @@
           <button class="button" type="button" data-size="sm">Повторить</button>
           <button class="button collapsible-trigger" type="button" data-variant="ghost" data-size="sm" data-collapsible aria-expanded="true" aria-controls="g-env-details">Подробности</button>
         </div>
-        <pre class="env-details" id="g-env-details">Cannot connect to the Docker daemon. Is the docker daemon running?</pre>
+        <pre class="error-details" id="g-env-details">Cannot connect to the Docker daemon. Is the docker daemon running?</pre>
       </div>
     </div>
   </div>
@@ -384,7 +421,7 @@
             <span class="status-icon" data-status="running" aria-hidden="true"></span>
             <span class="check-row-title">Тесты проходят</span>
             <span class="check-row-status">Идёт</span>
-            <span class="check-row-meta"><span class="timer" role="timer">0:42 из 2:00</span></span>
+            <span class="check-row-meta"><span class="check-row-time">0:42 из 2:00</span></span>
           </button>
           <div class="check-row-panel" id="g-row-2" hidden><p class="text-sm muted">Неудачных попыток: 0</p></div>
         </li>
@@ -397,8 +434,45 @@
           </button>
           <div class="check-row-panel" id="g-row-3" hidden><p class="text-sm muted">Неудачных попыток: 1</p></div>
         </li>
+        <li>
+          <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-row-4">
+            <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+            <span class="check-row-title">Маршрутизация задач</span>
+            <span class="check-row-status">Не пройдено</span>
+            <span class="check-row-meta"><span data-tone="warning"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Осталась 1 попытка</span></span>
+          </button>
+          <div class="check-row-panel" id="g-row-4">
+            <pre class="check-row-message">routing[3].model: expected haiku</pre>
+            <p class="text-sm muted">Неудачных попыток: 9 из 10</p>
+          </div>
+        </li>
+        <li>
+          <button class="check-row-trigger" type="button" id="g-row-5-trigger" data-collapsible aria-expanded="true" aria-controls="g-row-5">
+            <span class="status-icon" data-status="warning" aria-hidden="true"></span>
+            <span class="check-row-title">Структура отчёта</span>
+            <span class="check-row-status">Сбой проверки, попытка не засчитана</span>
+          </button>
+          <div class="check-row-panel" id="g-row-5" data-focus-fallback="#g-row-5-trigger">
+            <button class="button collapsible-trigger" type="button" data-variant="ghost" data-size="sm" data-collapsible aria-expanded="true" aria-controls="g-row-5-details">Подробности</button>
+            <pre class="error-details" id="g-row-5-details">grader exited: container stopped (exit code 137) before checks/verify_report.py finished</pre>
+            <p class="text-sm muted">Неудачных попыток: 3</p>
+          </div>
+        </li>
+        <li>
+          <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-row-6">
+            <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+            <span class="check-row-title">Стоимость сессий</span>
+            <span class="check-row-status">Закрыта: не пройдено</span>
+          </button>
+          <div class="check-row-panel" id="g-row-6">
+            <p class="text-sm">Проверка закрыта: попытки исчерпаны. Сброс рабочей папки и перезапуск окружения её не откроют.</p>
+            <pre class="check-row-message">total_usd: expected 0.42, got 0.36</pre>
+            <p class="text-sm muted">Неудачных попыток: 10 из 10</p>
+          </div>
+        </li>
       </ul>
     </div>
+    <p class="gallery-note">Rows: failed, running, timeout, failed with one attempt left (meta warning: warning icon, words in foreground, accent-foreground on hover), runner error (no meta; "Подробности" is the environment's ghost sm collapsible with the same .error-details block), closed (lock, no meta; the closed note first). The in-row time is .check-row-time with no role: it is part of the row button's name. .timer with role="timer" is the standalone time of the check bar and the environment status bar, a sibling of their status container. Titles and grader messages are sample data.</p>
   </div>
 
   <div class="gallery-section">
@@ -442,6 +516,8 @@
       <ul><li>Сначала план</li><li>Потом изменения</li></ul>
       <h3 id="g-sec-keys" tabindex="-1">Клавиши</h3>
       <div class="table-wrap"><table><thead><tr><th>Клавиша</th><th>Действие</th></tr></thead><tbody><tr><td><kbd class="kbd">Esc</kbd></td><td>Остановить агента</td></tr></tbody></table></div>
+      <h4>Формат <code>findings.json</code></h4>
+      <p>Каждая находка хранит файл, строку и короткое описание проблемы.</p>
       <div class="code-block">
         <div class="code-block-header"><button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#g-code" data-copy-denied="Не скопировано, выделите текст вручную">Копировать</button></div>
         <pre><code id="g-code">claude --help</code></pre>
@@ -452,7 +528,7 @@
 
   <div class="gallery-section">
     <h3>Composition: lesson layout, two panes, split handle with tooltip</h3>
-    <div class="demo-layout" lang="ru">
+    <div class="demo-layout demo-scroll-x" lang="ru">
       <div class="lesson-layout" data-force-layout="two-pane" data-active-pane="lesson">
         <section class="pane" data-pane="lesson" aria-labelledby="g2-lesson-h">
           <h2 class="sr-only" id="g2-lesson-h">Урок</h2>
@@ -537,7 +613,8 @@
   (function () {
     var template = document.getElementById("gallery-content");
     var idAttributes = ["aria-controls", "aria-labelledby", "aria-describedby", "for", "data-tooltip", "data-dialog-open"];
-    var selectorAttributes = ["data-copy", "data-focus"];
+    // data-open-in-states names a state, suffixed like a selector so each column's dialog opens alone.
+    var selectorAttributes = ["data-copy", "data-focus", "data-focus-fallback", "data-open-in-states"];
     document.querySelectorAll("[data-gallery-col]").forEach(function (column) {
       var suffix = "-" + column.getAttribute("data-gallery-col");
       var copy = template.content.cloneNode(true);

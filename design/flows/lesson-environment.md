@@ -5,6 +5,8 @@ R3 in `ia.md` (Верхняя панель, Уведомления, Урок, П
 Задание, Проверки (Квиз from #36, rule R6). Under it the check bar, region "Проверка". Right pane
 "Окружение": a status bar with the environment status, "Действия" and the key hint, then the tab
 Терминал (Редактор from #40). Disabled actions follow R1, live regions R2, landmarks and Tab order R4.
+While the course cannot be read none of these parts exists: `main` holds only the course error (F7 error
+states; "Lesson page by release").
 Sources: `docs/learning-process.md` §1, #30 (theory and task on the left, the environment on the right), #31 (create, start, stop, delete; GC; recovery), #32 (terminal over WebSocket,
 reconnect), #33 (missing API key), #40 (editor), ADR-0002 (files in a named volume, Docker Desktop
 required), research §3, §5, §8. Checks are in `checks.md`, the quiz in `quiz.md`, the mentor in
@@ -15,6 +17,9 @@ the #50 design notes). A lesson without the `workspace` field in `lesson.yaml` h
 "Окружение" region; the left pane takes the full width.
 
 ## Layout by width (decision A8)
+
+For the lesson page whose course was read. While the course cannot be read there are no panes, no switch
+and no check bar at any width: `main` holds only the course error, in the catalog's column (F7 error states).
 
 - From 1024 px: two resizable panes side by side, the check bar under the left pane.
 - Below 1024 px, down to 320 px: one pane at a time in one area, with the switch "Урок / Окружение" (a
@@ -34,6 +39,9 @@ the #50 design notes). A lesson without the `workspace` field in `lesson.yaml` h
 The parts of the page arrive with their dev issues; each release state is one named state with a fixed
 set of tabs and controls (rule R6 in `ia.md`).
 
+- **Course cannot be read** (every release, #83): `main` holds only the course error, the catalog's
+  composition (F7 error states); none of the regions "Урок", "Проверка", "Окружение" exists, so none of
+  the controls listed below does.
 - **M0 lesson** (#30 shipped; #31, #32 and #34 not yet): region "Урок" only, full width at every width,
   so no one-pane switch. Tabs Теория and Задание (Задание only when the lesson has no theory); no
   Проверки tab, no Квиз tab, no check bar (no "Проверка" region), no "Окружение" region, no idle warning.
@@ -81,6 +89,19 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 **Success:** the learner has read the task and knows how it is checked.
 
 **Error states:**
+- The course cannot be read when the page opens (any course file; the direct-link entry makes this the
+  first thing a learner can meet): the page is the catalog's course error, not a lesson with a gap.
+  `<title>` and h1 "Не удалось загрузить курс" (the h1 is the Alert title, `tabindex="-1"`), "Повторить";
+  nothing else in `main`: no breadcrumb, lesson header, M0 line, prerequisite alert or tabs, because each
+  of them is course data. The URL's course and lesson ids are not checked: without the course the page
+  cannot tell a hidden lesson from a real one, and saying "not found" could be wrong. Regions: `ia.md` R3
+  (`main` is the `F6` stop and lands on "Повторить"); top bar: R6, with `aria-current` on neither link and
+  "Курс" kept unless the course id is unknown. "Повторить" reloads: the lesson opens with focus on its h1
+  (`<title>` the lesson title); a second failure focuses the error h1 (`<title>` unchanged); a course that
+  loads while the URL is a way into the not-found page (`ia.md` page inventory, not-found Route) shows the
+  not-found page with focus on its h1 (`<title>` "Страница не найдена"; R2, page-level retry table).
+- A direct link that is a way into the not-found page (`ia.md` page inventory, not-found Route, ways (3)
+  and (4)): the not-found page (`catalog.md` F5 error states).
 - theory.md or task.md cannot be read: the tab shows "Не удалось загрузить текст урока" with
   "Повторить"; the other tab and the environment stay usable.
 - A broken link in "Источники" is not detected by the UI; the dated `checkedAt` tells the learner how old
@@ -90,10 +111,13 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 **Empty states:** a lesson with no theory.md (a pure quiz lesson): the Теория tab is not shown and the
 page opens on Задание. A lesson with no sources: the "Источники" block is not shown.
 
-**Exit:** F7.5 into F9; F13 via "Проверить"; breadcrumbs to the catalog.
+**Exit:** F7.5 into F9; F13 via "Проверить"; breadcrumbs to the catalog. From the course error:
+"Повторить", or "Главная" / "Курс" in the top bar (R6).
 
 **Keyboard path:** the tab list is one Tab stop, arrow keys switch tabs (WAI-ARIA tabs), Tab moves into
-the tab panel. "Содержание" links are in order; Enter moves focus to the heading.
+the tab panel. "Содержание" links are in order; Enter moves focus to the heading. While the course cannot
+be read: Tab order and `F6` as `ia.md` R4 and R3 state for that case ("Повторить" is the only control in
+`main`).
 
 **Time limits:** none for reading.
 
@@ -222,11 +246,17 @@ page background and `terminal`.
 by keyboard.
 
 **Error states:**
-- WebSocket drops: the terminal dims, status "Соединение с терминалом потеряно. Переподключаемся...", and
+- WebSocket drops: the terminal frame turns dashed in `warning` and hides the cursor, never dimmed or
+  made transparent (`design/system/README.md`, dark-mode rules), status "Соединение с терминалом потеряно.
+  Переподключаемся...", and
   reconnects to the same session (#32). After a number of failed retries (parameter
-  `TERMINAL_RECONNECT_ATTEMPTS`, set by #32): "Не удалось переподключиться" with "Переподключиться". Typed
-  input during the drop is not sent and not buffered, because replaying keys into an unknown shell state
-  is unsafe.
+  `TERMINAL_RECONNECT_ATTEMPTS`, set by #32): "Не удалось переподключиться" with "Переподключиться".
+  "Переподключиться" starts a new reconnect cycle: the status reads "Соединение с терминалом потеряно.
+  Переподключаемся..." again (a text change, so it is announced), the button goes and focus moves to
+  "Действия" (R2, R3 row "reconnecting"); the cycle ends connected or with "Не удалось переподключиться"
+  and "Переподключиться" again. The check bar's "Переподключиться" works the same way (`checks.md` F13
+  error states). Typed input during the drop is not sent and not buffered, because replaying keys into an
+  unknown shell state is unsafe.
 - The environment stopped underneath (idle stop, limits, platform restart): F10.
 - Session expired: F2.
 - The shell process exits (`exit`, Ctrl+D): "Сеанс терминала завершён" with "Открыть новый сеанс"; the
@@ -318,7 +348,11 @@ delete, recovery).
 окончания проверки" (R1), because a reset under a running check would grade half-deleted files. The
 environment is not running (creating, starting, stopped, an F8 error): both are `aria-disabled` with
 "Доступно, когда окружение работает" (R1), because the status bar's own action already starts it.
-Recreate fails: F8 error states.
+A run this page does not know of is going (started in another tab, #34 lock): the server refuses the
+action, the dialog (if open) closes, nothing is restarted or reset, and the page attaches to the run as in
+`checks.md` F13 error states: the check bar announces "Идёт проверка", both items become `aria-disabled`
+with "Дождитесь окончания проверки", and focus returns to "Действия". No new text is needed, because the
+status line already says why. Recreate fails: F8 error states.
 
 **Empty states:** none.
 

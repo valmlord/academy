@@ -5,8 +5,13 @@ Issue #50 (PR #67), architect phase. "research §n" cites the #50 research notes
 machine and not published.
 
 Notation: `F6` in backticks is the keyboard key; F6 without backticks is the flow "Open a lesson whose
-prerequisites are not passed". R1-R6 are the interaction rules below; flows refer to them by id instead
-of restating them.
+prerequisites are not passed". R1-R7 are the interaction rules below; flows refer to them by id instead
+of restating them. "The #69 design note" (`plans/69-check-panel-detail-design.md`) and Stepan's decisions
+for #69 (B0, S1-S12) are working notes of #69, kept like the #50 ones; the dev requirements they name are
+filed as a dev issue. The departures they approve are cited where they are stated: S7 (no "Повторить" for a
+check run, Action labels), S8 (no other-tab reason, R1), S9 (the #34 requirements), S10 (no outcomes
+change), S11 (a passed check that spends tokens is not re-run, `checks.md` "Run composition"), S12 (a passed
+lesson whose counted checks all spend tokens has nothing to run, R1).
 
 ## Vocabulary
 
@@ -23,9 +28,17 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 | working folder (the files) | working folder | рабочая папка | the files from `starter/`, kept in a volume |
 | environment (the running container) | environment | окружение | decision A1 in the #50 design notes. `workspace` appears only as the `lesson.yaml` field name (and in the image name `academy-workspace` it holds); docs never call the container a "workspace" |
 | check | check | проверка | |
-| attempt | attempt | попытка | |
+| run (one press of "Проверить", or "Запустить" in the budget confirmation, over the checks of `checks.md` "Run composition") | run; saved as one attempt record (next row) | проверка, as in "Идёт проверка" | never "запуск" in check copy; the verb "Запустить" is the dialog button (#69). The check bar and the check rows call the run "проверка"; the history and review copy calls its record "попытка" (next row) |
+| attempt (record of a run) | attempt: ADR-0007's record of one run (item 5: one grading run over a non-empty subset of the lesson's checks). Docs use this sense for "attempt" with no limit or counting word next to it: "an attempt", "attempt id", "attempt status", "attempt history", "recent attempts", "the cost of an attempt" (dashboard, learning-process §2), the F16 and F19 titles, R5; fields `attemptId`, `runningAttemptId`, `latestFinishedAttempt` | попытка, only in history and review copy: "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (shown in v1 in the Проверки tab), "История попыток недоступна" (D4), "Ментор читает попытку" (D3) | one run over two checks is one record holding two check results (next row). A run total cost needs its own label (D4, #35) |
+| attempt (one check's result) | attempt in per-check compounds only: "attempt limit", "last attempt" / "last-attempt warning", "attempts left" / "remain" / "leaves one attempt", "counted" / "uncounted" / "failed attempt", "spends an attempt", "attempt counter", a quiz attempt (one sent quiz, `quiz.md`); fields `attemptLimit`, `lastAttemptCount`, `failedCount`. These count one check's results (ADR-0007 `check_results` rows), never runs: `failedCount >= attemptLimit` compares counted failed results of that check | попытка, in every check-row, limit and quiz string: "Неудачных попыток: N", "Неудачных попыток: N из M", "Осталась 1 попытка", "Проверок на последней попытке: N", "..., попытка не засчитана" (three check statuses and status-line summary 4, where it says no result of the run counts), "Стоимость попытки: $N", "Проверка закрыта: попытки исчерпаны. ...", "Счётчики попыток не обнулятся." (reset dialog), "Попытка N из M", "Попытка N" (quiz) | the unit an attempt limit counts. Not this concept and not the run: sign-in attempts ("Слишком много попыток входа...", `auth.md`) and the reconnect tries `CHECK_STREAM_RECONNECT_ATTEMPTS` / `TERMINAL_RECONNECT_ATTEMPTS` (parameter names, no UI text). Course quotes ("Попытки и подсказки", "Квиз: не больше 3 попыток") are task.md text, rendered as written |
+| attempt limit | attempt limit (one check's results, row above) | no word of its own: "из M" in the counter and "Осталась 1 попытка" (R7) | from #68 |
+| closed check | closed | "Закрыта: не пройдено", "Проверка закрыта" | final: nothing reopens it (S2) |
+| runner error (the platform could not grade) | runner error | "Сбой проверки" | ADR-0007 `error`; never "ошибка проверки", because "ошибка формата" is the learner's |
+| cost of one check's result | cost | "Стоимость попытки" | per check row, from that check's latest result, never a run total; from #37 / #39. A run total (the dashboard's attempt cost, #35, D4) needs its own label, chosen by that DESIGN task |
+| tokens (what a rubric or hidden-task check spends from the learner's API key) | tokens | токены, as in "Эта проверка расходует токены:" | learning-process §2 "Agent checks ... spend tokens"; only in the budget confirmation (#69) |
 | quiz | quiz | квиз | |
-| mentor | mentor | ментор | |
+| mentor | mentor | ментор | also the grader of a rubric check ("оценка ментора"); never called "агент" |
+| agent | agent | агент | Claude Code (or another coding agent) the learner runs in the terminal, as in "Ключ API для агента не задан: агент в терминале не запустится..."; also the agent a hidden-task check runs on the learner's files, named only in check titles (data). Never the rubric grader (that is the mentor). Lesson type "оценка агента" keeps this meaning. Check copy names no agent: the budget confirmation names the spend, not the spender (#69) |
 | mentor review | mentor review | разбор | from task.md "разбор с ментором"; the action is always "Разобрать с ментором" |
 | hint | hint | подсказка; levels "Вопрос", "Направление", "Скелет", "Скажи прямо" | learning-process §3 |
 | outcomes | outcomes | "Чему научитесь" | the schema field `outcomes` |
@@ -44,20 +57,22 @@ exist. "When" says which release shows it: v1 (this PR's prototypes), or the def
 
 | Set | Labels (Russian, exact) | Where | When |
 |-----|-------------------------|-------|------|
-| lesson status (masculine, agrees with "урок") | "Не начат", "В процессе", "Пройден", "Не пройден" | catalog rows (F5.3), dashboard (F4, F18) | v1; "Не пройден" only once checks can close (D1, F14.4, assumption A9) |
+| lesson status (masculine, agrees with "урок") | "Не начат", "В процессе", "Пройден", "Не пройден" | catalog rows (F5.3), dashboard (F4, F18) | v1; "Не пройден" only once the server reports a lesson finished and not passed (the ADR-0007 amendment of the #69 design note; F14, R5, assumption A9). The lesson page never shows a lesson status; its check bar says "Урок пройден" or "Урок завершён: не пройден. Пройдено: N из M" from the same server status |
 | module status (masculine, agrees with "модуль") | "Доступен", "Готовится" | catalog module list (F5.1), dashboard module rows (F18.2) | v1. "Доступен": has `ready` lessons; "Готовится": `planned`, or `ready` with no `ready` lesson |
 | lesson type | "теория", "квиз", "артефакт", "оценка агента", "поиск багов", "проект" | lesson header (F7.1), dashboard card (F4.1), catalog rows (F5.3) | v1; the schema `type` values |
-| check status (one check; neuter "пройдено" as in task.md) | base: "Не запускалась", "В очереди", "Идёт", "Пройдено", "Не пройдено", "Время вышло", "Ошибка формата, попытка не засчитана", "Не удалось запустить проверку", "Закрыта: не пройдено"; variant: "Не пройдено: исчерпан бюджет $N" | check rows in Проверки (F13.3), quiz check row (F15), recent attempts (F18.3) | the table in `checks.md` maps each to its token and release |
-| check row note | "Неудачных попыток: N", "Неудачных попыток: N из M", "Осталась 1 попытка", "лимит M:SS"; running timer "M:SS из M:SS" | open check row (F13.5, F14.1), timeout row (F13 errors) | v1 "Неудачных попыток: N", "лимит M:SS" and the timer; D1 "из M" and "Осталась 1 попытка" |
-| check bar status line | "Идёт проверка", "Пройдено: N из M", "Урок пройден", "Соединение с проверкой потеряно. Переподключаемся..." | check bar (F13); empty before the first run | v1 except the lost-connection text (D1) |
-| disabled reason (R1 description, never a status line) | "Окружение запускается, проверка станет доступна после запуска", "Сначала запустите окружение", "Дождитесь окончания проверки", "Доступно, когда окружение работает", "Проверка уже идёт в другой вкладке", "Откроется, когда проверка будет закрыта" | "Проверить" (F13), "Действия" items (F11), hint levels (F17) | v1 except "Проверка уже идёт в другой вкладке" (D1) and the hint lock (D3) |
+| check status (one check; neuter "пройдено" as in task.md) | base: "Не запускалась", "В очереди", "Идёт", "Пройдено", "Не пройдено", "Время вышло", "Ошибка формата, попытка не засчитана", "Сбой проверки, попытка не засчитана", "Закрыта: не пройдено"; variants: "Время вышло, попытка не засчитана", "Не пройдено: исчерпан бюджет $N" | check rows in Проверки (F13.3, F14.3), quiz check row (F15), recent attempts (F18.3) | v1 (#34 with the ADR-0007 amendment); the budget variant from #39. The table in `checks.md` maps each to its token, icon, counting and release. "Не удалось запустить проверку" (#50) is replaced by "Сбой проверки, попытка не засчитана" (#69) |
+| check row meta (collapsed row, after the status word) | running timer "M:SS из M:SS"; "лимит M:SS"; "Осталась 1 попытка" | collapsed check row (F13.3, F14.1) | v1 the timer and "лимит M:SS"; "Осталась 1 попытка" only with a known limit (R7, from #68). Each item only next to the status words of `checks.md` "Row meta by status word": the timer only with "Идёт", "лимит M:SS" only with the two "Время вышло" words, "Осталась 1 попытка" never with "Пройдено" or "Закрыта: не пройдено" |
+| check row note (open row panel, in this order) | "Проверка закрыта: попытки исчерпаны. Сброс рабочей папки и перезапуск окружения её не откроют.", "Проверка уже засчитана. Последний результат: не пройдено", "Проверка уже засчитана. Последний результат: сбой проверки", "Стоимость попытки: $N", "Неудачных попыток: N", "Неудачных попыток: N из M" | open check row (F13.5, F14.3) | v1 except "Стоимость попытки: $N" (from #37 / #39) and "из M" (R7, from #68). Which note shows with which status word: `checks.md` "Open panel by status word". In the sticky-pass note "не пройдено" is a group word for every latest result that is not a pass and not a runner error (failed, budget spent, timeout counted or not, format error); "сбой проверки" is the runner error |
+| check bar status line (summary, then notes joined with ". ") | summaries: "Идёт проверка", "Соединение с проверкой потеряно. Переподключаемся...", "Не удалось получить результат проверки", "Сбой проверки, попытка не засчитана", "Урок пройден", "Урок завершён: не пройден. Пройдено: N из M", "Пройдено: N из M"; notes after "Пройдено: N из M" only: "Закрытых проверок: N", "Осталась 1 попытка", "Проверок на последней попытке: N", "Проверок со сбоем: N" | check bar (F13, F14); empty on load except in the nothing-to-run state (S3, or a passed lesson whose counted checks all spend tokens, `checks.md` "Run composition") | v1; the two last-attempt notes only with a known limit (R7). Composition and order: `checks.md` "Check bar status line" |
+| disabled reason (R1 description, never a status line) | "Окружение запускается, проверка станет доступна после запуска", "Сначала запустите окружение", "Дождитесь окончания проверки", "Результат проверки ещё не получен", "Проверки завершены", "Доступно, когда окружение работает", "Откроется, когда проверка будет закрыта" | "Проверить" (F13, F14), "Действия" items (F11), hint levels (F17) | v1 except the hint lock (D3). "Проверка уже идёт в другой вкладке" (#50) is dropped: the UI cannot tell another tab's run from its own after a reload (#69) |
+| check kind (hidden in v1; registered for later) | "команда", "квиз", "оценка ментора", "скрытая задача", "поиск багов" (`command`, `quiz`, `rubric`, `hidden-task`, `bug-hunt`) | check row, after the title | not shown in any release designed so far; showing it is its own DESIGN task once a lesson lists a second kind (#36 or #37), `checks.md` "Check kind" |
 | environment status (status bar) | base: "Создаём окружение", "Запускаем окружение", "Окружение работает", "Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены."; variants: "Окружение остановлено: превышен лимит <памяти \| процессов \| CPU>. Файлы сохранены.", "Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".", "Нет образа окружения academy-workspace. Соберите его (см. README) и нажмите "Повторить".", "Нет доступа к этому окружению."; appended notes: "Запуск идёт дольше обычного", "Рабочая папка сброшена", "Рабочая папка не найдена, создано новое окружение из исходных файлов урока.", "Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу." | environment status bar (F8, F10, F11) | v1 |
 | terminal connection (status bar) | "Соединение с терминалом потеряно. Переподключаемся...", "Не удалось переподключиться", "Сеанс терминала завершён" | environment status bar (F9) | v1 |
 | one-pane switch suffix | "остановлено", "ошибка" (appended to the accessible name of the tab "Окружение") | the switch "Урок / Окружение" (A8) | v1 |
 | page alert (region "Уведомления") | "Сессия закончилась. Файлы в рабочей папке сохранены.", "Окружение остановится через N мин без активности. Файлы сохранятся." | every page with the top bar (F2.1), lesson (F10.1) | v1 |
-| quiz (D2) | "Нужно N%", "Попытка N из M", "Несколько вариантов", "Ответьте на все вопросы: осталось N", "Результат: N%. Нужно N%.", "Квиз пройден", "Ответы не отправлены. Попробуйте снова.", "Не удалось загрузить квиз" | Квиз tab (F15) | D2, after #36 |
+| quiz (D2) | "Нужно N%", "Попытка N из M", "Попытка N" (limit unknown, R7), "Несколько вариантов", "Ответьте на все вопросы: осталось N", "Результат: N%. Нужно N%.", "Квиз пройден", "Ответы не отправлены. Попробуйте снова.", "Не удалось загрузить квиз" | Квиз tab (F15) | D2, after #36 |
 | mentor (D3) | "Ментор читает попытку", "до $N", "Оценка N из M, нужно N", "Стоимость разбора: $N", "Разбор готов", "Бюджет на разбор исчерпан", "Ментор не ответил", "Ключ API не задан, разбор недоступен. Добавьте ключ в .env.", "Ментор не видел транскрипт работы с агентом" | review block and hint ladder in Проверки (F16, F17) | D3, after #37 |
-| budget (D1) | "Проверка с агентом потратит до $N" | budget confirmation (F13.1) | D1, after #39 |
+| budget confirmation (AlertDialog) | title "Потратить до $N с вашего ключа API?"; description "Эта проверка расходует токены:" (one listed check) or "Эти проверки расходуют токены:" (two or more); list item "<check title>: до $N"; buttons "Отмена", "Запустить" | budget confirmation (F13.1) | from #37 / #39; lists only checks the run includes, never a passed one (S11). "Проверка с агентом потратит до $N" (#50) is replaced (#69) |
 | editor (D5) | "Загружаем редактор", "Редактор не отвечает" | Редактор tab (F12) | D5, after #40 |
 
 ### Page copy
@@ -70,9 +85,12 @@ text only from this list or from the two tables above and below. Quotes of cours
 |------|----------------------|
 | sign-in (F1, F3) | "Вход" (`<title>` and h1), field labels "Почта" and "Пароль", "Входим..." (busy label of "Войти"), "Неверная почта или пароль", "Не удалось связаться с сервером. Проверьте, что платформа запущена (docker compose up), и попробуйте снова.", "Введите почту", "Введите пароль", "Слишком много попыток входа. Подождите и попробуйте снова.", "Пользователя создаёт скрипт seed, см. README", "Вы вышли" |
 | dashboard (F4, F18) | "Следующий урок", "около N мин", "Не удалось загрузить курс", "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; D4: "Слабые темы", "Слабых тем пока нет" |
-| catalog (F5, F6) | "Не удалось загрузить курс", "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>"; not-found "Страница не найдена" |
+| catalog (F5, F6) | "Не удалось загрузить курс", "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>" |
+| not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"). No other text in `main`: no "404", no breadcrumb, no search |
 | lesson tabs | left pane "Теория", "Задание", "Проверки", "Квиз" (D2); environment "Терминал", "Редактор" (D5); one-pane switch "Урок", "Окружение" |
-| lesson (F6-F13, F19) | "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока", "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (D4). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
+| lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока", "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (D4). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
+| lesson, accessible names (#69) | "Навигация" (breadcrumb `nav` label), "Область" (one-pane switch tab list label), "Разделы урока" (left-pane tab list label), "Окружение" (environment tab list label), "Терминал" (terminal frame name), the visually hidden region headings "Урок", "Проверка", "Окружение", "Уведомления" (the page region row of the vocabulary). The user menu is named by its trigger, the email (data, not copy) |
+| lesson, checks (F13, F14; #69) | the Проверки tab panel heading "Проверки"; the tab's visually hidden running part ", идёт проверка"; every check status, row meta, row note, status line text, disabled reason and the budget confirmation copy are in the closed sets above, and every button in Action labels. Grader messages and raw errors under "Подробности" are data, shown verbatim, not copy |
 
 ### Action labels
 
@@ -83,13 +101,13 @@ whether the control is shown in v1; a hidden control appears only when its issue
 |--------|-------|-------|----|
 | skip to the content | "К содержимому" | every page | yes |
 | open the dashboard (top bar) | "Академия" (brand link), "Главная" (nav link) | F4 | yes, every page with the top bar |
-| open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships") |
+| open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships"); not while the course id is unknown (R6, "Course id unknown") |
 | sign in | "Войти" | F1 | yes |
 | sign in again after expiry | "Войти снова" | F2 | yes |
 | sign out | "Выйти" | F3 | yes |
 | open the next lesson | "Начать" (lesson not started, R5) / "Продолжить" (started) | F4 | yes |
-| open the catalog | "Открыть курс" | F4, F5, F8 | yes, from #30 (R6, "Before the catalog ships") |
-| retry a failed load or start | "Повторить" | F1, F4, F5, F7, F8, F13, F15, F16, F18, F19 | yes where its flow is v1 (F1, F4, F5, F7, F8, F18); F13 runner error D1; F15 D2; F16 D3; F19 D4 |
+| open the catalog | "Открыть курс" | F4, F5, F7, F8 | yes, from #30 (R6, "Before the catalog ships"); on the not-found page not while the course id is unknown (R6, "Course id unknown") |
+| retry a failed load or start | "Повторить" | F1, F4, F5, F7, F8, F15, F16, F18, F19 | yes where its flow is v1 (F1, F4, F5, F7, F8, F18); F15 D2; F16 D3; F19 D4. A check run is retried with "Проверить", never "Повторить" (#69, S7, `checks.md` F13 error states) |
 | expand / collapse the outcomes | "Показать все" / "Свернуть" | F7 | yes |
 | copy a code block | "Копировать" | F7 | yes |
 | start a stopped environment | "Запустить снова" | F8, F10 | yes |
@@ -99,11 +117,12 @@ whether the control is shown in v1; a hidden control appears only when its issue
 | reset the files | "Сбросить рабочую папку"; dialog buttons "Сбросить" / "Отмена" | F11 | yes |
 | toggle the terminal screen reader mode | "Режим для экранного диктора" (a checkbox item in "Действия") | F9, F11 | yes |
 | reconnect the terminal | "Переподключиться"; new shell "Открыть новый сеанс" | F9 | yes |
-| show raw error details | "Подробности" | F8, F13 | yes in F8; F13 runner error D1 |
+| reconnect to the check result stream | "Переподключиться" (the same label: the same job on another stream; like the terminal's, it starts a new reconnect cycle) | F13 | yes |
+| show raw error details | "Подробности" | F8, F13 | yes (F13: inside an open runner-error row) |
 | run the checks | "Проверить" | F13 | yes |
 | open the results | "Открыть результаты" | F13 | yes |
 | move focus to the environment | "К окружению" | F13 | yes |
-| confirm a paid check | "Запустить" / "Отмена" | F13 | no, D1 (#39) |
+| confirm a run that spends tokens | "Запустить" / "Отмена" (budget confirmation) | F13 | no, from #37 / #39 |
 | take the quiz | "Пройти квиз"; send "Отправить ответы" | F13, F15 | no, D2 (#36) |
 | ask for a review | "Разобрать с ментором"; reply "Ответить" | F13, F14, F15, F16 | no, D3 (#37) |
 | ask for a hint | "Попросить подсказку"; next level "Следующая подсказка" | F13, F17 | no, D3 (#37) |
@@ -127,33 +146,54 @@ are the "disabled reason" set above. Every disabled control in v1:
 |---------|------|--------|--------------|
 | "Проверить" (F13) | the environment is being created or started (F8.1) | "Окружение запускается, проверка станет доступна после запуска" | - |
 | "Проверить" (F13) | the environment is stopped or failed to start (F8 errors, F10.3) | "Сначала запустите окружение" | "К окружению", right after it in the Tab order; then "Открыть результаты" if a run ended on this page (F13.4) |
-| "Проверить" (F13) | a run is going in this tab (F13.2) | "Дождитесь окончания проверки" | "Открыть результаты" only after the run |
-| "Перезапустить окружение", "Сбросить рабочую папку" (F11) | a run is going | "Дождитесь окончания проверки" | - |
+| "Проверить" (F13) | a run of this lesson is going, started in this tab, another tab or before a reload, or its result stream is reconnecting, automatically or after "Переподключиться" (F13.2, F13 error states) | "Дождитесь окончания проверки" | "Открыть результаты" only after the run |
+| "Проверить" (F13) | reconnecting the result stream failed (F13 error states) | "Результат проверки ещё не получен" | "Переподключиться", right after it in the Tab order |
+| "Проверить" (F13, F14) | nothing to run (`checks.md` "Run composition"): every counted check is passed or closed and at least one is closed (S3, F14.4); or, from #37 / #39, the lesson is passed and every counted check spends tokens (S12, following from S11) | "Проверки завершены" | "Открыть результаты", from page load |
+| "Перезапустить окружение", "Сбросить рабочую папку" (F11) | a run is going, once this page knows of it (its own run, or attached after a refusal, F11 error states) | "Дождитесь окончания проверки" | - |
 | "Перезапустить окружение", "Сбросить рабочую папку" (F11) | the environment is not running (creating, starting, stopped, an F8 error) | "Доступно, когда окружение работает" | the status bar's own action ("Повторить", "Запустить снова") |
 | "Войти" (F1.3) | the form is being sent | none: the busy label "Входим..." replaces the label and is the reason | - |
 
-One reason at a time. While a run is going, "Дождитесь окончания проверки" wins over every environment
-reason, on "Проверить" and on the "Действия" items, because the run is the next thing to end and the learner
-can do nothing until it does; when it ends (with a result, or D1's runner error if the environment stopped
-under it), the row of the current environment state applies.
+One reason at a time, in this order: "Дождитесь окончания проверки", "Результат проверки ещё не получен",
+"Проверки завершены", then the environment reasons. While a run is going, "Дождитесь окончания проверки"
+wins over every environment reason, on "Проверить" and on the "Действия" items, because the run is the next
+thing to end and the learner can do nothing until it does; when it ends (with a result, or a runner error
+if the environment stopped under it), the next row that holds applies. "Проверки завершены" wins over the
+environment reasons, and "К окружению" is not offered with it, because starting the environment would not
+enable "Проверить".
 
-Deferred cases follow the same rule: "Проверить" with "Проверка уже идёт в другой вкладке" (D1), locked
-hint levels with "Откроется, когда проверка будет закрыта" (D3). A menu item in "Действия" carries its
-reason as a second line inside the item, with the same `aria-describedby`.
+"Проверки завершены" is the one R1 case that never acts later while the lesson's checks stay as they are:
+a closed check never reopens (S2) and a passed check that spends tokens is not re-run (S11). It stays an
+`aria-disabled` control in its place, by Stepan's decision S3, so the check bar, the `F6` landing (R3) and
+the Tab order are the same in every state, and its reason says why nothing runs. The reason "Проверка уже
+идёт в другой вкладке" (#50) is dropped (S8).
+
+Deferred cases follow the same rule: locked hint levels with "Откроется, когда проверка будет закрыта"
+(D3). A menu item in "Действия" carries its reason as a second line inside the item, with the same
+`aria-describedby`.
 
 ### R2: live regions
 
-- Every live container exists in the DOM from page load, empty; its text is inserted and replaced, never
+- Every live container exists in the DOM from page load; its text is inserted and replaced, never
   inserted together with the container, because a live region added with its content is not reliably
-  announced.
-- Live containers on the lesson page, and nothing else: the environment status text (`role="status"`), the
-  check bar status line (`role="status"`, empty before the first run), and in region "Уведомления" one
-  `role="alert"` container (F2.1) and one `role="status"` container (F10.1). D3 adds the review's
-  `role="status"` ("Разбор готов"). Other pages with the top bar: the "Уведомления" containers only.
+  announced. It is empty on load, with one exception: the check bar status line in the nothing-to-run
+  state (S3, `checks.md` "Run composition") is rendered with its text as part of the page, so that text is
+  not announced on load (next bullet); it is still never inserted together with the container. Two
+  consecutive texts of the check status line, the empty one of an equal-string re-set included, are at
+  least `CHECK_STATUS_TEXT_GAP_MS` apart (`checks.md` "Live regions", text gap), so each is announced.
+- Live containers on the lesson page whose course was read, and nothing else: the environment status text
+  (`role="status"`), the check bar status line (`role="status"`, empty on load except in the nothing-to-run
+  state; which changes are announced and which are rendered silently, by one rule: `checks.md` "Live
+  regions"), and in region "Уведомления" one `role="alert"` container (F2.1) and one `role="status"`
+  container (F10.1). D3 adds the review's `role="status"` ("Разбор готов"). Other pages with the top bar,
+  and the lesson page whose course cannot be read (no "Проверка" or "Окружение" region exists then, R3):
+  the "Уведомления" containers only.
   Sign-in has no live container: every error after "Войти" moves focus to its message, and a submit with
   an empty field moves focus to the first empty field (`auth.md` F1, keyboard path), so a screen reader
   reads the error at the focus point.
-- Every elapsed-time display is `role="timer"` (not announced) and sits outside every live container.
+- Every elapsed-time display is outside every live container and is not announced: a standalone one
+  (the check bar timer) is `role="timer"`; one inside a button (a check row's running time) is part of the
+  button's name, because a button's children are presentational and a role there is dropped (`checks.md`
+  "Check row fields").
 - "Уведомления" is a wrapper that always holds both containers. It becomes a `region` landmark with a
   visually hidden heading "Уведомления" only while a container holds text, and drops both when they are
   empty; the containers themselves are never removed. An empty wrapper is no landmark and no `F6` stop.
@@ -165,24 +205,53 @@ reason as a second line inside the item, with the same `aria-describedby`.
 - Focus when an activated control removes itself (R1 and R2 share this rule; R1 keeps a blocked control in
   place, so this is only about a control the new state replaces): a status-bar action ("Повторить",
   "Запустить снова", "Переподключиться", "Открыть новый сеанс") moves focus to what the R3 table names for
-  the region's new state (for example "Действия" while starting). A page-level "Повторить" (dashboard card
-  or progress section, catalog, the lesson's text load error) moves focus to the reloaded block itself
-  (`tabindex="-1"`, its heading when it has one). Sign-in's "Повторить" sends the form, so focus moves to
-  "Войти", which reads "Входим..." (R1 row). Focus never falls back to `body`.
+  the region's new state (for example "Действия" while starting); the check bar's "Переподключиться" (F13)
+  moves focus to "Проверить", the R3 landing of "Проверка". A page-level "Повторить" moves focus to
+  what replaced the block (`tabindex="-1"`, its heading when it has one), and the `<title>` is the one of
+  the page now shown. The target of each page-level retry, per outcome:
+
+  | Retry | Loads | Fails again | Loads, but the URL is a way into the not-found page (page inventory, not-found Route) |
+  |-------|-------|-------------|----------------------------------------------------------------|
+  | dashboard course error | the Card heading "Следующий урок"; `<title>` "Главная" | "Повторить" itself (the dashboard Alert title is not a heading) | - (the dashboard URL names no course) |
+  | dashboard progress section | the section heading (the course line) | the section heading "Прогресс недоступен" | - |
+  | catalog course error | the course h1; `<title>` the course title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
+  | lesson course error | the lesson h1; `<title>` the lesson title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
+  | lesson text load error | the reloaded tab panel; `<title>` unchanged | "Повторить" itself | - (the course was read) |
+
+  The not-found h1 (`tabindex="-1"`) is the target in the last column because it is the heading of what
+  replaced the block and it is read before "Открыть курс"; the not-found page reached any other way does not
+  move focus. A retry that fails again on "Повторить" itself is not announced (the focus does not move and
+  the text does not change): an open follow-up ("Open follow-ups" below), not decided here. Sign-in's
+  "Повторить" sends the form, so focus moves to "Войти", which reads "Входим..." (R1 row).
+- Focus when a change the learner did not activate on the focused control removes it or closes the dialog
+  that holds it (a tab becoming visible and re-reading, attaching to a running run, a stream drop or
+  reconnect, a run's end or a check's result arriving, the environment stopping or starting, the S3 state
+  found later, a background change closing the budget confirmation): focus moves to the R3 landing of the
+  region the control was in, as that region now is. In the check bar that is "Проверить", which is never
+  removed (R1); inside an open check row panel ("Подробности") it is that row's own disclosure button; when
+  the budget confirmation closes, "Проверить"; in the environment status bar, the R3 table row for the new
+  state. Every such transition of the checks is listed with its focus target in `checks.md` "Background
+  changes and focus" (B1-B25). A change that removes nothing focused moves no focus. When the budget
+  confirmation closes with a status change (B6, B23), the dialog closes and focus moves first, and the
+  status text is set after, because the page behind an open modal is inert.
+- Focus never falls back to `body`.
 
 ### R3: the `F6` cycle and where focus lands
 
 This is the only statement of the region order; every flow refers to it. Decision A2 in the #50 design notes.
 
-Regions on the lesson page, each a `region` landmark with a heading (except "Верхняя панель", the
-`banner`), in `F6` order:
+Regions on the lesson page whose course was read, each a `region` landmark with a heading (except
+"Верхняя панель", the `banner`), in `F6` order (while the course cannot be read only "Верхняя панель",
+"Уведомления" and `main` exist: the course-error row of the table below):
 
-1. **"Верхняя панель"** (`banner`): "Академия", "Главная", "Курс", user menu.
+1. **"Верхняя панель"** (`banner`): "Академия", "Главная", "Курс" (not while the course id is unknown,
+   R6), user menu.
 2. **"Уведомления"**: only while it holds an alert (R2); skipped otherwise.
 3. **"Урок"** (the left pane): in one-pane mode the switch "Урок / Окружение"; breadcrumbs, lesson header,
    prerequisite alert (F6.2), tabs Теория, Задание, Проверки (Квиз from #36, rule R6).
-4. **"Проверка"** (the check bar): "Проверить" and its reason, then "К окружению" and "Открыть результаты"
-   when shown (in that order, R1), the status line, the timer. Drawn under the left pane but a sibling of "Урок" in the DOM, not inside it.
+4. **"Проверка"** (the check bar): "Проверить" and its reason, then "К окружению" or "Переподключиться",
+   and "Открыть результаты", when shown (in that order, R1; `checks.md` F13 keyboard path), the status
+   line, the timer. Drawn under the left pane but a sibling of "Урок" in the DOM, not inside it.
 5. **"Окружение"** (the right pane): in one-pane mode the switch "Урок / Окружение"; the status bar
    (status, status action, "Подробности", "Действия", the key hint), tabs Терминал (Редактор from #40).
 
@@ -203,9 +272,10 @@ below) is no stop.
 | Уведомления | session expired (F2.1), alone or with the idle warning | "Войти снова" (the alert container comes first in the wrapper) |
 | Уведомления | idle warning only (F10.1) | "Продолжить работу" |
 | Уведомления | empty | no stop |
-| Урок | two panes (from 1024 px), or full width with no "Окружение" region (the M0 lesson, a lesson without the `workspace` field), every state | the breadcrumb "Курс" |
+| Урок | two panes (from 1024 px), or full width with no "Окружение" region (the M0 lesson, a lesson without the `workspace` field), every state in which the course was read | the breadcrumb "Курс" |
+| Урок, Проверка, Окружение | the course cannot be read (F7 error states) | no stop: none of the three regions exists; `main` itself is the stop instead, as on the pages below, and lands on "Повторить" |
 | Урок | one-pane mode (below 1024 px, only when "Окружение" exists), either pane shown | the switch tab "Урок" (`F6` shows the pane if it was hidden) |
-| Проверка | every state of a lesson with checks the platform runs: before a run, running, environment creating, starting, stopped or failed, after a run | "Проверить" (enabled, or `aria-disabled` with its reason, R1) |
+| Проверка | every state of a lesson with checks the platform runs: before a run, running (own or attached), result stream reconnecting or failed, environment creating, starting, stopped or failed, after a run, nothing to run (S3; a passed lesson with only token-spending checks, S12) | "Проверить" (enabled, or `aria-disabled` with its reason, R1) |
 | Проверка | the M0 lesson; a lesson with no check the platform runs (R6) | no stop: the region does not exist |
 | Окружение | one-pane mode, either pane shown | the switch tab "Окружение" (`F6` shows the pane if it was hidden) |
 | Окружение | two panes: creating, starting, slow start, running, reconnecting, API key warning | "Действия" |
@@ -228,21 +298,28 @@ below) is no stop.
   under the area at every width.
 - On pages other than the lesson page the cycle is "Верхняя панель", "Уведомления" (if non-empty), `main`;
   in `main` focus lands on its first focusable element (dashboard: the card's button or "Повторить", or
-  "Открыть курс"; catalog: the first module link or "Повторить"); with nothing focusable in `main`
-  ("В курсе пока нет готовых уроков"), on `main` itself (`tabindex="-1"`). Sign-in has no top bar and no
+  "Открыть курс"; catalog: the first module link or "Повторить"; not-found: "Открыть курс"); with nothing
+  focusable in `main` ("В курсе пока нет готовых уроков"; not-found while the course id is unknown), on
+  `main` itself (`tabindex="-1"`). The lesson page whose course cannot be read follows this bullet too:
+  its `main` holds only the course error, so `main` is the stop and lands on "Повторить". Sign-in has no top bar and no
   cycle; `F6` keeps its browser meaning there. Tab order alone also reaches everything on these pages.
 
 ### R4: landmarks, skip link and Tab order
 
-- Every page has one `main`. On the lesson page `main` holds the regions "Урок", "Проверка" and
-  "Окружение" (regions inside `main`); "Верхняя панель" and "Уведомления" are outside it.
+- Every page has one `main`; "Верхняя панель" and "Уведомления" are outside it. On the lesson page `main`
+  holds the regions "Урок", "Проверка" and "Окружение" (regions inside `main`), except when the course
+  cannot be read: then `main` holds only the course error (F7 error states) and none of the three regions
+  exists (R3).
 - The skip link "К содержимому" is the first element in the Tab order of every page; it moves focus to
   `main` (`tabindex="-1"`), so the next Tab reaches `main`'s first focusable element in whatever state or
   pane is shown.
-- Lesson page Tab order (DOM order, the order of R3): skip link; top bar; "Уведомления" (when non-empty);
-  then inside `main`: "Урок" ([switch, in one-pane mode] breadcrumbs ("Курс", module), lesson header
+- Lesson page Tab order when the course cannot be read: skip link; top bar; "Уведомления" when non-empty;
+  "Повторить" (the only control in `main`).
+- Lesson page Tab order in every other state (DOM order, the order of R3): skip link; top bar;
+  "Уведомления" (when non-empty); then inside `main`: "Урок" ([switch, in one-pane mode] breadcrumbs ("Курс", module), lesson header
   ("Показать все"), prerequisite alert links (F6.2), the left-pane tab list, the tab panel); "Проверка"
-  ("Проверить", then "К окружению" and "Открыть результаты" when shown); in two-pane mode the split
+  ("Проверить", then "К окружению" or "Переподключиться", and "Открыть результаты", when shown); in
+  two-pane mode the split
   handle (F9.3), which sits in the DOM after "Проверка" and before "Окружение" and belongs to no region
   (no `F6` stop); "Окружение" in the order of R3. The prerequisite links are therefore the first controls
   after the lesson header, not the first of `main`.
@@ -251,6 +328,20 @@ below) is no stop.
   check bar is a sibling between the two panes in the DOM so that the `F6` cycle and the Tab order are
   the same at every width (R3); the check bar is drawn at the bottom, but it is short and always visible,
   so the jump back up to the switch is one predictable step. With "Урок" shown the switch comes first.
+- **Focus ring after a mouse click on a tab (decided in #83, #30 test report F3): accepted.** Radix Tabs
+  focuses a tab trigger on `mousedown`, so in the app the first mouse click on a tab after load matches
+  `:focus-visible` and draws the ring; later clicks do not; the prototype (proto.js) never focuses on
+  `mousedown`, so it shows no ring. The design accepts the app's behaviour and asks for no dev change,
+  because: (1) WCAG 2.4.7 requires a visible indicator for keyboard focus and forbids none for pointer focus,
+  and the ring is the same 2px `ring` outline as every other ring, so nothing fails; (2) after the click the
+  tab really holds focus and arrow keys, Home and End now move between tabs (automatic activation,
+  `design/pages/lesson/acceptance.md`, "Tabs"), so the ring shows where the next key goes; (3) the rule "rings follow `:focus-visible`"
+  (`design/system/README.md`, "Focus ring") stays true: the browser decides `:focus-visible`, and the two
+  ways to suppress it both break something: cancelling the trigger's `mousedown` focus leaves focus where it
+  was, so arrow keys no longer move between tabs after a click, and a hand-written pointer-modality flag on
+  one component overrides the browser's heuristic there only, so tabs would behave unlike every other
+  control. Tab triggers keep the global `:focus-visible` ring; no `:focus-visible`-only special case is
+  added for them. The tester does not report it again.
 
 ### R5: lesson started
 
@@ -260,8 +351,12 @@ per-lesson flag, #50 design notes P2). Opening the page, reading, and the automa
 (decision A10) do not start a lesson. One rule drives both places that need it:
 - lesson status: "Не начат" = not started; "В процессе" = started and not finished; "Пройден" when every
   counted check (R6) is passed; "Не пройден" when every counted check is passed or closed and at least one
-  is closed (D1, F14.4). A lesson with no counted check (the M0 lesson; in v1 a lesson whose checks are all
-  of unshipped kinds) is never "Пройден" and never finished, so it stays "Не начат" or "В процессе";
+  is closed (F14.4). A lesson with no counted check (the M0 lesson; in v1 a lesson whose checks are all
+  of unshipped kinds) is never "Пройден" and never finished, so it stays "Не начат" or "В процессе". The
+  server computes this status and every page shows it as received (the dashboard, the catalog, and the
+  check bar's "Урок пройден" / "Урок завершён: не пройден"), because two places computing it would
+  disagree; ADR-0007 today counts every check id, unshipped kinds included, so the #69 design note asks for
+  its amendment;
 - the dashboard button (F4.1): "Продолжить" when the next lesson is started, "Начать" otherwise.
 
 Until #31 or #34 ships (the M0 lesson, `lesson-environment.md`) no lesson can be started, so every lesson
@@ -272,7 +367,8 @@ is "Не начат" and the button is "Начать".
 A control appears only when the feature behind it works; a control that does nothing is a dead end
 (assumption A15). In v1 these are not shown: the Редактор tab (#40), the Agent tab (D6), the Квиз tab and
 every quiz control (#36), "Разобрать с ментором", "Попросить подсказку" and the review block (#37), the
-budget confirmation (#39), recent attempts, weak topics and attempt history (#35). A check whose kind has
+budget confirmation, "Стоимость попытки: $N" and "Не пройдено: исчерпан бюджет $N" (#37, #39), recent
+attempts, weak topics and attempt history (#35). A check whose kind has
 no shipped runner is not listed, not run and not counted in "Пройдено: N из M" or in the lesson status
 (assumption A19): v1 runs `command` checks only (#34); `quiz` arrives with #36, `rubric` with #37,
 `hidden-task` with #39, `bug-hunt` with an issue not yet filed (P3 in the #50 design notes). A lesson with no
@@ -284,7 +380,7 @@ ships that route, because a link to a missing route is a dead end (A15) and a li
 R1 covers actions with a visible reason, and the one-row top bar has no room for one. These controls are
 the top-bar link "Курс", "Открыть курс", the dashboard Card button ("Начать" / "Продолжить", it opens a
 lesson route) and module rows, the breadcrumb "Курс" and the module crumb. The catalog, the lesson page and
-the not-found state ship with #30, so before #30 the dashboard is the only page with the top bar (sign-in
+the not-found page ship with #30, so before #30 the dashboard is the only page with the top bar (sign-in
 has none) and it shows only its "no ready lessons" content (`dashboard.md`, "Dashboard by release").
 Before #30 an unknown URL shows the framework's default 404 page (#29 ships no not-found page, so it has no
 top bar and English text); it is reached only by typing a URL and browser Back leaves it, so no flow dead
@@ -292,16 +388,52 @@ ends there.
 
 Top bar by release. One rule for every page with the top bar: the bar is the same on every page of a
 release, and a page added later takes the bar of the release it ships in, never a variant of its own.
+The one exception is a course state, not a page: "Course id unknown" below.
 
 | Release | Pages with the top bar | Top bar, in Tab order after "К содержимому" | `F6` regions (landing) |
 |---------|------------------------|---------------------------------------------|------------------------|
 | before #30 (as #29 shipped) | dashboard | "Академия", "Главная", user menu | "Верхняя панель" ("Академия"); "Уведомления" ("Войти снова", only with the alert); `main` (`main` itself, nothing focusable) |
-| from #30 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс", user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
+| from #30 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс" (left out on all four while the course id is unknown), user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
 
 "Главная" carries `aria-current="page"` on the dashboard, "Курс" on the catalog; the lesson page and
 not-found put `aria-current` on neither top-bar link. `F6` lands on "Академия" in "Верхняя панель" in
 every release, because it is the bar's first focusable element and is never hidden, so no landing table
 changes when "Курс" arrives.
+
+**Course id unknown (#83).** One exception to "the same bar on every page", and it is a course state, not a
+page variant: when `course.yaml` itself cannot be read, the course id is unknown, and every page with the
+top bar (dashboard, catalog, lesson, not-found) leaves out "Курс" in the same request; the not-found page also leaves
+out "Открыть курс". Why: every catalog link is built from the course id; a link to a guessed id (the URL's,
+or a configured default) opens the not-found page or the same course error, a dead end (A15), and a link has no
+disabled state (see "Before the catalog ships"); pointing "Курс" at `/` instead would give two names to one
+target. When `course.yaml` parsed and a later file failed, the id is known and "Курс" stays: it opens the
+catalog's course error with "Повторить", the same failure with its own retry, not a dead end. The whole
+class of controls built from the course id, and what the exception does to each:
+
+| Control | Page | When the course id is unknown |
+|---------|------|-------------------------------|
+| top-bar "Курс" | dashboard, catalog, lesson, not-found | left out (this rule) |
+| "Открыть курс" | not-found | left out (this rule); `main` then has nothing focusable (R3) |
+| "Начать" / "Продолжить", "Открыть курс" (Card), module rows | dashboard | not rendered: the course error replaces the Card and the progress section (`dashboard.md` F4 error states; dashboard `#state-course-error`) |
+| module links, lesson rows, prerequisite note links | catalog | not rendered: the course error is all of `main` (F5 error states) |
+| breadcrumb "Курс", module crumb, prerequisite links, status action "Открыть курс" (environment rejected) | lesson | not rendered: the course error is all of `main` (F7 error states) |
+
+Only the first two rows are new behaviour; the other three follow from the course error states, which
+already hold whether or not the id is known. The `F6` landing on "Верхняя панель" stays "Академия". The
+prototypes draw the bar with "Курс" in every course-error state (the id-known case) and without it once,
+in not-found `#state-no-course`.
+
+### R7: attempt limits, known and unknown
+
+The UI shows an attempt limit only when the server reports one for the check (from #68), and never infers
+it from task.md prose, because a number the platform does not enforce would misinform. With a known limit
+M: the counter reads "Неудачных попыток: N из M", the last-attempt warning "Осталась 1 попытка" shows while
+exactly one counted attempt remains, and the check bar's end text carries it once. With an unknown limit,
+or none: the counter reads "Неудачных попыток: N", no warning shows, and a check is closed only when the
+server reports it. A quiz follows the same rule ("Попытка N из M" / "Попытка N", D2). A passed check never
+closes and its later failures are not counted (S1); a closed check is final (S2). Every element it touches:
+`checks.md` "Attempt limits". The few and many plural forms written out there ("Осталось 2 попытки",
+"Осталось 5 попыток") are a record for a later change of S4, not UI text: nothing renders them.
 
 ## Sitemap
 
@@ -327,9 +459,10 @@ and `mentor.md`).
 
 ## Navigation model
 
-- **Top bar on every page except sign-in** (the not-found state included): product name "Академия"
+- **Top bar on every page except sign-in** (the not-found page included): product name "Академия"
   (link to the dashboard), "Главная", "Курс" (from #30; the bar by release: R6, "Before the catalog
-  ships"), and a user menu (shows the email) with "Выйти" (F3). No
+  ships"; not while the course id is unknown: R6, "Course id unknown"), and a user menu (shows the email)
+  with "Выйти" (F3). No
   sidebar anywhere, because the app has four pages, a sidebar costs the lesson page the width its two
   panes need, and shadcn's sidebar toggle Ctrl+B is the key Claude Code uses for background tasks inside
   the terminal (research §8; decision A3).
@@ -339,10 +472,13 @@ and `mentor.md`).
   whichever pane is shown (one-pane mode included).
 - **Breadcrumbs** on the lesson page: "Курс" / module title / lesson title. The module crumb links to
   the catalog anchor of that module; the lesson crumb is the current page (`aria-current="page"`, not a
-  link).
+  link). Not shown when the course cannot be read (F7 error states). No breadcrumb on the not-found page: it names
+  no place in the course (GOV.UK page-not-found pattern, #83 research §5).
 - **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson; from #30, before it the
   dashboard has no primary action, R6 "Before the catalog ships"); catalog: a lesson row; lesson page:
-  "Проверить".
+  "Проверить"; not-found page: "Открыть курс" (none while the course id is unknown, R6 "Course id
+  unknown"). While the course cannot be read, the dashboard, catalog and lesson page show the course error
+  instead and its "Повторить" is the only action in `main`.
 - **Skip link** "К содержимому": R4.
 - **Return after sign-in**: any protected route redirects to `/sign-in?next=<path>`; after sign-in the
   learner lands on `next` (only same-origin paths) or on the dashboard.
@@ -359,9 +495,9 @@ Flows column: every flow whose Entry line or steps happen on the page.
 |------|-------|-------------------------------|---------|-------|------------------|
 | sign-in | `/sign-in` | "Вход" | email and password for the single local user | F1, F2 (F2.2-F2.3), F3 (F3.3) | yes |
 | dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts, weak topics, cost | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, D4) | yes: F4 and F18.1-F18.2 only; F18.3-F18.4 are D4 and not drawn (R6) |
-| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков" | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
-| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes |
-| not-found | any unknown route, unknown or not-`ready` lesson | "Страница не найдена" | explains and links to the catalog | F3, F5 | no: an app-shell state, copy in `catalog.md` F5, prototyped with the app shell later |
+| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков"; "Не удалось загрузить курс" while the course cannot be read | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
+| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes |
+| not-found | the ways into the not-found page, each HTTP 404, stated only here: (1) a path no route matches; (2) a catalog URL whose course id is not the course's; (3) a lesson URL whose course id is not the course's; (4) a lesson URL whose lesson id names no `ready` lesson of the course (unknown, or not `ready`). (2)-(4) need the course read: while it cannot be read, those URLs show the course error (HTTP 200), so only (1) remains | "Страница не найдена" | says in one sentence that the address leads nowhere; while the course id is known it links to the catalog ("Открыть курс"), while it is unknown it shows only the sentence and the top bar's "Главная" is the way on (R6, "Course id unknown") | F2, F3, F5, F7 | yes, in #83: `design/pages/not-found/`, states default, no-course, session-expired, user-menu |
 
 Every page is reachable from the catalog: the catalog links to every `ready` lesson and, through the
 top bar, to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
@@ -394,3 +530,34 @@ Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog s
 
 A new flow takes the next free number (F20). An existing flow keeps its id even if it moves to another
 file.
+
+## Open follow-ups
+
+Work that a design task found and handed on, so it survives the task's PR. Each item is one issue to open
+(title in bold), with its owner and the design statement it implements. Remove an item when its issue is
+filed and linked here, or when it is done.
+
+- **FU1. fix(web): not-found sentence, course-id-unknown case and focus after a retry** (dev, from #83).
+  `apps/web/app/(app)/not-found.tsx` renders the sentence "Возможно, в адресе опечатка или ссылка
+  устарела." (page copy above), its h1 gets `tabindex="-1"`, and a catalog or lesson "Повторить" that ends
+  on the not-found page focuses that h1 (R2, page-level retry table; today focus falls to `body`). e2e:
+  the sentence, the course-id-unknown case (no "Курс", no "Открыть курс", `F6` to `main` lands on `main`),
+  the retry focus, and that an ordinary arrival does not move focus.
+- **FU2. test(web): e2e for the lesson page whose course cannot be read** (dev or tester, from #83). Only
+  the Alert with "Не удалось загрузить курс" and "Повторить" in `main`, `<title>` "Не удалось загрузить
+  курс", `F6` to `main` lands on "Повторить", and the three retry outcomes of R2 with their `<title>`.
+- **FU3. chore(web): reword the prose-heading comment in globals.css** (dev, from #83). The comment above
+  `.prose h4` in `apps/web/app/globals.css` says proto.css has no `.prose h4` and draws prose heading
+  rings outside; both stop being true when #83 lands. Comment only.
+- **FU4. test(web): E-ring asserts the ring colour at once after keyboard focus** (tester, from #30 code
+  review G1). The E-ring e2e (`apps/web/e2e/catalog.spec.ts`) checks outline style, width and offset but
+  not `outline-color` right after focus, so a `transition-colors` that animates the ring in on catalog rows
+  and breadcrumb links would pass. Assert `outline-color` against a probe styled `var(--ring)` at once
+  after the key press, and watch it fail with `transition-colors` restored.
+- **FU6. design: a retry that fails again on "Повторить" itself is silent** (design). For the dashboard
+  course error and the lesson text load error, R2 keeps focus on "Повторить" after a second failure; the
+  focus does not move and the text does not change, so a screen reader user hears nothing. Decide an
+  announcement (a focus target with a heading, or a status) and update R2.
+
+Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
+"Focus ring after a mouse click on a tab").

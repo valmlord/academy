@@ -54,12 +54,16 @@ checks:
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_failure_log.py"'
     timeoutSec: 30
     weight: 2
+    attempts:
+      limit: 10
   - id: deps-gate
     title: "Проверка зависимостей: правило D1, коды выхода, проект чист без заглушек"
     kind: command
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_deps.py"'
     timeoutSec: 150
     weight: 2
+    attempts:
+      mentorAfter: 5
   - id: failure-fix-rubric
     title: "Исправления сбоев: конкретные, на названной ступени, предотвращают повтор (оценка ментора)"
     kind: rubric
@@ -75,3 +79,5 @@ checks:
     file: quiz.yaml
     passScore: 0.8
     weight: 1
+    attempts:
+      limit: 3

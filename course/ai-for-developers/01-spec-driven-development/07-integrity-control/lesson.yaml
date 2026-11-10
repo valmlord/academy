@@ -57,21 +57,31 @@ checks:
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_linter.py"'
     timeoutSec: 180
     weight: 3
+    attempts:
+      mentorAfter: 5
   - id: change-request-applied
     title: "Изменение требований внесено: спецификация, задача, тест и код согласованы"
     kind: command
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_change.py"'
     timeoutSec: 600
     weight: 2
+    attempts:
+      limit: 10
+      mentorAfter: 5
   - id: stop-hook-integrity
     title: "Stop-хук запускает тесты, затем линтер, и блокирует с выводом линтера"
     kind: command
     run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_stop_integrity.py"'
     timeoutSec: 600
     weight: 2
+    attempts:
+      limit: 10
+      mentorAfter: 5
   - id: integrity-quiz
     title: "Квиз: детерминированный и модельный контроль, ADR и id требований, Stop-хук и CI"
     kind: quiz
     file: quiz.yaml
     passScore: 0.8
     weight: 1
+    attempts:
+      limit: 3

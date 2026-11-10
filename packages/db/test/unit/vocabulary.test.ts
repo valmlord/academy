@@ -1,7 +1,7 @@
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 import { InvalidVocabularyValueError } from "../../src/errors.js";
-import { inList } from "../../src/vocabulary.js";
+import { CHECK_KINDS, inList } from "../../src/vocabulary.js";
 
 const REJECTED_VALUES = ["a'b", "a b", "A", "1a", "", "a-b'); DROP TABLE users; --"];
 
@@ -21,5 +21,11 @@ describe("U3 vocabulary IN-list guard", () => {
     const rendered = new PgDialect().sqlToQuery(fragment).sql;
 
     expect(rendered).toBe("('hidden-task', 'in-progress', 'a')");
+  });
+});
+
+describe("check kinds", () => {
+  it("derives every check kind from the lesson contract", () => {
+    expect(CHECK_KINDS).toEqual(["quiz", "command", "rubric", "hidden-task", "bug-hunt"]);
   });
 });

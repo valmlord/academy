@@ -3,7 +3,11 @@
 ## Route
 
 `/courses/[courseId]`; module sections at `/courses/[courseId]#[moduleId]` (decision A6). Title and h1:
-the course title, e.g. "ИИ для разработчиков".
+the course title, e.g. "ИИ для разработчиков". While the course cannot be read, `<title>` and h1 are "Не
+удалось загрузить курс" (HTTP 200), whatever course id the URL names; the static prototype has one
+`<title>`, the course title, in every state, `#state-course-error` included. A catalog URL whose course id is not
+the course's opens the not-found page (`design/pages/not-found/`, HTTP 404; `ia.md` page inventory,
+not-found Route).
 
 ## Prototype
 
@@ -71,12 +75,12 @@ dashboard), the prerequisite note (`.item-note`, a `p` after the row link in the
 | lesson failed (D1 data) | `#state-failed-lesson` | as default, lesson 02 "Не пройден" (sample data: only once checks can close, D1 / F14.4) |
 | ready module without ready lessons | `#state-ready-no-lessons` | module 00 "Готовится" in the list and in its section, "Уроки модуля готовятся" instead of the rows; summary and outcomes stay |
 | loading | `#state-loading` | Skeletons (`aria-hidden`); the h1 arrives with the data |
-| course load error | `#state-course-error` | destructive Alert "Не удалось загрузить курс" (its title is the h1 in this state) with "Повторить"; nothing else in `main` |
+| course load error | `#state-course-error` | destructive Alert "Не удалось загрузить курс" (its title is the h1 in this state) with "Повторить"; nothing else in `main`; top bar "Курс" unless the course id is unknown, which is only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown"; the prototype draws the id-known bar); `<title>` "Не удалось загрузить курс" in the app (the static prototype keeps the course title) |
 | progress unavailable | `#state-progress-unavailable` | "Прогресс недоступен" once under the description; rows with no status Badge and no prerequisite note; rows stay links |
 | session expired (F2.1) | `#state-session-expired` | default content plus the Alert in "Уведомления" |
 | user menu open (F3.1) | `#state-user-menu` | default content with the menu open |
 
-Not-found is not a catalog state (design §3).
+Not-found is its own page (`design/pages/not-found/`), not a catalog state.
 
 ## Interactions and keyboard
 
@@ -90,7 +94,11 @@ Not-found is not a catalog state (design §3).
   `/courses/[courseId]#[moduleId]`, e.g. `#introduction`): focus on that module heading.
 - Lesson row: opens the lesson on Теория (Задание when it has no theory).
 - Prerequisite link: opens that lesson.
-- "Повторить": reloads the course; focus moves to the h1 (`tabindex="-1"`, R2).
+- "Повторить": reloads the course (`ia.md` R2, page-level retry table): focus on the course h1 with
+  `<title>` the course title on success; the error h1 (`id="course-error-title"`, `tabindex="-1"`) with
+  `<title>` "Не удалось загрузить курс" on a second failure; the not-found h1 with `<title>` "Страница не
+  найдена" when the course loads but its id is not the URL's. The prototype simulates the first outcome
+  only (proto.js `data-goto-state="default"`, `data-focus="#course-title"`).
 - `F6` cycle: "Верхняя панель" ("Академия"), "Уведомления" ("Войти снова", only when non-empty), `main`
   (first module link, or "Повторить" in the error state). R3.
 - "Войти снова": `/sign-in?next=<current path, URL-encoded>`, e.g. `/sign-in?next=%2Fcourses%2Fai-for-developers`
@@ -104,7 +112,7 @@ Not-found is not a catalog state (design §3).
 |-----|--------------|
 | skip link | К содержимому |
 | top bar brand | Академия |
-| top bar nav | Главная; Курс |
+| top bar nav | Главная; Курс (not while the course id is unknown, ia.md R6, "Course id unknown") |
 | user menu item | Выйти |
 | notifications heading (visually hidden) | Уведомления |
 | session alert | Сессия закончилась. Файлы в рабочей папке сохранены. |
@@ -153,8 +161,13 @@ titles, summaries, outcomes, lesson numbers ("01".."06") and titles, lesson type
 - AC6: lesson links open the lesson on Теория (Задание when there is no theory).
 - AC7: "Не пройден" renders as the outline destructive Badge with icon; it appears only once checks can
   close (D1).
-- AC8: a course read failure shows only "Не удалось загрузить курс" and "Повторить" in `main`;
-  "Повторить" reloads and focuses the h1.
+- AC8: a course read failure shows only "Не удалось загрузить курс" and "Повторить" in `main`, with
+  `<title>` "Не удалось загрузить курс" (the app; the static prototype keeps the course title) and the
+  top bar "Курс" unless the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6,
+  "Course id unknown"). "Повторить" puts focus
+  on the course h1 with `<title>` the course title on success; the error h1 with `<title>` "Не удалось
+  загрузить курс" on a second failure; the not-found h1 with `<title>` "Страница не найдена" when the
+  course loads but its id is not the URL's.
 - AC9: a progress read failure shows "Прогресс недоступен" once, removes every lesson status and
   prerequisite note, and keeps every lesson openable.
 - AC10: session expiry fills the existing `role="alert"` container without moving focus (as dashboard

@@ -6,6 +6,8 @@ import {
   copyDeniedLabel,
   copyLabel,
   courseLinkLabel,
+  environmentRegionHeading,
+  environmentTabsLabel,
   lessonRegionHeading,
   lessonTabsLabel,
   m0LessonNote,
@@ -13,6 +15,7 @@ import {
   signInAgainLabel,
   tableOfContentsHeading,
   taskTabLabel,
+  terminalTabLabel,
   theoryTabLabel,
 } from "../lib/copy";
 import { catalogPath, lessonPath } from "../lib/routes";
@@ -44,8 +47,12 @@ function pathOf(lesson: RepoLesson): string {
   return lessonPath(lesson.view.courseId, lesson.view.id);
 }
 
+/** The selected tab of the lesson's own tab list (the environment region has a tab list too). */
 function selectedTab(page: Page): Promise<string | null> {
-  return page.getByRole("tab", { selected: true }).textContent();
+  return page
+    .getByRole("tablist", { name: lessonTabsLabel })
+    .getByRole("tab", { selected: true })
+    .textContent();
 }
 
 /** `next` of the sign-in-again link, decoded. */
@@ -139,16 +146,25 @@ test("the table of contents and the copy button keep ?tab= (AC18)", async ({ pag
   expect(new URL(page.url()).search).toBe("?tab=theory");
 });
 
-test("the M0 lesson: one region, the M0 line, F6 stops, no horizontal scroll (AC2, AC3, AC13)", async ({
+// Every lesson of the course has a `workspace`, so the page has the environment region (#32 design 3.6, 10.5).
+// Nothing is typed into the terminal: plain `pnpm test:e2e` must not run commands in a workspace (D12).
+test("the lesson with its environment: two regions, F6 stops, no horizontal scroll (AC1, AC3, AC13)", async ({
   page,
 }) => {
   await page.goto(pathOf(firstLesson));
 
-  await expect(page.getByText(m0LessonNote, { exact: true })).toBeVisible();
-  await expect(page.getByRole("tab")).toHaveCount(2);
-  await expect(page.getByRole("tablist", { name: lessonTabsLabel })).toBeVisible();
-  await expect(page.getByRole("region", { name: lessonRegionHeading })).toBeVisible();
-  await expect(page.getByRole("region")).toHaveCount(1);
+  const lessonRegion = page.getByRole("region", { name: lessonRegionHeading });
+  const environmentRegion = page.getByRole("region", { name: environmentRegionHeading });
+  await expect(lessonRegion).toBeVisible();
+  await expect(environmentRegion).toBeVisible();
+  await expect(page.getByRole("region")).toHaveCount(2);
+  await expect(page.getByText(m0LessonNote, { exact: true })).toHaveCount(0);
+  await expect(
+    lessonRegion.getByRole("tablist", { name: lessonTabsLabel }).getByRole("tab"),
+  ).toHaveCount(2);
+  await expect(
+    environmentRegion.getByRole("tablist", { name: environmentTabsLabel }).getByRole("tab"),
+  ).toHaveText([terminalTabLabel]);
   const crumb = page
     .getByRole("navigation", { name: breadcrumbLabel })
     .getByRole("link", { name: courseLinkLabel });
@@ -157,12 +173,9 @@ test("the M0 lesson: one region, the M0 line, F6 stops, no horizontal scroll (AC
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
   await page.keyboard.press("F6");
   await expect(crumb).toBeFocused();
-  const regionName = await page.evaluate(() => {
-    const region = document.activeElement?.closest("[data-region]");
-    const labelId = region?.getAttribute("aria-labelledby");
-    return labelId ? document.getElementById(labelId)?.textContent : null;
-  });
-  expect(regionName, "the region holding the crumb").toBe(lessonRegionHeading);
+  expect(await focusedRegionName(page), "the region holding the crumb").toBe(lessonRegionHeading);
+  await page.keyboard.press("F6");
+  expect(await focusedRegionName(page), "the third F6 stop").toBe(environmentRegionHeading);
   await page.keyboard.press("F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
 
@@ -172,11 +185,20 @@ test("the M0 lesson: one region, the M0 line, F6 stops, no horizontal scroll (AC
     { width: 1280, height: 800 },
   ]) {
     await page.setViewportSize({ width, height });
-    await expect(page.getByText(m0LessonNote, { exact: true })).toBeVisible();
+    await expect(environmentRegion).toBeVisible();
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(scrollWidth, `scrollWidth at ${width}x${height}`).toBe(width);
   }
 });
+
+/** The hidden heading of the `[data-region]` that holds focus. */
+function focusedRegionName(page: Page): Promise<string | null | undefined> {
+  return page.evaluate(() => {
+    const region = document.activeElement?.closest("[data-region]");
+    const labelId = region?.getAttribute("aria-labelledby");
+    return labelId ? document.getElementById(labelId)?.textContent : null;
+  });
+}
 
 test("the tab trigger and the tab panel draw the global focus ring (E-ring)", async ({ page }) => {
   await page.goto(pathOf(firstLesson));
@@ -190,7 +212,9 @@ test("the tab trigger and the tab panel draw the global focus ring (E-ring)", as
   await expect(trigger).toBeFocused();
   const triggerRing = await ringOf(page);
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("tabpanel")).toBeFocused();
+  await expect(
+    page.getByRole("region", { name: lessonRegionHeading }).getByRole("tabpanel"),
+  ).toBeFocused();
   const panelRing = await ringOf(page);
 
   const ring = {

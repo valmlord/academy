@@ -1,0 +1,8 @@
+# Opt-in host access to db for pnpm dev, pnpm seed and DB clients. While it is in use, every workspace
+# container reaches Postgres as the superuser through host.docker.internal on Docker Desktop (ADR-0002
+# item 6): stop workspaces first (README command) and unset COMPOSE_FILE when done.
+# Select it per shell, never in .env: export COMPOSE_FILE=docker-compose.yml:compose.db-port.yaml
+services:
+  db:
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
