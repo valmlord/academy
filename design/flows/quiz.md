@@ -20,7 +20,7 @@ lesson.
 **Steps (6):**
 
 1. F15.1 Learner sees the quiz header: number of questions, "Нужно N%" (from `passScore`), "Попытка 1 из
-   3" (the limit when known; assumption A13).
+   3" when the server reports the limit, "Попытка 1" when it does not (rule R7 in `ia.md`).
 2. F15.2 Learner answers each question: a single-choice question is a radio group, a multiple-choice
    question is a checkbox group with the note "Несколько вариантов".
 3. F15.3 Learner presses "Отправить ответы". Unanswered questions block sending with "Ответьте на все
@@ -31,6 +31,12 @@ lesson.
    options marked and the `explanation` under each.
 6. F15.6 After the 3rd failure the quiz check reads "Закрыта: не пройдено" and offers "Разобрать с ментором"
    (F16).
+
+**Limit unknown (R7), open for D2.** F15.1 follows R7. F15.4-F15.6 are still written for a known limit of 3
+("Попытка 2 из 3", "after the 3rd failure"); with an unknown limit F15.4 reads "Попытка N" and F15.5-F15.6
+happen only after a pass or when the server reports the quiz check closed. Rewriting them is part of the
+quiz's own DESIGN task (#36, D2), because the quiz is not designed or shown before #36 ships (R6) and #69
+changed only F15.1.
 
 **Success:** "Квиз пройден" with the score; the quiz check row in Проверки reads "Пройдено".
 
