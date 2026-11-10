@@ -275,4 +275,32 @@ describe("WorkspaceManager.sweepIdle", () => {
     expect(logged).toEqual([`idle stop failed: ${ID}: DockerUnavailableError`]);
     expect(() => manager.activity(KEY)).not.toThrow();
   });
+
+  it.each([
+    [
+      "a class with an empty name",
+      () => new (Object.defineProperty(class extends Error {}, "name", { value: "" }))("x"),
+    ],
+    [
+      "an Error whose constructor getter throws",
+      () =>
+        Object.defineProperty(new Error("x"), "constructor", {
+          get: () => {
+            throw new Error("canary");
+          },
+        }),
+    ],
+  ])("logs a hostile stop failure as Error and forgets the entry (%s)", async (_case, hostile) => {
+    const { manager, runtime, clock, logged } = setup();
+    await manager.ensure(KEY);
+    clock.now = T0 + 30 * MINUTE;
+    runtime.stop = async () => {
+      throw hostile();
+    };
+
+    await expect(manager.sweepIdle()).resolves.toBeUndefined();
+
+    expect(logged).toEqual([`idle stop failed: ${ID}: Error`]);
+    expect(() => manager.activity(KEY)).toThrow(WorkspaceNotRunningError);
+  });
 });

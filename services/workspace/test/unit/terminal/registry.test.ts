@@ -213,3 +213,45 @@ describe("connect failures (U-connect-error)", () => {
     expect(seen).toEqual([]);
   });
 });
+
+describe("socket error codes (#121)", () => {
+  function socketErrors(logged: string[]): string[] {
+    return logged.filter((line) => line.includes("socket error"));
+  }
+
+  it("logs a code that is not a valid code as -", async () => {
+    const { connect, serverListener, logged } = await start();
+    await waitForAttached(await connect());
+
+    serverListener(0, "error")(Object.assign(new Error("x"), { code: "bad\ncode INJECT" }));
+
+    expect(socketErrors(logged)).toEqual([`terminal ${ID} -: socket error (-)`]);
+    expect(logged.join("\n")).not.toContain("INJECT");
+  });
+
+  it("logs - and does not throw when reading the code throws", async () => {
+    const { connect, serverListener, logged } = await start();
+    await waitForAttached(await connect());
+    const error = Object.defineProperty(new Error("x"), "code", {
+      get: () => {
+        throw new Error("canary");
+      },
+    });
+
+    expect(() => serverListener(0, "error")(error)).not.toThrow();
+    expect(socketErrors(logged)).toEqual([`terminal ${ID} -: socket error (-)`]);
+  });
+
+  it("keeps a valid code longer than 32 characters", async () => {
+    const { connect, serverListener, logged } = await start();
+    await waitForAttached(await connect());
+
+    const error = Object.assign(new Error("x"), { code: "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH" });
+
+    serverListener(0, "error")(error);
+
+    expect(socketErrors(logged)).toEqual([
+      `terminal ${ID} -: socket error (WS_ERR_UNSUPPORTED_MESSAGE_LENGTH)`,
+    ]);
+  });
+});
