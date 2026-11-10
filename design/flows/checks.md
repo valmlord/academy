@@ -4,7 +4,7 @@ Page: lesson. The check bar is the region "Проверка", drawn under the le
 and at every width: "Проверить", one status line and a timer. It is a sibling of the "Урок" region, not
 inside it (rule R3 in `ia.md`). Disabled "Проверить" follows R1, live elements and focus R2, unshipped check
 kinds R6, attempt limits R7. Per-check results and attempt counters live in the Проверки tab; the attempt
-history is D4. Sources: `docs/learning-process.md` §1 (check results on the left) and §2 (the "Check"
+history is from #35 (`progress.md` F19, R6). Sources: `docs/learning-process.md` §1 (check results on the left) and §2 (the "Check"
 button runs the checks from `lesson.yaml`; agent checks spend tokens, each has a budget); #34 (results
 streamed over SSE, timeout marked as timeout, concurrent checks do not collide, saved as an attempt); #39
 (hidden-task, timeout and budget from `lesson.yaml`); #37 (rubric checks, a budget per call, cost logging);
@@ -159,7 +159,7 @@ Open panel, in order, each only when the panel table below says so:
 | "Сбой проверки, попытка не засчитана" | - | - | if any | yes | if any | yes |
 | "Закрыта: не пройдено" | yes | - | the closing result's, if any (a closed check is never run again, so its latest result is the one that closed it) | - | if any | yes |
 
-Not in the row: the kind (above), mentor and hint controls (from #37, R6), the attempt history (D4).
+Not in the row: the kind (above), mentor and hint controls (from #37, R6), the attempt history (from #35, `progress.md` F19, R6).
 
 Counter: N is the number of counted failed results the server reports for this check: failed, budget
 spent and timeouts the server counts; never a format error, a runner error, or any result after the
@@ -512,7 +512,7 @@ focused element is removed or the dialog holding it closes.
 **Empty states:**
 - Before any run: the check bar shows "Проверить" and an empty status line (R2); the Проверки tab lists
   every check as "Не запускалась" and "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (the
-  text of F19's empty state; the history section itself is D4, R6).
+  text of F19's empty state; the history section itself is from #35, `progress.md` F19, R6).
 - Nothing to run (Run composition): "Проверить" `aria-disabled` with "Проверки завершены", the outcome in
   the status line and "Открыть результаты" from load.
 - A lesson with no check the platform runs: no check bar, no "Проверка" region, no Проверки tab (R6).

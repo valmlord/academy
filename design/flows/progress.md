@@ -154,8 +154,10 @@ not-found page by itself, because the lesson exists. Before #35 the section is n
    without a final result", or the startup sweep) is a plain list item, not a disclosure, because it has
    nothing to open (A72-14): the same fields in the same order and with the same ". " joins in its text, its
    summary "Сбой проверки, попытка не засчитана" with the `warning` icon (A72-8), and `tabindex="-1"` so that
-   a deep link can focus it; it is not in the Tab order, because it does nothing. An `li` takes no
-   accessible name from its content, so on focus a screen reader reads its text, not a name (A72-19).
+   a deep link can focus it; it is not in the Tab order, because it does nothing. The `li` has no
+   accessible name while it is not focused; while it has focus Chromium computes one from its contents
+   (A72-19), and whether a screen reader reads it then is a runtime check (lesson acceptance, runtime
+   check 2).
 2. F19.2 Learner opens an attempt. Its panel lists that attempt's check results, one item per result, in
    `lesson.yaml` order, then results whose check is no longer in the lesson (A72-15). Each item, in order:
    - the check title (`lesson.yaml` `title`), or for a check no longer in the lesson its id
@@ -413,11 +415,12 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   - "Идёт проверка" (dashboard only) -> the **motionless form of `running`**: the same ring (`info`
     colour, 2px, open on one side) with no animation in any motion setting. #69 draws this word with that
     ring spinning: the Проверки tab's visually hidden ", идёт проверка" sits next to
-    `.status-icon[data-status="running"]` (`design/pages/lesson/prototype.html:175`, #69's "running
-    badge", `checks.md` "Live regions"), and the check bar's "Идёт проверка" (`:515`) next to `.spinner`
-    (`:507`, "the spinner", `checks.md` F13 error states: a ring of the same shape, smaller and in the
-    text colour); the per-check "Идёт" gets `running` as well (`checks.md` "Status of one check": "`info`,
-    spinning ring"). There the ring is live and stops with the run. The dashboard row is a snapshot never
+    `.status-icon[data-status="running"]` (`design/pages/lesson/prototype.html`, inside `#tab-checks`,
+    #69's "running badge", `checks.md` "Live regions"), and the check bar's "Идёт проверка" (the
+    `template[data-live-source="check-status"]` of the running states, shown in
+    `.check-bar-status [data-live-key="check-status"]`) next to `.check-bar-status .spinner` ("the
+    spinner", `checks.md` F13 error states: a ring of the same shape, smaller and in the text colour); the
+    per-check "Идёт" gets `running` as well (`checks.md` "Status of one check": "`info`, spinning ring"). There the ring is live and stops with the run. The dashboard row is a snapshot never
     updated until the next load (A72-9), so a spinning ring would spin after the run ended, with no pause
     control (WCAG 2.2.2); the dashboard keeps #69's ring for #69's run word and drops only the motion. Under
     reduced motion #69's live ring turns dotted (`proto.css` "Reduced motion"), while the motionless form
@@ -496,9 +499,12 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   deep link".
 - **A72-19. The fields of a row are joined by ". " in what a screen reader reads.** Between the fields of
   an attempt row (dashboard and history) and of a "Где трудно" row the accessible name of the link or
-  button holds ". " (full stop and space); the plain item (A72-14) is an `li`, which takes no name from its
-  content, so the same joins are in its text, which a screen reader reads when the item gets focus. The ". "
-  is a visually hidden `.sr-only` span where the layout shows no punctuation, because a number next to a
+  button holds ". " (full stop and space); the plain item (A72-14) is an `li` with no `aria-label` or
+  `aria-labelledby`; while it has focus, Chromium computes its name from its contents (name source `contents`,
+  measured), so the same joins are in its text and in that name; unfocused it has no name. Whether a
+  screen reader voices it when the item gets focus stays a runtime check (lesson acceptance, runtime
+  check 2). The ". "
+  is a visually hidden `.sr-only-inline` span where the layout shows no punctuation, because a number next to a
   date ("№ 3" and "4 ноября") read without a pause sounds like "№ 34 ноября", and ". " is already the joint
   of the summary and its notes. A data field that already ends in sentence punctuation (".", "!", "?", "…"
   or ":"; a title is data, and some `course/` titles are sentences) is followed by " " only, so no ". .",

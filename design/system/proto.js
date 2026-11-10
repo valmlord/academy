@@ -1007,7 +1007,11 @@
   // window.proto.setState stands for a change the learner did not make here (a re-read on return to the
   // tab, a stream event): focus it leaves on nothing is repaired, and an equal check status text of
   // another state is set again (B9); the same state sets nothing (B11).
+  // statusTextGapMs: the gap a page script waits after the check status line's last text before it writes
+  // a container of its own that must be announced after it (the lesson's history status container), so the
+  // value has one source.
   window.proto = {
+    statusTextGapMs: PROTO_STATUS_TEXT_GAP_MS,
     setState: function (name) {
       setState(name, { repairFocus: true, isBackground: true });
     },

@@ -128,6 +128,13 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
+/* Visually hidden text that stays in its line: the ". " joins of a row's fields (A72-19). .sr-only is
+   position: absolute, which blockifies it, and Chromium then puts a space before it in a name computed
+   from content ("модели . 5 ноября"). This one stays inline, so the name holds exactly its text.
+   font-size and line-height 0 give it no width and leave the line box as it was; clip-path hides any glyph a
+   minimum font size would still draw. It stays inline only inside a text run: as the child of a flex or grid
+   container (a .tabs-trigger, a .check-row-trigger) it is blockified, so wrap it with its text in a span. */
+.sr-only-inline { font-size: 0; line-height: 0; clip-path: inset(50%); white-space: nowrap; }
 
 .muted { color: var(--muted-foreground); }
 .text-sm { font-size: var(--text-sm); line-height: var(--text-sm-line); }
@@ -269,6 +276,10 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
   color: var(--info); border-right-color: transparent;
   animation: spin var(--spinner-period) linear infinite;
 }
+/* The motionless form of running, for a snapshot of a run that is not updated until the next load
+   (dashboard "Последние попытки"), so it must never spin (WCAG 2.2.2). The spin and the reduced-motion
+   rule select the exact value "running"; never select it by prefix or substring, or they reach this one. */
+.status-icon[data-status="running-still"] { color: var(--info); border-right-color: transparent; }
 .status-icon[data-status="muted"] { color: var(--muted-foreground); border-style: dotted; }
 /* Closed check (S2): a lock in the destructive ring, drawn by the two pseudo-elements on the same empty
    span as every other status (the app uses lucide Lock). The shape tells it from the failed cross. */
@@ -696,9 +707,14 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 
 .check-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: var(--radius-lg); }
 .check-list > li + li { border-top: 1px solid var(--border); }
-.check-row-trigger {
+/* .history-plain: an attempt with no check result (A72-14), a plain li with the trigger's grid and padding
+   and no hover, because it does nothing; one rule, so the two rows of one list stay aligned. */
+.check-row-trigger, .history-plain {
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--space-1) var(--space-3);
-  width: 100%; padding: var(--space-3) var(--space-4); border: 0; background: transparent; color: var(--foreground);
+  padding: var(--space-3) var(--space-4);
+}
+.check-row-trigger {
+  width: 100%; border: 0; background: transparent; color: var(--foreground);
   font: inherit; text-align: left; cursor: pointer;
 }
 .check-row-trigger:hover { background: var(--accent); color: var(--accent-foreground); }
@@ -721,6 +737,16 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
   background: var(--muted); color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--text-sm-line);
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
+
+/* ---------- Composition: attempt row and attempt panel (F18.3, F19) ---------- */
+
+/* The attempt row's fields are Item content (.item-content, .item-title, .item-description) inside an
+   a.item on the dashboard and a .check-row-trigger or .history-plain in the lesson's history, so both pages
+   draw one row. An open attempt's panel is a .check-row-panel holding one list of its check results; each
+   result's items are space-2 apart as in the panel, and a hidden item takes no space. */
+.history-results { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.history-results > li > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-2); }
+.history-result-title { font-weight: 500; overflow-wrap: anywhere; }
 
 /* ---------- Composition: prose (theory.md, task.md) ---------- */
 
