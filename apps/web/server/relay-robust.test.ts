@@ -11,6 +11,7 @@ import {
   statusOf,
   ticketFor,
   type Web,
+  within,
 } from "@/test/relay-harness";
 
 // U-relay-robust (#32 design 3.3.1): no malformed request or reset stops web. After each input the same server
@@ -74,13 +75,15 @@ describe("relay robustness (U-relay-robust)", () => {
     await stillServes(web);
   });
 
-  it("contains a malformed request URL with 400 and keeps serving", async () => {
+  it("answers a malformed request URL as an ordinary request and keeps serving", async () => {
     const { web } = await setup();
     const client = rawClient(web.port, { path: "//[", headers: browserHeaders(web) });
 
-    await client.closed;
+    await within(client.until(/\r\n\r\n/), "//[");
+    client.socket.destroy();
 
-    expect(statusOf(client.text())).toBe("HTTP/1.1 400 Bad Request");
+    expect(statusOf(client.text())).toBe("HTTP/1.1 308 Permanent Redirect");
+    expect(web.requests).toEqual(["//["]);
     await stillServes(web);
   });
 

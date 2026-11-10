@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   AUTH_SECRET,
@@ -6,12 +7,14 @@ import {
   CLIENT_KEY,
   rawClient,
   SERVICE_SECRET,
+  settle,
   startUpstream,
   startWeb,
   statusOf,
   ticketFor,
   type Upstream,
   type Web,
+  within,
 } from "@/test/relay-harness";
 import { refusedLine, suppressedLine, upstreamFailedLine } from "./strings.ts";
 
@@ -154,6 +157,18 @@ describe("relay (U-relay)", () => {
       expect(upstream.records).toEqual([]);
     },
   );
+
+  it("refuses an upgrade without a Host header with 403 before the Origin check", async () => {
+    const { upstream, web } = await setup();
+    const client = upgrade(web, ticketFor(Date.now()), {
+      Host: undefined,
+      Origin: "http://undefined",
+    });
+
+    expect(await within(refusal(web, client), "refusal")).toBe("HTTP/1.1 403 Forbidden");
+    expect(web.lines).toEqual([refusedLine(connOf(web.lines), "forbidden-host")]);
+    expect(upstream.records).toEqual([]);
+  });
 
   it.each([
     ["an Upgrade other than websocket", { Upgrade: "h2c" }, "GET"],
@@ -313,13 +328,22 @@ describe("relay log limiter (U-relay)", () => {
     expect(clock.pending()).toBe(0);
   });
 
-  it("prints one F4d line for 100 malformed URLs and F4e with the contained reason", async () => {
+  it("prints one F4d line for 100 contained errors of one kind and F4e with the contained reason", async () => {
     const clock = fakeClock();
-    const web = await limited(
-      Array.from({ length: 100 }, () => "//["),
-      clock,
-    );
+    const web = await limited([], clock);
+    const first = new PassThrough();
+    const written: Buffer[] = [];
+    first.on("data", (chunk: Buffer) => written.push(chunk));
 
+    web.relay.contain(first, new TypeError("canary"));
+    for (let count = 1; count < 100; count += 1) {
+      web.relay.contain(new PassThrough(), new TypeError("canary"));
+    }
+    await settle();
+
+    expect(Buffer.concat(written).toString("latin1")).toBe(
+      "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n",
+    );
     expect(web.lines).toEqual(["terminal relay -: error contained (TypeError)"]);
     clock.advance(10_000);
 
@@ -328,13 +352,12 @@ describe("relay log limiter (U-relay)", () => {
 
   it("keeps a flood of one contained error from hiding another kind's first line (S5-N1)", async () => {
     const clock = fakeClock();
-    const web = await limited(
-      Array.from({ length: 5 }, () => "//["),
-      clock,
-    );
-    const socket = rawClient(web.port, { path: "/elsewhere", headers: browserHeaders(web) }).socket;
-    web.relay.contain(socket, new RangeError("canary"));
-    socket.destroy();
+    const web = await limited([], clock);
+
+    for (let count = 0; count < 5; count += 1) {
+      web.relay.contain(new PassThrough(), new TypeError("canary"));
+    }
+    web.relay.contain(new PassThrough(), new RangeError("canary"));
 
     expect(web.lines).toEqual([
       "terminal relay -: error contained (TypeError)",

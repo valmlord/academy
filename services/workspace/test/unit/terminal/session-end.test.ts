@@ -57,6 +57,13 @@ async function expectFullyEnded(current: TerminalSetup, screen: FakeScreen | und
   expect(await spy?.seen()).toEqual([]);
 }
 
+/** An Error whose name is 80 characters starting with "canary", which the log must never carry. */
+function canaryNamedError(): Error {
+  const error = new Error("x");
+  error.name = "canary".padEnd(80, "x");
+  return error;
+}
+
 describe("session end paths (U-session-end)", () => {
   it("ends with 4000 and the exit code when the shell exits", async () => {
     const current = await start();
@@ -155,19 +162,28 @@ describe("session end paths (U-session-end)", () => {
   });
 
   it.each([
-    ["exec create", new DockerApiError("create exec", 409)],
-    ["exec start", new DockerResponseShapeError("start exec", "stream")],
-  ])("closes the socket with 1011 and maps nothing when the %s fails", async (_step, error) => {
-    const current = await start();
-    current.runtime.openShellFailures.push(error);
+    ["exec create", new DockerApiError("create exec", 409), "DockerApiError"],
+    [
+      "exec start",
+      new DockerResponseShapeError("start exec", "stream"),
+      "DockerResponseShapeError",
+    ],
+    ["exec create with an over-long error name", canaryNamedError(), "Error"],
+  ])(
+    "closes the socket with 1011 and maps nothing when the %s fails",
+    async (_step, error, expected) => {
+      const current = await start();
+      current.runtime.openShellFailures.push(error);
 
-    const client = await current.connect();
+      const client = await current.connect();
 
-    expect(await client.closed).toEqual({ code: 1011, reason: "terminal error" });
-    expect(current.registry.size).toBe(0);
-    expect(current.logged).toContain(`terminal ${ID} -: exec failed (${error.name})`);
-    expect(await spy?.seen()).toEqual([]);
-  });
+      expect(await client.closed).toEqual({ code: 1011, reason: "terminal error" });
+      expect(current.registry.size).toBe(0);
+      expect(current.logged).toContain(`terminal ${ID} -: exec failed (${expected})`);
+      expect(current.logged.filter((line) => line.includes("canary"))).toEqual([]);
+      expect(await spy?.seen()).toEqual([]);
+    },
+  );
 
   it("closes a pending socket with the end code, and its later flush callback does nothing", async () => {
     const current = await start({ deferScreen: true });
@@ -246,6 +262,7 @@ describe("resize failures (U-resize-error)", () => {
   it.each([
     ["DockerApiError", new DockerApiError("resize exec", 409)],
     ["DockerUnavailableError", new DockerUnavailableError("resize exec", "ECONNREFUSED")],
+    ["NonError", "canary"],
   ])("ignores a resize rejected with %s and logs it once", async (name, error) => {
     const current = await start();
     const client = await current.connect({ conn: "00112233445566ff" });

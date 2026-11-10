@@ -13,6 +13,11 @@ WebSocket). Facts, with sources:
 - Next.js 16.4.3 route handlers cannot accept a WebSocket upgrade; its router ends the socket of any upgrade that
   matches an app route, and the app has a catch-all route. A custom server that hands Next its own listening server
   gets the same socket ending, because Next attaches its upgrade listener to that server on the first request.
+- In production Next's upgrade handler leaves the socket of an upgrade with no matched output untouched, by design:
+  that includes every path with `//` or a backslash and every path ending in `/` other than `/`, and such a socket
+  stays open with no answer (still open after 130 s in the #32 test run). Node's `shouldUpgradeCallback` (an
+  `http.createServer` option) decides which upgrade requests fire `upgrade`; the others are handled as requests,
+  which Node may answer 400 itself first.
 - The custom server runs outside the bundle: only packages Next's tracing copies into the standalone tree exist
   there (`next` does, `zod` does not), and `next` is CommonJS whose export is the factory function. Node removes its
   socket error handler before emitting `upgrade`, and Next's own server wraps upgrades in try/catch.
@@ -29,8 +34,11 @@ WebSocket). Facts, with sources:
    (`apps/web/server/main.ts`) relays that upgrade byte for byte to `GET W/terminal` of the workspace service
    (ADR-0010 item 13) with the Bearer secret. Next never sees it.
 2. **Custom server.** `next({ dev: false, dir, hostname, port, httpServer })` where `httpServer` is a second,
-   never-listening `http.Server`: every upgrade that is not the terminal path is emitted there for Next, or destroyed
-   while Next has not attached its listener. The Next configuration comes from `.next/required-server-files.json`
+   never-listening `http.Server`. Only an upgrade request whose parsed pathname is exactly `/api/terminal/socket` is
+   accepted as an upgrade (`shouldUpgradeCallback`). Every other upgrade request is handled as a request: Node answers
+   400 to an HTTP/1.1 one without a `Host` header, Next's request handler answers the rest, and one that still
+   reaches the upgrade listener is answered 404. A request Node cannot parse is answered 400 by Node. Next's own
+   upgrade listener is attached to the never-listening server, which nothing emits on. The Next configuration comes from `.next/required-server-files.json`
    through `__NEXT_PRIVATE_STANDALONE_CONFIG`, as Next's generated standalone `server.js` does; `output: "standalone"`
    stays. Its modules import only `node:*` and, through `createRequire(import.meta.url)("next")` narrowed at runtime,
    `next`. It is compiled with `tsc` to `apps/web/dist/server`; the image runs `node apps/web/server/main.js`. It
@@ -44,10 +52,11 @@ WebSocket). Facts, with sources:
    `renewInMs`, the delay after which the browser renews, or null when the deadline is within the renewal margin.
    The relay checks the token against a fixed ASCII pattern with an exact 43-character MAC before any decode or
    compare, accepts a ticket once per process, only with a loopback `Host` (`localhost`, `127.0.0.1`, `[::1]`, any
-   port) and an `Origin` of exactly `http://<Host>`, builds the upstream path from the payload alone, forwards only
-   `Upgrade`, `Connection`, `Sec-WebSocket-Key`, `Sec-WebSocket-Version` plus its own `Authorization` and a random
-   connection id, and cuts the connection at `min(dl, connect + TERMINAL_RELAY_MAX_SECONDS)` (default 900 s,
-   120-3600). Every raw socket gets an error listener before anything else and keeps one until it is gone, and every
+   port; a missing `Host` is refused like any other) and an `Origin` of exactly `http://<Host>`, builds the upstream
+   path from the payload alone, sends the service exactly `Upgrade`, `Connection` and `Sec-WebSocket-Version` with
+   fixed values, the browser's `Sec-WebSocket-Key` (the only value taken from the browser), `Host` set to the host of
+   `WORKSPACE_SERVICE_URL`, its own `Authorization` and a random connection id, and cuts the connection at
+   `min(dl, connect + TERMINAL_RELAY_MAX_SECONDS)` (default 900 s, 120-3600). Every raw socket gets an error listener before anything else and keeps one until it is gone, and every
    upgrade path runs inside a catch, so no malformed request or reset can stop the server; refusal and containment
    logs are rate-limited per reason and never carry an error object.
 4. **Session.** The workspace service holds at most one session per workspace: a TTY exec (`Cmd [TERMINAL_SHELL,
@@ -92,6 +101,8 @@ WebSocket). Facts, with sources:
 
 ## Alternatives considered
 - Next rewrites to the service: no header, no session check, exposes the service, 30 s proxy timeout.
+- A timeout for upgrades Next leaves open: Next's "not handled" result is silence, which cannot be told apart from
+  "not answered yet", so any timeout is a guess.
 - A relay process or container: a second DB client (ADR-0007 item 8) or a second auth path, one more process.
 - Dropping standalone output for a classic custom server: loses the traced image and its course-leak checks.
 - Session in web: dies with every web restart; the web-to-service link would need its own reconnect.
@@ -113,10 +124,12 @@ WebSocket). Facts, with sources:
   "Открыть здесь" recovers.
 - The used-ticket set lives in one web process: after a web restart a ticket minted in the last 30 s can be used once
   more by whoever holds it.
-- A Next upgrade must re-verify the custom server (required-server-files.json, the `httpServer` option, the `next`
-  export, and `__NEXT_PRIVATE_ORIGIN`, which Next marks for removal; without it a server-action redirect fetches
-  through `0.0.0.0` and the sign-in page fails to read the session). The e2e job fails when web logs a server error
-  during the suite.
+- A Next upgrade must re-verify the custom server (required-server-files.json, the `httpServer` option and that Next
+  still attaches its upgrade listener there, else Next would see terminal upgrades, that a request carrying upgrade
+  headers is answered by Next like any other request, the `next` export, and `__NEXT_PRIVATE_ORIGIN`, which Next
+  marks for removal; without it a server-action redirect fetches through `0.0.0.0` and the sign-in page fails to read
+  the session). A Node upgrade (the image tag in `apps/web/Dockerfile`) must re-verify that `shouldUpgradeCallback` is
+  honoured. The e2e job fails when web logs a server error during the suite.
 - The `ws` override in `pnpm-workspace.yaml` is removed with the fastify 5.12.8 bump.
 - Accepted residual (Stepan, 2026-11-04): a shell whose session ends while the shell is still running (service
   restart, an end with code 1011, a failure after the exec started) keeps running inside the container, without a
