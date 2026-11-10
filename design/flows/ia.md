@@ -25,6 +25,7 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 | check | check | проверка | |
 | attempt | attempt | попытка | |
 | quiz | quiz | квиз | |
+| quiz question | question | вопрос, only as "Вопрос I из Q" and in the quiz strings | the hint level "Вопрос" (row "hint") is another concept with the same word: it is a level name in the hint ladder in Проверки (F17, D3) and never carries a number, while the quiz word always does and shows only in the Квиз tab, so the two never stand in one panel (#70) |
 | mentor | mentor | ментор | |
 | mentor review | mentor review | разбор | from task.md "разбор с ментором"; the action is always "Разобрать с ментором" |
 | hint | hint | подсказка; levels "Вопрос", "Направление", "Скелет", "Скажи прямо" | learning-process §3 |
@@ -38,24 +39,25 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 ### Closed status sets
 
 Every status the UI shows comes from exactly one of these sets. A set holds base labels plus named
-variants; a variant is listed here verbatim (with `N`, `M`, `$N`, `<...>` as placeholders) or it does not
-exist. "When" says which release shows it: v1 (this PR's prototypes), or the deferred design that owns it
-(D1-D5 in the #50 design notes).
+variants; a variant is listed here verbatim (with `N`, `M`, `$N`, `<...>` as placeholders; the quiz set, the
+quiz notice in the page alert set and the page copy row "lesson, quiz" also use `A`, `C`, `I`, `K`, `Q`, `U`,
+one meaning each, `quiz.md` "Placeholders") or it does not exist. "When" says which release shows it: v1
+(this PR's prototypes), or the deferred design that owns it (D1-D5 in the #50 design notes).
 
 | Set | Labels (Russian, exact) | Where | When |
 |-----|-------------------------|-------|------|
 | lesson status (masculine, agrees with "урок") | "Не начат", "В процессе", "Пройден", "Не пройден" | catalog rows (F5.3), dashboard (F4, F18) | v1; "Не пройден" only once checks can close (D1, F14.4, assumption A9) |
 | module status (masculine, agrees with "модуль") | "Доступен", "Готовится" | catalog module list (F5.1), dashboard module rows (F18.2) | v1. "Доступен": has `ready` lessons; "Готовится": `planned`, or `ready` with no `ready` lesson |
 | lesson type | "теория", "квиз", "артефакт", "оценка агента", "поиск багов", "проект" | lesson header (F7.1), dashboard card (F4.1), catalog rows (F5.3) | v1; the schema `type` values |
-| check status (one check; neuter "пройдено" as in task.md) | base: "Не запускалась", "В очереди", "Идёт", "Пройдено", "Не пройдено", "Время вышло", "Ошибка формата, попытка не засчитана", "Не удалось запустить проверку", "Закрыта: не пройдено"; variant: "Не пройдено: исчерпан бюджет $N" | check rows in Проверки (F13.3), quiz check row (F15), recent attempts (F18.3) | the table in `checks.md` maps each to its token and release |
+| check status (one check; neuter "пройдено" as in task.md) | base: "Не запускалась", "В очереди", "Идёт", "Пройдено", "Не пройдено", "Время вышло", "Ошибка формата, попытка не засчитана", "Не удалось запустить проверку", "Закрыта: не пройдено"; variant: "Не пройдено: исчерпан бюджет $N" | check rows in Проверки (F13.3), quiz check row (F15: only "Пройдено", "Не пройдено", "Закрыта: не пройдено"; `quiz.md`), recent attempts (F18.3) | the table in `checks.md` maps each to its token and release |
 | check row note | "Неудачных попыток: N", "Неудачных попыток: N из M", "Осталась 1 попытка", "лимит M:SS"; running timer "M:SS из M:SS" | open check row (F13.5, F14.1), timeout row (F13 errors) | v1 "Неудачных попыток: N", "лимит M:SS" and the timer; D1 "из M" and "Осталась 1 попытка" |
-| check bar status line | "Идёт проверка", "Пройдено: N из M", "Урок пройден", "Соединение с проверкой потеряно. Переподключаемся..." | check bar (F13); empty before the first run | v1 except the lost-connection text (D1) |
+| check bar status line | "Идёт проверка", "Пройдено: N из M", "Урок пройден", "Соединение с проверкой потеряно. Переподключаемся..." | check bar (F13); empty before the first run, and emptied silently by a quiz send that makes its text untrue or leaves nothing to run (`quiz.md`, P7, P8) | v1 except the lost-connection text (D1) |
 | disabled reason (R1 description, never a status line) | "Окружение запускается, проверка станет доступна после запуска", "Сначала запустите окружение", "Дождитесь окончания проверки", "Доступно, когда окружение работает", "Проверка уже идёт в другой вкладке", "Откроется, когда проверка будет закрыта" | "Проверить" (F13), "Действия" items (F11), hint levels (F17) | v1 except "Проверка уже идёт в другой вкладке" (D1) and the hint lock (D3) |
 | environment status (status bar) | base: "Создаём окружение", "Запускаем окружение", "Окружение работает", "Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены."; variants: "Окружение остановлено: превышен лимит <памяти \| процессов \| CPU>. Файлы сохранены.", "Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".", "Нет образа окружения academy-workspace. Соберите его (см. README) и нажмите "Повторить".", "Нет доступа к этому окружению."; appended notes: "Запуск идёт дольше обычного", "Рабочая папка сброшена", "Рабочая папка не найдена, создано новое окружение из исходных файлов урока.", "Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу." | environment status bar (F8, F10, F11) | v1 |
 | terminal connection (status bar) | "Соединение с терминалом потеряно. Переподключаемся...", "Не удалось переподключиться", "Сеанс терминала завершён" | environment status bar (F9) | v1 |
 | one-pane switch suffix | "остановлено", "ошибка" (appended to the accessible name of the tab "Окружение") | the switch "Урок / Окружение" (A8) | v1 |
-| page alert (region "Уведомления") | "Сессия закончилась. Файлы в рабочей папке сохранены.", "Окружение остановится через N мин без активности. Файлы сохранятся." | every page with the top bar (F2.1), lesson (F10.1) | v1 |
-| quiz (D2) | "Нужно N%", "Попытка N из M", "Несколько вариантов", "Ответьте на все вопросы: осталось N", "Результат: N%. Нужно N%.", "Квиз пройден", "Ответы не отправлены. Попробуйте снова.", "Не удалось загрузить квиз" | Квиз tab (F15) | D2, after #36 |
+| page alert (region "Уведомления") | "Сессия закончилась. Файлы в рабочей папке сохранены.", "Окружение остановится через N мин без активности. Файлы сохранятся."; quiz notice (P9, from #36), exactly these and no other combination (`quiz.md`, "Quiz notice (P9)", rows 1-11): "Ответы квиза проверены. Верно C из Q. Нужно K.", "Ответы квиза проверены. Верно C из Q. Нужно K. Осталась 1 попытка.", "Квиз пройден.", "Квиз пройден. Урок пройден.", "Квиз пройден. Урок завершён: не пройден. Пройдено: N из M.", "Квиз не пройден: попытки исчерпаны.", "Квиз не пройден: попытки исчерпаны. Урок завершён: не пройден. Пройдено: N из M.", "Ответы квиза не отправлены. Попробуйте снова.", "Ответы квиза не приняты: квиз изменился в другой вкладке." | every page with the top bar (F2.1), lesson (F10.1; the quiz notice, F15) | v1; the quiz notice D2, after #36 |
+| quiz (D2; designed in #70) | "Нужно K из Q", "Попытка A из M", "Попытка A" (limit unknown, R7), "Верно C из Q. Нужно K.", "Верно C из Q.", "Квиз пройден", "Квиз не пройден: попытки исчерпаны", "Ответы не отправлялись" (quiz check row, in place of "Не запускалась"), question verdicts "Верно" / "Неверно" and option marks "Ваш ответ" / "Верный ответ" (review), "Ответьте на все вопросы: осталось U", "Ответы не отправлены. Попробуйте снова.", "Не удалось загрузить квиз", refusal result block (a send refused because the quiz changed in another browser tab): title "Ответы не приняты: квиз изменился в другой вкладке." and, while the quiz is open, "Последний результат: Верно C из Q. Нужно K." | Квиз tab (F15); the quiz check row in Проверки, which otherwise uses the check status set ("Пройдено", "Не пройдено", "Закрыта: не пройдено") and the check row note set ("Неудачных попыток: N", "Неудачных попыток: N из M", "Осталась 1 попытка", the last also in the quiz header) | D2, after #36; "из M" and "Осталась 1 попытка" only with a known limit (R7, from #68). Q, K, C, A and M come from the server (`quiz.md`, Stepan's decision P2); the letters: `quiz.md` "Placeholders". "Нужно N%", "Результат: N%. Нужно N%." and "Несколько вариантов" (#50) are replaced (#70) |
 | mentor (D3) | "Ментор читает попытку", "до $N", "Оценка N из M, нужно N", "Стоимость разбора: $N", "Разбор готов", "Бюджет на разбор исчерпан", "Ментор не ответил", "Ключ API не задан, разбор недоступен. Добавьте ключ в .env.", "Ментор не видел транскрипт работы с агентом" | review block and hint ladder in Проверки (F16, F17) | D3, after #37 |
 | budget (D1) | "Проверка с агентом потратит до $N" | budget confirmation (F13.1) | D1, after #39 |
 | editor (D5) | "Загружаем редактор", "Редактор не отвечает" | Редактор tab (F12) | D5, after #40 |
@@ -74,6 +76,7 @@ text only from this list or from the two tables above and below. Quotes of cours
 | not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"). No other text in `main`: no "404", no breadcrumb, no search |
 | lesson tabs | left pane "Теория", "Задание", "Проверки", "Квиз" (D2); environment "Терминал", "Редактор" (D5); one-pane switch "Урок", "Окружение" |
 | lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока", "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (D4). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
+| lesson, quiz (F15; #70, from #36) | the tab label "Квиз" with no state suffix (unlike "Проверки, идёт проверка", nothing in the quiz changes while the learner is on another tab); the panel heading is the quiz check `title` (data); the question heading "Вопрос I из Q", which is also the accessible name of its radio group or checkbox group (the prompt is the group's description); "Код к вопросу" (accessible name of a prompt's code block that overflows and so takes Tab); "Засчитывается только точный набор ответов" (note under every `multiple` prompt); per-question errors "Выберите ответ" (`single`) and "Выберите хотя бы один вариант" (`multiple`); error-summary links "Вопрос I из Q: выберите ответ" and "Вопрос I из Q: выберите хотя бы один вариант"; "Отправляем..." (busy label of "Отправить ответы"); result descriptions "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки." (limit known), "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения." (limit unknown), never after a refused send, and "Ниже верные ответы и пояснения." (pass, close, and a refusal that finds the quiz passed or closed); the explanation heading "Пояснение"; the result block's lesson line reuses the check bar's "Урок пройден" (from #69 also "Урок завершён: не пройден. Пройдено: N из M"). Prompts, options and explanations, including "Выберите все верные.", are quiz content (data), not copy |
 
 ### Action labels
 
@@ -106,6 +109,7 @@ whether the control is shown in v1; a hidden control appears only when its issue
 | move focus to the environment | "К окружению" | F13 | yes |
 | confirm a paid check | "Запустить" / "Отмена" | F13 | no, D1 (#39) |
 | take the quiz | "Пройти квиз"; send "Отправить ответы" | F13, F15 | no, D2 (#36) |
+| open the quiz outcome from the quiz notice | "Открыть квиз" | F15 | no, D2 (#36) |
 | ask for a review | "Разобрать с ментором"; reply "Ответить" | F13, F14, F15, F16 | no, D3 (#37) |
 | ask for a hint | "Попросить подсказку"; next level "Следующая подсказка" | F13, F17 | no, D3 (#37) |
 | reload the editor | "Перезагрузить редактор" | F12 | no, D5 (#40) |
@@ -146,24 +150,70 @@ reason as a second line inside the item, with the same `aria-describedby`.
 
 - Every live container exists in the DOM from page load, empty; its text is inserted and replaced, never
   inserted together with the container, because a live region added with its content is not reliably
-  announced.
+  announced. Each carries an explicit `aria-live` matching its role (`polite` with `role="status"`, `assertive`
+  with `role="alert"`), because an open modal menu or dialog (Radix, `hideOthers` of `aria-hidden` 1.2.6) puts
+  `aria-hidden` on the rest of the page and spares only `[aria-live]` nodes and their ancestors (`quiz.md`
+  "Away"; FU11). The container is the only live element: a component inside it drops its own live role (the
+  app's `Alert` renders `role="alert"` by default, `ui/alert.tsx:36`, and takes `role={undefined}` there, as
+  `notifications.tsx:57-58` does for F2.1), so nothing is announced twice or with another politeness.
 - Live containers on the lesson page whose course was read, and nothing else: the environment status text
   (`role="status"`), the check bar status line (`role="status"`, empty before the first run), and in region
-  "Уведомления" one `role="alert"` container (F2.1) and one `role="status"` container (F10.1). D3 adds the
+  "Уведомления" one `role="alert"` container (F2.1) and one `role="status"` container (F10.1); from #36, on a
+  lesson with a quiz check, a second `role="status"` container after them for the quiz notice (F15, `quiz.md`
+  "Quiz notice (P9)"), used only for a send answered while the learner is away: the Квиз panel is not shown,
+  or focus is in the region "Окружение" (R3), in a menu or dialog opened from it, on the split handle, in the
+  region "Уведомления", or in an open menu or modal dialog anywhere on the page (`quiz.md` "Away" classifies
+  every focusable place). D3 adds the
   review's `role="status"` ("Разбор готов"). Other pages with the top bar, and the lesson page whose course
   cannot be read (no "Проверка" or "Окружение" region exists then, R3): the "Уведомления" containers only.
   Sign-in has no live container: every error after "Войти" moves focus to its message, and a submit with
   an empty field moves focus to the first empty field (`auth.md` F1, keyboard path), so a screen reader
   reads the error at the focus point.
 - Every elapsed-time display is `role="timer"` (not announced) and sits outside every live container.
-- "Уведомления" is a wrapper that always holds both containers. It becomes a `region` landmark with a
+- "Уведомления" is a wrapper that always holds all its containers. It becomes a `region` landmark with a
   visually hidden heading "Уведомления" only while a container holds text, and drops both when they are
   empty; the containers themselves are never removed. An empty wrapper is no landmark and no `F6` stop.
+- **Focus after a background change** (the one rule; every flow points here). When a change the learner did not
+  make on the focused element (a quiz send's answer, a run's end or a check's result, a re-read when the
+  browser tab becomes visible, a stream drop or reconnect, the environment stopping or starting, an idle stop)
+  removes the element that holds focus, hides it or makes it unfocusable, focus moves, never to `body`, to the
+  first that applies for the place the element was in:
+  1. the Квиз panel: the quiz result block, or the send error after a failed send (`quiz.md`); the focus move
+     into the panel also removes the quiz notice;
+  2. an open check row panel in Проверки ("Пройти квиз" after a pass or close, "Подробности"): that row's own
+     disclosure button, which is never removed (the rows are the lesson's counted checks);
+  3. "Проверка" ("К окружению", "Переподключиться", "Открыть результаты"): its R3 landing as it now is,
+     "Проверить", which R1 never removes;
+  4. "Окружение": the R3 table row for its new state;
+  5. "Уведомления": the idle warning removed by an idle stop with focus in it (F10.3): "Запустить снова" in
+     the status bar, or the switch tab "Окружение" in one-pane mode with "Урок" shown (named here so the stop has
+     one target, the control that undoes it); the F2.1 alert is never removed by a background change (only
+     leaving the page removes it); the quiz notice removed with focus in it: its own rule below (the
+     "Открыть квиз" target), and a later away-answer only replaces its title text, keeping the Alert and
+     "Открыть квиз", so focus stays (`quiz.md`, "Announced once, never twice");
+  6. anywhere else: the R3 landing of the shown pane's region ("Урок", or "Окружение" in one-pane mode with
+     it shown).
+  An R1 `aria-disabled` control stays focusable, so focus stays on it and its new reason is read when it is
+  next reached. A change that removes nothing focused moves no focus. When the budget confirmation closes
+  because of such a change, focus moves to "Проверить" first and the status text is set after (#69's
+  `checks.md` B6, B23). The same order resolves a return target that is gone (next bullet).
 - Focus when a focused alert disappears: after "Продолжить работу" (F10.2) focus returns to the element
-  that had it before focus entered "Уведомления", or, if there was none, to the first focusable element of
-  "Урок". When the environment stops (F10.3) while focus is in the idle warning, focus moves to "Запустить
-  снова" in the status bar; in one-pane mode with "Урок" shown, to the switch tab "Окружение" (its name
-  then ends in "остановлено"). The F2.1 alert disappears only by leaving the page.
+  that had it before focus entered "Уведомления", or, if there was none, to the R3 landing of the shown pane's
+  region. If that element is gone or no longer focusable when the warning closes (an answer to a quiz send
+  replaced the busy button or the options with the review; P8 removed "К окружению"), focus goes where the
+  rule above sends it for the place the element was in. The page's other focus returns (a menu closing to its
+  trigger, the reset dialog to "Действия", the budget confirmation to "Проверить") go to controls that are
+  always rendered while the menu or dialog is open ("Действия" and the user menu button in every state,
+  "Проверить" by R1). When the environment stops (F10.3) while focus is in the idle warning, focus moves
+  as item 5 of the rule above says: "Запустить снова", or the switch tab "Окружение" in one-pane mode with
+  "Урок" shown (its name then ends in "остановлено"). The F2.1 alert disappears only by leaving the page.
+  The quiz notice disappears, silently, when the Квиз panel becomes shown, when focus or a pointer press
+  moves into the shown panel, or when "Отправить ответы" starts a send; a later away-answer replaces it in
+  the same container (only its title text, so focus on "Открыть квиз" stays). If focus is in it when it
+  goes (read at `pointerdown`): a press on a focusable element in the panel (`tabindex="-1"` targets
+  included) moves focus to that element by script ("Отправить ответы": the busy button); any other trigger
+  moves focus to the quiz result block or send error ("Открыть квиз"'s target, `quiz.md` "Quiz notice
+  (P9)").
 - Focus when an activated control removes itself (R1 and R2 share this rule; R1 keeps a blocked control in
   place, so this is only about a control the new state replaces): a status-bar action ("Повторить",
   "Запустить снова", "Переподключиться", "Открыть новый сеанс") moves focus to what the R3 table names for
@@ -178,6 +228,7 @@ reason as a second line inside the item, with the same `aria-describedby`.
   | catalog course error | the course h1; `<title>` the course title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
   | lesson course error | the lesson h1; `<title>` the lesson title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
   | lesson text load error | the reloaded tab panel; `<title>` unchanged | "Повторить" itself | - (the course was read) |
+  | quiz load error (from #36) | the quiz panel heading (the check title); `<title>` unchanged | "Повторить" itself | - (the course was read) |
 
   The not-found h1 (`tabindex="-1"`) is the target in the last column because it is the heading of what
   replaced the block and it is read before "Открыть курс"; the not-found page reached any other way does not
@@ -218,8 +269,9 @@ below) is no stop.
 | Region | State | `F6` lands on |
 |--------|-------|---------------|
 | Верхняя панель | every state | "Академия" |
-| Уведомления | session expired (F2.1), alone or with the idle warning | "Войти снова" (the alert container comes first in the wrapper) |
-| Уведомления | idle warning only (F10.1) | "Продолжить работу" |
+| Уведомления | session expired (F2.1), alone or with the idle warning or the quiz notice | "Войти снова" (the alert container comes first in the wrapper) |
+| Уведомления | idle warning (F10.1), alone or with the quiz notice | "Продолжить работу" |
+| Уведомления | quiz notice only (F15, from #36) | "Открыть квиз" |
 | Уведомления | empty | no stop |
 | Урок | two panes (from 1024 px), or full width with no "Окружение" region (the M0 lesson, a lesson without the `workspace` field), every state in which the course was read | the breadcrumb "Курс" |
 | Урок, Проверка, Окружение | the course cannot be read (F7 error states) | no stop: none of the three regions exists; `main` itself is the stop instead, as on the pages below, and lands on "Повторить" |
@@ -399,7 +451,7 @@ and `mentor.md`).
   the terminal (research §8; decision A3).
 - **Notifications region "Уведомления"** directly under the top bar on every page with the top bar, outside
   any pane and outside `main`. Page-level alerts live here and nowhere else: session expired (F2.1), idle
-  warning (F10.1). Its containers and landmark behaviour: R2. Being outside the panes, it is visible
+  warning (F10.1), the quiz notice (F15, from #36). Its containers and landmark behaviour: R2. Being outside the panes, it is visible
   whichever pane is shown (one-pane mode included).
 - **Breadcrumbs** on the lesson page: "Курс" / module title / lesson title. The module crumb links to
   the catalog anchor of that module; the lesson crumb is the current page (`aria-current="page"`, not a
@@ -414,8 +466,9 @@ and `mentor.md`).
 - **Return after sign-in**: any protected route redirects to `/sign-in?next=<path>`; after sign-in the
   learner lands on `next` (only same-origin paths) or on the dashboard.
 - **Deep links**: the lesson page's left-pane tab is in the query (`?tab=theory|task|checks|quiz`), so
-  F2 returns the learner to the same tab. A tab that is not shown in the current release (R6) falls back to
-  Теория, or to Задание when the lesson has no theory.
+  F2 returns the learner to the same tab. A tab that is not shown in the current release (R6), or not on
+  this lesson (`?tab=quiz` on a lesson without a quiz check), falls back to Теория, or to Задание when the
+  lesson has no theory.
 - **The `F6` cycle**: R3.
 
 ## Page inventory
@@ -492,7 +545,36 @@ filed and linked here, or when it is done.
 - **FU6. design: a retry that fails again on "Повторить" itself is silent** (design). For the dashboard
   course error and the lesson text load error, R2 keeps focus on "Повторить" after a second failure; the
   focus does not move and the text does not change, so a screen reader user hears nothing. Decide an
-  announcement (a focus target with a heading, or a status) and update R2.
+  announcement (a focus target with a heading, or a status) and update R2. The quiz load error (#70) has
+  the same case; its "Повторить" is described by the Alert title, so it reads "Не удалось загрузить квиз"
+  when reached, but the second failure itself is still not announced.
+- **FU7. docs(adr): lesson status when a quiz closes or a check kind ships after completion** (dev, ADR
+  change approved by Stepan, from #70). ADR-0007 makes `completed` sticky and has no "finished, not
+  passed" lesson; A19 counts a check only once its runner ships, so a module 00 lesson completed by its
+  `command` check before #36 would count its quiz afterwards; a closed quiz (F15.6) needs a lesson outcome.
+  Decide both before #36 ships; the quiz shows the lesson outcome the server reports (`quiz.md`, "Lesson
+  outcome after a send").
+- **FU8. design: "Проверить" when every `command` check is closed and the quiz is open** (design, owner of
+  `checks.md` after #69 merges, from #70). Nothing is left to run, but the case is neither S3 nor S12 and
+  #69's reason "Проверки завершены" would be false while the quiz is open (`quiz.md`, "Seams with `checks.md`").
+- **FU9. test(content): task.md "нужно K верных" equals the server's K** (dev, with #36, from #70). The
+  header shows K from the server (`quiz.md`, P2) and the Задание tab shows task.md's K; a content check
+  that computes K from `passScore` and the question count, by the server's rule, keeps them equal.
+- **FU10. design: Теория code blocks that overflow cannot be scrolled by keyboard** (design, from the #70
+  accessibility review). The quiz prompt's `pre` takes `tabindex="0"`, `role="group"` and a name only when
+  it overflows (`quiz.md`, "Question block"); the Теория `.code-block` `pre`
+  (`design/pages/lesson/prototype.html`, `#code-ollama`) has no `tabindex`, so a long line that scrolls is
+  out of reach of the keyboard (WCAG 2.1.1). Apply the same rule to prose code blocks and their app twin.
+- **FU11. fix(web): explicit `aria-live` on every live container** (dev, from the #70 accessibility review).
+  `apps/web/components/notifications.tsx` renders the F2.1 `role="alert"` and the F10.1 `role="status"`
+  containers without `aria-live`, so the user menu (a modal Radix DropdownMenu, whose `hideOthers` spares only
+  `[aria-live]` nodes) hides them while it is open, and an idle warning set then is not announced. Add
+  `aria-live="assertive"` / `aria-live="polite"` (R2); the lesson prototype's containers (`page-alert`,
+  `page-status`, `check-status`, `env-status`) get the same in the author phase of #70. The F10.1 idle warning,
+  when it is built into the `role="status"` container, is the app's `Alert` with `role={undefined}`, as F2.1's
+  is (R2: the container is the only live element). e2e: with the user menu open, each container and its
+  ancestors carry no `aria-hidden`; the F10.1 container (and from #36 the quiz notice container) holds no
+  `[role="alert"]` or `[role="status"]` descendant.
 
 Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
 "Focus ring after a mouse click on a tab").
