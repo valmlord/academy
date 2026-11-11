@@ -2,20 +2,16 @@
 
 import { FitAddon } from "@xterm/addon-fit";
 import type { ITerminalOptions } from "@xterm/xterm";
-import Link from "next/link";
 import { type ReactElement, useEffect, useId, useRef, useState } from "react";
 import { regionStep } from "@/components/region-cycle";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   environmentRegionHeading,
   environmentTabsLabel,
-  regionKeyHint,
-  regionKeyHintMac,
   terminalName,
   terminalTabLabel,
 } from "@/lib/copy";
+import { readScreenReaderMode, writeScreenReaderMode } from "@/lib/environment/screen-reader-mode";
 import {
   browserClock,
   type EnvironmentActions,
@@ -23,16 +19,25 @@ import {
   TerminalMachine,
 } from "@/lib/terminal/machine";
 import { browserSocketOpener } from "@/lib/terminal/protocol";
-import { SESSION_EXPIRED_EVENT, type TerminalStatus } from "@/lib/terminal/state";
+import {
+  isEnvironmentRunning,
+  SESSION_EXPIRED_EVENT,
+  type TerminalStatus,
+} from "@/lib/terminal/state";
 import { terminalTheme } from "@/lib/terminal/theme";
-import { type StatusView, statusView } from "./status-view";
+import { ActionsMenu } from "./actions-menu";
+import { StatusBar } from "./status-bar";
+import { statusView } from "./status-view";
 
-// The lesson page's environment region (#32 design 3.6, D1): the status line with its action, the key hint,
-// the start timer, and one terminal tab holding the xterm terminal driven by the state machine of 3.6.1.
+// The lesson page's environment region (#32 design 3.6, D1; #106 design 2.5): the status bar with its action,
+// the actions menu and the key hint, and one terminal tab holding the xterm terminal driven by the state machine
+// of 3.6.1.
 
 /** The parts of xterm's `Terminal` the region uses; the real class satisfies it (environment-region.tsx). */
 export interface PanelTerminal extends MachineTerminal {
   readonly textarea: HTMLTextAreaElement | undefined;
+  /** xterm's live options (`Terminal.options` is a mutable accessor): the screen reader mode is set here. */
+  readonly options: ITerminalOptions;
   open(parent: HTMLElement): void;
   onData(listener: (data: string) => void): { dispose(): void };
   /** Never subscribed: a shell must not set the page title (design 5). Declared so a test can watch it. */
@@ -80,6 +85,22 @@ const MODIFIER_KEYS: ReadonlySet<string> = new Set([
   "AltGraph",
 ]);
 
+/**
+ * Sets xterm's screen reader mode only when it differs, so the default-off path never writes the option at all and
+ * the options stay exactly what the terminal was created with.
+ */
+function applyScreenReaderMode(terminal: PanelTerminal | null, isOn: boolean): void {
+  if (terminal === null) return;
+  if ((terminal.options.screenReaderMode ?? false) !== isOn)
+    terminal.options.screenReaderMode = isOn;
+}
+
+/** Usable sizes only: a frame laid out at 0 px, or a proposal of no whole cells, is not fitted. */
+function isFittable(frame: HTMLElement, cols: number, rows: number): boolean {
+  if (frame.clientWidth === 0 || frame.clientHeight === 0) return false;
+  return Number.isInteger(cols) && cols > 0 && Number.isInteger(rows) && rows > 0;
+}
+
 /** A key the terminal sends on (design 3.4): a keydown that is neither a region key nor a lone modifier. */
 function isUserKey(event: KeyboardEvent): boolean {
   return event.type === "keydown" && regionStep(event) === 0 && !MODIFIER_KEYS.has(event.key);
@@ -94,11 +115,31 @@ export function EnvironmentPanel({
 }: EnvironmentPanelProps): ReactElement {
   const [status, setStatus] = useState<TerminalStatus | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  const tabRef = useRef<HTMLButtonElement>(null);
+  const actionsTriggerRef = useRef<HTMLButtonElement>(null);
   const machineRef = useRef<TerminalMachine | null>(null);
+  const terminalRef = useRef<PanelTerminal | null>(null);
+  // Off on the server and on the first client render, so both render the same markup; the remembered value is
+  // read after mount (D7). The ref holds the value the effects apply, the state only re-renders the menu.
+  const [isScreenReaderMode, setIsScreenReaderMode] = useState(false);
+  const screenReaderModeRef = useRef(false);
   const isMac = useIsMac();
   const hintId = useId();
   const headingId = useId();
+
+  // The next three effects run in this order on mount (#106 design 2.5): the stored mode is read first, the toggle
+  // apply finds no terminal yet, and the terminal effect applies the mode once at creation, so a remembered "on"
+  // is never assigned off first.
+  useEffect(() => {
+    const isOn = readScreenReaderMode(() => window.localStorage);
+    screenReaderModeRef.current = isOn;
+    setIsScreenReaderMode(isOn);
+  }, []);
+
+  // The state only triggers the run. It applies the ref, which is always set before the state: on mount the state
+  // still reads off while the ref already holds the stored value.
+  useEffect(() => {
+    applyScreenReaderMode(terminalRef.current, screenReaderModeRef.current);
+  }, [isScreenReaderMode]);
 
   // One machine per effect run: mount() works once and unmount() is final, so a machine kept across runs would
   // stay dead after React's development mount-unmount-mount. The terminal never takes focus by itself.
@@ -117,13 +158,16 @@ export function EnvironmentPanel({
     terminal.open(frame);
     terminal.textarea?.setAttribute("aria-label", terminalName);
     terminal.textarea?.setAttribute("aria-describedby", hintId);
+    terminalRef.current = terminal;
+    // A terminal created later (the effect re-runs when `actions` changes) starts in the remembered mode too.
+    applyScreenReaderMode(terminal, screenReaderModeRef.current);
     const machine = new TerminalMachine({
       actions,
       terminal,
       openSocket: browserSocketOpener(WebSocket, window.location),
       fitSize: () => {
         const size = fit.proposeDimensions();
-        if (size === undefined) return null;
+        if (size === undefined || !isFittable(frame, size.cols, size.rows)) return null;
         fit.fit();
         return { cols: size.cols, rows: size.rows };
       },
@@ -142,7 +186,9 @@ export function EnvironmentPanel({
     // Capture phase: xterm stops the paste event's propagation on its textarea.
     const onPaste = (): void => machine.userInput();
     frame.addEventListener("paste", onPaste, true);
-    const observer = new ResizeObserver(() => {
+    const observer = new ResizeObserver((entries) => {
+      const box = entries[0]?.contentRect;
+      if (box !== undefined && (box.width === 0 || box.height === 0)) return;
       fit.fit();
       machine.fitChanged();
     });
@@ -153,6 +199,7 @@ export function EnvironmentPanel({
       frame.removeEventListener("paste", onPaste, true);
       dataListener.dispose();
       machineRef.current = null;
+      terminalRef.current = null;
       // Disposes the terminal too (row 38).
       machine.unmount();
     };
@@ -162,8 +209,15 @@ export function EnvironmentPanel({
 
   function act(): void {
     machineRef.current?.act();
-    // R2: the action removes itself, so focus goes to the terminal tab.
-    tabRef.current?.focus();
+    // AC12: the action removes itself, so focus goes to the actions menu trigger, which every state keeps.
+    actionsTriggerRef.current?.focus();
+  }
+
+  function changeScreenReaderMode(isOn: boolean): void {
+    screenReaderModeRef.current = isOn;
+    setIsScreenReaderMode(isOn);
+    // Not saved (storage blocked or full), the mode still applies to this page; nothing else to do.
+    writeScreenReaderMode(() => window.localStorage, isOn);
   }
 
   return (
@@ -175,42 +229,26 @@ export function EnvironmentPanel({
       <h2 id={headingId} className="sr-only">
         {environmentRegionHeading}
       </h2>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border bg-card px-4 py-2 text-sm text-card-foreground">
-        <div className="flex min-w-0 flex-[1_1_16rem] items-start gap-2">
-          {view?.startedAt != null ? (
-            <Spinner role={undefined} aria-label={undefined} aria-hidden className="mt-0.5" />
-          ) : null}
-          <span role="status" className="flex flex-col">
-            {view === null ? null : <StatusText view={view} />}
-          </span>
-          {view?.startedAt != null ? <StartTimer startedAt={view.startedAt} /> : null}
-        </div>
-        {view?.action != null ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {view.action.kind === "act" ? (
-              <Button type="button" size="sm" onClick={act}>
-                {view.action.label}
-              </Button>
-            ) : (
-              <Button asChild size="sm">
-                <Link href={courseHref}>{view.action.label}</Link>
-              </Button>
-            )}
-          </div>
-        ) : null}
-        <p
-          id={hintId}
-          hidden={view?.isHintShown !== true}
-          className="basis-full text-xs text-muted-foreground"
-        >
-          {isMac ? regionKeyHintMac : regionKeyHint}
-        </p>
-      </div>
+      <StatusBar
+        view={view}
+        courseHref={courseHref}
+        hintId={hintId}
+        isMac={isMac}
+        onAct={act}
+        actionsMenu={
+          <ActionsMenu
+            isEnvironmentRunning={status !== null && isEnvironmentRunning(status)}
+            isScreenReaderMode={isScreenReaderMode}
+            onRestart={() => machineRef.current?.restart()}
+            onReset={() => machineRef.current?.reset()}
+            onScreenReaderModeChange={changeScreenReaderMode}
+            triggerRef={actionsTriggerRef}
+          />
+        }
+      />
       <Tabs value="terminal" activationMode="automatic">
         <TabsList aria-label={environmentTabsLabel}>
-          <TabsTrigger ref={tabRef} value="terminal">
-            {terminalTabLabel}
-          </TabsTrigger>
+          <TabsTrigger value="terminal">{terminalTabLabel}</TabsTrigger>
         </TabsList>
         {/* No tab stop of its own: the terminal inside is the panel's focusable content. */}
         <TabsContent
@@ -237,36 +275,6 @@ export function EnvironmentPanel({
       </Tabs>
     </section>
   );
-}
-
-function StatusText({ view }: { view: StatusView }): ReactElement {
-  return (
-    <>
-      <span>{view.text}</span>
-      {view.note === null ? null : <span className="text-muted-foreground">{view.note}</span>}
-    </>
-  );
-}
-
-/** M:SS since `startedAt` (`performance.now()` time), as the prototype's `.timer`. */
-function StartTimer({ startedAt }: { startedAt: number }): ReactElement {
-  const [seconds, setSeconds] = useState(() => elapsedSeconds(startedAt));
-  useEffect(() => {
-    setSeconds(elapsedSeconds(startedAt));
-    const id = setInterval(() => setSeconds(elapsedSeconds(startedAt)), 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
-  const minutes = Math.floor(seconds / 60);
-  const rest = String(seconds % 60).padStart(2, "0");
-  return (
-    <span role="timer" className="text-muted-foreground tabular-nums">
-      {`${minutes}:${rest}`}
-    </span>
-  );
-}
-
-function elapsedSeconds(startedAt: number): number {
-  return Math.max(0, Math.floor((performance.now() - startedAt) / 1000));
 }
 
 /** The macOS hint variant (design 3.6), decided after mount so the server render never guesses. */

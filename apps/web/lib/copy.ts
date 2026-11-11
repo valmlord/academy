@@ -148,6 +148,39 @@ export const terminalName = "Терминал";
 export const regionKeyHint = "F6 или Ctrl+Shift+. (клавиша Ю): следующая область";
 export const regionKeyHintMac = "F6 (Fn+F6) или Ctrl+Shift+. (клавиша Ю): следующая область";
 
+/** A piece of a key hint: a key name, drawn as a Kbd, or the text between keys. */
+export interface KeyHintPart {
+  kind: "key" | "text";
+  text: string;
+}
+
+// The same two hints split into keys and text, as the prototype marks them up (`<kbd>` per key,
+// prototype.html F9.4). Joined, each equals its string above (copy.test.ts).
+export const regionKeyHintParts: readonly KeyHintPart[] = [
+  { kind: "key", text: "F6" },
+  { kind: "text", text: " или " },
+  { kind: "key", text: "Ctrl" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "Shift" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "." },
+  { kind: "text", text: " (клавиша Ю): следующая область" },
+];
+export const regionKeyHintMacParts: readonly KeyHintPart[] = [
+  { kind: "key", text: "F6" },
+  { kind: "text", text: " (" },
+  { kind: "key", text: "Fn" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "F6" },
+  { kind: "text", text: ") или " },
+  { kind: "key", text: "Ctrl" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "Shift" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "." },
+  { kind: "text", text: " (клавиша Ю): следующая область" },
+];
+
 // design/pages/lesson/acceptance.md, Copy "environment status", "environment notes" (the slow start) and
 // "environment errors".
 export const environmentCreatingStatus = "Создаём окружение";
@@ -164,6 +197,26 @@ export function imageMissingStatus(image: string): string {
   return `Нет образа окружения ${image}. Соберите его (см. README) и нажмите "Повторить".`;
 }
 export const environmentRejectedStatus = "Нет доступа к этому окружению.";
+
+// design/pages/lesson/acceptance.md, Copy "environment notes": the note after a reset (F11.4).
+export const workspaceResetNote = "Рабочая папка сброшена";
+
+// design/pages/lesson/acceptance.md, Copy "status actions": the disclosure of the error code (D3).
+export const detailsLabel = "Подробности";
+
+// design/pages/lesson/acceptance.md, Copy "actions menu" and "disabled reasons" (F11.1, F11.2).
+export const actionsMenuLabel = "Действия";
+export const restartEnvironmentLabel = "Перезапустить окружение";
+export const resetWorkspaceLabel = "Сбросить рабочую папку";
+export const screenReaderModeLabel = "Режим для экранного диктора";
+export const environmentNotRunningReason = "Доступно, когда окружение работает";
+
+// design/pages/lesson/acceptance.md, Copy "reset dialog" (F11.3).
+export const resetDialogTitle = "Сбросить рабочую папку?";
+export const resetDialogDescription =
+  "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.";
+export const cancelLabel = "Отмена";
+export const resetConfirmLabel = "Сбросить";
 
 // design/pages/lesson/acceptance.md, Copy "terminal connection" and "status actions".
 export const connectionLostStatus = "Соединение с терминалом потеряно. Переподключаемся...";

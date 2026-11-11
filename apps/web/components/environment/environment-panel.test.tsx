@@ -1,12 +1,16 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { FitAddon } from "@xterm/addon-fit";
-import type { ITerminalOptions } from "@xterm/xterm";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  actionsMenuLabel,
+  cancelLabel,
   connectionLostStatus,
+  detailsLabel,
   dockerDownStatus,
   environmentCreatingStatus,
   environmentMemoryLimitStatus,
+  environmentNotRunningReason,
   environmentRegionHeading,
   environmentRejectedStatus,
   environmentRunningStatus,
@@ -20,23 +24,26 @@ import {
   reconnectFailedStatus,
   reconnectLabel,
   regionKeyHint,
+  resetConfirmLabel,
+  resetDialogTitle,
+  resetWorkspaceLabel,
+  restartEnvironmentLabel,
   retryLabel,
+  screenReaderModeLabel,
   shellExitedStatus,
   startAgainLabel,
   startFailedStatus,
   takenOverStatus,
   terminalName,
-  terminalTabLabel,
+  workspaceResetNote,
 } from "@/lib/copy";
+import { SCREEN_READER_MODE_KEY } from "@/lib/environment/screen-reader-mode";
 import type { EnvironmentActions } from "@/lib/terminal/machine";
 import { SESSION_EXPIRED_EVENT } from "@/lib/terminal/state";
-import type {
-  EnvironmentResult,
-  LessonStartedResult,
-  OpenTerminalResult,
-} from "@/lib/workspace/environment";
-import { Deferred } from "@/test/terminal-machine";
-import { EnvironmentPanel, type PanelTerminal } from "./environment-panel";
+import { RecordingResizeObserver } from "@/test/dom-stubs";
+import { FakeWebSocket, FakeXterm, fakePanelActions, type PanelActions } from "@/test/panel-fakes";
+import type { Deferred } from "@/test/terminal-machine";
+import { EnvironmentPanel } from "./environment-panel";
 
 // U-env-region (#32 design 10.3): the region with a fake terminal factory, fake server actions and a fake
 // WebSocket, since jsdom has no canvas for xterm. Each state's copy, action and live-region rules, focus after a
@@ -44,116 +51,16 @@ import { EnvironmentPanel, type PanelTerminal } from "./environment-panel";
 
 const COURSE_HREF = "/courses/c1";
 
-class FakeXterm implements PanelTerminal {
-  textarea: HTMLTextAreaElement | undefined;
-  readonly writes: unknown[] = [];
-  readonly addons: unknown[] = [];
-  titleSubscriptions = 0;
-  isDisposed = false;
-  dataListener: ((data: string) => void) | null = null;
-  keyHandler: ((event: KeyboardEvent) => boolean) | null = null;
-
-  constructor(readonly options: ITerminalOptions) {}
-
-  open(parent: HTMLElement): void {
-    this.textarea = document.createElement("textarea");
-    // As xterm's own paste handler does (src/browser/Clipboard.ts), so only a capture listener sees the paste.
-    this.textarea.addEventListener("paste", (event) => event.stopPropagation());
-    parent.append(this.textarea);
-  }
-
-  write(data: string | Uint8Array, callback?: () => void): void {
-    this.writes.push(data);
-    callback?.();
-  }
-
-  dispose(): void {
-    this.isDisposed = true;
-  }
-
-  onData(listener: (data: string) => void): { dispose(): void } {
-    this.dataListener = listener;
-    return { dispose: () => undefined };
-  }
-
-  onTitleChange(): { dispose(): void } {
-    this.titleSubscriptions += 1;
-    return { dispose: () => undefined };
-  }
-
-  attachCustomKeyEventHandler(handler: (event: KeyboardEvent) => boolean): void {
-    this.keyHandler = handler;
-  }
-
-  loadAddon(addon: FitAddon): void {
-    this.addons.push(addon);
-  }
-}
-
-class FakeWebSocket {
-  static readonly instances: FakeWebSocket[] = [];
-  binaryType: BinaryType = "blob";
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onclose: ((event: CloseEvent) => void) | null = null;
-  readonly sent: string[] = [];
-
-  constructor(readonly url: string) {
-    FakeWebSocket.instances.push(this);
-  }
-
-  send(data: string): void {
-    this.sent.push(data);
-  }
-
-  close(): void {}
-
-  receive(frame: unknown): void {
-    this.onmessage?.(new MessageEvent("message", { data: JSON.stringify(frame) }));
-  }
-
-  closedBy(code: number): void {
-    this.onclose?.(new CloseEvent("close", { code }));
-  }
-}
-
-class NoResizeObserver {
-  observe(): void {}
-  disconnect(): void {}
-}
-
-interface Setup {
+interface Setup extends PanelActions {
   terminals: FakeXterm[];
-  peeks: Deferred<EnvironmentResult>[];
-  starts: Deferred<EnvironmentResult>[];
-  opens: Deferred<OpenTerminalResult>[];
-  records: Deferred<LessonStartedResult>[];
-  restarts: Deferred<EnvironmentResult>[];
-  resets: Deferred<EnvironmentResult>[];
   unmount: () => void;
+  rerender: (actions: EnvironmentActions) => FakeXterm[];
 }
 
 function setup(options: { reconnectAttempts?: number; startSlowSeconds?: number } = {}): Setup {
   const terminals: FakeXterm[] = [];
-  const peeks: Deferred<EnvironmentResult>[] = [];
-  const starts: Deferred<EnvironmentResult>[] = [];
-  const opens: Deferred<OpenTerminalResult>[] = [];
-  const records: Deferred<LessonStartedResult>[] = [];
-  const restarts: Deferred<EnvironmentResult>[] = [];
-  const resets: Deferred<EnvironmentResult>[] = [];
-  const next = <T,>(queue: Deferred<T>[]): Promise<T> => {
-    const deferred = new Deferred<T>();
-    queue.push(deferred);
-    return deferred.promise;
-  };
-  const actions: EnvironmentActions = {
-    peekEnvironment: () => next(peeks),
-    startEnvironment: () => next(starts),
-    openTerminal: () => next(opens),
-    recordLessonStarted: () => next(records),
-    restartEnvironment: () => next(restarts),
-    resetEnvironment: () => next(resets),
-  };
-  const { unmount } = render(
+  const fakes = fakePanelActions();
+  const panel = (actions: EnvironmentActions): ReactElement => (
     <EnvironmentPanel
       actions={actions}
       createTerminal={(terminalOptions) => {
@@ -164,9 +71,18 @@ function setup(options: { reconnectAttempts?: number; startSlowSeconds?: number 
       courseHref={COURSE_HREF}
       reconnectAttempts={options.reconnectAttempts ?? 5}
       startSlowSeconds={options.startSlowSeconds ?? 7}
-    />,
+    />
   );
-  return { terminals, peeks, starts, opens, records, restarts, resets, unmount };
+  const { unmount, rerender } = render(panel(fakes.actions));
+  return {
+    ...fakes,
+    terminals,
+    unmount,
+    rerender: (actions) => {
+      rerender(panel(actions));
+      return terminals;
+    },
+  };
 }
 
 async function answer<T>(queue: Deferred<T>[], value: T): Promise<void> {
@@ -204,24 +120,54 @@ function region(): HTMLElement {
   return screen.getByRole("region", { name: environmentRegionHeading });
 }
 
-/** The status action, a button or the course link; the terminal tab is a `tab`, not counted. */
+/** The status action, a button or the course link; the actions menu and the details trigger are not one. */
 function actionButtons(): string[] {
-  return within(region())
-    .queryAllByRole("button")
-    .concat(within(region()).queryAllByRole("link"))
-    .map((element) => element.textContent ?? "");
+  return Array.from(region().querySelectorAll("[data-status-action]")).map(
+    (element) => element.textContent ?? "",
+  );
+}
+
+/** The key hint, found through the terminal's description: its text sits mostly in Kbd children. */
+function hintElement(env: Setup): HTMLElement | null {
+  const id = env.terminals[0]?.textarea?.getAttribute("aria-describedby") ?? "";
+  return document.getElementById(id);
+}
+
+function actionsTrigger(): HTMLElement {
+  return screen.getByRole("button", { name: actionsMenuLabel });
+}
+
+/** Radix opens the menu on Enter at its trigger and focuses the first item. */
+function openMenu(): void {
+  actionsTrigger().focus();
+  fireEvent.keyDown(actionsTrigger(), { key: "Enter" });
+}
+
+/** Radix selects a menu item on Enter, through the item's click. */
+function pressEnter(element: Element): void {
+  fireEvent.keyDown(element, { key: "Enter" });
+}
+
+async function openResetDialog(): Promise<HTMLElement> {
+  openMenu();
+  pressEnter(screen.getByRole("menuitem", { name: resetWorkspaceLabel }));
+  return screen.findByRole("alertdialog", { name: resetDialogTitle });
 }
 
 beforeEach(() => {
   FakeWebSocket.instances.length = 0;
+  RecordingResizeObserver.instances.length = 0;
   vi.stubGlobal("WebSocket", FakeWebSocket);
-  vi.stubGlobal("ResizeObserver", NoResizeObserver);
+  vi.stubGlobal("ResizeObserver", RecordingResizeObserver);
+  // jsdom keeps localStorage across the tests of a file.
+  localStorage.clear();
 });
 
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  localStorage.clear();
 });
 
 describe("EnvironmentPanel states (U-env-region)", () => {
@@ -263,14 +209,16 @@ describe("EnvironmentPanel states (U-env-region)", () => {
 
     expect(statusText()).toBe(environmentRunningStatus);
     expect(screen.queryByRole("timer")).toBeNull();
-    expect(screen.getByText(regionKeyHint)).toBeVisible();
+    expect(hintElement(env)).toBeVisible();
+    expect(hintElement(env)).toHaveTextContent(regionKeyHint);
     expect(actionButtons()).toEqual([]);
   });
 
   it("hides the key hint while the environment starts", () => {
-    setup();
+    const env = setup();
 
-    expect(screen.getByText(regionKeyHint)).not.toBeVisible();
+    expect(hintElement(env)).not.toBeVisible();
+    expect(hintElement(env)).toHaveTextContent(regionKeyHint);
   });
 
   it("shows the lost-connection frame without a busy tab panel while reconnecting", async () => {
@@ -401,15 +349,27 @@ describe("EnvironmentPanel states (U-env-region)", () => {
 });
 
 describe("EnvironmentPanel actions and focus (U-env-region)", () => {
-  it("moves focus to the terminal tab and restarts when the status action is used", async () => {
+  it("moves focus to the actions menu trigger and restarts when the status action is used (P1)", async () => {
     const env = setup();
     await answer(env.peeks, { kind: "failed" });
 
     fireEvent.click(screen.getByRole("button", { name: retryLabel }));
 
-    expect(screen.getByRole("tab", { name: terminalTabLabel })).toHaveFocus();
+    expect(actionsTrigger()).toHaveFocus();
     expect(env.starts).toHaveLength(1);
     expect(screen.queryByRole("button", { name: retryLabel })).toBeNull();
+  });
+
+  it("moves focus to the actions menu trigger from a click that left focus on the page (P1b)", async () => {
+    const env = setup();
+    const socket = await reachRunning(env);
+    act(() => socket.closedBy(4002));
+    await answer(env.peeks, { kind: "stopped" });
+    expect(document.activeElement).toBe(document.body);
+
+    fireEvent.click(screen.getByRole("button", { name: startAgainLabel }));
+
+    expect(actionsTrigger()).toHaveFocus();
   });
 
   it("never focuses anything by itself while starting, attaching or running", async () => {
@@ -488,6 +448,277 @@ describe("EnvironmentPanel terminal wiring (U-env-region)", () => {
     expect(terminal?.isDisposed).toBe(true);
   });
 });
+
+describe("EnvironmentPanel actions menu and reset dialog (#106)", () => {
+  it("keeps an unavailable item focusable with its reason, and selecting it does nothing (P2)", () => {
+    const env = setup();
+
+    openMenu();
+
+    const restart = screen.getByRole("menuitem", { name: restartEnvironmentLabel });
+    expect(restart).toHaveFocus();
+    expect(restart).toHaveAttribute("aria-disabled", "true");
+    expect(restart).toHaveAccessibleDescription(environmentNotRunningReason);
+    pressEnter(restart);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(env.restarts).toHaveLength(0);
+  });
+
+  it("restarts from the menu, closes it and returns focus to the trigger (P3)", async () => {
+    const env = setup();
+    await reachRunning(env);
+
+    openMenu();
+    pressEnter(screen.getByRole("menuitem", { name: restartEnvironmentLabel }));
+
+    expect(env.restarts).toHaveLength(1);
+    expect(screen.queryByRole("menu")).toBeNull();
+    await waitFor(() => expect(actionsTrigger()).toHaveFocus());
+  });
+
+  it("asks before a reset: Esc cancels, the reset button resets, both end on the trigger (P4)", async () => {
+    const env = setup();
+    await reachRunning(env);
+
+    await openResetDialog();
+    await waitFor(() => expect(screen.getByRole("button", { name: cancelLabel })).toHaveFocus());
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    await waitFor(() => expect(actionsTrigger()).toHaveFocus());
+    expect(env.resets).toHaveLength(0);
+    expect(document.body.style.pointerEvents).toBe("");
+
+    const dialog = await openResetDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: resetConfirmLabel }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(env.resets).toHaveLength(1);
+    await waitFor(() => expect(actionsTrigger()).toHaveFocus());
+    expect(document.body.style.pointerEvents).toBe("");
+  });
+
+  it("ends on the trigger when a dialog button is clicked with focus left on the page (P4b)", async () => {
+    const env = setup();
+    await reachRunning(env);
+
+    await openResetDialog();
+    await waitFor(() => expect(screen.getByRole("button", { name: cancelLabel })).toHaveFocus());
+    blurActive();
+    fireEvent.click(screen.getByRole("button", { name: cancelLabel }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    await waitFor(() => expect(actionsTrigger()).toHaveFocus());
+    expect(env.resets).toHaveLength(0);
+
+    const dialog = await openResetDialog();
+    await waitFor(() => expect(screen.getByRole("button", { name: cancelLabel })).toHaveFocus());
+    blurActive();
+    fireEvent.click(within(dialog).getByRole("button", { name: resetConfirmLabel }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(env.resets).toHaveLength(1);
+    await waitFor(() => expect(actionsTrigger()).toHaveFocus());
+  });
+
+  it("closes the reset dialog onto the trigger when the environment stops meanwhile (P11)", async () => {
+    const env = setup();
+    const socket = await reachRunning(env);
+    await openResetDialog();
+
+    act(() => socket.closedBy(4002));
+    await answer(env.peeks, { kind: "stopped" });
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    await waitFor(() => expect(actionsTrigger()).toHaveFocus());
+    expect(env.resets).toHaveLength(0);
+  });
+
+  it("opens no reset dialog when the environment stops between the reset item and the menu's close (P11b)", async () => {
+    const env = setup();
+    const socket = await reachRunning(env);
+    openMenu();
+    pressEnter(screen.getByRole("menuitem", { name: resetWorkspaceLabel }));
+
+    // Radix runs the menu's close handler in a setTimeout(0); the stop lands before it.
+    act(() => socket.closedBy(4002));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await answer(env.peeks, { kind: "stopped" });
+
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(env.resets).toHaveLength(0);
+  });
+
+  it("keeps the status announced while the modal menu hides the rest of the page (P13)", async () => {
+    const env = setup();
+    await reachRunning(env);
+    const textarea = env.terminals[0]?.textarea;
+
+    openMenu();
+
+    expect(within(region()).getByRole("status").closest('[aria-hidden="true"]')).toBeNull();
+    expect(textarea?.closest('[aria-hidden="true"]')).not.toBeNull();
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    await waitFor(() => expect(textarea?.closest('[aria-hidden="true"]')).toBeNull());
+  });
+});
+
+describe("EnvironmentPanel screen reader mode (#106, D7)", () => {
+  it("turns the mode on and off from the menu and remembers each choice (P5)", () => {
+    const env = setup();
+    const terminal = env.terminals[0];
+    expect(terminal?.options).not.toHaveProperty("screenReaderMode");
+
+    toggleScreenReaderMode();
+    expect(terminal?.options.screenReaderMode).toBe(true);
+    expect(localStorage.getItem(SCREEN_READER_MODE_KEY)).toBe("on");
+
+    toggleScreenReaderMode();
+    expect(terminal?.options.screenReaderMode).toBe(false);
+    expect(localStorage.getItem(SCREEN_READER_MODE_KEY)).toBe("off");
+    expect(env.terminals).toHaveLength(1);
+  });
+
+  it("starts a remembered mode once at creation, and in a terminal created later (P5b)", () => {
+    localStorage.setItem(SCREEN_READER_MODE_KEY, "on");
+    const env = setup();
+
+    expect(env.terminals[0]?.optionWrites).toEqual([["screenReaderMode", true]]);
+    openMenu();
+    expect(screen.getByRole("menuitemcheckbox", { name: screenReaderModeLabel })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+
+    const terminals = env.rerender(fakePanelActions().actions);
+
+    expect(terminals).toHaveLength(2);
+    expect(terminals[1]?.options.screenReaderMode).toBe(true);
+  });
+
+  it("works without storage: starts off, logs nothing and still toggles (P5c)", () => {
+    const blocked = (): never => {
+      throw new DOMException("storage is blocked", "SecurityError");
+    };
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(blocked);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(blocked);
+    const consoleError = vi.spyOn(console, "error");
+    const env = setup();
+
+    expect(statusText()).toBe(environmentStartingStatus);
+    toggleScreenReaderMode();
+
+    expect(env.terminals[0]?.options.screenReaderMode).toBe(true);
+    openMenu();
+    expect(screen.getByRole("menuitemcheckbox", { name: screenReaderModeLabel })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+});
+
+describe("EnvironmentPanel status bar (#106)", () => {
+  it("shows the error code behind a collapsed details button, and no button while running (P6)", async () => {
+    const env = setup();
+    await answer(env.peeks, { kind: "docker-down" });
+    const details = screen.getByRole("button", { name: detailsLabel });
+    const code = document.getElementById(details.getAttribute("aria-controls") ?? "");
+    expect(details).toHaveAttribute("aria-expanded", "false");
+    expect(code).not.toBeVisible();
+
+    fireEvent.click(details);
+
+    expect(details).toHaveAttribute("aria-expanded", "true");
+    expect(code).toBeVisible();
+    expect(code).toHaveTextContent("docker-unavailable");
+    fireEvent.click(screen.getByRole("button", { name: retryLabel }));
+    await answer(env.starts, { kind: "running", outcome: "running" });
+    expect(screen.queryByRole("button", { name: detailsLabel })).toBeNull();
+  });
+
+  it("notes the reset after the running status once the reset workspace is attached (P7)", async () => {
+    const env = setup();
+    await reachRunning(env);
+    const dialog = await openResetDialog();
+    fireEvent.click(within(dialog).getByRole("button", { name: resetConfirmLabel }));
+
+    await answer(env.resets, { kind: "running", outcome: "created" });
+    await answer(env.opens, { kind: "ticket", ticket: "t2", renewInMs: null });
+    const socket = lastSocket();
+    act(() => socket.receive({ t: "attached", resumed: false }));
+
+    expect(statusText()).toBe(environmentRunningStatus + workspaceResetNote);
+  });
+
+  it.each<{ name: string; reach: (env: Setup) => Promise<void>; status: string }>([
+    {
+      name: "docker-down",
+      reach: (env) => answer(env.peeks, { kind: "docker-down" }),
+      status: "destructive",
+    },
+    { name: "running", reach: async (env) => void (await reachRunning(env)), status: "success" },
+    {
+      name: "reconnecting",
+      reach: async (env) => {
+        const socket = await reachRunning(env);
+        act(() => socket.closedBy(1006));
+      },
+      status: "warning",
+    },
+  ])("draws the $status status icon while $name (P10)", async ({ reach, status }) => {
+    const env = setup();
+
+    await reach(env);
+
+    expect(region().querySelectorAll("[data-status]")).toHaveLength(1);
+    expect(region().querySelector("[data-status]")).toHaveAttribute("data-status", status);
+  });
+});
+
+describe("EnvironmentPanel unmount (#106)", () => {
+  it("disconnects the resize observer and removes the capture paste listener (P8)", () => {
+    const add = vi.spyOn(EventTarget.prototype, "addEventListener");
+    const remove = vi.spyOn(EventTarget.prototype, "removeEventListener");
+    const env = setup();
+    const frame = env.terminals[0]?.textarea?.parentElement;
+    const added = add.mock.calls.findIndex(
+      ([type], index) => type === "paste" && add.mock.contexts[index] === frame,
+    );
+    const onPaste = add.mock.calls[added]?.[1];
+
+    env.unmount();
+
+    const observer = RecordingResizeObserver.instances.find(
+      (instance) => frame != null && instance.observed.includes(frame),
+    );
+    expect(observer?.isDisconnected).toBe(true);
+    expect(onPaste).toBeTypeOf("function");
+    const removed = remove.mock.calls.some(
+      ([type, listener, options], index) =>
+        type === "paste" &&
+        listener === onPaste &&
+        options === true &&
+        remove.mock.contexts[index] === frame,
+    );
+    expect(removed).toBe(true);
+  });
+});
+
+function toggleScreenReaderMode(): void {
+  openMenu();
+  pressEnter(screen.getByRole("menuitemcheckbox", { name: screenReaderModeLabel }));
+}
+
+/** What a press in a browser that does not focus a clicked button leaves: focus on the page. */
+function blurActive(): void {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) active.blur();
+  expect(document.activeElement).toBe(document.body);
+}
 
 function frameOf(terminal: FakeXterm | undefined): HTMLElement | null {
   return terminal?.textarea?.parentElement?.parentElement ?? null;
