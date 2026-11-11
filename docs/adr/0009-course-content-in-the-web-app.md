@@ -56,9 +56,11 @@ section 0 of the #30 design (PR #85), working notes that are not published.
    lesson id, makes the whole course unavailable (the designed "Не удалось загрузить курс" state); an
    unreadable `theory.md` or `task.md` affects only that tab ("Не удалось загрузить текст урока"). One
    internal file error is mapped to a separate type per caller (course read, lesson text, export). Error
-   messages and log lines name the relative file and a closed reason (the schema issue path and code, a YAML
-   line number, or for a file that exists but cannot be read, `unreadable (<errno code>)` such as `EACCES` or
-   `EIO`), never file contents and never the system error's message. YAML is parsed with `parseDocument`
+   messages and log lines name the relative file and a closed reason (the schema issue path and code; a YAML
+   line number; for a document that parses but cannot be converted, an alias that cannot be resolved or any
+   other conversion failure, a fixed reason without a line, since the parser gives no position; or for a file
+   that exists but cannot be read, `unreadable (<errno code>)` such as `EACCES` or `EIO`), never file
+   contents and never the system error's message. YAML is parsed with `parseDocument`
    and pretty errors off, so no parser message or warning quotes a source line; a YAML warning counts as an
    error (fail closed). `logLevel` is `"error"` because at the library's default, converting the document
    (`toJS()`) writes a collection key's text to the process warnings, and `"silent"` would also drop the
@@ -108,9 +110,16 @@ section 0 of the #30 design (PR #85), working notes that are not published.
   in the web container can read them, as they can read the repository.
 - `content:validate` parses `course.yaml`, `module.yaml` and `lesson.yaml` with item 7's rules (#103): an
   error or a warning fails the file, and the issue gives the line and the parser's error code (for example
-  `invalid YAML at line 5 (TAG_RESOLVE_FAILED)`), never the parser's message. It also reports an alias that
-  cannot be resolved, which the web loader and the workspace service still let escape as an unclassified
-  error (#117). The rules exist in three copies (web, workspace service, validator) until one
+  `invalid YAML at line 5 (TAG_RESOLVE_FAILED)`), never the parser's message. content:validate, the web
+  loader and the workspace service report an alias that cannot be resolved (unknown anchor, or alias
+  expansion past the parser's default limit of 100, for example 100 aliases to one scalar anchor) as
+  `invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)`. The exception is an
+  unresolved alias used as a `%YAML 1.1` merge source (`<<: *nope`): the parser throws a plain error there,
+  not the alias error, so the web loader and the workspace service report it as
+  `invalid YAML: document cannot be converted to a value` and content:validate lets it escape until #118.
+  The web loader and the workspace service report every other conversion failure (for example a `%YAML 1.1`
+  merge key whose source is not a map, `<<: 5`) with the same generic reason, and content:validate lets
+  those escape until #118. The rules exist in three copies (web, workspace service, validator) until one
   package owns them (#118).
 - The workspace service (#31) and the grader read their own subsets (`starter/`, `checks/`) through their
   own allowlists; this ADR covers only the web image.
