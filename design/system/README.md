@@ -119,9 +119,10 @@ so the focus ring the `pre` takes when it overflows follows the block's corners 
 `--duration-fast` 150ms (hover, chevrons), `--duration-normal` 200ms (progress width); easing
 `cubic-bezier(0.2, 0, 0, 1)`. Spinner 800ms per turn, skeleton pulse 1.6s. Nothing moves on its own
 except the spinner, the running status icon and the skeleton. Under `prefers-reduced-motion: reduce`
-every duration is 0, the spinner and running icon stop and turn into a static dotted ring, and the
-skeleton stops pulsing. Spinners always sit next to a word ("Создаём окружение", "Входим..."), so
-stopping them removes no information.
+every duration is 0, the spinner and the `running` icon stop and turn into a static dotted ring, and the
+skeleton stops pulsing. `running-still` is the other still form: it never moves in any motion setting and
+keeps its open side, so the reduced-motion rule does not select it. Spinners always sit next to a word
+("Создаём окружение", "Входим..."), so stopping them removes no information.
 
 ## Focus ring
 
@@ -173,10 +174,10 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 | DropdownMenu | `.dropdown`, `.dropdown-menu`, `.dropdown-item`, `.dropdown-item-reason`, `.dropdown-check`, `.dropdown-label`, `.dropdown-separator` | top bar, lesson | item (`button`), link item (`a.dropdown-item`, for an item that navigates: "Выйти"; no underline), checkbox item, `aria-disabled` item with a reason line (`.dropdown-item-reason` is `aria-hidden="true"` with an `id`, tied to the item by `aria-describedby` only, so the name is the label alone). The user menu is named by its trigger (`aria-labelledby="<trigger id>"`, the email), never by an `aria-label`. A menu owns only items, groups and separators, so a `.dropdown-label` is `role="presentation"` with an `id` and names a `<div role="group" aria-labelledby="<label id>">` wrapping the label, the separator and the items it heads |
 | Breadcrumb | `.breadcrumb` (`nav > ol > li`) | lesson | links plus `aria-current="page"` |
 | Tabs | `.tabs`, `.tabs-list`, `.tabs-trigger`, `.tabs-content` | lesson | left pane, environment, one-pane switch (`.pane-switch`) |
-| Badge | `.badge` | dashboard, catalog, lesson | default, secondary, outline (+ `data-tone="muted"` or `"destructive"`), success, warning, info, muted (custom fills: one per status token). Check-status badges are deferred: no v1 page draws them (v1 check rows show the status icon and the word, F13.3); they serve recent attempts (F18.3, D4 in `ia.md`) |
+| Badge | `.badge` | dashboard, catalog, lesson | default, secondary, outline (+ `data-tone="muted"` or `"destructive"`), success, warning, info, muted (custom fills: one per status token). Check-status badges are deferred: no v1 page draws them (v1 check rows show the status icon and the word, F13.3); they serve no designed page (the dashboard's recent attempts, F18.3, show a `.status-icon` and the attempt summary text) |
 | Progress | `.progress`, `.progress-indicator` (`--progress-value`) | dashboard | one; track bordered in `input` |
-| Item | `.item-group`, `.item`, `.item-content`, `.item-title`, `.item-description`, `.item-actions`, `.item-note` | catalog, dashboard | link row, static row; `.item-note`: a note under a row (the prerequisite note F6.1), a `p` after the `.item` in the same `li`, so its links are not nested in the row link |
-| Collapsible | `[data-collapsible]` trigger, `.collapsible-trigger` chevron | lesson | outcomes, check row, "Подробности" (environment status bar and check row panel: a ghost sm `.collapsible-trigger` controlling one `pre.error-details`) |
+| Item | `.item-group`, `.item`, `.item-content`, `.item-title`, `.item-description`, `.item-actions`, `.item-note` | catalog, dashboard, lesson | link row, static row; Item content in the attempt row ("Attempt row" below); `.item-note`: a note under a row (the prerequisite note F6.1), a `p` after the `.item` in the same `li`, so its links are not nested in the row link |
+| Collapsible | `[data-collapsible]` trigger, `.collapsible-trigger` chevron | lesson | outcomes, check row, attempt row, "Подробности" (environment status bar and check row panel: a ghost sm `.collapsible-trigger` controlling one `pre.error-details`) |
 | Resizable | `.lesson-layout`, `.resizable-handle` | lesson | horizontal, presets 50 / 35 / 65 |
 | ScrollArea | `.scroll-area` | lesson | native overflow (a styled scrollbar is the app's) |
 | AlertDialog | `dialog.alert-dialog`, `.alert-dialog-title`, `.alert-dialog-description`, `.alert-dialog-list`, `.alert-dialog-footer` | lesson | reset (F11.3: destructive action "Сбросить"); budget confirmation (F13.1, from #37 / #39: default action "Запустить", the checks in a `.alert-dialog-list` after the description) |
@@ -188,8 +189,13 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 | Separator | `.separator` (`data-orientation`) | catalog, lesson | horizontal, vertical |
 
 Custom pieces, each with its reason: `.status-icon` (`data-status` success, destructive, warning, info,
-queued, running, muted, closed, chosen): one icon per status with a different shape, because colour is never the only
-signal (`checks.md`) and the app will use lucide icons with the same meaning; `closed` is a lock in the
+queued, running, running-still, muted, closed, chosen): one icon per status with a different shape, except
+`running-still`, the motionless form of `running`, which keeps its shape; shapes differ because colour is
+never the only signal (`checks.md`) and the app will use lucide icons with the same meaning; `running-still`
+is the `running` ring (`info`, right side open) with no animation in any motion setting, for a snapshot of a
+run that is not updated until the next load (dashboard "Последние попытки", "Идёт проверка"; the app's icon:
+lucide `LoaderCircle`, imported as `Loader2Icon` like `apps/web/components/ui/spinner.tsx:2`, without the
+spin class); `closed` is a lock in the
 `destructive` ring, drawn by `::before` (shackle) and `::after` (body) on the same empty `aria-hidden` span as
 every other status, never an SVG child or a glyph, so it differs from the failed cross by shape (the app's
 icon: lucide `Lock`, `lucide-react` `^1.65.0` in `apps/web/package.json:23`); `chosen` is not a status but the
@@ -204,7 +210,19 @@ the button's name, because a button's children are presentational and a role the
 gives both the same look (`tabular-nums`, `muted-foreground`); `.icon-note`: a muted `text-sm` line with a leading `.status-icon`
 ("Прогресс недоступен" on dashboard and catalog), on a `p` or a heading (weight 400, the heading keeps
 its level), the icon on the first line when the text wraps. shadcn has no such piece; the Alert is too
-heavy for a one-line note.
+heavy for a one-line note. `.sr-only-inline`: visually hidden text that stays in its line, for the ". "
+joins between the fields of an attempt row and a "Где трудно" row (`progress.md` A72-19), where the layout
+shows no punctuation. `.sr-only` is `position: absolute`, which blockifies the span, and Chromium then puts a
+space before it when it computes a name from content: "модели . 5 ноября, 15:20 . Идёт проверка" (measured
+with CDP `Accessibility.getFullAXTree`, #72). `.sr-only-inline` (`font-size: 0`, `line-height: 0`,
+`clip-path: inset(50%)`, `white-space: nowrap`) keeps the span inline, so the name is "модели. 5 ноября, 15:20. Идёт проверка",
+and leaves the line box unchanged (the row measures the same height with either class). It stays inline
+only inside a text run: a child of a flex or grid container (`.tabs-trigger`, `.check-row-trigger`,
+`.item-content`) is blockified and the space comes back, so it sits inside the field's own span
+(`<span class="item-title">№ 3<span class="sr-only-inline">. </span></span>`), or the text and it are wrapped
+in one span. Use `.sr-only` for hidden headings and live containers, which are blocks of their own;
+`.sr-only-inline` only for hidden text joined to visible text. The app's equivalent is a span with the same
+four declarations (Tailwind's `sr-only` is the absolute one, so it is not that).
 
 Compositions (no new primitives): `.topbar` (with `.topbar-brand`, `.topbar-nav`, `.topbar-end`,
 `.user-email`), `.notifications` (R2), `.env-statusbar` (`.env-status`, `.env-status-text`,
@@ -212,13 +230,14 @@ Compositions (no new primitives): `.topbar` (with `.topbar-brand`, `.topbar-nav`
 the API key note F8.3, `.env-actions`, `.env-hint`, `.error-details`), `.check-bar` (`.check-bar-controls`,
 `.check-bar-status`), `.check-list` / `.check-row-trigger` (`.check-row-title`, `.check-row-status`,
 `.check-row-meta` with `.check-row-time` and `[data-tone="warning"]`) / `.check-row-panel` /
-`.check-row-message` / `.error-details`,
+`.check-row-message` / `.error-details`, the attempt row and attempt panel (`.history-plain`,
+`.history-results`, `.history-result-title`; below),
 `.prose` (`.table-wrap`, `.code-block`, `.toc`), `.terminal-frame` (`.terminal-output`, `.ansi-<color>`,
 `.ansi-bright-<color>`, `.terminal-cursor`, `.terminal-selection`, `data-connection="lost"`,
 `.terminal-placeholder`), `.lesson-layout` with `.pane`, `.pane-switch`, `.lesson-header`,
 `.lesson-meta`, `.toc` (sizes its heading `text-sm` at any level); `.quiz` (`.quiz-intro`, `.quiz-header`,
 `.question`, `.verdict`, `.review-options`, `.review-option`, `.review-option-body`, `.review-marks`,
-`.review-mark`, `.explanation`; "Quiz panel" below); page shell `.app`, `.page`, `.column`, `.skip-link`, `.sr-only`; `.outcomes`; prototype chrome `.proto-chrome`
+`.review-mark`, `.explanation`; "Quiz panel" below); page shell `.app`, `.page`, `.column`, `.skip-link`, `.sr-only`, `.sr-only-inline`; `.outcomes`; prototype chrome `.proto-chrome`
 (state index, theme toggle; not product UI).
 
 `.column` is the one readable column inside `.page` (dashboard, catalog): `<div class="column">`, children
@@ -257,6 +276,38 @@ word):
 - `.error-details` is the one class for every "Подробности" block (environment status bar F8, check row
   runner error F13): mono `text-xs` on `muted`, wrapping. It replaces `.env-details` (#69); the class was
   renamed, not aliased, so a page still using `.env-details` renders unstyled.
+
+Attempt row (F18.3 dashboard "Последние попытки", F19.1 lesson "История попыток"; `progress.md` A72-19):
+one row content on both pages, Item content after a leading `.status-icon` (`aria-hidden`):
+`<span class="item-content"><span class="item-title">FIELD 1<span class="sr-only-inline">. </span></span>
+<span class="item-description"><time datetime="...">4 ноября, 14:05</time><span class="sr-only-inline">. </span></span>
+<span class="item-description">SUMMARY</span></span>`. Field 1 is the lesson title on the dashboard and "№ N"
+in the history; a field that already ends in ".", "!", "?", "…" or ":" takes `<span class="sr-only-inline"> </span>`
+(A72-19). The row element differs by what it does:
+- dashboard: `a.item` in an `.item-group` (the Item link row);
+- history, an attempt with check results: `button.check-row-trigger` (`data-collapsible`, `aria-expanded`,
+  `aria-controls`) in a `.check-list`, its panel a `.check-row-panel`;
+- history, an attempt with no check result (A72-14): `li.history-plain` with `tabindex="-1"`, the same
+  children directly in the `li`: the trigger's grid and padding (one rule with `.check-row-trigger`), no
+  hover, no Tab stop.
+
+The "Где трудно" row (F18.4) is the same Item link row without the status icon: check title, lesson title,
+note, joined the same way.
+
+Attempt panel (F19.2): `.check-row-panel` > `ul.history-results`, one `li` per check result, in order
+`p.history-result-title` (the check title, or `<code>` id plus "Этой проверки больше нет в уроке"), `p` >
+`.check-row-status` (status icon and word), `pre.check-row-message`, the "Подробности" trigger and
+`pre.error-details`, the cost `p.text-sm.muted`; results `space-4` apart, a result's items `space-2` apart,
+as in a check row panel. A quiz result (the quiz attempt record, `#state-history-quiz-open`) shows its score
+line "Верно C из Q." as `p.text-sm` (14px, `foreground`) in place of the grader message: no `pre`, no cost
+line. Where the history sits on the Проверки panel (the `.history` section and its gaps)
+is page layout.
+
+The history status container (`role="status"`, `ia.md` R2) stays page script, not `proto.js`: it is written
+in one state only, once per page view, only while the Проверки panel is shown, and only after the check
+status line holds that state's end text (`progress.md` F19 error states); those conditions are F19's, and no
+other container has them. Its one dependency on the system, the gap, it reads from
+`window.proto.statusTextGapMs` ("proto.js API", status-text gap), so the gap has one value.
 
 AlertDialog with a list (the budget confirmation): `p.alert-dialog-description` then
 `ul.alert-dialog-list`, siblings, because a `ul` cannot sit inside the description's `p` (shadcn's
@@ -364,7 +415,7 @@ Markup, in DOM order (ids are the page's):
   `background: currentColor`, which forced colours paint `Canvas`, and the text backplate behind a glyph cuts
   the top and bottom of the checked checkbox box and of the glyph status rings. So `.choice-indicator` and
   `.status-icon` take `forced-color-adjust: none` and draw in system colours: `CanvasText` strokes, dots and
-  glyphs on `Canvas` (the running icon keeps its open right side). The app checks the same states (chosen
+  glyphs on `Canvas` (the `running` and `running-still` icons keep their open right side). The app checks the same states (chosen
   radio, checked checkbox, review marks, closed lock) under forced colours and does the same for any fill or
   glyph it draws there.
 - Locked while sending: `aria-disabled="true"` on every option input and on its group, never `disabled`
@@ -449,7 +500,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
   `window.proto.setState` to another state while nothing waits, which stands for B9: the container is
   emptied, then the text is set again a gap later.
   Controls follow the state at once; only this text waits. Other containers and pages keep the immediate
-  replacement.
+  replacement. `window.proto.statusTextGapMs` is the gap's value, for a page script that writes its own
+  container after this line (the lesson's history status container, "Attempt row" above).
 - **State-driven openings.** `data-open-in-states="<names>"` on a menu trigger, a `<dialog>`, a tooltip
   trigger or a collapsible trigger opens it in those states; `data-select-in-states="<names>"` on a tab
   (or a one-pane switch tab) selects it. Focus is not moved. Tab selection follows decision A17:
@@ -573,7 +625,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
 - `window.proto` exposes `setState(name)` (a change the learner did not make here: focus repair and the B9
   re-set above), `showPane(name)`, `syncNotifications()`, `setTheme(isDark)`,
   `focusAnchor(id)` (the in-page anchor behaviour above; returns false when the target is missing or
-  hidden).
+  hidden), and `statusTextGapMs` (a number, the status-text gap in ms above, for a page script that writes a
+  container of its own after the check status line).
 
 ## Contrast runs
 

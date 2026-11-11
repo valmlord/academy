@@ -22,6 +22,12 @@
     .demo-narrow { max-width: 20rem; border: 1px solid var(--border); border-radius: var(--radius-lg); }
     /* The page h1 at its own size, inside the gallery's heading outline (h2 column, h3 section). */
     .gallery-h1 { font-size: var(--text-2xl); line-height: var(--text-2xl-line); }
+    /* Attempt rows: the part headings at the pages' size, text-lg (dashboard h2 by its page CSS, lesson
+       h3 by proto.css), inside the gallery outline that demotes them to h4. */
+    .gallery-part-heading { font-size: var(--text-lg); line-height: var(--text-lg-line); }
+    /* Attempt rows: the 32px between parts on both pages (each part's page margin-top space-4 on the
+       16px gap of its parent); this is page layout, so it is not a proto.css piece. */
+    .gallery-parts { gap: var(--space-8); }
     /* The quiz panel h2 and the question h3 at their page sizes. */
     .gallery-h2 { font-size: var(--text-xl); line-height: var(--text-xl-line); }
     .gallery-h3 { font-size: var(--text-lg); line-height: var(--text-lg-line); }
@@ -141,7 +147,7 @@
       <span class="badge" data-variant="outline">теория</span>
       <span class="badge" data-variant="outline">артефакт</span>
     </div>
-    <p class="gallery-note">Check-status badges, deferred: no v1 page draws them (the check rows of Проверки show the status icon and the word, F13.3); they serve recent attempts (F18.3, D4 in ia.md).</p>
+    <p class="gallery-note">Check-status badges, deferred: no v1 page draws them (the check rows of Проверки show the status icon and the word, F13.3); they serve no designed page (the dashboard's recent attempts, F18.3, show a status icon and the attempt summary text).</p>
     <div class="row" lang="ru">
       <span class="badge" data-variant="muted"><span class="status-icon" data-status="muted" aria-hidden="true"></span>Не запускалась</span>
       <span class="badge" data-variant="info"><span class="status-icon" data-status="queued" aria-hidden="true"></span>В очереди</span>
@@ -161,10 +167,11 @@
       <span class="status-icon" data-status="info" aria-hidden="true"></span>
       <span class="status-icon" data-status="queued" aria-hidden="true"></span>
       <span class="status-icon" data-status="running" aria-hidden="true"></span>
+      <span class="status-icon" data-status="running-still" aria-hidden="true"></span>
       <span class="status-icon" data-status="muted" aria-hidden="true"></span>
       <span class="status-icon" data-status="closed" aria-hidden="true"></span>
     </div>
-    <p class="gallery-note">Lesson and module status sets of ia.md (v1), check status set (deferred, above). Fail is the outline badge with the destructive icon and word, never filled; a closed check is the same outline badge with the lock. Status icons differ in shape, not only in colour: data-status success, destructive, warning, info, queued, running, muted, closed (the lock, drawn by CSS on the same empty span).</p>
+    <p class="gallery-note">Lesson and module status sets of ia.md (v1), check status set (deferred, above). Fail is the outline badge with the destructive icon and word, never filled; a closed check is the same outline badge with the lock. Status icons differ in shape, not only in colour: data-status success, destructive, warning, info, queued, running, running-still, muted, closed (the lock, drawn by CSS on the same empty span). running-still is the motionless form of running, for a snapshot of a run that is not updated: dashboard "Последние попытки", "Идёт проверка"; it keeps the running shape and never spins in any motion setting.</p>
   </div>
 
   <div class="gallery-section">
@@ -716,6 +723,63 @@
       </div>
     </div>
     <p class="gallery-note">A prompt code block is .code-block without its header (no "Копировать"); it keeps its lines and scrolls sideways inside itself. data-scroll-label makes proto.js give the pre tabindex="0", role="group" and aria-label="Код к вопросу" only while it overflows, and keep them until blur when a focused block stops overflowing. In this 20rem box the first tree (25 characters a line) fits and is no Tab stop; the second (44 characters) overflows and is one. Option text with long inline code wraps (overflow-wrap: anywhere), so no option widens the page at 320px. Sample data from 05-memory-agents-md.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: attempt rows</h3>
+    <div class="stack gallery-parts" lang="ru">
+      <div class="stack" data-gap="2">
+        <h4 class="gallery-part-heading" id="g-recent-attempts-heading">Последние попытки</h4>
+        <ul class="item-group" aria-labelledby="g-recent-attempts-heading">
+          <li><a class="item" href="#" id="g-attempt-link-running"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:20:00+03:00">5 ноября, 15:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
+          <li><a class="item" href="#" id="g-attempt-link-mixed"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-04T14:05:00+03:00">4 ноября, 14:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 2. Проверок с незасчитанной попыткой: 1</span></span></a></li>
+        </ul>
+      </div>
+      <div class="stack" data-gap="2">
+        <h4 class="gallery-part-heading" id="g-weak-checks-heading">Где трудно</h4>
+        <ul class="item-group" aria-labelledby="g-weak-checks-heading">
+          <li><a class="item" href="#" id="g-weak-link"><span class="item-content"><span class="item-title">PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 9 из 10</span></span></a></li>
+        </ul>
+      </div>
+      <div class="stack" data-gap="2">
+        <h4 class="gallery-part-heading" id="g-history-heading">История попыток</h4>
+        <ul class="check-list" aria-labelledby="g-history-heading">
+          <li>
+            <button class="check-row-trigger" type="button" id="g-attempt-3" data-collapsible aria-expanded="true" aria-controls="g-attempt-3-panel"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">№ 3<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-04T14:05:00+03:00">4 ноября, 14:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 2. Проверок с незасчитанной попыткой: 1</span></span></button>
+            <div class="check-row-panel" id="g-attempt-3-panel">
+              <ul class="history-results">
+                <li>
+                  <p class="history-result-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</p>
+                  <p><span class="check-row-status"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройдено</span></p>
+                  <pre class="check-row-message">Пройдено: не меньше 5 из 6 карточек верны.</pre>
+                </li>
+                <li>
+                  <p class="history-result-title"><code>cost-estimate</code></p>
+                  <p class="text-sm muted">Этой проверки больше нет в уроке</p>
+                  <p><span class="check-row-status"><span class="status-icon" data-status="warning" aria-hidden="true"></span>Сбой проверки, попытка не засчитана</span></p>
+                  <button class="button collapsible-trigger" type="button" data-variant="ghost" data-size="sm" data-collapsible aria-expanded="false" aria-controls="g-attempt-3-d-details">Подробности</button>
+                  <pre class="error-details" id="g-attempt-3-d-details" hidden>grader exited: container stopped (exit code 137) before checks/verify_estimate.py finished</pre>
+                </li>
+              </ul>
+            </div>
+          </li>
+          <li class="history-plain" id="g-attempt-2" tabindex="-1"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">№ 2<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-04T13:50:00+03:00">4 ноября, 13:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Сбой проверки, попытка не засчитана</span></span></li>
+          <li>
+            <button class="check-row-trigger" type="button" id="g-attempt-1" data-collapsible aria-expanded="false" aria-controls="g-attempt-1-panel"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="item-content"><span class="item-title">№ 1<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2025-10-28T13:30:00+03:00">28 октября 2025, 13:30</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 1</span></span></button>
+            <div class="check-row-panel" id="g-attempt-1-panel" hidden>
+              <ul class="history-results">
+                <li>
+                  <p class="history-result-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</p>
+                  <p><span class="check-row-status"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройдено</span></p>
+                  <pre class="check-row-message">Пройдено: не меньше 5 из 6 карточек верны.</pre>
+                </li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <p class="gallery-note">Each part is its heading and its list in .stack[data-gap="2"] (8px), the heading at text-lg (18px), as on both pages; parts are 32px apart there. One row content on both pages: Item content (title, time, summary) after an aria-hidden status icon, the fields joined by a visually hidden ". " in a .sr-only-inline span inside each field's own span, so the accessible name is "Модель, уровень ризонинга и локальные модели. 5 ноября, 15:20. Идёт проверка" with no space before a full stop (.sr-only would add one: it is position: absolute). Dashboard "Последние попытки": a.item link rows; "Где трудно": the same rows without the icon. Lesson "История попыток": a check-row-trigger disclosure per attempt with check results, its .check-row-panel holding the .history-results list (a removed check shows its id in code and "Этой проверки больше нет в уроке"); an attempt with no check result is li.history-plain, tabindex="-1", the trigger's grid without hover and not in the Tab order. Titles, dates and grader messages are sample data.</p>
   </div>
 
   <div class="gallery-section">

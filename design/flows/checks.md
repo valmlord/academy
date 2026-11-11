@@ -4,13 +4,14 @@ Page: lesson. The check bar is the region "Проверка", drawn under the le
 and at every width: "Проверить", one status line and a timer. It is a sibling of the "Урок" region, not
 inside it (rule R3 in `ia.md`). Disabled "Проверить" follows R1, live elements and focus R2, unshipped check
 kinds R6, attempt limits R7. Per-check results and attempt counters live in the Проверки tab; the attempt
-history is D4. Sources: `docs/learning-process.md` §1 (check results on the left) and §2 (the "Check"
+history is from #35 (`progress.md` F19, R6). Sources: `docs/learning-process.md` §1 (check results on the left) and §2 (the "Check"
 button runs the checks from `lesson.yaml`; agent checks spend tokens, each has a budget); #34 (results
 streamed over SSE, timeout marked as timeout, concurrent checks do not collide, saved as an attempt); #39
 (hidden-task, timeout and budget from `lesson.yaml`); #37 (rubric checks, a budget per call, cost logging);
 #68 (attempt limits and the mentor threshold per check, not yet in the contract); ADR-0007 (attempt and
 result statuses, completion; item 5 "Attempt scope": an attempt is one grading run over a non-empty subset
-of the lesson's checks); task.md "Как проверяется" and "Попытки и подсказки" in all six module 00 lessons;
+of the lesson's checks; item 5's "grading run" covers a run and, from #36, a quiz send, while "run" below is
+only the vocabulary's run, "Words"); task.md "Как проверяется" and "Попытки и подсказки" in all six module 00 lessons;
 `packages/lesson-schema` check fields; Stepan's decisions for #69 (B0: both "limit known" and "limit
 unknown" are designed, the lesson contract is not changed; S1-S12 of 2026-11-03 and 2026-11-04, cited below
 by id: S7 no "Повторить", S8 no other-tab reason, S9 the #34 requirements, S10 no outcomes polish, S11 a
@@ -21,24 +22,30 @@ Release words used below: **v1** is the lesson page once #34 ships together with
 the #69 design note asks for (it reports closed checks, format errors, counting and the lesson outcome);
 **limit known** needs #68 as well; **from #37 / #39** marks checks that spend tokens (rubric, hidden-task).
 
-Words (`ia.md` vocabulary, rows "run", "attempt (record of a run)" and "attempt (one check's result)"): a
-**run** is one press of "Проверить" (or "Запустить" in the budget confirmation); the check bar calls it
-"проверка" ("Идёт проверка"), and ADR-0007 saves it as one **attempt** record. In checks "attempt" /
+Words (`ia.md` vocabulary, rows "run", "attempt record (of a run or of a quiz send)" and "attempt (one
+check's result)"): a **run** is one press of "Проверить" (or "Запустить" in the budget confirmation); the
+check bar calls it "проверка" ("Идёт проверка"), and ADR-0007 saves it as one **attempt** record. From #36
+an answered quiz send is saved as an attempt record too, a **quiz attempt record**, which is never a run
+(`progress.md` A72-17; widened at the merge of #72 with #70). In checks "attempt" /
 "попытка" has two senses, and `ia.md` lists which words and strings belong to each (sign-in attempts,
 "Слишком много попыток входа", and the reconnect tries counted by `CHECK_STREAM_RECONNECT_ATTEMPTS` are other
 concepts with rows or names of their own):
-- **the record of one run** (ADR-0007 item 5): in docs "attempt" alone, "attempt id", "attempt status",
-  "attempt history" and the fields `attemptId`, `runningAttemptId`, `latestFinishedAttempt`; in UI copy only
+- **the attempt record** (ADR-0007 item 5: the record of one run or, from #36, of one answered quiz send):
+  in docs "attempt" alone, "attempt id", "attempt status", "attempt history" and the field `attemptId`; the
+  fields `runningAttemptId` and `latestFinishedAttempt` name runs only, never a quiz attempt record
+  ("Baseline of a re-read"); in UI copy only
   the history and review strings ("История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете
   готовы.", "История попыток недоступна", "Ментор читает попытку").
-- **one check's result in a run** (an ADR-0007 `check_results` row), the unit the limit counts: in docs
+- **one check's result in an attempt record** (an ADR-0007 `check_results` row; "in an attempt record", not
+  "in a run", since the merge of #72 with #70), the unit the limit counts: in docs
   only next to a limit or counting word ("attempt limit", "last attempt", "attempts left" / "remain" /
   "leaves one attempt", "counted" / "failed attempt", "spends an attempt", "attempt counter") or as a quiz
   attempt (one sent quiz is one result of the quiz check, `quiz.md`), and the fields `attemptLimit`,
   `lastAttemptCount`; in UI copy every check-row, limit and quiz string: "Неудачных попыток: N" counts this
   check's counted failed results, "..., попытка не засчитана" says a result does not count (as the check
   bar's summary 4 it says that no result of the run counts toward a limit), "Стоимость попытки" is what
-  this check's result cost. One run over two checks is one record and two results.
+  this check's result cost. One run over two checks is one record and two results; one answered quiz send
+  is one record and one result.
 
 ## Status of one check
 
@@ -161,7 +168,7 @@ Open panel, in order, each only when the panel table below says so:
 | "Сбой проверки, попытка не засчитана" | - | - | if any | yes | if any | yes |
 | "Закрыта: не пройдено" | yes | - | the closing result's, if any (a closed check is never run again, so its latest result is the one that closed it) | - | if any | yes |
 
-Not in the row: the kind (above), mentor and hint controls (from #37, R6), the attempt history (D4).
+Not in the row: the kind (above), mentor and hint controls (from #37, R6), the attempt history (from #35, `progress.md` F19, R6).
 
 Counter: N is the number of counted failed results the server reports for this check: failed, budget
 spent and timeouts the server counts; never a format error, a runner error, or any result after the
@@ -291,8 +298,15 @@ inside one frame, can reach a screen reader as no change or as the second text o
 its own change. It also covers a reconnect cycle that fails at once (B16 then B17), whose duration has no
 lower bound.
 
-**Baseline of a re-read.** The page keeps one value: the id of the latest finished attempt record it has read
-(`latestFinishedAttempt.attemptId`, null when no run has ever finished). It is set on load from the
+**Baseline of a re-read.** The page keeps one value: the id of the latest finished run it has read
+(`latestFinishedAttempt.attemptId`, null when no run has ever finished). **Runs only:** the check-state
+read (#34) serves in `latestFinishedAttempt` and `runningAttemptId` attempt records that are runs, never a
+quiz attempt record (from #36, `progress.md` A72-17; a record whose result has `check_kind = 'quiz'`,
+which a run never holds, "Run composition"), and #36 writes a quiz attempt record already finished, never
+`running` (`quiz.md` "Requirements for #36", item 11). So a quiz send, in this page or another browser
+tab, never changes this baseline, never makes a re-read B8, B9 or B10, never sets a run's end text and
+never attaches a run; what a re-read does with a quiz attempt record it finds is B27. The attempt history (from
+#35) keeps a baseline of its own over every record kind (`progress.md` F19 Loading). It is set on load from the
 check-state read, and replaced by the id of every run whose end this page shows: its own or an attached
 run's end (B19), a reconnect that finds the run ended (B14, B17), and a re-read that shows a newer run
 (B9, B10). A start refused with no attempt record (summary 4, F13 error states) leaves it as it is. A re-read
@@ -343,7 +357,7 @@ Every transition that adds, removes or replaces a check-bar control or a control
 whether the learner activated it or not. "Проверить" is never removed in a lesson with checks the
 platform runs (R1 keeps it in place), and the row buttons are never removed (the rows are the lesson's
 counted checks). The controls that can go are "К окружению", "Переподключиться", "Открыть результаты" and
-"Подробности" in an open row, and from #36 "Пройти квиз" in an open quiz check row (B26). R2 states the
+"Подробности" in an open row, and from #36 "Пройти квиз" in an open quiz check row (B26, B27). R2 states the
 focus rule once; this table is every case of it. The prototype and the acceptance run test each row (design
 note, author phase).
 
@@ -359,7 +373,7 @@ note, author phase).
 | B8 | Tab without a live stream becomes visible (Which tabs re-read), the re-read finds a run going | summary 1 | "Открыть результаты", "К окружению", "Переподключиться", whichever was shown; "Подробности" in an open row whose check the run includes (its panel drops to the counter) | "Проверить" (check bar); that row's button (open row) |
 | B9 | Tab without a live stream becomes visible, no run going, and the re-read's `latestFinishedAttempt.attemptId` differs from the page's baseline (Baseline of a re-read) | that run's end text (4-7); the baseline becomes its id | "Переподключиться"; "К окружению" if the environment now runs; "Открыть результаты" is shown (kept if it was there); "Подробности" in an open row whose result changed | "Проверить" (check bar); that row's button (open row) |
 | B10 | As B9, and that run left nothing to run (S3; a passed lesson with only token-spending checks, S12) | summary 6 or 5; the baseline becomes its id | "К окружению", "Переподключиться"; "Подробности" in an open row (a closed check's panel has none; the latest result changed); "Открыть результаты" is shown | "Проверить" (now `aria-disabled`, "Проверки завершены"); that row's button (open row) |
-| B11 | Tab without a live stream becomes visible, no run going, and the re-read's id equals the baseline | unchanged, nothing set, nothing announced (after a load with an empty line it stays empty) | - | - |
+| B11 | Tab without a live stream becomes visible, no run going, and the re-read's id equals the baseline, and the quiz check is as the page shows it (otherwise B27) | unchanged, nothing set, nothing announced (after a load with an empty line it stays empty) | - | - |
 | B12 | The result stream drops | summary 2 | - | - |
 | B13 | Automatic reconnect succeeds, run still going | summary 1 | - | - |
 | B14 | Automatic reconnect succeeds, run ended meanwhile | its end text (4-7); the baseline becomes its id | "Подробности" in an open row whose result changed | that row's button |
@@ -375,6 +389,7 @@ note, author phase).
 | B24 | Budget confirmation: "Отмена" or Esc | unchanged | the dialog closes | "Проверить" |
 | B25 | Learner presses "Открыть результаты" | unchanged | - | the Проверки panel heading (F13.4) |
 | B26 | A quiz send is answered (from #36; `quiz.md` "Check bar after a quiz send") | emptied silently when the send makes its text untrue (P7) or leaves nothing to run (P8), nothing set, not announced (the quiz result block or the quiz notice says the outcome); otherwise unchanged | P8: "К окружению", "Переподключиться"; "Проверить" becomes `aria-disabled` "Проверки завершены", silently; "Открыть результаты" is shown (kept if it was there). A pass or close: "Пройти квиз" in an open quiz check row | "Проверить" (as B10); the quiz row's own disclosure button for "Пройти квиз" (as B8-B10, B14) |
+| B27 | Tab without a live stream becomes visible, no run going, the re-read's id equals the baseline, and the quiz check differs from what the page shows (its state or its failed count: the server recorded a quiz send this page has not shown, sent in another browser tab or by this page's own send that timed out, `quiz.md` F15 Error states; from #36) | nothing set, nothing announced: the line follows `quiz.md` "Check bar after a quiz send", row "refused", by the quiz's current state (P7: an untrue summary 7 is emptied silently; P8: nothing to run, the line empty; otherwise unchanged), because a quiz attempt record is not a run and a quiz send never sets a text in the line (P6); the quiz check row changes silently; from #35 the history applies the same read (`progress.md` F19 Loading) | P8: "К окружению", "Переподключиться"; "Проверить" becomes `aria-disabled` "Проверки завершены", silently; "Открыть результаты" is shown (kept if it was there). A pass or close: "Пройти квиз" in an open quiz check row | "Проверить" (as B10); the quiz row's own disclosure button for "Пройти квиз" |
 
 A change that removes nothing the learner has focus on never moves focus: the page moves focus only when the
 focused element is removed or the dialog holding it closes.
@@ -488,11 +503,12 @@ focused element is removed or the dialog holding it closes.
   tab shows the end text. Every tab without a live result stream (never attached, its run ended, or
   stuck in "Не удалось получить результат проверки") re-reads the check states when it becomes visible
   again (`visibilitychange`, S9; Live regions, "Which tabs re-read"): it attaches to a running run (B8);
-  or, when `latestFinishedAttempt.attemptId` differs from the page's baseline (the latest finished attempt
-  id this page has read, on load or at the end of its own or an attached run), it shows that run's end text
+  or, when `latestFinishedAttempt.attemptId` differs from the page's baseline (the id of the latest finished
+  run this page has read, on load or at the end of its own or an attached run), it shows that run's end text
   (B9, B10), because the rows it then shows changed during this page view and the status line is where a
   change is reported; or, with the same id, nothing is set (B11), so a page loaded with an empty status
-  line stays empty.
+  line stays empty; a quiz send this page has not shown (sent in another browser tab, or this page's own send that timed
+  out and the server recorded) sets nothing either and only applies P7 or P8 of `quiz.md` silently (B27).
 - The result stream (SSE) drops: the status line reads "Соединение с проверкой потеряно.
   Переподключаемся..."; the timer keeps counting; "Проверить" keeps "Дождитесь окончания проверки". The
   browser's `EventSource` reconnects by itself; on reconnect the page re-reads the attempt and shows
@@ -521,7 +537,7 @@ focused element is removed or the dialog holding it closes.
 **Empty states:**
 - Before any run: the check bar shows "Проверить" and an empty status line (R2); the Проверки tab lists
   every check as "Не запускалась" and "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (the
-  text of F19's empty state; the history section itself is D4, R6).
+  text of F19's empty state; the history section itself is from #35, `progress.md` F19, R6).
 - Nothing to run (Run composition): "Проверить" `aria-disabled` with "Проверки завершены", the outcome in
   the status line and "Открыть результаты" from load.
 - A lesson with no check the platform runs: no check bar, no "Проверка" region, no Проверки tab (R6).

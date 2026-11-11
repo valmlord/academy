@@ -84,10 +84,10 @@ alert set, and of the page copy row "lesson, quiz" in `ia.md`) each letter has o
 
 | Letter | Meaning | Strings |
 |--------|---------|---------|
-| Q | the number of questions in the quiz | "Нужно K из Q", "Верно C из Q. Нужно K.", "Верно C из Q.", "Вопрос I из Q", "Вопрос I из Q: выберите ответ", "Вопрос I из Q: выберите хотя бы один вариант", "Последний результат: Верно C из Q. Нужно K.", notice rows 1-2 |
+| Q | the number of questions in the quiz; in the attempt history's "Верно C из Q." (`progress.md` F19.2, from #35) the number of questions of that quiz attempt record, as #36 stored it with the result (item 11 of "Requirements for #36"), because the quiz may change later | "Нужно K из Q", "Верно C из Q. Нужно K.", "Верно C из Q.", "Вопрос I из Q", "Вопрос I из Q: выберите ответ", "Вопрос I из Q: выберите хотя бы один вариант", "Последний результат: Верно C из Q. Нужно K.", notice rows 1-2 |
 | I | the position of one question, 1 to Q | "Вопрос I из Q", the summary links |
 | K | the required number of correct answers (`requiredCorrect`) | "Нужно K из Q", "Верно C из Q. Нужно K.", "Последний результат: Верно C из Q. Нужно K.", notice rows 1-2 |
-| C | the number of correct answers of the attempt shown (after a refusal, the latest attempt of another browser tab) | "Верно C из Q. Нужно K.", "Верно C из Q.", "Последний результат: Верно C из Q. Нужно K.", notice rows 1-2 |
+| C | the number of correct answers of the attempt shown (after a refusal, the latest attempt of another browser tab; in the attempt history, F19.2, that quiz attempt record's, item 11) | "Верно C из Q. Нужно K.", "Верно C из Q.", "Последний результат: Верно C из Q. Нужно K.", notice rows 1-2 |
 | A | the number of the attempt being answered | "Попытка A из M", "Попытка A" |
 | M | the quiz check's attempt limit (from #68, R7): the same M as in the check row counter "Неудачных попыток: N из M" | "Попытка A из M" |
 | U | the number of unanswered questions | "Ответьте на все вопросы: осталось U" |
@@ -176,7 +176,18 @@ page last read it (below), the result block adds the check bar's own outcome tex
 latest lesson status this page view read before the answer, whichever came last of the page load, the answer
 to an earlier send, a run end in the check bar (its end text is computed from the server's state then,
 `checks.md` "Check bar status line"), and #69's re-read of the check states when the browser tab becomes
-visible (`checks.md` B8-B11). So an outcome the check bar already shows as summary 5 or 6 is not said again. A quiz send never sets a text in the check bar status line (P6), because it
+visible (`checks.md` B8-B11, and B27 for a quiz send from another browser tab, announced in that tab).
+**Send window.** From the press of "Отправить ответы" until this send, or its retry after a failure, is
+answered, the server may already have recorded the send and changed the lesson status, and the page cannot
+tell; a B27 in this window may have found this page's own send, not another tab's. So in the window a read
+counts only if it put summary 5 or 6 in the status line (a run end, or #69's B9 or B10 with that end text),
+because only such a read has said the lesson outcome; any other read does not count: B8 (it attaches to a run
+and shows summary 1), B11, B27 (they set nothing), a run end with summary 4 or 7 (4 wins over 5 and 6; 7 says
+the lesson is not finished) and a run given up (summary 3, no end text). The answer (or the retry's, same
+client attempt id) compares the lesson status with the latest read before the press, or with the latest
+counting read in the window, so its result block, or the quiz notice when the learner is away, carries the
+lesson line once unless the status line has already said it; if the quiz changed in another tab, the send or
+the retry is refused and the refusal result block or notice carries it, once in this page view. So an outcome the check bar already shows as summary 5 or 6 is not said again. Every "once" about the lesson outcome in this file holds except for a send answered during a run, which the run's end text repeats (accepted, "Check bar after a quiz send", row "1, 2 or 3"). A quiz send never sets a text in the check bar status line (P6), because it
 reports runs of "Проверить" (`checks.md`, "Live regions"), a quiz send is not a run, and setting it while
 focus moves to the result block would announce the outcome twice; it only empties the line when its text
 became untrue (P7) and updates the controls silently when nothing is left to run (P8). After a send the
@@ -195,12 +206,12 @@ includes it.
 | Status line before the send | Send outcome | Check bar after the send | Same as after a reload? |
 |-----------------------------|--------------|--------------------------|-------------------------|
 | empty (no run ended on this page view) | any outcome that leaves a command check open to run | unchanged: empty; "Проверить" and its reason unchanged | yes: a reload shows an empty line (`checks.md` B1) |
-| 1, 2 or 3 (a run going, its stream lost or given up) | any | unchanged; the run's end text, when it comes, is computed from the server's state at that time, so it already counts the quiz as it then stands | yes |
+| 1, 2 or 3 (a run going, its stream lost or given up) | any | unchanged; the run's end text, when it comes, is computed from the server's state at that time, so it already counts the quiz as it then stands. **Accepted double announcement:** a send answered during the run that changes the lesson status (a quiz pass that makes the lesson passed, possible because a run re-runs passed `command` checks, `checks.md` "Run composition"; or a pass or close, or a refusal finding one, that finishes the lesson) carries the lesson line in its result block or quiz notice, and the run's end text says it again as summary 5 or 6. Accepted, because the end text answers the learner's own "Проверить" press, and holding the result block's line back can lose the outcome: summary 4 wins over 5 and 6, and summary 3 sets no end text (`checks.md` "Check bar status line"). This is the one path where the lesson outcome is announced twice in a page view; #36's tester confirms it with a screen reader (`ia.md` FU13, Q6) | yes |
 | 4 (the run could not start, or every check errored) | any outcome that leaves a command check open to run | unchanged: the text says the run failed and stays true | the reload shows an empty line; the text is about a run, not false |
 | 7, and the send leaves N, M and every note of it true (a failed attempt that does not close the quiz) | failed, not closing | unchanged and still true: the quiz was not passed and is still not passed | the reload shows an empty line |
-| 7, and the send makes its count or a note untrue (a pass raises N; a close adds a closed check to "Закрытых проверок: N" or adds that note), including a pass that makes the lesson passed; not S3 (next row) | passed, or failed and closing | P7: the status line is emptied silently (nothing is set in its place, so nothing is announced and no text gap applies); "Открыть результаты" stays, because the rows it opens now show the quiz's new state; "Проверить" and its reason unchanged; no control is removed, so focus is on the result block when the learner is not away and stays where it was when away. The re-read baseline (`checks.md`, "Baseline of a re-read") is unchanged, because no run ended: a later re-read that finds the same run sets nothing, one that finds a newer run shows its end text | the reload shows an empty line without "Открыть результаты" (B1); neither state is false |
+| 7, and the send makes its count or a note untrue (a pass raises N; a close adds a closed check to "Закрытых проверок: N" or adds that note), including a pass that makes the lesson passed; not S3 (next row) | passed, or failed and closing | P7: the status line is emptied silently (nothing is set in its place, so nothing is announced and no text gap applies); "Открыть результаты" stays, because the rows it opens now show the quiz's new state; "Проверить" and its reason unchanged; no control is removed, so focus is on the result block when the learner is not away and stays where it was when away. The re-read baseline (`checks.md`, "Baseline of a re-read") is unchanged, because no run ended (it names runs only; a quiz attempt record never enters it, item 11 of "Requirements for #36"): a later re-read that finds the same run sets nothing, one that finds a newer run shows its end text | the reload shows an empty line without "Открыть результаты" (B1); neither state is false |
 | any, no run going, and the send leaves nothing for "Проверить" to run with the lesson finished (S3: every counted check passed or closed, at least one closed; the send is the quiz's pass or close) | passed, or failed and closing | P8: the status line is empty (emptied silently if it held a text); "Проверить" becomes `aria-disabled` with the R1 reason "Проверки завершены", silently (read when the learner reaches it); "Открыть результаты" is shown after it (kept if it was there); "К окружению" and "Переподключиться" go if shown, as in #69's B10. Focus: on the result block when the learner is not away; when away, it stays where it was, unless it was on "К окружению" or "Переподключиться" (the check bar is away while the Квиз panel is not shown), which P8 removes: then it moves to "Проверить", now `aria-disabled` "Проверки завершены" (`ia.md` R2, "Focus after a background change", as #69's B10). The outcome is announced once, by the result block's lesson line when the result block takes focus; when the learner is away, by the quiz notice instead (P9, "Quiz notice (P9)") | the reload renders summary 6 in the line, not announced on load (B2), with the same controls; only the unannounced text differs |
-| any, and the send is refused because the quiz changed in another browser tab | refused; the page re-reads and shows the quiz's current state | by that current state, as if the change were this page's own, the first branch that holds: the line already at 5 or 6 and matching the current lesson status (next row): unchanged, text and controls as the run end or #69's B10 left them, and since the lesson status has not changed since the page last read it ("Lesson outcome after a send"), neither the refusal result block nor the notice carries a lesson line (the notice is row 3 or 6 text); the quiz still open: nothing changed for the bar (the rows of a failed attempt that does not close it: unchanged); the quiz now passed or closed and summary 7 untrue: P7 (line emptied silently, "Открыть результаты" stays); the quiz now passed or closed and the lesson in S3: P8 (empty line, "Проверить" `aria-disabled` "Проверки завершены", "Открыть результаты"; focus on a removed "К окружению" or "Переподключиться" moves to "Проверить", as in the P8 row). A lesson outcome that changed since the page last read it is announced once, by the refusal result block's lesson line or by notice rows 4, 5 or 7 when away | as the matching row above; for the line at 5 or 6, as before the send |
+| any, and the send is refused because the quiz changed in another browser tab | refused; the page re-reads and shows the quiz's current state | by that current state, as if the change were this page's own, the first branch that holds: the line already at 5 or 6 and matching the current lesson status (next row): unchanged, text and controls as the run end or #69's B10 left them, and since the lesson status has not changed since the page last read it ("Lesson outcome after a send"), neither the refusal result block nor the notice carries a lesson line (the notice is row 3 or 6 text); the quiz still open: nothing changed for the bar (the rows of a failed attempt that does not close it: unchanged); the quiz now passed or closed and summary 7 untrue: P7 (line emptied silently, "Открыть результаты" stays); the quiz now passed or closed and the lesson in S3: P8 (empty line, "Проверить" `aria-disabled` "Проверки завершены", "Открыть результаты"; focus on a removed "К окружению" or "Переподключиться" moves to "Проверить", as in the P8 row). A lesson outcome that changed since the page last read it is announced once, by the refusal result block's lesson line or by notice rows 4, 5 or 7 when away; a refusal answered during a run is said again by the run's end text (row "1, 2 or 3", accepted) | as the matching row above; for the line at 5 or 6, as before the send |
 | 5 or 6, set by a run end on this page view or by #69's re-read when the browser tab became visible (`checks.md` B9, B10) while the quiz panel kept its earlier state (the panel does not re-read on its own, Error states) | refused only: summary 5 means the lesson is passed, so the quiz is passed, and summary 6 means every counted check is passed or closed, so the quiz is too; a send from a panel that still shows the quiz open is refused | the refused row above, branch "line already at 5 or 6": unchanged, no lesson line anywhere. The line always matches the current status, because a passed lesson stays passed (S1) and a closed check stays closed; the branch is stated so the app has one rule | as before the send: the send changes nothing in the bar |
 
 Decided for the notes of summary 7, which a later run's end text carries:
@@ -409,7 +420,8 @@ F2.1 session alert is shown instead, F2), or for a load.
 exists. Each ends with a full stop. The lesson line ("Урок пройден.", "Урок завершён: не пройден. Пройдено: N
 из M.") appears only where a row lists it, and only when the lesson status the server reports changed since
 the page last read it (by this send, or for rows 10-11 by another browser tab; "last read" includes a run end
-and #69's re-read, as "Lesson outcome after a send" defines it).
+and #69's re-read, as "Lesson outcome after a send" defines it, inside a send's window only a read that showed
+summary 5 or 6, "Send window").
 
 | # | Outcome while away | Notice text (exact) |
 |---|--------------------|---------------------|
@@ -432,7 +444,8 @@ the answers were checked, because the refused send was not scored and counted no
 names what happened instead, and rows 10-11 state the quiz as it now is, which is true whoever finished it.
 For rows 10-11 the lesson line follows the lesson status the page reads with the refusal when it differs from
 the one the page last read (another browser tab changed it), because the check bar then follows P7/P8 by the
-same current state ("Check bar after a quiz send") and the outcome must be said once; when the check bar
+same current state ("Check bar after a quiz send") and the outcome must be said once (twice only when the
+refusal is answered during a run, whose end text repeats it, row "1, 2 or 3", accepted); when the check bar
 already shows that status as summary 5 or 6 (a run end, or #69's re-read when the browser tab became
 visible), it has not changed since the page last read it, so the text is row 3 or 6; row 9 carries none,
 because a quiz that is still open finishes no lesson. Every text ends with a full stop
@@ -628,7 +641,12 @@ would score nothing (course rule "answers open after a pass"); this also matches
   "Повторить", because both would do the same (one label per action). The server counts an attempt at most
   once: the send carries a client attempt id, so a retry after a timeout that the server did record returns
   that recorded result instead of a second attempt (#36). The message does not say the attempt was not
-  counted, because after a timeout the page cannot know.
+  counted, because after a timeout the page cannot know. When the recorded send changed the lesson status
+  (a pass or a close that finishes the lesson), the retry's result block (or the quiz notice) carries the lesson
+  line after any read that did not show summary 5 or 6 since "Отправить ответы" was pressed (for example a
+  visibility re-read that applied P7 or P8 silently, `checks.md` B27), because nothing else in this page view
+  says it; a run end or a re-read (B9, B10) that showed summary 5 or 6 since the press has said it ("Lesson
+  outcome after a send", "Send window").
 - The quiz changed elsewhere (another browser tab sent an attempt, passed or closed the quiz): the send is
   refused and counts nothing; the page shows the quiz as the server now has it, with focus on the result
   block (unless the learner is away; then the notice, rows 9-11 of "Quiz notice (P9)"). The result block of a
@@ -773,14 +791,48 @@ the issue named.
    row 9, 10 or 11; a refusal that finds the quiz passed or closed by another browser tab applies P7 to an
    untrue summary 7 (line emptied, "Открыть результаты" kept) and P8 in S3 ("Проверить" `aria-disabled`
    "Проверки завершены", "Открыть результаты", empty line), sets no text in the status line, and says the
-   lesson outcome once (the refusal result block's lesson line, or notice row 4, 5 or 7 when away); a refusal
+   lesson outcome once (the refusal result block's lesson line, or notice row 4, 5 or 7 when away; during a run
+   the run's end text repeats it, accepted, "Check bar after a quiz send" row "1, 2 or 3"); a refusal
    that finds the quiz still open leaves the check bar unchanged; with the check bar line at summary 5 or 6 set
    by a re-read when the browser tab became visible (`checks.md` B9, B10) after another browser tab passed or
-   closed the quiz, while the Квиз panel still shows it open, a send is refused, the check bar keeps its text
+   closed the quiz and then ran "Проверить" to the end (a quiz send alone is B27 there and sets no line
+   text, item 11), while the Квиз panel still shows it open, a send is refused, the check bar keeps its text
    and controls, and neither the refusal result block nor the notice (row 3 or 6 text) carries a lesson line.
 10. History and arrival (the app and the prototype, "Prototype and history requirements" below): arriving at
    the lesson with `?tab=quiz` (the F2 return through "Войти снова" `next`, a typed URL) opens the Квиз tab in
    the restored state, never Теория.
+11. Quiz attempt records (added at the merge of #72 with #70, `progress.md` A72-17; for #36 unless another
+   issue is named), because the attempt history (#35, `progress.md` F19) and the check bar (#34, `checks.md`)
+   read the same `attempts` table:
+   - One record per answered send. Each answered send (failed, passed or closing) writes exactly one
+     `attempts` row holding exactly one `check_results` row, the quiz check's (`check_kind = 'quiz'`),
+     inserted already finished (status `passed` or `failed`, `finished_at` set) in the transaction that
+     evaluates completion (ADR-0007 item 5, "Atomic finish"), never `running`. A refused send (item 6, stale
+     attempt number) writes none; a send repeated with the same client attempt id returns the recorded
+     result and writes none, so one client attempt id has at most one record.
+   - C and Q per result. C and Q of that send are stored with its result (for example as fields of
+     `check_results.details` beside the answers of item 7, Q as the quiz stood at that send), and the
+     history read serves a quiz result as its status and C and Q only: never `details`, the answers, the
+     verdicts or `correct` (item 1).
+   - Run-only fields (#34, which serves the check-state read). `latestFinishedAttempt` and
+     `runningAttemptId` never name a quiz attempt record, and #34's lock on a running run never sees one, so a
+     quiz send never changes the run baseline (`checks.md` "Baseline of a re-read"), never makes a re-read
+     B8, B9 or B10, never sets a run's end text and never attaches; a visibility re-read that finds only a
+     quiz change is `checks.md` B27 (P7 or P8, silent).
+   - History read (#35). The check-state read serves `latestAttemptRecordId`, the newest finished record of
+     the lesson of either kind (`progress.md` F19 Loading, "History baseline"); the check-state re-read after
+     an answered or refused send, and every visibility re-read, read the history in the same server read;
+     the history lists quiz attempt records with the runs, numbered "№ N" (`progress.md` A72-10).
+   - Cost. A quiz result spends nothing: its `cost_usd` is null, read as zero (ADR-0007 item 11).
+   - Mentor review (#37). A review asked for by "Разобрать с ментором" in the closed quiz block (F15.6) is
+     stored with the quiz attempt record of the closing send as its `attempt_id` and the quiz check as its
+     `check_id`, so the history shows it in that record's panel (`progress.md` F19.2).
+   - Tests: two answered sends in one page view give two records and two history rows; a refusal and a
+     repeated client attempt id add none; after a send the next visibility re-read sets no text in the
+     status line and shows no run's end (B11 or B27, never B9); a send in another browser tab followed by a
+     visibility re-read sets no status line text, applies P7 or P8 silently, and from #35 shows the new
+     history row in the same render as the changed quiz check row; the history response for a quiz result
+     holds C and Q and no `details`.
 
 ## Prototype and history requirements
 
