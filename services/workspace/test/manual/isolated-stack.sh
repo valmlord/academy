@@ -289,7 +289,7 @@ run_e2e_stages() {
   seed_password=$(openssl rand -hex 24)
   local e2e_env=("${envv[@]}" ACADEMY_SKIP_ROOT_ENV=1
     "DATABASE_URL=postgres://academy:academy@127.0.0.1:$DB_PORT_T31/academy" SEED_EMAIL=learner@example.com
-    "SEED_PASSWORD=$seed_password" "E2E_BASE_URL=http://127.0.0.1:$WEB_PORT_T31" E2E_TERMINAL=1 E2E_WEBKIT=1)
+    "SEED_PASSWORD=$seed_password" "E2E_BASE_URL=http://127.0.0.1:$WEB_PORT_T31" E2E_TERMINAL=1 E2E_WEBKIT=1 E2E_DISPOSABLE_STACK=1)
   if "${e2e_env[@]}" pnpm seed; then echo "$PREFIX OK seed"; else echo "$PREFIX FAIL seed"; status=1; fi
   if "${e2e_env[@]}" pnpm test:e2e; then echo "$PREFIX OK e2e"; else echo "$PREFIX FAIL e2e"; status=1; fi
   if web_log_clean; then echo "$PREFIX OK web-log"; else status=1; fi

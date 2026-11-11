@@ -2,6 +2,7 @@ import { createDb, lessonProgress, users } from "@academy/db";
 import { expect, type Page, test, type WebSocketRoute } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import {
+  actionsMenuLabel,
   openHereLabel,
   openNewSessionLabel,
   regionKeyHint,
@@ -194,6 +195,11 @@ test("E-f6: the region keys never reach the shell", async ({ page }) => {
   await page.keyboard.press("F6");
   await expect(textarea).not.toBeFocused();
   await page.keyboard.press("Shift+F6");
+  // The running region lands on its actions menu trigger, the first control of the status bar (AC3).
+  await expect(
+    environmentRegion(page).getByRole("button", { name: actionsMenuLabel }),
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(environmentRegion(page).getByRole("tab", { name: terminalTabLabel })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(textarea).toBeFocused();
@@ -214,8 +220,17 @@ test("E-hint: the terminal is named and described by the key hint", async ({ pag
     return id === null ? null : (document.getElementById(id)?.textContent ?? null);
   });
   expect([regionKeyHint, regionKeyHintMac]).toContain(description);
-  await expect(textarea).toHaveAccessibleDescription(description ?? "");
+  // Playwright's description pads every child that is not display:inline with spaces, and each key is an
+  // inline-flex Kbd, so only the characters are compared, in order, with any whitespace between them.
+  await expect(textarea).toHaveAccessibleDescription(spacedPattern(description ?? ""));
 });
+
+function spacedPattern(text: string): RegExp {
+  const characters = Array.from(text.replace(/\s/g, "")).map((character) =>
+    character.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+  );
+  return new RegExp(`^${characters.join("\\s*")}$`);
+}
 
 // xterm 6.0.0 paints the theme background on its scrollable element (src/browser/Viewport.ts:74); the
 // `.xterm-viewport` under it keeps xterm.css's #000, so that one is not what the learner sees.

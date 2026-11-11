@@ -6,9 +6,14 @@ import { type ReactElement, useMemo } from "react";
 import {
   openTerminal,
   peekEnvironment,
+  readEnvironmentIdle,
+  recordEnvironmentActivity,
   recordLessonStarted,
+  resetEnvironment,
+  restartEnvironment,
   startEnvironment,
 } from "@/app/(app)/courses/[courseId]/lessons/[lessonId]/actions";
+import type { IdleActions } from "@/lib/environment/idle";
 import type { EnvironmentActions } from "@/lib/terminal/machine";
 import { EnvironmentPanel, type TerminalFactory } from "./environment-panel";
 
@@ -34,12 +39,16 @@ export function EnvironmentRegion({
   reconnectAttempts,
   startSlowSeconds,
 }: EnvironmentRegionProps): ReactElement {
-  const actions = useMemo<EnvironmentActions>(
+  const actions = useMemo<EnvironmentActions & IdleActions>(
     () => ({
       peekEnvironment: () => peekEnvironment(courseId, lessonId),
       startEnvironment: () => startEnvironment(courseId, lessonId),
       openTerminal: () => openTerminal(courseId, lessonId),
       recordLessonStarted: () => recordLessonStarted(courseId, lessonId),
+      restartEnvironment: () => restartEnvironment(courseId, lessonId),
+      resetEnvironment: () => resetEnvironment(courseId, lessonId),
+      readEnvironmentIdle: () => readEnvironmentIdle(courseId, lessonId),
+      recordEnvironmentActivity: () => recordEnvironmentActivity(courseId, lessonId),
     }),
     [courseId, lessonId],
   );

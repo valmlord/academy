@@ -50,17 +50,35 @@ export type WorkspaceAnswer =
   | { kind: "not-found" }
   | WorkspaceFailure;
 
+/** `DELETE W`'s answer: the contract's 204, the volume still in use (409 `workspace-busy`), or a failure. */
+export type RemoveAnswer = { kind: "removed" } | { kind: "busy" } | WorkspaceFailure;
+
+/** `POST W/activity`'s answer; `not-running` is the 409 for a workspace the service does not track as running. */
+export type ActivityAnswer = { kind: "recorded" } | { kind: "not-running" } | WorkspaceFailure;
+
 export interface WorkspaceClient {
   /** `GET W`: reads the workspace; `not-found` when neither container nor volume exists. */
   get(key: WorkspaceKey): Promise<WorkspaceAnswer>;
   /** `PUT W`: creates or starts the workspace and answers it running, with `outcome`. */
   ensure(key: WorkspaceKey): Promise<WorkspaceAnswer>;
+  /** `POST W/stop`: stops the container, keeps the volume, and answers the workspace stopped. */
+  stop(key: WorkspaceKey): Promise<WorkspaceAnswer>;
+  /** `DELETE W`: removes the container and the volume. */
+  remove(key: WorkspaceKey): Promise<RemoveAnswer>;
+  /** `POST W/activity`: moves the idle window of a running workspace. */
+  activity(key: WorkspaceKey): Promise<ActivityAnswer>;
 }
 
 // GET is a few Docker reads. PUT is at most 30 engine calls, each bounded only by the service's 30 s
 // inactivity timeout (ADR-0010 item 8): 120 s covers a slow create without leaving the learner waiting forever.
 export const GET_TIMEOUT_MS = 10_000;
 export const ENSURE_TIMEOUT_MS = 120_000;
+// Stop and delete queue on the workspace lock behind an ensure (ADR-0010 item 8), then wait out the container's
+// 10 s stop grace (services/workspace/src/docker/spec.ts), so they get the ensure's bound.
+export const STOP_TIMEOUT_MS = 120_000;
+export const REMOVE_TIMEOUT_MS = 120_000;
+// Activity takes no lock and makes no Docker call.
+export const ACTIVITY_TIMEOUT_MS = 10_000;
 
 export interface WorkspaceClientDeps {
   config: () => WorkspaceServiceConfig;
@@ -78,7 +96,10 @@ function loggable(value: unknown, pattern: RegExp): string {
 }
 
 /** The design 3.6 state of a non-2xx answer (U-state-map); `body` is the parsed JSON or undefined. */
-export function answerForError(status: number, body: unknown): WorkspaceAnswer {
+export function answerForError(
+  status: number,
+  body: unknown,
+): { kind: "not-found" } | WorkspaceFailure {
   const parsed = ErrorBodySchema.safeParse(body);
   if (!parsed.success) return { kind: "failed" };
   const { code, image } = parsed.data.error;
@@ -117,55 +138,117 @@ function describeThrown(error: unknown): string {
   return `${loggable(error.name, LOGGED_NAME)}${codePart}`;
 }
 
+/** A request that got an answer, or `failed` already logged. */
+type Sent = { kind: "sent"; status: number; body: unknown } | { kind: "failed" };
+
+const NO_CONTENT = 204;
+
 export function createWorkspaceClient(deps: WorkspaceClientDeps): WorkspaceClient {
   const getTimeoutMs = deps.getTimeoutMs ?? GET_TIMEOUT_MS;
   const ensureTimeoutMs = deps.ensureTimeoutMs ?? ENSURE_TIMEOUT_MS;
 
-  async function request(
-    method: "GET" | "PUT",
+  function fail(label: string, reason: string): { kind: "failed" } {
+    deps.log(`web: workspace service ${label} failed: ${reason}`);
+    return { kind: "failed" };
+  }
+
+  async function send(
+    label: string,
+    method: "GET" | "PUT" | "POST" | "DELETE",
     key: WorkspaceKey,
+    pathSuffix: "" | "/stop" | "/activity",
     timeoutMs: number,
-  ): Promise<WorkspaceAnswer> {
-    const fail = (reason: string): WorkspaceAnswer => {
-      deps.log(`web: workspace service ${method} failed: ${reason}`);
-      return { kind: "failed" };
-    };
+  ): Promise<Sent> {
     try {
       const config = deps.config();
-      if (config.kind === "unconfigured") return fail("unconfigured");
+      if (config.kind === "unconfigured") return fail(label, "unconfigured");
       const path = `/v1/users/${encodeURIComponent(key.userId)}/courses/${encodeURIComponent(
         key.courseId,
-      )}/lessons/${encodeURIComponent(key.lessonId)}/workspace`;
+      )}/lessons/${encodeURIComponent(key.lessonId)}/workspace${pathSuffix}`;
       const response = await deps.fetch(new URL(path, config.baseUrl), {
         method,
         headers: { authorization: `Bearer ${config.secret}` },
         redirect: "error",
         signal: AbortSignal.timeout(timeoutMs),
       });
-      const body = await readJson(response);
-      if (response.ok) {
-        const parsed = WorkspaceSchema.safeParse(body);
-        if (!parsed.success || !sameKey(parsed.data, key)) {
-          return fail(`invalid response (${response.status})`);
-        }
-        return { kind: "workspace", workspace: parsed.data };
-      }
-      const answer = answerForError(response.status, body);
-      if (answer.kind !== "not-found") {
-        const code = ErrorBodySchema.safeParse(body).data?.error.code;
-        deps.log(
-          `web: workspace service ${method} failed: ${response.status} ${loggable(code, LOGGED_CODE)}`,
-        );
-      }
-      return answer;
+      return { kind: "sent", status: response.status, body: await readJson(response) };
     } catch (error: unknown) {
-      return fail(describeThrown(error));
+      return fail(label, describeThrown(error));
     }
   }
 
+  function logRefusal(label: string, status: number, body: unknown): void {
+    const code = ErrorBodySchema.safeParse(body).data?.error.code;
+    deps.log(`web: workspace service ${label} failed: ${status} ${loggable(code, LOGGED_CODE)}`);
+  }
+
+  // A refusal that every operation maps alike; `not-found` is meaningful only where the caller asks for it.
+  function failureOf(label: string, status: number, body: unknown): WorkspaceFailure {
+    logRefusal(label, status, body);
+    const answer = answerForError(status, body);
+    return answer.kind === "not-found" ? { kind: "failed" } : answer;
+  }
+
+  async function workspaceRequest(
+    label: string,
+    method: "GET" | "PUT" | "POST",
+    key: WorkspaceKey,
+    pathSuffix: "" | "/stop",
+    timeoutMs: number,
+  ): Promise<WorkspaceAnswer> {
+    const sent = await send(label, method, key, pathSuffix, timeoutMs);
+    if (sent.kind === "failed") return sent;
+    const { status, body } = sent;
+    if (status >= 200 && status < 300) {
+      const parsed = WorkspaceSchema.safeParse(body);
+      if (!parsed.success || !sameKey(parsed.data, key)) {
+        return fail(label, `invalid response (${status})`);
+      }
+      return { kind: "workspace", workspace: parsed.data };
+    }
+    const answer = answerForError(status, body);
+    if (answer.kind !== "not-found") logRefusal(label, status, body);
+    return answer;
+  }
+
+  async function remove(key: WorkspaceKey): Promise<RemoveAnswer> {
+    const label = "DELETE";
+    const sent = await send(label, "DELETE", key, "", REMOVE_TIMEOUT_MS);
+    if (sent.kind === "failed") return sent;
+    const { status, body } = sent;
+    // The contract answers exactly 204; another 2xx is not proof that the volume is gone.
+    if (status === NO_CONTENT) return { kind: "removed" };
+    if (status >= 200 && status < 300) return fail(label, `invalid response (${status})`);
+    if (status === 409 && ErrorBodySchema.safeParse(body).data?.error.code === "workspace-busy") {
+      logRefusal(label, status, body);
+      return { kind: "busy" };
+    }
+    return failureOf(label, status, body);
+  }
+
+  async function activity(key: WorkspaceKey): Promise<ActivityAnswer> {
+    const label = "POST activity";
+    const sent = await send(label, "POST", key, "/activity", ACTIVITY_TIMEOUT_MS);
+    if (sent.kind === "failed") return sent;
+    const { status, body } = sent;
+    if (status === NO_CONTENT) return { kind: "recorded" };
+    if (status >= 200 && status < 300) return fail(label, `invalid response (${status})`);
+    // Expected once the workspace has stopped, so not an incident worth a log line.
+    if (
+      status === 409 &&
+      ErrorBodySchema.safeParse(body).data?.error.code === "workspace-not-running"
+    ) {
+      return { kind: "not-running" };
+    }
+    return failureOf(label, status, body);
+  }
+
   return {
-    get: (key) => request("GET", key, getTimeoutMs),
-    ensure: (key) => request("PUT", key, ensureTimeoutMs),
+    get: (key) => workspaceRequest("GET", "GET", key, "", getTimeoutMs),
+    ensure: (key) => workspaceRequest("PUT", "PUT", key, "", ensureTimeoutMs),
+    stop: (key) => workspaceRequest("POST stop", "POST", key, "/stop", STOP_TIMEOUT_MS),
+    remove,
+    activity,
   };
 }
 

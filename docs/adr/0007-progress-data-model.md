@@ -476,9 +476,10 @@ is explainable.
     committed (its R34-3 row, or the deadline's, R34-15). It never carries a result: `readCheckState` and
     `readAttempt` take results from the database only.
 18. Reset and restart of the environment while a check runs are refused with the same conflict answer (#31 lock
-    "check running"). #106 builds the actions; the reset/restart action and the check start both take
-    `pg_advisory_xact_lock` on a key derived from (user, course, lesson) before deciding; reset/restart refuses when a
-    `running` attempt exists; a test starts both concurrently and asserts exactly one wins. No ADR-0010 error code.
+    "check running"). #106 builds the restart and reset actions without this refusal (decided in #106); #34 adds
+    it: the reset/restart action and the check start both take `pg_advisory_xact_lock` on a key derived from (user,
+    course, lesson) before deciding; reset/restart refuses when a `running` attempt exists; a test starts both
+    concurrently and asserts exactly one wins. No ADR-0010 error code.
 19. Platform-issued stops: a container stop counts as `platform-stop: service-stop` only when the workspace service
     reports in the run's stream that it issued the stop itself (idle stop, restart, shutdown). Every other end of the
     container after a grader started (the learner's `kill -TERM 1`, an OOM kill, a vanished container) is

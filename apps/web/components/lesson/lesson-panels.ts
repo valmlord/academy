@@ -21,3 +21,12 @@ export const LESSON_TRIGGER_IDS: Record<LessonTab, string> = {
 export function lessonTabOf(value: unknown): LessonTab | undefined {
   return value === "theory" || value === "task" ? value : undefined;
 }
+
+/** The two panes of the lesson layout (#106 design 2.2), the values of `data-pane` and of the one-pane switch. */
+export type LessonPane = "lesson" | "environment";
+
+/** The pane sections' ids, which the switch tabs name in `aria-controls`; the page renders the lesson one. */
+export const LESSON_PANE_IDS: Record<LessonPane, string> = {
+  lesson: "lesson-pane",
+  environment: "environment-pane",
+};

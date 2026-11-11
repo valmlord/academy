@@ -232,9 +232,10 @@
   [aria-invalid="true"]:focus-visible {
     outline-color: var(--destructive);
   }
-  /* (d) Menu items keep the accent background and also draw the ring, inset, so it stays inside the
-     menu: the background alone measures 1.090:1 (light) on popover. */
-  [role="menuitem"]:focus-visible {
+  /* (d) Menu items, checkbox items included, keep the accent background and also draw the ring, inset,
+     so it stays inside the menu: the background alone measures 1.090:1 (light) on popover. */
+  [role="menuitem"]:focus-visible,
+  [role="menuitemcheckbox"]:focus-visible {
     outline-offset: -2px;
   }
 }
@@ -308,5 +309,104 @@
   }
   .code-block-header {
     @apply flex flex-wrap justify-end gap-2 border-b border-border px-2 py-1;
+  }
+}
+
+/* Follows the .lesson-layout, .pane and .terminal-frame rules of design/system/proto.css. Unlayered on purpose:
+   an unlayered rule beats every @layer, so no utility on these elements can override it, and the elements it
+   targets carry no utility for the properties it sets (#106 design 2.2.3). Three rules differ from proto.css: in
+   one-pane mode the inactive pane is laid out invisible instead of display:none (design deviation D-6); below
+   30rem of viewport height the terminal frame is 12rem high instead of stretching to its row; and the frame takes
+   min-width:0 where proto.css has overflow:auto, which removes the same automatic minimum without making the
+   frame a second scroll box around xterm's own viewport. The frame is an item of a row flex container: flex sizes
+   its width, and min-width:0 keeps xterm's own width out of that size; its height is the row's stretch, or the
+   12rem. */
+.lesson-layout {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  --split-left: 50%;
+}
+.lesson-layout > .pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.lesson-layout > .pane[data-pane="environment"] {
+  background: var(--background);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.lesson-layout .pane-switch {
+  padding: 0.5rem 1rem 0;
+}
+.lesson-layout [data-terminal-frame] {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+@media (width >= 64rem) {
+  .lesson-layout {
+    grid-template-columns: minmax(20rem, var(--split-left)) 1.5rem minmax(20rem, 1fr);
+    grid-template-areas:
+      "lesson handle env"
+      "checks handle env";
+  }
+  .lesson-layout > .pane[data-pane="lesson"] {
+    grid-area: lesson;
+  }
+  .lesson-layout > .pane[data-pane="environment"] {
+    grid-area: env;
+  }
+  .lesson-layout > .resizable-handle {
+    display: flex;
+    grid-area: handle;
+  }
+  .lesson-layout .pane-switch {
+    display: none;
+  }
+}
+@media (width < 64rem) {
+  .lesson-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "lesson"
+      "checks";
+  }
+  .lesson-layout > .pane {
+    grid-area: lesson;
+  }
+  .lesson-layout > .resizable-handle {
+    display: none;
+  }
+  .lesson-layout[data-active-pane="lesson"] > .pane[data-pane="environment"],
+  .lesson-layout[data-active-pane="environment"] > .pane[data-pane="lesson"] {
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+  }
+  /* A descendant with visibility:visible would show through its hidden pane; xterm toggles the class names
+     visible and invisible on its scrollbar nodes, which a Tailwind utility of that name would match. */
+  .lesson-layout[data-active-pane="lesson"] > .pane[data-pane="environment"] *,
+  .lesson-layout[data-active-pane="environment"] > .pane[data-pane="lesson"] * {
+    visibility: hidden;
+  }
+}
+@media (height > 30rem) {
+  [data-app-shell]:has(> .lesson-layout) {
+    height: 100vh;
+  }
+  .lesson-layout {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+}
+/* proto.css: a short viewport scrolls as one document, so the rows size to their content. */
+@media (height <= 30rem) {
+  .lesson-layout {
+    grid-template-rows: auto auto;
+  }
+  .lesson-layout [data-terminal-frame] {
+    height: 12rem;
   }
 }

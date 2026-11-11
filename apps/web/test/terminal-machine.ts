@@ -121,6 +121,8 @@ export interface Harness {
   starts: Deferred<EnvironmentResult>[];
   opens: Deferred<OpenTerminalResult>[];
   records: Deferred<LessonStartedResult>[];
+  restarts: Deferred<EnvironmentResult>[];
+  resets: Deferred<EnvironmentResult>[];
   statuses: TerminalStatus[];
   sessionExpired: ReturnType<typeof vi.fn>;
   size: TerminalSize;
@@ -142,6 +144,8 @@ export function harness(options: HarnessOptions = {}): Harness {
   const starts: Deferred<EnvironmentResult>[] = [];
   const opens: Deferred<OpenTerminalResult>[] = [];
   const records: Deferred<LessonStartedResult>[] = [];
+  const restarts: Deferred<EnvironmentResult>[] = [];
+  const resets: Deferred<EnvironmentResult>[] = [];
   const statuses: TerminalStatus[] = [];
   const sessionExpired = vi.fn();
   const size: TerminalSize = { cols: 120, rows: 40 };
@@ -156,6 +160,8 @@ export function harness(options: HarnessOptions = {}): Harness {
       startEnvironment: () => next(starts),
       openTerminal: () => next(opens),
       recordLessonStarted: () => next(records),
+      restartEnvironment: () => next(restarts),
+      resetEnvironment: () => next(resets),
     },
     terminal,
     openSocket: (ticket, handlers) => {
@@ -185,6 +191,8 @@ export function harness(options: HarnessOptions = {}): Harness {
     starts,
     opens,
     records,
+    restarts,
+    resets,
     statuses,
     sessionExpired,
     size,

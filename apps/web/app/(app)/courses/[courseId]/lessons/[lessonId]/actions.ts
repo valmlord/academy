@@ -7,8 +7,10 @@ import { getSession } from "@/lib/session";
 import { mintForSession } from "@/lib/terminal/mint";
 import { workspaceClient } from "@/lib/workspace/client";
 import {
+  type ActivityResult,
   createEnvironmentActions,
   type EnvironmentResult,
+  type IdleResult,
   type LessonStartedResult,
   type OpenTerminalResult,
 } from "@/lib/workspace/environment";
@@ -23,6 +25,7 @@ const environment = createEnvironmentActions({
   now: () => Date.now(),
   recordStarted: (lesson) => writeLessonStarted(getDb(), lesson),
   log: (line) => console.error(line),
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 });
 
 export async function peekEnvironment(
@@ -51,4 +54,32 @@ export async function recordLessonStarted(
   lessonId: unknown,
 ): Promise<LessonStartedResult> {
   return environment.recordLessonStarted(() => getSession(), courseId, lessonId);
+}
+
+export async function restartEnvironment(
+  courseId: unknown,
+  lessonId: unknown,
+): Promise<EnvironmentResult> {
+  return environment.restartEnvironment(() => getSession(), courseId, lessonId);
+}
+
+export async function resetEnvironment(
+  courseId: unknown,
+  lessonId: unknown,
+): Promise<EnvironmentResult> {
+  return environment.resetEnvironment(() => getSession(), courseId, lessonId);
+}
+
+export async function readEnvironmentIdle(
+  courseId: unknown,
+  lessonId: unknown,
+): Promise<IdleResult> {
+  return environment.readEnvironmentIdle(() => getSession(), courseId, lessonId);
+}
+
+export async function recordEnvironmentActivity(
+  courseId: unknown,
+  lessonId: unknown,
+): Promise<ActivityResult> {
+  return environment.recordEnvironmentActivity(() => getSession(), courseId, lessonId);
 }

@@ -52,7 +52,9 @@ function DropdownMenuGroup({ ...props }: React.ComponentProps<typeof DropdownMen
 
 // Mirrors design/system/proto.css `.dropdown-item`. Radix focuses the item under the pointer, so
 // `focus:` covers hover as well. A disabled item is muted, not translucent, and draws `muted` under
-// focus. shadcn's destructive item (translucent fills) is not in the design system.
+// focus. shadcn's destructive item (translucent fills) is not in the design system. `aria-disabled` items
+// (R1: they stay focusable, which Radix's `disabled` would skip) look the same; the `**:` rule keeps a reason
+// line inside the item muted under focus, where the item's own `focus:**:` rule would paint it accent.
 function DropdownMenuItem({
   className,
   inset,
@@ -65,7 +67,7 @@ function DropdownMenuItem({
       data-slot="dropdown-menu-item"
       data-inset={inset}
       className={cn(
-        "group/dropdown-menu-item relative flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-left text-sm no-underline select-none focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground data-inset:pl-7 data-disabled:cursor-not-allowed data-disabled:text-muted-foreground data-disabled:focus:bg-muted data-disabled:focus:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "group/dropdown-menu-item relative flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1.5 text-left text-sm no-underline select-none focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground data-inset:pl-7 data-disabled:cursor-not-allowed data-disabled:text-muted-foreground data-disabled:focus:bg-muted data-disabled:focus:text-muted-foreground aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground aria-disabled:focus:bg-muted aria-disabled:focus:text-muted-foreground aria-disabled:focus:**:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -73,6 +75,8 @@ function DropdownMenuItem({
   );
 }
 
+// proto.css `.dropdown-item` with a leading `.dropdown-check`: a 1rem box bordered in `input` on the left of the
+// label, holding the check while checked, so the item keeps the plain item's padding on both sides.
 function DropdownMenuCheckboxItem({
   className,
   children,
@@ -87,18 +91,18 @@ function DropdownMenuCheckboxItem({
       data-slot="dropdown-menu-checkbox-item"
       data-inset={inset}
       className={cn(
-        "relative flex cursor-pointer items-start gap-2 rounded-sm py-1.5 pr-8 pl-2 text-left text-sm select-none focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground data-inset:pl-7 data-disabled:cursor-not-allowed data-disabled:text-muted-foreground data-disabled:focus:bg-muted data-disabled:focus:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative flex cursor-pointer items-start gap-2 rounded-sm py-1.5 pr-2 pl-2 text-left text-sm select-none focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground data-inset:pl-7 data-disabled:cursor-not-allowed data-disabled:text-muted-foreground data-disabled:focus:bg-muted data-disabled:focus:text-muted-foreground aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground aria-disabled:focus:bg-muted aria-disabled:focus:text-muted-foreground aria-disabled:focus:**:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       checked={checked}
       {...props}
     >
       <span
-        className="pointer-events-none absolute right-2 flex items-center justify-center"
+        className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-sm border border-input"
         data-slot="dropdown-menu-checkbox-item-indicator"
       >
         <DropdownMenuPrimitive.ItemIndicator>
-          <CheckIcon />
+          <CheckIcon className="size-3" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}

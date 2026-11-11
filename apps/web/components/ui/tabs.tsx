@@ -12,6 +12,12 @@ import type * as React from "react";
 // tabindex=0 makes it a Tab stop that must show the ring (WCAG 2.4.7). No line variant, underline bar,
 // icons or vertical layout: no #30 state uses them.
 
+// Exported for the one-pane switch (#106), a hand-built tablist that must look exactly like these tabs.
+export const tabsListClassName =
+  "inline-flex w-fit flex-wrap items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground";
+export const tabsTriggerClassName =
+  "inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-md border border-transparent bg-transparent px-3 py-1 text-sm font-medium text-muted-foreground aria-selected:border-muted-foreground aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-[0_1px_2px_0_color-mix(in_oklab,var(--foreground)_8%,transparent)] dark:aria-selected:shadow-[0_1px_2px_0_color-mix(in_oklab,var(--background)_60%,transparent)]";
+
 function Tabs({
   className,
   ...props
@@ -32,10 +38,7 @@ function TabsList({
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      className={cn(
-        "inline-flex w-fit flex-wrap items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground",
-        className,
-      )}
+      className={cn(tabsListClassName, className)}
       {...props}
     />
   );
@@ -48,11 +51,7 @@ function TabsTrigger({
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
-      className={cn(
-        "inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-md border border-transparent bg-transparent px-3 py-1 text-sm font-medium text-muted-foreground",
-        "aria-selected:border-muted-foreground aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-[0_1px_2px_0_color-mix(in_oklab,var(--foreground)_8%,transparent)] dark:aria-selected:shadow-[0_1px_2px_0_color-mix(in_oklab,var(--background)_60%,transparent)]",
-        className,
-      )}
+      className={cn(tabsTriggerClassName, className)}
       {...props}
     />
   );

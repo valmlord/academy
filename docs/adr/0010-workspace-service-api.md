@@ -182,3 +182,9 @@ contract between them is costly to change once #32 builds its client on it, so i
   minimum of 5 and the warning up to 4 minutes before the stop, the warning can fire after 1 minute without activity
   (`services/workspace/src/config.ts`), and a command check may run up to 1800 s; a fixed 30 s cadence, the
   terminal's own, stays below every legal window and needs no new setting in web.
+- #106 (Proposed), 2026-11-10. Web calls `POST W/stop` then `PUT W` for restart (the `PUT` only after a stop answered
+  `stopped` or 404 `workspace-not-found`), and `DELETE W` then `PUT W` for reset. Reset calls `DELETE` at most 3 times
+  in total (two retries, after 500 ms and after 1000 ms, item 7) and never calls `PUT` after a non-204 answer.
+  "Продолжить работу" (F10.2) calls `POST W/activity`; it is not terminal activity, so item 9 as amended by #32 and
+  #101 still holds. While the environment runs, the lesson page reads `GET W` for `idle`; `GET` takes no lock and
+  does not move the idle window. No route, field or error code changes.

@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { InvalidRootEnvOptOutError, loadRootEnv } from "./root-env";
+import { InvalidRootEnvOptOutError, loadRootEnv, readRootEnvKeys } from "./root-env";
 
 const tempDirs: string[] = [];
 const canaryNames: string[] = [];
@@ -83,6 +83,34 @@ describe("loadRootEnv", () => {
 
     expect(act).toThrow("got <40 characters>");
     expect(act).not.toThrow(value);
+  });
+});
+
+describe("readRootEnvKeys (#106 design 2.8)", () => {
+  it("reads nothing when the opt-out is 1 (RK1)", () => {
+    const { file } = canaryEnvFile();
+    const read = vi.fn(() => "A=1\n");
+
+    const keys = readRootEnvKeys({ env: { ACADEMY_SKIP_ROOT_ENV: "1" }, file, read });
+
+    expect(keys).toEqual([]);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("finds no names when the file does not exist (RK2)", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "root-env-"));
+    tempDirs.push(dir);
+
+    expect(readRootEnvKeys({ env: {}, file: path.join(dir, ".env") })).toEqual([]);
+  });
+
+  it("returns the defined names only, comments left out (RK3)", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "root-env-"));
+    tempDirs.push(dir);
+    const file = path.join(dir, ".env");
+    writeFileSync(file, 'A=1\n# B=2\nC="x y"\n');
+
+    expect(readRootEnvKeys({ env: {}, file })).toEqual(["A", "C"]);
   });
 });
 

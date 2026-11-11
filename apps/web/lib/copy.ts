@@ -41,6 +41,13 @@ export const notificationsHeading = "Уведомления";
 // design/flows/ia.md, copy register "page alert (region Уведомления)", F2.1.
 export const sessionExpiredMessage = "Сессия закончилась. Файлы в рабочей папке сохранены.";
 
+// design/pages/lesson/acceptance.md, Copy "idle alert" and "idle action" (F10.1, F10.2); `minutes` is the
+// service's ENVIRONMENT_IDLE_WARNING_MINUTES.
+export function idleWarningMessage(minutes: number): string {
+  return `Окружение остановится через ${minutes} мин без активности. Файлы сохранятся.`;
+}
+export const continueWorkLabel = "Продолжить работу";
+
 // design/flows/ia.md, copy register "dashboard (F4, F18)": the empty state (dashboard AC7).
 export const noReadyLessonsMessage = "В курсе пока нет готовых уроков";
 
@@ -108,6 +115,18 @@ export const lessonTabsLabel = "Разделы урока";
 export const theoryTabLabel = "Теория";
 export const taskTabLabel = "Задание";
 
+// design/pages/lesson/acceptance.md, Copy "one-pane switch label", "one-pane switch tabs" and "switch suffix
+// (hidden)": the switch shown in each pane below 64rem, and the hidden word after "Окружение".
+export const paneSwitchLabel = "Область";
+export const lessonPaneTabLabel = "Урок";
+export const environmentPaneTabLabel = "Окружение";
+export const environmentStoppedSuffix = "остановлено";
+export const environmentErrorSuffix = "ошибка";
+
+// design/pages/lesson/acceptance.md, Copy "split handle name" and "split handle tooltip".
+export const splitHandleLabel = "Граница панелей";
+export const splitHandleTooltip = "Перетащите или щёлкните, чтобы сменить ширину";
+
 // design/flows/ia.md, copy register "lesson (F6-F13, F19)": the M0 line under the lesson header.
 export const m0LessonNote = "Окружение и проверки появятся в следующей версии платформы";
 
@@ -148,6 +167,39 @@ export const terminalName = "Терминал";
 export const regionKeyHint = "F6 или Ctrl+Shift+. (клавиша Ю): следующая область";
 export const regionKeyHintMac = "F6 (Fn+F6) или Ctrl+Shift+. (клавиша Ю): следующая область";
 
+/** A piece of a key hint: a key name, drawn as a Kbd, or the text between keys. */
+export interface KeyHintPart {
+  kind: "key" | "text";
+  text: string;
+}
+
+// The same two hints split into keys and text, as the prototype marks them up (`<kbd>` per key,
+// prototype.html F9.4). Joined, each equals its string above (copy.test.ts).
+export const regionKeyHintParts: readonly KeyHintPart[] = [
+  { kind: "key", text: "F6" },
+  { kind: "text", text: " или " },
+  { kind: "key", text: "Ctrl" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "Shift" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "." },
+  { kind: "text", text: " (клавиша Ю): следующая область" },
+];
+export const regionKeyHintMacParts: readonly KeyHintPart[] = [
+  { kind: "key", text: "F6" },
+  { kind: "text", text: " (" },
+  { kind: "key", text: "Fn" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "F6" },
+  { kind: "text", text: ") или " },
+  { kind: "key", text: "Ctrl" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "Shift" },
+  { kind: "text", text: "+" },
+  { kind: "key", text: "." },
+  { kind: "text", text: " (клавиша Ю): следующая область" },
+];
+
 // design/pages/lesson/acceptance.md, Copy "environment status", "environment notes" (the slow start) and
 // "environment errors".
 export const environmentCreatingStatus = "Создаём окружение";
@@ -164,6 +216,26 @@ export function imageMissingStatus(image: string): string {
   return `Нет образа окружения ${image}. Соберите его (см. README) и нажмите "Повторить".`;
 }
 export const environmentRejectedStatus = "Нет доступа к этому окружению.";
+
+// design/pages/lesson/acceptance.md, Copy "environment notes": the note after a reset (F11.4).
+export const workspaceResetNote = "Рабочая папка сброшена";
+
+// design/pages/lesson/acceptance.md, Copy "status actions": the disclosure of the error code (D3).
+export const detailsLabel = "Подробности";
+
+// design/pages/lesson/acceptance.md, Copy "actions menu" and "disabled reasons" (F11.1, F11.2).
+export const actionsMenuLabel = "Действия";
+export const restartEnvironmentLabel = "Перезапустить окружение";
+export const resetWorkspaceLabel = "Сбросить рабочую папку";
+export const screenReaderModeLabel = "Режим для экранного диктора";
+export const environmentNotRunningReason = "Доступно, когда окружение работает";
+
+// design/pages/lesson/acceptance.md, Copy "reset dialog" (F11.3).
+export const resetDialogTitle = "Сбросить рабочую папку?";
+export const resetDialogDescription =
+  "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.";
+export const cancelLabel = "Отмена";
+export const resetConfirmLabel = "Сбросить";
 
 // design/pages/lesson/acceptance.md, Copy "terminal connection" and "status actions".
 export const connectionLostStatus = "Соединение с терминалом потеряно. Переподключаемся...";

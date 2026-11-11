@@ -63,3 +63,17 @@
     JSON 404, and for an upgrade `@fastify/websocket` calls `reply.hijack()`, after which Fastify never writes to the
     response; the 101 answer and every frame are written by `ws` on the raw socket. The bump to 5.12.8 stays planned
     after 2026-11-16 as its own change; the guard stays after it.
+- #106 (Proposed): the full lesson environment adds no dependency. Written in the app after
+  `design/system/proto.css` and `proto.js`, one reason each:
+  - the split handle (Resizable, `components/ui/resizable.tsx`, pure rules in `components/lesson/split.ts`), because
+    the lesson layout is a CSS grid with the check bar in its own row and both panes stay mounted across the 1024 px
+    breakpoint, which `react-resizable-panels`' flex group cannot give;
+  - the Tooltip (`components/ui/tooltip.tsx`), because the handle's description must be tied by a permanent
+    `aria-describedby` and the tip must sit inside its anchor for the pointer bridge;
+  - the ScrollArea (`components/ui/scroll-area.tsx`), a native overflow box, because Radix ScrollArea's viewport
+    wrapper stops wide tables and code blocks from scrolling inside their own boxes;
+  - the Collapsible, the app's existing disclosure pattern (`components/lesson/outcomes.tsx`), whose trigger classes
+    move to `components/ui/collapsible.tsx`.
+  AlertDialog and DropdownMenu use the installed `radix-ui` package, which already carries
+  `@radix-ui/react-alert-dialog` 1.2.1. The remembered screen reader mode uses the browser's `localStorage`, no
+  package.
