@@ -1,0 +1,44 @@
+id: orch-chain
+title: "Пайплайн Coder -> Reviewer -> Summarizer: передача по ссылке"
+type: artifact
+outcomes:
+  - "Собирает оркестратор Coder -> Reviewer -> Summarizer, в котором каждая роль получает только то, что ей нужно, прямо в промпте или по ссылке на файл: ревьюер видит изменение и критерии приёмки, но не рассуждения кодера, а Summarizer видит находки, но не стенограммы. Пайплайн останавливается на первом сбое и пишет журнал каждой передачи."
+estimatedMinutes: 70
+status: ready
+prerequisites:
+  - orch-role-contracts
+sources:
+  - title: "Anthropic: Building effective agents (Erik S., Barry Zhang, 2024-12-19; prompt chaining и gate)"
+    url: https://www.anthropic.com/engineering/building-effective-agents
+    checkedAt: "2026-11-03"
+  - title: "Anthropic: How we built our multi-agent research system (Hadfield и др., 2025-06-13; приложение: вывод субагентов в файловую систему против game of telephone, lightweight references)"
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+    checkedAt: "2026-11-03"
+  - title: "claude.com blog: Building multi-agent systems: When and how to use them (Cara Phillips и др., 2026-01-23; context-centric vs problem-centric, each handoff loses context, telephone game, эксперимент с ролями разработки)"
+    url: https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Best practices (A fresh reviewer does help, because it hasn't seen your reasoning)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Configure permissions (таблица Permission system: чтение без одобрения within the working directory and additional directories)"
+    url: https://code.claude.com/docs/en/permissions
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Permission modes (claude -p стартует в Manual: Calls needing approval are denied unless you approve them)"
+    url: https://code.claude.com/docs/en/permission-modes
+    checkedAt: "2026-11-03"
+  - title: "Claude Agent SDK: Track cost and usage (client-side estimates; стоимость неудачных вызовов; независимые вызовы складывать самому)"
+    url: https://code.claude.com/docs/en/agent-sdk/cost-tracking
+    checkedAt: "2026-11-03"
+  - title: "Claude Agent SDK: TypeScript reference (SDKResultMessage: session_id, total_cost_usd, modelUsage в ветке success и в ветке ошибки)"
+    url: https://code.claude.com/docs/en/agent-sdk/typescript
+    checkedAt: "2026-11-03"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: pipeline-chain
+    title: "Пайплайн: роли по очереди по одному разу, ревьюер и summarizer получают только нужное, остановка на первом сбое, журнал передач, отчёт, файлы прогона в каталоге прогона"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_pipeline.py"'
+    timeoutSec: 180
+    weight: 1

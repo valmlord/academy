@@ -1,0 +1,34 @@
+diff --git a/src/invoices/rounding.py b/src/invoices/rounding.py
+index 3a1ad92..aca9a6a 100644
+--- a/src/invoices/rounding.py
++++ b/src/invoices/rounding.py
+@@ -1,8 +1,8 @@
+ """Rounding of money amounts held as cents."""
+ 
+-from decimal import ROUND_HALF_EVEN, Decimal
++from decimal import ROUND_HALF_UP, Decimal
+ 
+ 
+ def round_cents(amount: Decimal) -> int:
+-    """Round an amount of cents to a whole cent. Halves go to the even cent (banker's rounding)."""
+-    return int(amount.to_integral_value(rounding=ROUND_HALF_EVEN))
++    """Round an amount of cents to a whole cent. Halves go away from zero (finance policy FIN-12)."""
++    return int(amount.to_integral_value(rounding=ROUND_HALF_UP))
+diff --git a/src/invoices/totals.py b/src/invoices/totals.py
+index 7450a45..f6db5ca 100644
+--- a/src/invoices/totals.py
++++ b/src/invoices/totals.py
+@@ -15,8 +15,11 @@
+ 
+ 
+ def tax_cents(lines: Sequence[InvoiceLine], zone: str) -> int:
+-    rate = rate_bp(zone)
+-    return sum(round_cents(Decimal(line.amount_cents) * rate / BASIS_POINTS_PER_UNIT) for line in lines)
++    # Tax is computed on the invoice's net amount and rounded once (FIN-12); rounding each line first
++    # made totals drift by a cent from the accountant's figures.
++    # round_cents decides how halves round; see invoices/rounding.py.
++    raw = Decimal(net_cents(lines)) * rate_bp(zone) / BASIS_POINTS_PER_UNIT
++    return round_cents(raw)
+ 
+ 
+ def total(lines: Sequence[InvoiceLine], zone: str = DEFAULT_ZONE) -> int:

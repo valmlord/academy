@@ -1,0 +1,109 @@
+# Reserve pool for reviewer-quiz (design #43 4.8): unseen questions for the mentor review after the quiz is
+# closed. Same per-position shape as quiz.yaml (positions 1 and 4 select-all, the rest single), same authoring
+# rules; never shown before the review.
+version: 1
+check: reviewer-quiz
+questions:
+  - id: reserve-skipped-agent-files
+    type: multiple
+    prompt: |
+      В проекте четыре файла. Отметьте каждый файл, который Claude Code 2.1.317 пропустит и не загрузит
+      как субагента.
+
+      - `.claude/agents/x.md`: `---` в первой строке, `name: -reviewer`, `description: Review`.
+      - `.claude/agents/y.md`: `---` в первой строке, только `description: Review` и `tools: Read`.
+      - `.claude/agents/z.md`: `---` в первой строке, `name: z-review`, `description: Review`,
+        `tools: [Read, Grep` (скобка не закрыта).
+      - `.claude/agents/review/deep/security.md`: `---` в первой строке, `name: security-audit`,
+        `description: Security review`.
+    options:
+      - { id: a, text: "`.claude/agents/x.md`" }
+      - { id: b, text: "`.claude/agents/y.md`" }
+      - { id: c, text: "`.claude/agents/z.md`" }
+      - { id: d, text: "`.claude/agents/review/deep/security.md`" }
+    correct: [a, b, c]
+    explanation: |
+      Список "Subagent files Claude Code skips": `name`, начинающееся с `-`; нет `name` (файл считается
+      документацией); YAML, который не разбирается. Файл в глубокой подпапке с именем, не совпадающим с
+      `name`, загружается: сканирование рекурсивное, "The filename doesn't have to match".
+
+  - id: reserve-duplicate-across-scopes
+    type: single
+    prompt: |
+      Определение с `name: reviewer` есть и в `.claude/agents/reviewer.md` проекта, и в
+      `~/.claude/agents/reviewer.md`. Оба файла корректны. Какое определение работает в этом проекте?
+    options:
+      - { id: a, text: "Пользовательское: личные настройки важнее проектных" }
+      - { id: b, text: "Любое из двух, по порядку чтения файловой системы" }
+      - { id: c, text: "Проектное: у `.claude/agents/` приоритет выше, чем у `~/.claude/agents/`" }
+      - { id: d, text: "Ни одно: Claude Code пропускает оба из-за конфликта имён" }
+    correct: [c]
+    explanation: |
+      При совпадении имён в разных местах Claude Code берёт определение "from the higher-priority
+      location": у проекта приоритет 3, у пользователя 4. Порядок чтения файловой системы решает только
+      внутри одного дерева `.claude/agents/`.
+
+  - id: reserve-family-alias-trap
+    type: single
+    prompt: |
+      Главная сессия идёт на Opus 5 (`claude-opus-5`) через Anthropic API. В `env` проекта
+      `"CLAUDE_CODE_SUBAGENT_MODEL": "haiku"`, FORCE не задан. У субагента `model: opus`. Вызов модель не
+      называет. На какой модели работает субагент в Claude Code 2.1.317?
+    options:
+      - { id: a, text: "Haiku 5.5: переменная окружения задаёт модель всем субагентам" }
+      - { id: b, text: "Opus 5.5: алиас `opus` указывает на Opus 5.5" }
+      - { id: c, text: "Opus 5: главная сессия в семействе Opus, и алиас из frontmatter даёт её модель" }
+      - { id: d, text: "Sonnet 5.5" }
+    correct: [c]
+    explanation: |
+      Без FORCE поле `model` во frontmatter важнее `CLAUDE_CODE_SUBAGENT_MODEL`. Семейный алиас во frontmatter,
+      когда главная сессия в том же семействе, "resolves to the main conversation's model instead of the
+      version the alias points to". Так что `opus` здесь даёт Opus 5, а не Opus 5.5.
+
+  - id: reserve-allowlist-with-bash
+    type: multiple
+    prompt: |
+      У субагента `tools: Read, Grep, Glob, Bash`. В сессии подключён MCP-сервер `tracker`. Отметьте всё,
+      что этот субагент может сделать в Claude Code 2.1.317.
+    options:
+      - { id: a, text: "Запустить команду оболочки инструментом Bash" }
+      - { id: b, text: "Вызвать инструменты MCP-сервера `tracker`" }
+      - { id: c, text: "Прочитать файл инструментом Read" }
+      - { id: d, text: "Изменить файл инструментом Edit" }
+    correct: [a, c]
+    explanation: |
+      `tools` это закрытый список: по странице про субагентов, с `Read, Grep, Glob, Bash` субагент "can't
+      edit files, write files, or use any MCP tools". Read и Bash в списке есть. Что Bash сам может
+      переписать файл, другой вопрос: поэтому read-only ревьюеру Bash не дают.
+
+  - id: reserve-memory-adds-tools
+    type: single
+    prompt: |
+      У субагента `tools: Read, Grep, Glob` и `memory: project`, автопамять в проекте включена. Какие
+      инструменты у него есть в Claude Code 2.1.317?
+    options:
+      - { id: a, text: "Только Read, Grep, Glob" }
+      - { id: b, text: "Read, Grep, Glob, а также Write и Edit" }
+      - { id: c, text: "Read, Grep, Glob и Bash для работы с файлами памяти" }
+      - { id: d, text: "Никаких: `memory` несовместим со списком `tools`" }
+    correct: [b]
+    explanation: |
+      Раздел про постоянную память: при заданном `memory` "Read, Write, and Edit tools are automatically
+      enabled so the subagent can manage its memory files". Поэтому ревьюеру, который не должен менять
+      файлы, `memory` не задают.
+
+  - id: reserve-fresh-context
+    type: single
+    prompt: |
+      Главная сессия делегирует ревью обычному (не форку) проектному субагенту. Что из разговора главной
+      сессии субагент видит, когда начинает работу?
+    options:
+      - { id: a, text: "Всю историю разговора главной сессии" }
+      - { id: b, text: "Файлы, которые главная сессия уже прочитала" }
+      - { id: c, text: "Навыки, которые главная сессия уже вызывала" }
+      - { id: d, text: "Только сообщение о делегировании, которое составил Claude; истории разговора он не видит" }
+    correct: [d]
+    explanation: |
+      Страница про субагентов: каждый субагент начинает с "a fresh, isolated context window. It doesn't see
+      your conversation history, the skills you've already invoked, or the files Claude has already read".
+      Claude составляет сообщение о делегировании, и субагент работает от него. Исключение только форк.

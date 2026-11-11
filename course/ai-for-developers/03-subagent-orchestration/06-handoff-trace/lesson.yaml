@@ -1,0 +1,56 @@
+id: orch-handoff-trace
+title: "Журнал передач: где сломался стык"
+type: bug-hunt
+outcomes:
+  - "Находит в записи stream-json мультиагентного прогона стык, на котором сломалась передача: нарушение границ роли, утечку контекста, непроверенную находку, проигнорированный сбой, \"проверено\" без проверки. Какой агент сделал событие, определяет по `parent_tool_use_id`, в том числе через вложенные вызовы."
+estimatedMinutes: 65
+status: ready
+prerequisites:
+  - orch-citation-gates
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: Run Claude Code programmatically (раздел Follow subagent messages: parent_tool_use_id, null у основного разговора, первое сообщение user с промптом, по умолчанию только tool_use и tool_result, --forward-subagent-text и CLAUDE_CODE_FORWARD_SUBAGENT_TEXT, вложенность и дерево; раздел Auto-approve tools: acceptEdits не одобряет прочие shell-команды без --allowedTools или permissions.allow, отказы в permission_denials)"
+    url: https://code.claude.com/docs/en/headless
+    checkedAt: "2026-11-03"
+  - title: "Claude Agent SDK: Subagents in the SDK (Agent в tool_use и Task в system:init, Task в tool_use до v2.1.63; вызов без subagent_type получает general-purpose, subagent_type is required; форк с v2.1.302 запускается вызовом Agent с subagent_type: \"fork\"; фон по умолчанию, async_launched и completed)"
+    url: https://code.claude.com/docs/en/agent-sdk/subagents
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Subagents (вложенность до трёх уровней, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH; режим acceptEdits переходит к субагенту; правила permissions.allow в settings.json действуют на всю сессию; встроенные субагенты: Each inherits the parent conversation's permission rules; режим форков включён по умолчанию с v2.1.302; Agent(тип) в tools определения субагента не сужает типы)"
+    url: https://code.claude.com/docs/en/sub-agents
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: CLI reference (строки --agents: файловая форма с --print с v2.1.281; --forward-subagent-text: с v2.1.211, нужны --print и stream-json)"
+    url: https://code.claude.com/docs/en/cli-reference
+    checkedAt: "2026-11-03"
+  - title: "Claude Agent SDK: TypeScript reference (SDKAssistantMessage и SDKUserMessage: message и parent_tool_use_id; system init: tools, permissionMode)"
+    url: https://code.claude.com/docs/en/agent-sdk/typescript
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Monitoring (раздел Traces (beta): CLAUDE_CODE_ENABLE_TELEMETRY, CLAUDE_CODE_ENHANCED_TELEMETRY_BETA, OTEL_TRACES_EXPORTER; спаны субагента под спаном инструмента Agent; промпты и содержимое инструментов скрыты по умолчанию)"
+    url: https://code.claude.com/docs/en/monitoring-usage
+    checkedAt: "2026-11-03"
+  - title: "Zhang и др., Which Agent Causes Task Failures and When? (Who&When), arXiv:2505.00212 v3, 2025-06-02 (127 систем, агент 53,5%, шаг 14,2%)"
+    url: https://arxiv.org/abs/2505.00212
+    checkedAt: "2026-11-03"
+  - title: "Zhang и др., Which Agent Causes Task Failures and When? Proceedings of the 42nd ICML (ICML 2025), PMLR 267, с. 76583-76599"
+    url: https://proceedings.mlr.press/v267/zhang25cq.html
+    checkedAt: "2026-11-03"
+  - title: "Cemri и др., Why Do Multi-Agent LLM Systems Fail? (MAST), arXiv:2503.13657 v3, 2025-10-26 (14 режимов в трёх группах, MAST-Data 1600+ трасс, 7 фреймворков; FM-1.2, FM-3.2, FM-3.3)"
+    url: https://arxiv.org/html/2503.13657v3
+    checkedAt: "2026-11-03"
+  - title: "NeurIPS 2025: Why Do Multi-Agent LLM Systems Fail? (2025 Spotlight Poster; трек на странице не указан)"
+    url: https://neurips.cc/virtual/2025/loc/san-diego/poster/121528
+    checkedAt: "2026-11-03"
+checks:
+  - id: trace-attribution
+    title: "attribute(): каждый вызов инструмента приписан агенту по parent_tool_use_id, в том числе через вложенные вызовы (50 случайных трасс)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_trace_attribution.py"'
+    timeoutSec: 60
+    weight: 1
+  - id: trace-hunt
+    title: "Стыки записи прогона: нарушение роли, утечка контекста, непроверенная находка, проигнорированный сбой, проверено без проверки"
+    kind: bug-hunt
+    answers: checks/bugs.yaml
+    minFound: 6
+    weight: 2

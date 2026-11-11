@@ -1,0 +1,110 @@
+version: 1
+questions:
+  - id: where-validator-sees-report
+    type: multiple
+    prompt: |
+      Скрипт на Python запускает `claude -p --output-format stream-json --verbose` (без `--bare`) в папке,
+      которой не доверяли, в режиме `default`, и читает его stdout. Claude запускает субагента проекта и ждёт
+      его ответа (на переднем плане, не в фоне). Где проверка действительно может увидеть отчёт субагента?
+      Выберите все верные.
+    options:
+      - { id: a, text: "Хук PostToolUse с matcher Agent, записанный в .claude/settings.json проекта" }
+      - { id: b, text: "Хук в поле hooks во frontmatter файла этого субагента в .claude/agents/" }
+      - { id: c, text: "Сам скрипт на Python, в потоке, который напечатал этот вызов claude -p" }
+      - { id: d, text: "Хук SubagentStop в .claude/settings.json, поле last_assistant_message" }
+    correct: [a, c, d]
+    explanation: |
+      Permissions, таблица "What runs before you trust a folder": хуки из файлов настроек "Used", хуки во
+      frontmatter субагента проекта "Not used", поэтому (b) не сработает. Hooks reference: у SubagentStop
+      поле `last_assistant_message`, "the text content of the subagent's final response" (d), и "When a
+      foreground Agent call completes, your PostToolUse hook receives the subagent's result" (a). Для (c):
+      headless, "Follow subagent messages": сообщения основного разговора идут в поток с
+      `parent_tool_use_id` равным `null`; agent loop: `UserMessage` "emitted after each tool execution with
+      the tool result content sent back to Claude", а "A subagent returns only its final response". Значит,
+      `tool_result` вызова Agent это строка потока с отчётом. С `--output-format json` вариант (c) был бы
+      неверен: там только итоговое сообщение `result`.
+
+  - id: subagent-stop-block
+    type: single
+    prompt: |
+      Хук SubagentStop вернул `decision: "block"` и `reason`. Что произойдёт?
+    options:
+      - { id: a, text: "reason получит родительская сессия, а субагент закончит работу как обычно" }
+      - { id: b, text: "Прогон claude -p остановится с ошибкой и вернёт ненулевой код выхода" }
+      - { id: c, text: "Субагент продолжит работу и получит reason как следующую инструкцию" }
+      - { id: d, text: "reason будет отброшен, и субагент закончит работу, как будто хука не было" }
+    correct: [c]
+    explanation: |
+      Hooks reference: `decision: "block"` у SubagentStop "keeps the subagent running and delivers `reason`
+      to the subagent as its next instruction". Родителю reason не уходит: чтобы передать контекст родителю,
+      та же страница советует "a `PostToolUse` hook on the `Agent` tool instead". Ошибкой прогон не
+      кончается, и reason не теряется.
+
+  - id: auto-mode-handback
+    type: single
+    prompt: |
+      Режим auto, Claude Code v2.1.271 или новее, субагента запускает Agent локально (не форк). Где хук читает
+      отчёт, который субагент отдал?
+    options:
+      - { id: a, text: "В поле last_assistant_message входных данных хука SubagentStop этого субагента" }
+      - { id: b, text: "В tool_input.message вызова SubagentHandback, хуком PreToolUse или PostToolUse на нём" }
+      - { id: c, text: "В tool_response вызова Agent, хуком PostToolUse с matcher Agent в .claude/settings.json" }
+      - { id: d, text: "В поле stop_hook_active входных данных хука SubagentStop этого субагента" }
+    correct: [b]
+    explanation: |
+      Tools reference: в auto такие субагенты получают инструмент `SubagentHandback` и отдают отчёт через
+      него. Hooks reference: отчёт лежит в `tool_input.message`, а `last_assistant_message` в этом случае "is
+      not the delivered report". В результате Agent вместо отчёта короткая заметка, поэтому (c) отчёта не
+      даёт. `stop_hook_active` это признак того, что Claude уже продолжает работу из-за Stop-хука, а не текст.
+
+  - id: what-sources-support
+    type: multiple
+    prompt: |
+      Какие утверждения поддерживает источник, на который они ссылаются? Выберите все верные.
+    options:
+      - { id: a, text: "Hallucination Cascade показала, что в цепочках доработки из трёх агентов галлюцинации к концу усиливаются" }
+      - { id: b, text: "Snowball опубликован в архивном рецензируемом издании" }
+      - { id: c, text: "MAST, Insight 3: полагаться только на низкоуровневые проверки в конце недостаточно" }
+      - { id: d, text: "Snowball показал, что проверки на каждой границе лучше проверки в конце, на пайплайнах ревью кода" }
+    correct: [c]
+    explanation: |
+      MAST v3: "Insight 3. Multi-Level Verification is Needed. Current verifier implementations are often
+      insufficient; sole reliance on final-stage, low-level checks is inadequate." Hallucination Cascade по
+      аннотации нашла "net attenuation": к концу цепочки галлюцинаций меньше, не больше. Snowball это
+      препринт на arXiv; принятие на FAGEN заявили авторы, а сайт воркшопа говорит "This is a non-archival
+      venue". И измерен он на одном финансовом пайплайне из четырёх агентов на FinanceBench, а не на ревью кода.
+
+  - id: finding-without-citation
+    type: single
+    prompt: |
+      Ревьюер вернул находку, но её цитаты нет на указанной строке. Как с ней обращается проверка на стыке
+      по правилу курса?
+    options:
+      - { id: a, text: "Считает находку ложной и удаляет её из передачи, не оставляя записи в журнале" }
+      - { id: b, text: "Пропускает находку дальше, если ревьюер поставил ей серьёзность high" }
+      - { id: c, text: "Пропускает находку дальше, но с пометкой, что цитата не совпала со строкой" }
+      - { id: d, text: "Считает непроверенной: дальше не пропускает и пишет в журнал с правилом" }
+    correct: [d]
+    explanation: |
+      Правило курса из теории: находка без проверяемой цитаты не проверена, а не опровергнута. Она может быть
+      верной (ревьюер ошибся в номере строки), поэтому как факт дальше не идёт, но и не исчезает молча: её id
+      и нарушенное правило попадают в журнал, и человек может посмотреть сам. Серьёзность правило не меняет,
+      а пропуск с пометкой отдал бы непроверенное следующей роли.
+
+  - id: end-gate-only
+    type: single
+    prompt: |
+      Плохую находку ревьюера убрала только проверка перед отчётом, когда synthesizer уже объединил её с
+      другой находкой. Что здесь не так?
+    options:
+      - { id: a, text: "Проверка в конце слишком строгая: её стоит ослабить, чтобы находки не терялись" }
+      - { id: b, text: "Synthesizer уже использовал плохую находку; проверка нужна на каждом стыке" }
+      - { id: c, text: "У ревьюера слишком слабая модель: её стоит заменить на более сильную и дорогую" }
+      - { id: d, text: "Synthesizer должен сам перечитывать код, прежде чем объединять находки ревьюеров" }
+    correct: [b]
+    explanation: |
+      Объединённая находка уже несёт след плохой: synthesizer мог поднять серьёзность, переписать
+      формулировку или слить две находки в одну. Убрать плохую находку в конце можно, а её влияние на
+      объединённый вывод уже нет. Поэтому проверка стоит на каждом стыке. Строгость проверки и модель
+      ревьюера тут ни при чём, а перечитывание кода synthesizer'ом заменило бы детерминированную проверку
+      ещё одним вызовом модели.

@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Section reviewer output: security",
+  "type": "object",
+  "required": [
+    "findings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "file",
+          "line",
+          "quote",
+          "claim",
+          "severity",
+          "section"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "description": "Path from the project root"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "quote": {
+            "type": "string",
+            "description": "The exact text of that line"
+          },
+          "claim": {
+            "type": "string",
+            "description": "What is wrong, in one sentence"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "section": {
+            "type": "string",
+            "const": "security"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+version: 1
+questions:
+  - id: fixed-subtasks
+    type: multiple
+    prompt: |
+      Отметьте каждую схему, где список подзадач задан до запуска.
+    options:
+      - { id: a, text: "Цепочка: набросать план, проверить его гейтом в коде, написать текст" }
+      - { id: b, text: "Три ревьюера разделов (безопасность, производительность, тесты), которые запускаются на каждом изменении" }
+      - { id: c, text: "Ведущий агент читает баг-репорт и решает, какие файлы и скольким исполнителям отдать" }
+      - { id: d, text: "Один агент в цикле сам выбирает следующий шаг, пока тесты не пройдут" }
+    correct: [a, b]
+    explanation: |
+      "Building effective agents" (Anthropic, 2024-12-19): "Workflows are systems where LLMs and tools are
+      orchestrated through predefined code paths". Цепочка с гейтом и три раздела ревью это workflow: шаги и
+      разделы записаны в коде. Схема (c) это orchestrator-workers: "subtasks aren't pre-defined, but
+      determined by the orchestrator based on the specific input". В схеме (d) агент выбирает следующий шаг
+      сам, его путь до запуска не известен: это агент, а не workflow.
+
+  - id: same-task-repeated
+    type: single
+    prompt: |
+      Один и тот же diff отдают трём одинаковым промптам проверки безопасности. Находка остаётся в отчёте,
+      если о ней сообщили хотя бы два из трёх. Какой это шаблон?
+    options:
+      - { id: a, text: "Sectioning" }
+      - { id: b, text: "Orchestrator-workers" }
+      - { id: c, text: "Evaluator-optimizer" }
+      - { id: d, text: "Voting" }
+    correct: [d]
+    explanation: |
+      Статья определяет voting как "Running the same task multiple times to get diverse outputs", а
+      sectioning как "Breaking a task into independent subtasks run in parallel". Здесь одна и та же задача
+      повторена трижды с ответом большинства, это voting по критерию урока. Подзадачи никто не выбирает на
+      ходу (не orchestrator-workers), и нет цикла "ответ, оценка, доработка" (не evaluator-optimizer).
+
+  - id: evaluator-optimizer-fit
+    type: single
+    prompt: |
+      Когда подходит шаблон evaluator-optimizer?
+    options:
+      - { id: a, text: "Когда подзадачи нельзя предсказать заранее" }
+      - { id: b, text: "Когда есть много независимых подзадач" }
+      - { id: c, text: "Когда есть ясные критерии оценки и доработка по ним даёт измеримую пользу" }
+      - { id: d, text: "Когда вход надо отправить одному из нескольких специалистов" }
+    correct: [c]
+    explanation: |
+      В статье о шаблоне evaluator-optimizer сказано, что он подходит "when we have clear evaluation criteria,
+      and when iterative refinement provides measurable value". Непредсказуемые подзадачи это случай
+      orchestrator-workers, независимые подзадачи это параллельная работа (sectioning), а выбор специалиста
+      по входу это маршрутизация: "Routing classifies an input and directs it to a specialized followup task".
+
+  - id: one-dependent-chain
+    type: single
+    prompt: |
+      Задача это одна зависимая цепочка шагов, и вся работа помещается в один контекст. Что оказалось лучше
+      в измерениях Anthropic на странице "Optimizing for cost and intelligence"?
+    options:
+      - { id: a, text: "Модель оркестратора одна, на более низком effort" }
+      - { id: b, text: "Fan-out на исполнителей с более дешёвой моделью" }
+      - { id: c, text: "Оркестратор на старшей модели, исполнители на Haiku" }
+      - { id: d, text: "Оркестратор, который отдаёт каждый шаг цепочки отдельному исполнителю на той же модели" }
+    correct: [a]
+    explanation: |
+      Страница: "When the work is one dependent chain, or fits in a single context without a long cost tail,
+      the orchestrator's model alone at lower effort came out ahead in every case measured on earlier models".
+      Варианты (b), (c) и (d) это делегирование исполнителям, и в этих случаях оно проиграло. Оговорка из той
+      же фразы: измеряли на более ранних моделях, и на своей задаче выбор подтверждают своим измерением.
+
+  - id: cheaper-model-per-role
+    type: multiple
+    prompt: |
+      Команда заранее назвала допуск: доля успешных прогонов роли на модели B может упасть не больше чем на
+      2 процентных пункта по сравнению с моделью A. Модель B дешевле по прайсу. Измерения на 400 прогонах
+      каждой роли:
+
+      | Роль | Успех на A | Успех на B | Стоимость попытки на A | Стоимость попытки на B |
+      |---|---|---|---|---|
+      | кодер | 91% | 85% | $0.42 | $0.19 |
+      | ревьюер раздела | 88% | 85% | $0.11 | $0.05 |
+      | synthesizer | 96% | 95% | $0.030 | $0.034 |
+      | summarizer | 97% | 96% | $0.012 | $0.004 |
+
+      Отметьте каждую роль, которой по правилу урока стоит поставить модель B.
+    options:
+      - { id: a, text: "Кодер" }
+      - { id: b, text: "Ревьюер раздела" }
+      - { id: c, text: "Synthesizer" }
+      - { id: d, text: "Summarizer" }
+    correct: [d]
+    explanation: |
+      Правило урока: более дешёвую модель ставят роли, только если на измерениях роль на ней действительно
+      дешевле, а доля успеха падает не больше допуска, названного заранее. Summarizer: минус 1 пункт, попытка
+      втрое дешевле, подходит. Кодер теряет 6 пунктов, ревьюер раздела 3, оба больше допуска. Synthesizer
+      теряет 1 пункт, но попытка на B дороже ($0.034 против $0.030): дешёвая по прайсу модель здесь не
+      дешевле на деле. Так и страница "Optimizing for cost and intelligence" велит строить пару, только если
+      она "beats the single model's whole curve of score against spend".
+
+  - id: split-by-context
+    type: single
+    prompt: |
+      Два плана для одной фичи. Первый: агент фронтенда, агент бэкенда и агент QA пишут код параллельно.
+      Второй: один агент пишет код, а несколько читателей параллельно проверяют его, и каждый получает только
+      тот контекст, который нужен его проверке. Какое деление рекомендует модуль?
+    options:
+      - { id: a, text: "По должностям: каждый агент специализируется на своей части" }
+      - { id: b, text: "По контексту: один писатель и параллельные читатели" }
+      - { id: c, text: "Оба одинаково хороши, разница только в числе агентов" }
+      - { id: d, text: "По файлам: по агенту-писателю на каждый файл" }
+    correct: [b]
+    explanation: |
+      Walden Yan (Cognition, "Don't Build Multi-Agents"): "Actions carry implicit decisions, and conflicting
+      decisions carry bad results". В его примере два субагента делают части клона Flappy Bird и получают
+      фон и птицу в разных стилях. Параллельные писатели, по должностям (a) или по файлам (d), принимают
+      несогласованные неявные решения, так что (c) неверно. Вывод курса, в посте его нет: параллельные
+      читатели не конфликтуют, их решения не попадают в общий код. Блог claude.com советует делить работу по
+      контексту, а не по типу работы.

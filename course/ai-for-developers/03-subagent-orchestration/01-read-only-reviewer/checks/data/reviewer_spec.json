@@ -1,0 +1,54 @@
+{
+  "_comment": "Pristine data for verify_reviewer.py: the starter's .claude/settings.json without the two subagent-model env keys (N2), the sha256 of the hook scripts (N2) and the coder's effective tools and its other rights fields, absent ones left out (N1).",
+  "projectSettingsWithoutModelEnv": {
+    "permissions": {
+      "deny": [
+        "Read(.env)",
+        "Read(.env.*)"
+      ]
+    },
+    "hooks": {
+      "PreToolUse": [
+        {
+          "matcher": "Edit|Write",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "python3",
+              "args": [
+                "${CLAUDE_PROJECT_DIR}/.claude/hooks/protect_generated.py"
+              ]
+            }
+          ]
+        }
+      ],
+      "Stop": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "python3",
+              "args": [
+                "${CLAUDE_PROJECT_DIR}/.claude/hooks/stop_tests.py"
+              ],
+              "timeout": 60
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "hookFiles": {
+    ".claude/hooks/protect_generated.py": "7a5fd7a0d664d7b4e26d98e795f7fda4ccad7b14075a81b0f43de1c5aefa7edc",
+    ".claude/hooks/stop_tests.py": "4b0e928dad12f0a657a6851411b30e9250c3b39547cfbc8d098f5ddf6a8ebe66"
+  },
+  "coderTools": [
+    "Bash",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "Write"
+  ],
+  "coderRights": {}
+}

@@ -1,0 +1,49 @@
+{
+  "source": "design #43 revision 6, section 4.4; field lists from research addendum 1, section 3d (TS reference, 0.3.317 docs); auth shape, error texts and the stream-json refusal observed on 2.1.267 (RS7)",
+  "resolvedModelIds": {
+    "sonnet": "claude-sonnet-5-5",
+    "opus": "claude-opus-5-5",
+    "haiku": "claude-haiku-5-5",
+    "fable": "claude-fable-5-2"
+  },
+  "usage": {
+    "input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 0,
+    "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0},
+    "service_tier": "standard"
+  },
+  "modelUsageEntry": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "webSearchRequests": 0,
+    "costUSD": 0,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 64000
+  },
+  "scenarios": {
+    "ok": {"exit": 0, "arm": "success", "kind": "returned"},
+    "no-structured": {"exit": 0, "arm": "success", "kind": "no-structured-output"},
+    "retries": {"exit": 1, "arm": "error", "subtype": "error_max_structured_output_retries", "kind": "no-structured-output",
+                "errors": ["Structured output validation failed after 5 attempts: data must have required property"]},
+    "budget": {"exit": 1, "arm": "error", "subtype": "error_max_budget_usd", "kind": "budget",
+               "errors": ["Reached maximum budget"]},
+    "max-turns": {"exit": 1, "arm": "error", "subtype": "error_max_turns", "kind": "failed",
+                  "errors": ["Reached maximum number of turns"]},
+    "execution": {"exit": 1, "arm": "error", "subtype": "error_during_execution", "kind": "failed",
+                  "errors": ["The run stopped with an error during execution"]},
+    "auth": {"exit": 1, "arm": "auth", "kind": "failed",
+             "result": "Failed to authenticate: API Error: 401 {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"}
+  },
+  "cliErrors": {
+    "unknownOption": "error: unknown option '{flag}'",
+    "noPrompt": "Error: Input must be provided either through stdin or as a prompt argument when using --print",
+    "streamJsonNeedsVerbose": "Error: When using --print, --output-format=stream-json requires --verbose",
+    "invalidSchema": "Error: --json-schema is not a valid JSON Schema: {diagnostic}",
+    "notHeadless": "Error: this grader answers only headless calls"
+  },
+  "structuredOutputToolResult": "Structured output provided successfully"
+}

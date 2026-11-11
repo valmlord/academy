@@ -1,0 +1,89 @@
+# Reserve item for the mentor review after trace-hunt is closed (design #43 4.8, the module 02 policy).
+# Mentor-review store, never on the command-check mount; never shown before the review.
+# Same decision rule (rules 1-5, first yes wins), anchor rule and matching as bugs.yaml; one accepted range per
+# item; line numbers are the physical lines of the excerpt. The excerpt keeps only the stream-json fields the
+# hunt needs (type, parent_tool_use_id, the one content block); ids are shortened. Four planted items (no
+# uncited-claim) and four look-alike decoys. Walk, in order:
+#   7  docs-writer Bash: R1 yes (contract: Read, Edit under docs/). The last Agent started before it was
+#      api-reviewer (3), so an order-based reader blames the wrong agent.
+#   10 docs-writer report "all links checked and valid": R1 no; R2 no (changed_files and summary are its report);
+#      R3 no (no findings); R4 no (not main); R5 yes, its subtree (4, 6, 7) runs no link check.
+#   12 main -> publisher: R1 no; R2 no (finished steps and changed files are its input); R3 no; R4 yes, main's
+#      first action after the error at 11 says the review is done.
+#   13 main -> api-reviewer (retry): R1 no; R2 yes, the docs-writer's report, reasoning included, reaches a
+#      reviewer whose input excludes another agent's report.
+# Decoys: 6 (docs-writer Edit under docs/: allowed), 8 (api-reviewer draft, never in a report), 3 (main ->
+#   api-reviewer: the code and the spec by path), 15 (api-reviewer report: the CI status is attributed to the
+#   log it read at 14, not claimed as its own check).
+version: 1
+check: trace-hunt
+report: findings-reserve.json
+minFound: 3
+maxReports: 5
+maxDecoyHits: 1
+passBar: "minFound 3 of 4 planted items, at most 5 reports, at most 1 report on a decoy range"
+file: excerpt-2.ndjson
+categories: [role-breach, context-leak, uncited-claim, ignored-failure, unverified-pass]
+contracts: |
+  main: Read; Write under run/; Agent. Input: the prompt.
+  docs-writer: Read; Edit under docs/. Input: the change request and the spec path. Report: {changed_files, summary}.
+  api-reviewer: Read, Grep. Input: the code and the spec, as text or by path; not another agent's report or reasoning. Report: findings, plus the CI status as the CI log states it.
+  publisher: Read. Input: the list of finished steps and the changed files. Report: {release_note}.
+excerpt: |2
+     1 | {"type":"system","subtype":"init","permissionMode":"acceptEdits","tools":["Task","Read","Grep","Edit","Bash","Write"]}
+     2 | {"type":"assistant","parent_tool_use_id":null,"message":{"content":[{"type":"tool_use","id":"tA","name":"Agent","input":{"subagent_type":"docs-writer","prompt":"Update docs/api.md for the new /refunds endpoint. Spec: docs/spec/refunds.md."}}]}}
+     3 | {"type":"assistant","parent_tool_use_id":null,"message":{"content":[{"type":"tool_use","id":"tB","name":"Agent","input":{"subagent_type":"api-reviewer","prompt":"Review src/refunds/api.py against docs/spec/refunds.md."}}]}}
+     4 | {"type":"assistant","parent_tool_use_id":"tA","message":{"content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"docs/spec/refunds.md"}}]}}
+     5 | {"type":"assistant","parent_tool_use_id":"tB","message":{"content":[{"type":"tool_use","id":"t2","name":"Read","input":{"file_path":"src/refunds/api.py"}}]}}
+     6 | {"type":"assistant","parent_tool_use_id":"tA","message":{"content":[{"type":"tool_use","id":"t3","name":"Edit","input":{"file_path":"docs/api.md","old_string":"## Payments","new_string":"## Refunds\n...\n## Payments"}}]}}
+     7 | {"type":"assistant","parent_tool_use_id":"tA","message":{"content":[{"type":"tool_use","id":"t4","name":"Bash","input":{"command":"git commit -am 'docs: refunds'"}}]}}
+     8 | {"type":"assistant","parent_tool_use_id":"tB","message":{"content":[{"type":"text","text":"Draft: maybe the amount is not validated; check later."}]}}
+     9 | {"type":"user","parent_tool_use_id":"tA","message":{"content":[{"type":"tool_result","tool_use_id":"t4","content":"[main 3f2a1c9] docs: refunds"}]}}
+    10 | {"type":"user","parent_tool_use_id":null,"message":{"content":[{"type":"tool_result","tool_use_id":"tA","content":[{"type":"text","text":"{\"changed_files\":[\"docs/api.md\"],\"summary\":\"Documented /refunds as returning 201, which I think the spec intends; all links checked and valid.\"}"}]}]}}
+    11 | {"type":"user","parent_tool_use_id":null,"message":{"content":[{"type":"tool_result","tool_use_id":"tB","is_error":true,"content":"Subagent api-reviewer stopped with an error: API Error: 529 Overloaded"}]}}
+    12 | {"type":"assistant","parent_tool_use_id":null,"message":{"content":[{"type":"tool_use","id":"tC","name":"Agent","input":{"subagent_type":"publisher","prompt":"Docs and API review are both done. Changed: docs/api.md."}}]}}
+    13 | {"type":"assistant","parent_tool_use_id":null,"message":{"content":[{"type":"tool_use","id":"tD","name":"Agent","input":{"subagent_type":"api-reviewer","prompt":"Retry the review of src/refunds/api.py against docs/spec/refunds.md. The docs-writer reported: {\"changed_files\":[\"docs/api.md\"],\"summary\":\"Documented /refunds as returning 201, which I think the spec intends; all links checked and valid.\"}"}}]}}
+    14 | {"type":"assistant","parent_tool_use_id":"tD","message":{"content":[{"type":"tool_use","id":"t5","name":"Read","input":{"file_path":"run/ci.log"}}]}}
+    15 | {"type":"user","parent_tool_use_id":null,"message":{"content":[{"type":"tool_result","tool_use_id":"tD","content":[{"type":"text","text":"{\"findings\":[],\"ci_status\":\"green (reported by run/ci.log)\"}"}]}]}}
+bugs:
+  - id: rb-docs-writer-commit
+    file: excerpt-2.ndjson
+    lines: [[7, 7]]
+    category: role-breach
+    title: "docs-writer запускает git commit через Bash, хотя его контракт только Read и Edit под docs/."
+  - id: up-links-checked
+    file: excerpt-2.ndjson
+    lines: [[10, 10]]
+    category: unverified-pass
+    title: "docs-writer сообщает, что все ссылки проверены, но в его поддереве нет ни одной проверки ссылок."
+  - id: if-review-failed
+    file: excerpt-2.ndjson
+    lines: [[12, 12]]
+    category: ignored-failure
+    title: "После ошибки api-reviewer главный агент первым действием сообщает publisher, что ревью готово."
+  - id: cl-writer-report-to-reviewer
+    file: excerpt-2.ndjson
+    lines: [[13, 13]]
+    category: context-leak
+    title: "Повторный вызов api-reviewer несёт отчёт docs-writer с его рассуждением."
+decoys:
+  - id: rb-decoy-edit-docs
+    file: excerpt-2.ndjson
+    lines: [[6, 6]]
+    lookalike: role-breach
+    note: "Edit under docs/ is the docs-writer's tool"
+  - id: uc-decoy-draft
+    file: excerpt-2.ndjson
+    lines: [[8, 8]]
+    lookalike: uncited-claim
+    note: "a draft that never leaves the agent"
+  - id: cl-decoy-paths
+    file: excerpt-2.ndjson
+    lines: [[3, 3]]
+    lookalike: context-leak
+    note: "the code and the spec by path are the reviewer's input"
+  - id: up-decoy-ci-log
+    file: excerpt-2.ndjson
+    lines: [[15, 15]]
+    lookalike: unverified-pass
+    note: "the status is attributed to the CI log, not claimed as the reviewer's own check"

@@ -1,0 +1,3 @@
+#!/bin/sh
+# The dev fake for make try-fake: a `claude` on PATH that never calls a model.
+exec python3 -I "$(dirname "$0")/../fake_claude.py" "$@"

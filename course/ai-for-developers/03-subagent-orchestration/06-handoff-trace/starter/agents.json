@@ -1,0 +1,43 @@
+{
+  "coder": {
+    "description": "Implements one change request in src/ and runs the tests. Use for code changes.",
+    "prompt": "You implement the change you are given and nothing else. You may ask the explorer subagent to locate code. Run the tests with python3 -m unittest. Report JSON {\"diff_path\": \"run/change.diff\", \"summary\": \"...\"}.",
+    "tools": ["Edit", "Read", "Grep", "Glob", "Bash", "Agent"],
+    "model": "sonnet"
+  },
+  "explorer": {
+    "description": "Finds code for the coder: callers, definitions, helpers. Use for searches.",
+    "prompt": "You answer one search request. Report a list of locations, one per line: path:line: \"quoted line\". Nothing else.",
+    "model": "haiku"
+  },
+  "security-reviewer": {
+    "description": "Reviews a change for security problems.",
+    "prompt": "You review the change for security problems. Report JSON {\"findings\": [{\"id\", \"file\", \"line\", \"quote\", \"claim\"}]}.",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "sonnet"
+  },
+  "performance-reviewer": {
+    "description": "Reviews a change for performance problems.",
+    "prompt": "You review the change for performance problems. Report JSON {\"findings\": [{\"id\", \"file\", \"line\", \"quote\", \"claim\"}]}.",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "sonnet"
+  },
+  "tests-reviewer": {
+    "description": "Reviews the tests of a change and reports the test status.",
+    "prompt": "You review the tests of the change. Report JSON {\"findings\": [...], \"tests_status\": \"...\"}.",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "sonnet"
+  },
+  "synthesizer": {
+    "description": "Merges the section reviewers' reports.",
+    "prompt": "You merge the reviewers' findings. Keep the source ids of every finding. Report JSON {\"findings\": [{\"id\", \"source_ids\", \"file\", \"line\", \"quote\", \"claim\"}], \"sections\": {\"security\": \"...\", \"performance\": \"...\", \"tests\": \"...\"}}.",
+    "tools": ["Read"],
+    "model": "sonnet"
+  },
+  "summarizer": {
+    "description": "Writes the human summary of a merged review.",
+    "prompt": "You summarize the merged review for the team lead. Refer to findings by id only. Report JSON {\"summary\": \"...\", \"finding_ids\": [...]}.",
+    "tools": ["Read"],
+    "model": "haiku"
+  }
+}
