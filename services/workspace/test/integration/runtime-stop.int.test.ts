@@ -272,19 +272,134 @@ describe("hardening and limits on the kernel", () => {
   });
 });
 
-// Runs in the workspace: one TCP connect with a 3 s timeout, one word for the outcome.
+/** Per-attempt limit of TCP_PROBE; the value ADR-0002's cross-bridge probe runs observed TIMEOUT with. */
+const PROBE_ATTEMPT_MS = 3000;
+/**
+ * Overall readiness budget of `waitForReply` (design K3): a live listener answered the learner's first connect in
+ * 1-7 ms, so this only absorbs node start in the helper and slow `docker exec` on a loaded host. Five attempt
+ * timeouts; two polls, the negative probe and setup still fit the 60 s test timeout.
+ */
+const READY_DEADLINE_MS = 15_000;
+const HELPER_LOG_LINES = 20;
+
+// Runs with `node -e`, so the host is argv[1] and the port argv[2]. It reads until the server ends, so the
+// client never closes with unread data (that close is a RST, which killed the old helper), and prints exactly
+// one line naming the outcome. The timer is a plain setTimeout because the socket `timeout` option is an idle
+// timer, not a deadline for the attempt.
 const TCP_PROBE = `
 const net = require("node:net");
-const socket = net.connect({ host: process.argv[1], port: Number(process.argv[2]), timeout: 3000 });
-socket.on("connect", () => { console.log("REACHABLE"); socket.destroy(); });
-socket.on("timeout", () => { console.log("UNREACHABLE"); socket.destroy(); });
-socket.on("error", () => console.log("UNREACHABLE"));
+let reply = "";
+let isConnected = false;
+let isReported = false;
+const report = (line) => { if (!isReported) { isReported = true; console.log(line); } };
+const socket = net.connect({ host: process.argv[1], port: Number(process.argv[2]) });
+const timer = setTimeout(() => {
+  report("TIMEOUT " + (isConnected ? "reply" : "connect"));
+  socket.destroy();
+}, ${String(PROBE_ATTEMPT_MS)});
+socket.on("connect", () => { isConnected = true; });
+socket.on("data", (chunk) => { reply += chunk; });
+socket.on("end", () => { clearTimeout(timer); report("REPLY " + reply); });
+socket.on("error", (error) => { clearTimeout(timer); report("ERROR " + (error.code || "unknown")); });
 `;
-const LISTENER = `require("node:net").createServer((s) => s.end("ok")).listen(${String(LISTEN_PORT)});`;
+// Without an error listener on the accepted socket, a client's RST is an unhandled ECONNRESET that exits node
+// and frees the helper's address (#129). The line goes to stderr, so the helper diagnosis shows it.
+const LISTENER = `require("node:net").createServer((s) => { s.on("error", (e) => console.error("listener socket error " + e.code)); s.end("ok"); }).listen(${String(LISTEN_PORT)});`;
 
-/** A listener of this run on `network`; returns its IP, once it accepts connections. */
-async function listenerOn(network: string): Promise<string> {
-  const helper = (
+type ProbeOutcome =
+  | { kind: "reply"; text: string }
+  | { kind: "timeout"; phase: "connect" | "reply" }
+  | { kind: "error"; code: string }
+  | { kind: "exec-failed"; exitCode: number; stdout: string; stderr: string };
+
+type ProbeExec = (command: readonly string[]) => Promise<CliResult>;
+
+interface Helper {
+  containerId: string;
+  address: string;
+  network: string;
+}
+
+interface HelperStatus {
+  state: string;
+  diagnosis: string;
+}
+
+const OUTCOME_LINE = /^(?:REPLY (?<text>.*)|TIMEOUT (?<phase>connect|reply)|ERROR (?<code>\S+))$/;
+
+/** Anything but a zero exit with exactly one non-empty line in TCP_PROBE's format is `exec-failed`. */
+function parseProbe(result: CliResult): ProbeOutcome {
+  const [line, ...rest] = result.stdout.split("\n").filter((entry) => entry.trim() !== "");
+  const isSingleLine = result.exitCode === 0 && line !== undefined && rest.length === 0;
+  const groups = isSingleLine ? OUTCOME_LINE.exec(line)?.groups : undefined;
+  if (groups?.text !== undefined) return { kind: "reply", text: groups.text };
+  if (groups?.phase === "connect" || groups?.phase === "reply") {
+    return { kind: "timeout", phase: groups.phase };
+  }
+  if (groups?.code !== undefined) return { kind: "error", code: groups.code };
+  const { exitCode, stdout, stderr } = result;
+  return { kind: "exec-failed", exitCode, stdout, stderr };
+}
+
+function formatOutcome(outcome: ProbeOutcome): string {
+  switch (outcome.kind) {
+    case "reply":
+      return `REPLY ${outcome.text}`;
+    case "timeout":
+      return `TIMEOUT ${outcome.phase}`;
+    case "error":
+      return `ERROR ${outcome.code}`;
+    case "exec-failed":
+      return `exec-failed exit=${String(outcome.exitCode)} stdout=${JSON.stringify(outcome.stdout)} stderr=${JSON.stringify(outcome.stderr)}`;
+  }
+}
+
+async function probe(exec: ProbeExec, address: string): Promise<ProbeOutcome> {
+  return parseProbe(await exec(["node", "-e", TCP_PROBE, address, String(LISTEN_PORT)]));
+}
+
+/** Logs are read only from helpers this test started, which print nothing but the listener's error lines. */
+async function helperStatus(helper: Helper): Promise<HelperStatus> {
+  const inspected = await inspectObject("container", helper.containerId);
+  const state = inspected === null ? "missing" : (inspected.state ?? "unknown");
+  const logs = await dockerResult(["logs", "--tail", String(HELPER_LOG_LINES), helper.containerId]);
+  const tail = `${logs.stdout}${logs.stderr}`.trim();
+  const diagnosis = `helper ${helper.containerId} on ${helper.network} at ${helper.address} is ${state}; log tail: ${tail === "" ? "(empty)" : tail}`;
+  return { state, diagnosis };
+}
+
+/** Why polling stops without `REPLY ok`, or `null` to poll on. */
+function pollFailure(outcome: ProbeOutcome, state: string, elapsedMs: number): string | null {
+  if (outcome.kind === "reply") return "another process answered";
+  if (state !== "running") return "the helper is not running";
+  if (elapsedMs >= READY_DEADLINE_MS) return `no REPLY ok within ${String(READY_DEADLINE_MS)} ms`;
+  return null;
+}
+
+/** Probes `helper` from the container behind `exec` until it answers `ok`, on the path the assertions use. */
+async function waitForReply(exec: ProbeExec, helper: Helper): Promise<void> {
+  const startedAt = Date.now();
+  for (let attempt = 1; ; attempt++) {
+    const outcome = await probe(exec, helper.address);
+    if (outcome.kind === "reply" && outcome.text === "ok") return;
+    const status = await helperStatus(helper);
+    const elapsedMs = Date.now() - startedAt;
+    const reason = pollFailure(outcome, status.state, elapsedMs);
+    if (reason !== null) {
+      throw new Error(
+        `${reason}: ${helper.address}:${String(LISTEN_PORT)} (helper ${helper.containerId} on ${helper.network}) ` +
+          `after ${String(attempt)} attempts in ${String(elapsedMs)} ms; last outcome ${formatOutcome(outcome)}; ` +
+          status.diagnosis,
+      );
+    }
+    // A timed-out attempt already waited PROBE_ATTEMPT_MS; only a fast failure needs a pause before the next one.
+    if (outcome.kind !== "timeout") await sleep(EXEC_RETRY_MS);
+  }
+}
+
+/** A listener of this run on `network`; readiness is `waitForReply`'s job, from the container that matters. */
+async function listenerOn(network: string): Promise<Helper> {
+  const containerId = (
     await docker([
       "run",
       "-d",
@@ -298,21 +413,15 @@ async function listenerOn(network: string): Promise<string> {
       LISTENER,
     ])
   ).trim();
-  const address = (await docker(["exec", helper, "hostname", "-i"])).trim();
-  for (let attempt = 0; attempt < EXEC_ATTEMPTS; attempt++) {
-    const probe = await docker([
-      "exec",
-      helper,
-      "node",
-      "-e",
-      TCP_PROBE,
-      "127.0.0.1",
-      String(LISTEN_PORT),
-    ]);
-    if (probe.trim() === "REACHABLE") return address;
-    await sleep(EXEC_RETRY_MS);
-  }
-  throw new Error(`listener on ${network} never accepted a connection`);
+  const address = (await docker(["exec", containerId, "hostname", "-i"])).trim();
+  return { containerId, address, network };
+}
+
+/** A container of this run on `network` that probes from inside it. Returns the Id. */
+async function peerOn(network: string): Promise<string> {
+  const args = ["run", "-d", "--init", "--network", network];
+  const labels = ["--label", `academy.workspace.test-run=${runId}`];
+  return (await docker([...args, ...labels, TEST_IMAGE, "sleep", "infinity"])).trim();
 }
 
 describe("network", () => {
@@ -322,26 +431,35 @@ describe("network", () => {
     const otherNetwork = `${instanceNetworkName(instance)}-helper`;
     await createNetwork(otherNetwork, runLabels(runId));
     const id = await runningWorkspace(newRuntime(engine));
-    const sameAddress = await listenerOn(instanceNetworkName(instance));
-    const otherAddress = await listenerOn(otherNetwork);
+    // Every container starts before the first poll: vitest does not stop a timed-out test body, so a
+    // `docker run` after a long poll could start a container once afterEach has already cleaned up.
+    const sameHelper = await listenerOn(instanceNetworkName(instance));
+    const otherHelper = await listenerOn(otherNetwork);
+    const peerId = await peerOn(otherNetwork);
+    const learner: ProbeExec = (command) => learnerExec(id, command);
+    const peer: ProbeExec = (command) => dockerResult(["exec", peerId, ...command]);
 
     // `/sys/class/net` is not namespaced on Docker Desktop; interfaces with an IPv4 address are.
     const interfaces = (await learnerExec(id, ["ip", "-o", "-4", "addr", "show"])).stdout;
-    const same = await learnerExec(id, ["node", "-e", TCP_PROBE, sameAddress, String(LISTEN_PORT)]);
-    const other = await learnerExec(id, [
-      "node",
-      "-e",
-      TCP_PROBE,
-      otherAddress,
-      String(LISTEN_PORT),
-    ]);
+    await waitForReply(learner, sameHelper);
+    // The other helper serves its own network right before the negative probe, and the peer probes it again
+    // right after, so a timeout from the learner means isolation, not a dead helper.
+    await waitForReply(peer, otherHelper);
+    const isolation = await probe(learner, otherHelper.address);
+    const after = await probe(peer, otherHelper.address);
+    const sameStatus = await helperStatus(sameHelper);
+    const otherStatus = await helperStatus(otherHelper);
 
     const interfaceNames = interfaces
       .trim()
       .split("\n")
       .map((line) => line.split(/\s+/)[1]);
-    expect(interfaceNames.sort()).toEqual(["eth0", "lo"]);
-    expect(same.stdout.trim()).toBe("REACHABLE");
-    expect(other.stdout.trim()).toBe("UNREACHABLE");
+    const afterMessage = `peer probe after the isolation probe: ${formatOutcome(after)}; ${otherStatus.diagnosis}`;
+    const isolationMessage = `expected TIMEOUT connect from the learner, got ${formatOutcome(isolation)}`;
+    expect(interfaceNames.sort(), interfaces).toEqual(["eth0", "lo"]);
+    expect(after, afterMessage).toEqual({ kind: "reply", text: "ok" });
+    expect(sameStatus.state, sameStatus.diagnosis).toBe("running");
+    expect(otherStatus.state, otherStatus.diagnosis).toBe("running");
+    expect(isolation, isolationMessage).toEqual({ kind: "timeout", phase: "connect" });
   });
 });
