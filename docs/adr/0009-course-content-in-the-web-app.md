@@ -56,9 +56,11 @@ section 0 of the #30 design (PR #85), working notes that are not published.
    lesson id, makes the whole course unavailable (the designed "Не удалось загрузить курс" state); an
    unreadable `theory.md` or `task.md` affects only that tab ("Не удалось загрузить текст урока"). One
    internal file error is mapped to a separate type per caller (course read, lesson text, export). Error
-   messages and log lines name the relative file and a closed reason (the schema issue path and code, a YAML
-   line number, or for a file that exists but cannot be read, `unreadable (<errno code>)` such as `EACCES` or
-   `EIO`), never file contents and never the system error's message. YAML is parsed with `parseDocument`
+   messages and log lines name the relative file and a closed reason (the schema issue path and code; a YAML
+   line number; for a document that parses but cannot be converted, an alias that cannot be resolved or any
+   other conversion failure, a fixed reason without a line, since the parser gives no position; or for a file
+   that exists but cannot be read, `unreadable (<errno code>)` such as `EACCES` or `EIO`), never file
+   contents and never the system error's message. YAML is parsed with `parseDocument`
    and pretty errors off, so no parser message or warning quotes a source line; a YAML warning counts as an
    error (fail closed). `logLevel` is `"error"` because at the library's default, converting the document
    (`toJS()`) writes a collection key's text to the process warnings, and `"silent"` would also drop the
@@ -108,12 +110,39 @@ section 0 of the #30 design (PR #85), working notes that are not published.
   in the web container can read them, as they can read the repository.
 - `content:validate` parses `course.yaml`, `module.yaml` and `lesson.yaml` with item 7's rules (#103): an
   error or a warning fails the file, and the issue gives the line and the parser's error code (for example
-  `invalid YAML at line 5 (TAG_RESOLVE_FAILED)`), never the parser's message. It also reports an alias that
-  cannot be resolved, which the web loader and the workspace service still let escape as an unclassified
-  error (#117). The rules exist in three copies (web, workspace service, validator) until one
+  `invalid YAML at line 5 (TAG_RESOLVE_FAILED)`), never the parser's message. content:validate, the web
+  loader and the workspace service report an alias that cannot be resolved (unknown anchor, or alias
+  expansion past the parser's default limit of 100, for example 100 aliases to one scalar anchor) as
+  `invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)`. The exception is an
+  unresolved alias used as a `%YAML 1.1` merge source (`<<: *nope`): the parser throws a plain error there,
+  not the alias error, so the web loader and the workspace service report it as
+  `invalid YAML: document cannot be converted to a value` and content:validate lets it escape until #118.
+  The web loader and the workspace service report every other conversion failure (for example a `%YAML 1.1`
+  merge key whose source is not a map, `<<: 5`) with the same generic reason, and content:validate lets
+  those escape until #118. The rules exist in three copies (web, workspace service, validator) until one
   package owns them (#118).
 - The workspace service (#31) and the grader read their own subsets (`starter/`, `checks/`) through their
   own allowlists; this ADR covers only the web image.
 - A second course needs a design (navigation, dashboard) and an amendment of item 6.
 - The three Turbopack "whole project" warnings disappear (no web import reaches `validate.js`), so the
   standalone output no longer copies `apps/web` sources and tests.
+
+## Amendments
+- #101 (Proposed), 2026-11-09. Check titles and result messages may reach the browser. Proposed until Stepan accepts
+  it in the #101 PR; the original text above stays, and the text here wins once accepted.
+  - Item 3 gains: "Exception: the check-state views (`apps/web/lib/progress/check-state.ts`, built field by field)
+    carry per check exactly `id`, `kind`, `title`, `timeoutSec` (command, hidden-task), `attempts.limit`,
+    `attempts.mentorAfter`, `spendsTokens` and `maxSpendUsd` (hidden-task `budgetUsd`), plus progress data and result
+    messages. Never `run`, `file`, `rubric`, `artifacts`, `task`, `verify`, `answers`, `passScore`, `minFound`,
+    `weight`, `workspace`, file names, paths or scores. Check titles are learner text (`design/flows/checks.md` F13.3
+    shows them); the grader's message of a result is learner output whose content ADR-0001 item 8 and ADR-0007 rules
+    2 and 3 govern." Item 3 also gains: "The dashboard view carries lesson counts computed from checks, never a
+    check."
+  - Item 10, guards: "The e2e scan forbids fragments of the check fields `run`, `file`, `rubric`, `task`, `verify`,
+    `answers` and of every grader file; check titles join the allowed corpus. The unit canary fixture gives its
+    command check a visible title marker; a unit test over the check-state views asserts no `CANARY-` string and the
+    title marker present. A page that renders results (from #34) adds exactly the messages of the results its test
+    produced to that test's allowed corpus, never a pattern."
+  - Consequences, the bullet "Accepted residual: grader metadata in the image.": "check titles" leave the parenthesis
+    (they are learner text), and its scan sentence reads "the unit canary and the e2e response scan of item 10 are
+    built from exactly these values, check titles excepted (#101)", because the e2e scan no longer forbids titles.

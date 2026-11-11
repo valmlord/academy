@@ -137,6 +137,10 @@ describe("GET W/terminal (U-route)", () => {
     client.ws.send(JSON.stringify({ t: "input", d: "x".repeat(OVERSIZED_BYTES) }));
 
     expect((await client.closed).code).toBe(1009);
+    // A 33-character ws code: it stays readable because the code clamp allows 64 characters, not web's 32.
+    const socketErrors = app.terminalLogs.filter((line) => line.includes("socket error"));
+    expect(socketErrors).toHaveLength(1);
+    expect(socketErrors[0]).toMatch(/socket error \(WS_ERR_UNSUPPORTED_MESSAGE_LENGTH\)$/);
   });
 });
 

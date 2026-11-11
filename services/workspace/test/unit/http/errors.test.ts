@@ -150,6 +150,25 @@ describe("error mapping", () => {
     expect(built.logs()).not.toContain(canary);
     expect(built.logs()).toContain("TypeError (code ECANARY)");
   });
+
+  it("logs a hostile class name as Error and leaves out a code that is not a valid code", async () => {
+    const HostileError = Object.defineProperty(class extends Error {}, "name", {
+      value: "Evil\nINJECT",
+    });
+    const built = failingApp(Object.assign(new HostileError("x"), { code: "e-canary-code" }));
+
+    const response = await built.app.inject({ method: "GET", url: W, headers: AUTHORIZED });
+
+    expect([response.statusCode, response.json()]).toEqual([
+      500,
+      { error: { code: "internal", message: "internal error" } },
+    ]);
+    const logs = built.logs();
+    expect(logs).toContain("request failed with 500: Error");
+    expect(logs).not.toContain("INJECT");
+    expect(logs).not.toContain("canary");
+    expect(logs).not.toContain("(code");
+  });
 });
 
 describe("framework responses in the error shape", () => {

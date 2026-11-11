@@ -177,9 +177,14 @@ contract between them is costly to change once #32 builds its client on it, so i
     session closes its sockets with 4002. A failed exec resize is ignored and logged.
   - Item 11 unchanged: the terminal writes nothing durable; web records "lesson started" (ADR-0007 item 5).
   - Consequences, first bullet: "adds the `depends_on` of item 10" no longer applies (item 10 as amended).
+- #101 (Proposed), 2026-11-09. Item 9, last sentence as amended by #32 is replaced: "#34 calls `POST W/activity` at
+  the start of a check run, every 30 s while it runs, and at its end." With `ENVIRONMENT_IDLE_STOP_MINUTES` at its
+  minimum of 5 and the warning up to 4 minutes before the stop, the warning can fire after 1 minute without activity
+  (`services/workspace/src/config.ts`), and a command check may run up to 1800 s; a fixed 30 s cadence, the
+  terminal's own, stays below every legal window and needs no new setting in web.
 - #106 (Proposed), 2026-11-10. Web calls `POST W/stop` then `PUT W` for restart (the `PUT` only after a stop answered
   `stopped` or 404 `workspace-not-found`), and `DELETE W` then `PUT W` for reset. Reset calls `DELETE` at most 3 times
   in total (two retries, after 500 ms and after 1000 ms, item 7) and never calls `PUT` after a non-204 answer.
-  "Продолжить работу" (F10.2) calls `POST W/activity`; it is not terminal activity, so item 9 as amended still holds.
-  While the environment runs, the lesson page reads `GET W` for `idle`; `GET` takes no lock and does not move the
-  idle window. No route, field or error code changes.
+  "Продолжить работу" (F10.2) calls `POST W/activity`; it is not terminal activity, so item 9 as amended by #32 and
+  #101 still holds. While the environment runs, the lesson page reads `GET W` for `idle`; `GET` takes no lock and
+  does not move the idle window. No route, field or error code changes.

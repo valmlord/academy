@@ -16,8 +16,11 @@ import {
   skipLinkLabel,
   startLessonLabel,
 } from "../lib/copy";
+import type { LessonNode, ModuleNode } from "../lib/course/read";
+import { isLessonVisible } from "../lib/course/view";
+import { countedCheckCount } from "../lib/progress/rules";
 import { catalogPath, lessonPath } from "../lib/routes";
-import { repoCatalog, repoDashboard } from "./course";
+import { repoCourse, repoDashboard } from "./course";
 import { credentials, useOwnBucket } from "./fixtures";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
@@ -28,18 +31,27 @@ test.beforeEach(async ({ page }) => {
 
 const PHONE_WIDTH = 375;
 
+function isCountedVisible(module: ModuleNode, node: LessonNode): boolean {
+  return isLessonVisible(module, node) && countedCheckCount(node.lesson) >= 1;
+}
+
 test("the dashboard shows the first-run Card, course line and module rows (AC1, AC3, AC4)", async ({
   page,
   baseURL,
 }) => {
   if (baseURL === undefined) throw new Error("baseURL is not configured in playwright.config.ts");
   const dashboard = await repoDashboard();
-  // The expected Card comes from the catalog view, not from toDashboardView, so a wrong choice of the next
-  // lesson in the dashboard view cannot also move the expectation (AC1: the first visible lesson).
-  const catalog = await repoCatalog();
-  const firstModule = catalog.modules.find((module) => module.lessons.length > 0);
-  const next = firstModule?.lessons[0];
-  if (firstModule === undefined || next === undefined) throw new Error("the course needs a lesson");
+  // The expected Card comes from the course tree, not from toDashboardView, so a wrong choice of the next
+  // lesson in the dashboard view cannot also move the expectation (AC1 as amended by D6: the first visible
+  // lesson with a counted check).
+  const course = await repoCourse();
+  const firstModule = course.modules.find((module) =>
+    module.lessons.some((node) => isCountedVisible(module, node)),
+  );
+  const next = firstModule?.lessons.find((node) => isCountedVisible(firstModule, node))?.lesson;
+  if (firstModule === undefined || next === undefined) {
+    throw new Error("the course needs a visible lesson with a counted check");
+  }
   const origin = new URL(baseURL).origin;
   const responses: Response[] = [];
   // Registered before goto, so the document and every asset it loads are seen.
@@ -54,7 +66,7 @@ test("the dashboard shows the first-run Card, course line and module rows (AC1, 
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
   const card = page.getByRole("region", { name: nextLessonHeading });
   await expect(card.getByText(next.title, { exact: true })).toBeVisible();
-  await expect(card.getByText(firstModule.title, { exact: true })).toBeVisible();
+  await expect(card.getByText(firstModule.module.title, { exact: true })).toBeVisible();
   await expect(card.getByText(lessonTypeLabels[next.type], { exact: true })).toBeVisible();
   await expect(card.getByText(durationLabel(next.estimatedMinutes), { exact: true })).toBeVisible();
   await expect(card.getByRole("link", { name: startLessonLabel })).toHaveAttribute(

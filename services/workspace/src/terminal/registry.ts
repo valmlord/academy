@@ -1,12 +1,12 @@
 import type { WebSocket } from "@fastify/websocket";
 import { type WorkspaceKey, workspaceId } from "../identity.js";
 import type { KeyedMutex } from "../lock.js";
+import { errorName } from "../log-fields.js";
 import type { ServiceLog } from "../manager.js";
 import type { ShellHandle, WorkspaceRuntime } from "../runtime.js";
 import { CLOSE, CLOSE_REASON } from "./protocol.js";
 import {
   createHeadlessScreen,
-  errorName,
   type HeadlessScreen,
   type ScreenOptions,
   Session,

@@ -1,7 +1,7 @@
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 import { InvalidVocabularyValueError } from "../../src/errors.js";
-import { CHECK_KINDS, inList } from "../../src/vocabulary.js";
+import { arrayLiteral, CHECK_KINDS, inList } from "../../src/vocabulary.js";
 
 const REJECTED_VALUES = ["a'b", "a b", "A", "1a", "", "a-b'); DROP TABLE users; --"];
 
@@ -21,6 +21,25 @@ describe("U3 vocabulary IN-list guard", () => {
     const rendered = new PgDialect().sqlToQuery(fragment).sql;
 
     expect(rendered).toBe("('hidden-task', 'in-progress', 'a')");
+  });
+});
+
+describe("U3b vocabulary array-literal guard", () => {
+  for (const value of REJECTED_VALUES) {
+    it(`rejects ${JSON.stringify(value)} and names it`, () => {
+      const build = () => arrayLiteral("t_kinds_check", [value]);
+
+      expect(build).toThrow(InvalidVocabularyValueError);
+      expect(build).toThrow(JSON.stringify(value));
+    });
+  }
+
+  it("accepts kebab-case values and renders them as a text array", () => {
+    const fragment = arrayLiteral("t_kinds_check", ["hidden-task", "quiz"]);
+
+    const rendered = new PgDialect().sqlToQuery(fragment).sql;
+
+    expect(rendered).toBe("ARRAY['hidden-task', 'quiz']::text[]");
   });
 });
 

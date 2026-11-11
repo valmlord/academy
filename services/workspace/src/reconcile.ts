@@ -3,6 +3,7 @@ import { CourseReadError } from "./errors.js";
 import { parseWorkspaceLabels, type WorkspaceKey, workspaceNames } from "./identity.js";
 import type { IdleTracker } from "./idle.js";
 import type { KeyedMutex } from "./lock.js";
+import { errorKind } from "./log-fields.js";
 import type { ServiceLog } from "./manager.js";
 import type { ManagedContainer, ManagedVolume, WorkspaceRuntime } from "./runtime.js";
 
@@ -63,11 +64,6 @@ export interface ReconcilerOptions {
   log: ServiceLog;
 }
 
-/** By constructor name only: an error that is not one of ours may carry text from outside (design 10). */
-function kindOf(error: unknown): string {
-  return error instanceof Error ? error.constructor.name : typeof error;
-}
-
 /** The volume a container of this name mounts (design 4.2). */
 function volumeOf(containerName: string): string {
   return `${containerName}-files`;
@@ -90,7 +86,7 @@ export class Reconciler {
     try {
       containers = await runtime.listManaged();
     } catch (error: unknown) {
-      log.warn(`reconcile: listing containers failed: ${kindOf(error)}`);
+      log.warn(`reconcile: listing containers failed: ${errorKind(error)}`);
       return;
     }
     const course = await this.#readCourse();
@@ -98,7 +94,7 @@ export class Reconciler {
       try {
         await this.#apply(container, classifyContainer(container, instance, course));
       } catch (error: unknown) {
-        log.warn(`reconcile: ${container.containerId}: ${kindOf(error)}`);
+        log.warn(`reconcile: ${container.containerId}: ${errorKind(error)}`);
       }
     }
     await this.#reportVolumesWithoutContainer(containers);
@@ -110,7 +106,7 @@ export class Reconciler {
       return await this.#options.readCourse();
     } catch (error: unknown) {
       const detail =
-        error instanceof CourseReadError ? `${error.file}: ${error.reason}` : kindOf(error);
+        error instanceof CourseReadError ? `${error.file}: ${error.reason}` : errorKind(error);
       this.#options.log.warn(`course unreadable: ${detail}`);
       return null;
     }
@@ -151,7 +147,7 @@ export class Reconciler {
     try {
       volumes = await runtime.listManagedVolumes();
     } catch (error: unknown) {
-      log.warn(`reconcile: listing volumes failed: ${kindOf(error)}`);
+      log.warn(`reconcile: listing volumes failed: ${errorKind(error)}`);
       return;
     }
     const mounted = new Set(containers.map((container) => volumeOf(container.name)));

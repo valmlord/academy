@@ -2,6 +2,7 @@ import type { Duplex } from "node:stream";
 import type { WebSocket } from "@fastify/websocket";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import xtermHeadless from "@xterm/headless";
+import { errorCode, errorName } from "../log-fields.js";
 import type { ServiceLog } from "../manager.js";
 import type { ShellHandle } from "../runtime.js";
 import {
@@ -40,20 +41,6 @@ export const terminalLine = {
   killFailed: (workspaceId: string, conn: string, errorName: string): string =>
     `terminal ${workspaceId} ${conn}: kill failed (${errorName})`,
 };
-
-// The pattern of web's relay (apps/web/server/relay.ts), restated because the two share no package.
-const ERROR_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
-
-/**
- * The name of a thrown Error when it is a string and an identifier of at most 64 characters, otherwise `Error`;
- * `NonError` for any other thrown value. The only part of an error the terminal logs.
- */
-export function errorName(error: unknown): string {
-  if (!(error instanceof Error)) return "NonError";
-  // Read once: a getter could pass the checks with one value and return another.
-  const name: unknown = error.name;
-  return typeof name === "string" && ERROR_NAME.test(name) ? name : "Error";
-}
 
 /**
  * Starts the kill of the shell's process session without waiting for it (#110); a failure reaches `onFailure` as
@@ -119,12 +106,6 @@ function textOf(data: RawData): string {
   return Buffer.isBuffer(data) ? data.toString("utf8") : Buffer.from(data).toString("utf8");
 }
 
-function errorCode(error: unknown): string {
-  const code: unknown =
-    typeof error === "object" && error !== null ? Reflect.get(error, "code") : undefined;
-  return typeof code === "string" ? code : "-";
-}
-
 /** A late `error` from a destroyed stream has nothing left to act on (design 3.2.2 C9). */
 const ignoreLateError = (): void => undefined;
 
@@ -149,7 +130,7 @@ export class TerminalConnection {
     this.conn = conn;
     // `ws` follows an `error` with `close`, which is what detaches the socket (row 10 or 11).
     this.#onError = (error) =>
-      log.warn(terminalLine.socketError(workspaceId, conn, errorCode(error)));
+      log.warn(terminalLine.socketError(workspaceId, conn, errorCode(error) ?? "-"));
     this.#onClose = () => this.#dispatch((session) => session.onClose(this));
     this.#onMessage = (data, isBinary) =>
       this.#dispatch((session) => session.onMessage(this, data, isBinary));

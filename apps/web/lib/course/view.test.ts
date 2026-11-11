@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
 import { nodeCourseFs } from "./node-fs";
 import { type CourseTree, readCourse } from "./read";
-import { findLesson, toCatalogView, toDashboardView, toLessonView } from "./view";
+import {
+  type DashboardView,
+  findLesson,
+  toCatalogView,
+  toDashboardView,
+  toLessonView,
+} from "./view";
 
 let fixture: CourseFixture;
 
@@ -48,22 +54,76 @@ describe("toCatalogView", () => {
 });
 
 describe("toDashboardView", () => {
-  it("names the first visible lesson as next and counts visible lessons", async () => {
+  // The invariant page.tsx relies on: no next lesson exactly when no lesson is counted (D12).
+  const expectNextIffCounted = (view: DashboardView): void => {
+    expect(view.next === null).toBe(view.totalLessons === 0);
+  };
+
+  // second-lesson keeps only its quiz check, whose kind has not shipped, so no visible lesson is counted.
+  const writeSecondLessonWithQuizOnly = (): void => {
+    fixture.write(
+      "course/00-basics/02-second/lesson.yaml",
+      `id: second-lesson
+title: Second lesson
+type: artifact
+outcomes:
+  - Builds the artifact.
+estimatedMinutes: 20
+status: ready
+sources:
+  - { title: Source one, url: "https://example.com/one", checkedAt: "2026-10-01" }
+checks:
+  - id: quiz-check
+    kind: quiz
+    title: Quiz check
+    file: checks/CANARY-CHECKS-4-file.yaml
+    passScore: 0.5
+    attempts:
+      limit: 3
+`,
+    );
+  };
+
+  it("names the first lesson with a counted check as next and counts only such lessons", async () => {
     const view = toDashboardView(await read());
 
     expect(view.courseId).toBe(FIXTURE_COURSE_ID);
     expect(view.next).toEqual({
-      id: "first-lesson",
-      title: "First lesson",
-      type: "theory",
-      estimatedMinutes: 10,
+      id: "second-lesson",
+      title: "Second lesson",
+      type: "artifact",
+      estimatedMinutes: 20,
       moduleTitle: "Basics",
     });
-    expect(view.totalLessons).toBe(2);
+    expect(view.totalLessons).toBe(1);
     expect(view.modules.map((m) => [m.id, m.isAvailable, m.lessonCount])).toEqual([
-      ["basics", true, 2],
+      ["basics", true, 1],
       ["later", false, 0],
     ]);
+    expectNextIffCounted(view);
+  });
+
+  it("does not count a lesson whose only check is of an unshipped kind", async () => {
+    writeSecondLessonWithQuizOnly();
+
+    const view = toDashboardView(await read());
+
+    expect(view.totalLessons).toBe(0);
+    expectNextIffCounted(view);
+  });
+
+  it("has no next lesson and no course total when no visible lesson has a counted check", async () => {
+    writeSecondLessonWithQuizOnly();
+
+    const view = toDashboardView(await read());
+
+    expect(view.next).toBeNull();
+    expect(view.totalLessons).toBe(0);
+    expect(view.modules.map((m) => [m.id, m.isAvailable, m.lessonCount])).toEqual([
+      ["basics", false, 0],
+      ["later", false, 0],
+    ]);
+    expectNextIffCounted(view);
   });
 
   it("has no next lesson when nothing is visible", async () => {
@@ -76,6 +136,7 @@ describe("toDashboardView", () => {
 
     expect(view.next).toBeNull();
     expect(view.totalLessons).toBe(0);
+    expectNextIffCounted(view);
   });
 });
 

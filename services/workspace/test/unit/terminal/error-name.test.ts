@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DockerApiError } from "../../../src/errors.js";
-import { errorName } from "../../../src/terminal/session.js";
+import { errorName } from "../../../src/log-fields.js";
 
-// errorName (#112): the only part of an error the terminal logs, clamped as web's relay clamps it.
+// errorName (#112): the error name the terminal logs, clamped as web's relay clamps it.
 
 function named(name: string): Error {
   const error = new Error("x");
@@ -12,6 +12,10 @@ function named(name: string): Error {
 
 function withNameValue(value: unknown): Error {
   return Object.defineProperty(new Error("x"), "name", { value });
+}
+
+function throwing(): never {
+  throw new Error("canary");
 }
 
 describe("errorName", () => {
@@ -72,5 +76,19 @@ describe("errorName", () => {
     ["a number", 42],
   ])("names a thrown value that is not an Error NonError (%s)", (_case, value) => {
     expect(errorName(value)).toBe("NonError");
+  });
+
+  it("names an Error whose name getter throws Error", () => {
+    const error = Object.defineProperty(new Error("x"), "name", { get: throwing });
+
+    expect(errorName(error)).toBe("Error");
+  });
+
+  it("names an Error behind a Proxy whose get trap throws Error", () => {
+    expect(errorName(new Proxy(new Error("x"), { get: throwing }))).toBe("Error");
+  });
+
+  it("names a value whose instanceof check throws NonError", () => {
+    expect(errorName(new Proxy(new Error("x"), { getPrototypeOf: throwing }))).toBe("NonError");
   });
 });

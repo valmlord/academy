@@ -1,6 +1,6 @@
 /**
- * Schema v1 (ADR-0007). One FK chain users -> enrollments -> lesson_progress -> attempts ->
- * {check_results, mentor_reviews}, every FK ON DELETE CASCADE. Lessons are referenced by
+ * Schema v1 (ADR-0007). One FK chain users -> enrollments -> lesson_progress -> {attempts ->
+ * {check_results, mentor_reviews}, check_closures}, every FK ON DELETE CASCADE. Lessons are referenced by
  * (course_id, lesson_id) from course/ (ADR-0001), never through a lessons table. Every constraint and
  * index is named, so a later migration can drop or replace it by name. Column names are explicit
  * snake_case (no `casing` option), which survives the Drizzle 1.0 upgrade.
@@ -21,10 +21,12 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import {
   ATTEMPT_STATUSES,
+  arrayLiteral,
   CHECK_KINDS,
   CHECK_RESULT_STATUSES,
   inList,
@@ -192,6 +194,10 @@ export const attempts = pgTable(
     transcriptPath: text("transcript_path"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
+    // The checks the server put into the run and their kinds, position by position: a missing result
+    // is counted under the kind it was included with (ADR-0007 as amended by #101, rule 2).
+    includedCheckIds: text("included_check_ids").array().notNull().default(sql`'{}'::text[]`),
+    includedCheckKinds: text("included_check_kinds").array().notNull().default(sql`'{}'::text[]`),
   },
   (t) => [
     foreignKey({
@@ -201,6 +207,10 @@ export const attempts = pgTable(
     }).onDelete("cascade"),
     // Attempt history per lesson, and the referencing side of the cascade (Postgres does not index it).
     index("attempts_lesson_started_idx").on(t.userId, t.courseId, t.lessonId, t.startedAt),
+    // One running attempt per learner and lesson; #34 answers the 23505 on it as a conflict (R34-1).
+    uniqueIndex("attempts_one_running_idx")
+      .on(t.userId, t.courseId, t.lessonId)
+      .where(sql`${t.status} = 'running'`),
     check(
       "attempts_status_check",
       sql`${t.status} IN ${inList("attempts_status_check", ATTEMPT_STATUSES)}`,
@@ -212,6 +222,16 @@ export const attempts = pgTable(
     check(
       "attempts_transcript_path_check",
       sql`${t.transcriptPath} ~ '^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*/?$'`,
+    ),
+    // No non-emptiness CHECK: it would fail the migration on a database that holds attempts, and
+    // a non-empty run is the start's rule (R34-2).
+    check(
+      "attempts_included_checks_check",
+      sql`cardinality(${t.includedCheckIds}) = cardinality(${t.includedCheckKinds})`,
+    ),
+    check(
+      "attempts_included_check_kinds_check",
+      sql`${t.includedCheckKinds} <@ ${arrayLiteral("attempts_included_check_kinds_check", CHECK_KINDS)}`,
     ),
   ],
 );
@@ -230,6 +250,14 @@ export const checkResults = pgTable(
     durationMs: integer("duration_ms"),
     /** numeric(12,6): pg returns it as a string. */
     costUsd: numeric("cost_usd", { precision: 12, scale: 6 }),
+    /** A format error or a stage-0 rejection: never counted (ADR-0007 as amended by #101, rule 3). */
+    isFormatError: boolean("is_format_error").notNull().default(false),
+    isBudgetExhausted: boolean("is_budget_exhausted").notNull().default(false),
+    /** The learner-facing grader message; its content rule is not expressible in SQL, so no CHECK. */
+    message: text("message"),
+    /** Only on an `error` result: the `pre-start: ...` or `platform-stop: ...` label, never tool output. */
+    rawError: text("raw_error"),
+    /** The result's finishedAt: #34 inserts each result in a transaction opened when its check ends. */
     createdAt: createdAt(),
   },
   (t) => [
@@ -251,6 +279,57 @@ export const checkResults = pgTable(
     check("check_results_score_check", sql`${t.score} >= 0 AND ${t.score} <= 1`),
     check("check_results_duration_check", sql`${t.durationMs} >= 0`),
     check("check_results_cost_check", sql`${t.costUsd} >= 0`),
+    check(
+      "check_results_format_error_check",
+      sql`NOT ${t.isFormatError} OR ${t.status} = 'failed'`,
+    ),
+    check(
+      "check_results_budget_check",
+      sql`NOT ${t.isBudgetExhausted} OR (${t.status} = 'failed' AND ${t.checkKind} = 'hidden-task')`,
+    ),
+    check("check_results_flags_check", sql`NOT (${t.isFormatError} AND ${t.isBudgetExhausted})`),
+    check("check_results_raw_error_check", sql`${t.rawError} IS NULL OR ${t.status} = 'error'`),
+  ],
+);
+
+/**
+ * A closed check, persisted when the writer first sees it and never deleted (ADR-0007 as amended by
+ * #101, rule 6), so raising the limit later does not reopen it. The kind is part of the key because
+ * the writer inserts ON CONFLICT DO NOTHING: keyed by check id alone, the closure of a check whose
+ * kind changed would conflict with the old kind's row and never be written.
+ */
+export const checkClosures = pgTable(
+  "check_closures",
+  {
+    userId: text("user_id").notNull(),
+    courseId: text("course_id").notNull(),
+    lessonId: text("lesson_id").notNull(),
+    checkId: text("check_id").notNull(),
+    checkKind: text("check_kind").$type<Check["kind"]>().notNull(),
+    // The limit and the failed count at closure, so a later limit change stays explainable.
+    attemptLimit: integer("attempt_limit").notNull(),
+    failedCount: integer("failed_count").notNull(),
+    closedAt: timestamp("closed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({
+      name: "check_closures_pkey",
+      columns: [t.userId, t.courseId, t.lessonId, t.checkId, t.checkKind],
+    }),
+    foreignKey({
+      name: "check_closures_lesson_progress_fk",
+      columns: [t.userId, t.courseId, t.lessonId],
+      foreignColumns: [lessonProgress.userId, lessonProgress.courseId, lessonProgress.lessonId],
+    }).onDelete("cascade"),
+    check("check_closures_check_id_check", sql`${t.checkId} <> ''`),
+    check(
+      "check_closures_check_kind_check",
+      sql`${t.checkKind} IN ${inList("check_closures_check_kind_check", CHECK_KINDS)}`,
+    ),
+    check(
+      "check_closures_count_check",
+      sql`${t.attemptLimit} > 0 AND ${t.failedCount} >= ${t.attemptLimit}`,
+    ),
   ],
 );
 

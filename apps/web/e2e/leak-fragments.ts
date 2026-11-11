@@ -13,7 +13,8 @@ const FRAGMENT_RUN = /[\p{L}\p{N} ,.:/_-]{24,}/gu;
 const FRAGMENT_LENGTH = 24;
 /** Smaller grader files are left to the image check's name scan (C4); their runs are too generic. */
 const MIN_GRADER_FILE_BYTES = 64;
-const CHECK_FIELDS = ["run", "title", "file", "rubric", "task", "verify", "answers"];
+// Not `title`: check titles are learner text (ADR-0009 as amended by #101) and join the allowed corpus.
+const CHECK_FIELDS = ["run", "file", "rubric", "task", "verify", "answers"];
 
 /**
  * Fragments that also occur in correct output, each with the reason. A new entry needs the judges'
@@ -89,6 +90,8 @@ export async function forbiddenFragments(): Promise<ForbiddenFragments> {
     for (const node of module.lessons) {
       const { lesson } = node;
       for (const check of lesson.checks) {
+        // Exempts only the exact title, also where a grader file prints it; every other fragment stays.
+        allowed.push(check.title);
         for (const [key, value] of Object.entries(check)) {
           if (!CHECK_FIELDS.includes(key)) continue;
           for (const text of stringsOf(value)) for (const f of fragmentsOf(text)) forbidden.add(f);

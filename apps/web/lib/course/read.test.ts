@@ -31,6 +31,12 @@ afterEach(() => {
 
 const FIRST_LESSON = "course/00-basics/01-first/lesson.yaml";
 const MODULE = "course/00-basics/module.yaml";
+const ALIAS_REASON = "invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)";
+
+/** An anchored scalar and a flow list of `count` aliases to it, the input for the alias limit. */
+function aliasList(count: number): string {
+  return `a: &a 1\nl: [${Array.from({ length: count }, () => "*a").join(", ")}]\n`;
+}
 
 /** What a logger would print for every captured argument. */
 function printed(): string {
@@ -118,6 +124,35 @@ workspace: { image: x }
 
     expect(printed()).not.toContain("CANARY-KEY");
     expect(inspect(result, { depth: Infinity })).not.toContain("CANARY-KEY");
+  });
+
+  it("reports an alias without an anchor by a fixed reason, printing the alias nowhere", async () => {
+    fixture.write(FIRST_LESSON, "id: first-lesson\ntitle: First\nsummary: *CANARY-ALIAS\n");
+
+    const error = await readError();
+
+    expect(error.file).toBe(FIRST_LESSON);
+    expect(error.reason).toBe(ALIAS_REASON);
+    expect(inspect(error)).not.toContain("CANARY");
+    expect(printed()).not.toContain("CANARY");
+  });
+
+  it("reports one hundred aliases to one anchor as an alias failure", async () => {
+    fixture.write(FIRST_LESSON, `id: first-lesson\n${aliasList(100)}`);
+
+    const error = await readError();
+
+    expect(error.reason).toBe(ALIAS_REASON);
+  });
+
+  it("reports a YAML 1.1 merge key without a map source by a fixed reason", async () => {
+    fixture.write(FIRST_LESSON, "%YAML 1.1\n---\nid: first-lesson\nmeta:\n  <<: 5\n");
+
+    const error = await readError();
+
+    expect(error.reason).toBe("invalid YAML: document cannot be converted to a value");
+    expect(inspect(error)).not.toContain("Merge sources");
+    expect(printed()).not.toContain("Merge sources");
   });
 
   it("refuses a symlinked lesson.yaml", async () => {
