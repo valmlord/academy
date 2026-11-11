@@ -43,10 +43,11 @@ describe("terminal registry (U-registry)", () => {
     expect(texts(second)[1]).toEqual({ t: "snapshot", d: "hello from the shell\r\n" });
     expect(runtime.shells).toHaveLength(1);
     expect(registry.size).toBe(1);
+    expect(shell().terminations).toBe(0);
   });
 
   it("keeps the session when the client closes, and the next connection resumes it", async () => {
-    const { connect, leave, runtime, registry } = await start();
+    const { connect, leave, shell, runtime, registry } = await start();
     const first = await connect();
     await waitForAttached(first);
 
@@ -57,6 +58,7 @@ describe("terminal registry (U-registry)", () => {
     expect(registry.size).toBe(1);
     expect(runtime.shells).toHaveLength(1);
     expect(texts(second)[0]).toEqual({ t: "attached", resumed: true });
+    expect(shell().terminations).toBe(0);
   });
 
   it("refuses a connection with 4002 when the workspace is not running", async () => {
@@ -153,13 +155,14 @@ describe("invalid messages (U-pending-invalid)", () => {
   });
 
   it("closes the client with 1008 on invalid JSON", async () => {
-    const { connect } = await start();
+    const { connect, shell } = await start();
     const client = await connect();
     await waitForAttached(client);
 
     client.ws.send("not json");
 
     expect(await client.closed).toEqual({ code: 1008, reason: "invalid message" });
+    expect(shell().terminations).toBe(0);
   });
 
   it("closes the client with 1003 on a binary frame", async () => {
@@ -186,6 +189,7 @@ describe("connect failures (U-connect-error)", () => {
     expect(closed).toEqual({ code: 1011, reason: "terminal error" });
     expect(registry.size).toBe(0);
     expect(runtime.shells[0]?.stream.destroyed).toBe(true);
+    expect(runtime.shells[0]?.terminations).toBe(1);
     expect(seen).toEqual([]);
   });
 

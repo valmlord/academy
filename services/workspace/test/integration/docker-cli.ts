@@ -63,6 +63,12 @@ export async function dockerResult(args: readonly string[]): Promise<CliResult> 
   }
 }
 
+/** The command line of every process in the container, one per entry (busybox `ps`, trimmed). */
+export async function processArgs(containerId: string): Promise<string[]> {
+  const listing = await docker(["exec", containerId, "ps", "-o", "args"]);
+  return listing.split("\n").map((entry) => entry.trim());
+}
+
 function lines(output: string): string[] {
   return output.split("\n").filter((line) => line.trim() !== "");
 }

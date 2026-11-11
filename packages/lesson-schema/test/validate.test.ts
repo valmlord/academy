@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -550,6 +550,63 @@ describe("YAML the runtime loaders reject", () => {
         file: `${M}/02-missing`,
         message: "lesson listed in module.yaml but lesson.yaml is missing",
       },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+  });
+});
+
+function replaceWithDirectory(rel: string): void {
+  const p = join(root, rel);
+  rmSync(p);
+  mkdirSync(p);
+}
+
+describe("files that cannot be read", () => {
+  it("reports a lesson.yaml that is a directory and counts the lesson", () => {
+    validCourse();
+    replaceWithDirectory(`${L}/lesson.yaml`);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: `${L}/lesson.yaml`, message: "unreadable (EISDIR)" }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+  });
+
+  it("reports a course.yaml that is a directory and skips its modules", () => {
+    validCourse();
+    replaceWithDirectory("c/course.yaml");
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: "c/course.yaml", message: "unreadable (EISDIR)" }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 0, 0]);
+  });
+
+  it("reports an unreadable lesson.yaml by errno code without the absolute path", () => {
+    // Root reads a mode-000 file, so the case would prove nothing: fail rather than skip.
+    expect(process.getuid?.()).not.toBe(0);
+    validCourse();
+    chmodSync(join(root, `${L}/lesson.yaml`), 0o000);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: `${L}/lesson.yaml`, message: "unreadable (EACCES)" }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+    expect(JSON.stringify(r.issues)).not.toContain(root);
+  });
+
+  it("reports unreadable theory.md and task.md and keeps checking the lesson", () => {
+    // Root reads a mode-000 file, so the case would prove nothing: fail rather than skip.
+    expect(process.getuid?.()).not.toBe(0);
+    validCourse();
+    replaceWithDirectory(`${L}/theory.md`);
+    chmodSync(join(root, `${L}/task.md`), 0o000);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: `${L}/theory.md`, message: "unreadable (EISDIR)" },
+      { file: `${L}/task.md`, message: "unreadable (EACCES)" },
     ]);
     expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
   });

@@ -1,0 +1,43 @@
+{
+  "id": "sydney-weekday-of-local-date",
+  "req": [
+    "REQ-01"
+  ],
+  "request": {
+    "now": "2026-03-01T08:00:00Z",
+    "schedule": {
+      "name": "Ирина",
+      "timeZone": "Australia/Sydney",
+      "weekly": [
+        {
+          "weekday": 1,
+          "start": "08:00",
+          "end": "10:00"
+        }
+      ],
+      "overrides": []
+    },
+    "eventType": {
+      "title": "Знакомство",
+      "durationMinutes": 60,
+      "slotIncrementMinutes": 60,
+      "bufferBeforeMinutes": 0,
+      "bufferAfterMinutes": 0,
+      "minimumNoticeMinutes": 0,
+      "bookingWindowDays": 60
+    },
+    "bookings": [],
+    "from": "2026-03-09T00:00:00+11:00",
+    "to": "2026-03-10T00:00:00+11:00"
+  },
+  "expected": [
+    {
+      "start": "2026-03-09T08:00:00+11:00",
+      "end": "2026-03-09T09:00:00+11:00"
+    },
+    {
+      "start": "2026-03-09T09:00:00+11:00",
+      "end": "2026-03-09T10:00:00+11:00"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+id: final-booking-page
+title: "Итоговый проект: страница бронирования на Nuxt"
+type: project
+outcomes:
+  - "Делает страницу бронирования с клиентом, сгенерированным из контракта: закоммиченный файл типов совпадает с перегенерацией закреплёнными версиями генератора."
+  - "Настраивает страницу так, что она на сервере отрисовывает слоты из API на местную дату в часовом поясе приглашённого, включая день перевода часов, и проксирует /api/ на бэкенд, адрес которого задаётся при сборке."
+  - "Пишет к странице E2E-сценарии для локального запуска (бронирование, занятый слот, дата перевода часов); их оценивает рубрика по коду сценариев и приложенному выводу."
+estimatedMinutes: 105
+status: ready
+prerequisites:
+  - final-api-bookings
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Nuxt 4.x: Runtime Config (NUXT_ env override at runtime, private keys, build-time defaults)"
+    url: https://nuxt.com/docs/4.x/guide/going-further/runtime-config
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: Rendering Modes (universal rendering, hydration, route rules: proxy)"
+    url: https://nuxt.com/docs/4.x/guide/concepts/rendering
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: server directory (server/api prefix, catch-all [...].ts, useRuntimeConfig(event))"
+    url: https://nuxt.com/docs/4.x/directory-structure/server
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: Data Fetching (fetching twice, payload, useAsyncData key)"
+    url: https://nuxt.com/docs/4.x/getting-started/data-fetching
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: import.meta (import.meta.server)"
+    url: https://nuxt.com/docs/4.x/api/advanced/import-meta
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: app/pages (dynamic route parameters, useRoute)"
+    url: https://nuxt.com/docs/4.x/directory-structure/app/pages
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: Auto-imports"
+    url: https://nuxt.com/docs/4.x/guide/concepts/auto-imports
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: Deployment (node .output/server/index.mjs, PORT and HOST)"
+    url: https://nuxt.com/docs/4.x/getting-started/deployment
+    checkedAt: "2026-11-04"
+  - title: "Nuxt 4.x: Testing (mountSuspended, registerEndpoint, include globs choose the environment)"
+    url: https://nuxt.com/docs/4.x/getting-started/testing
+    checkedAt: "2026-11-04"
+  - title: "h3 v1: proxyRequest"
+    url: https://v1.h3.dev/utils/advanced
+    checkedAt: "2026-11-04"
+  - title: "openapi-typescript CLI (flags, --additional-properties default false)"
+    url: https://openapi-ts.dev/cli
+    checkedAt: "2026-11-04"
+  - title: "openapi-typescript: Introduction (OpenAPI 3.0 and 3.1 to TypeScript)"
+    url: https://openapi-ts.dev/introduction
+    checkedAt: "2026-11-04"
+  - title: "openapi-fetch (createClient, baseUrl, data/error/response)"
+    url: https://openapi-ts.dev/openapi-fetch/
+    checkedAt: "2026-11-04"
+  - title: "npm Docs v10: npm ci"
+    url: https://docs.npmjs.com/cli/v10/commands/npm-ci
+    checkedAt: "2026-11-04"
+  - title: "MDN: Intl.DateTimeFormat() constructor (timeZone, hourCycle)"
+    url: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat/DateTimeFormat
+    checkedAt: "2026-11-04"
+  - title: "MDN: Request() constructor (relative URL against baseURI, TypeError when it cannot be parsed)"
+    url: https://developer.mozilla.org/en-US/docs/Web/API/Request/Request
+    checkedAt: "2026-11-04"
+  - title: "Playwright: Installation, running tests (headless by default)"
+    url: https://playwright.dev/docs/intro
+    checkedAt: "2026-11-04"
+  - title: "Playwright: Browsers (install a specific browser)"
+    url: https://playwright.dev/docs/browsers
+    checkedAt: "2026-11-04"
+checks:
+  - id: client-in-sync
+    title: "frontend/app/api/schema.d.ts совпадает с перегенерацией из contract/ (openapi-typescript 7.13.0, typescript 5.9.3)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_client_sync.py"'
+    timeoutSec: 120
+    weight: 2
+  - id: page-ssr
+    title: "Собранная страница отрисовывает на сервере слоты из API в поясе приглашённого и проксирует /api/"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_page.py"'
+    timeoutSec: 600
+    weight: 3
+  - id: ui-rubric
+    title: "Поток бронирования, клиент только через сгенерированные типы, компонентный тест и E2E-сценарии (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric.md
+    artifacts:
+      - frontend/app/**/*.vue
+      - frontend/app/**/*.ts
+      - frontend/test/**/*
+      - frontend/e2e/**/*
+      - frontend/nuxt.config.ts
+      - docs/e2e-run.md
+    passScore: 0.7
+    weight: 1

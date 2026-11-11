@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { WorkspaceLimits } from "../config.js";
 import { loadStarter } from "../course/starter.js";
 import {
@@ -34,7 +35,12 @@ import {
 import type { DockerEngine } from "./engine.js";
 import { checkImage, createOrAdoptContainer, ensureVolume, labelsMatchKey } from "./objects.js";
 import { type ContainerInspect, NEVER_STARTED_AT, type VolumeInspect } from "./schemas.js";
-import { type ContainerSpecInput, execCreateBody, STOP_TIMEOUT_SECONDS } from "./spec.js";
+import {
+  type ContainerSpecInput,
+  execCreateBody,
+  killExecCreateBody,
+  STOP_TIMEOUT_SECONDS,
+} from "./spec.js";
 import { buildStarterTar } from "./tar.js";
 
 export interface DockerRuntimeOptions {
@@ -48,6 +54,11 @@ export interface DockerRuntimeOptions {
 
 const NOT_FOUND = 404;
 const CONFLICT = 409;
+/**
+ * The tag of a shell's pid file. Per shell, not per workspace, so a new shell never overwrites a file a kill is still
+ * owed for; 64 random bits make a collision between the shells of one container irrelevant.
+ */
+const SHELL_TAG_BYTES = 8;
 
 async function ignoreNotFound(call: Promise<void>): Promise<void> {
   try {
@@ -248,7 +259,8 @@ export class DockerRuntime implements WorkspaceRuntime {
   async openShell(key: WorkspaceKey, spec: ShellSpec): Promise<ShellHandle> {
     const { container } = await this.#checkedObjects(key);
     if (container === null) throw new WorkspaceNotFoundError(workspaceId(this.#instance, key));
-    const execId = await this.#engine.createExec(container.Id, execCreateBody(spec.shell));
+    const tag = randomBytes(SHELL_TAG_BYTES).toString("hex");
+    const execId = await this.#engine.createExec(container.Id, execCreateBody(spec.shell, tag));
     const stream = await this.#engine.startExec(execId);
     const engine = this.#engine;
     return {
@@ -257,6 +269,12 @@ export class DockerRuntime implements WorkspaceRuntime {
       exitCode: async () => {
         const exec = await engine.inspectExec(execId);
         return exec.Running ? null : exec.ExitCode;
+      },
+      // By the Id inspected and label-checked above, never by name: a container re-created under the same name
+      // meanwhile answers 404 instead of receiving the kill (ADR-0002, a name alone never decides).
+      terminate: async () => {
+        const killId = await engine.createExec(container.Id, killExecCreateBody(tag));
+        await engine.startDetachedExec(killId);
       },
     };
   }

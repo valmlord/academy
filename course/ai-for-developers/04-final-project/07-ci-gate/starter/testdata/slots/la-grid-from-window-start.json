@@ -1,0 +1,47 @@
+{
+  "id": "la-grid-from-window-start",
+  "req": [
+    "REQ-05"
+  ],
+  "request": {
+    "now": "2026-03-01T08:00:00Z",
+    "schedule": {
+      "name": "Ирина",
+      "timeZone": "America/Los_Angeles",
+      "weekly": [
+        {
+          "weekday": 3,
+          "start": "09:15",
+          "end": "11:15"
+        }
+      ],
+      "overrides": []
+    },
+    "eventType": {
+      "title": "Знакомство",
+      "durationMinutes": 60,
+      "slotIncrementMinutes": 30,
+      "bufferBeforeMinutes": 0,
+      "bufferAfterMinutes": 0,
+      "minimumNoticeMinutes": 0,
+      "bookingWindowDays": 60
+    },
+    "bookings": [],
+    "from": "2026-03-18T00:00:00-07:00",
+    "to": "2026-03-19T00:00:00-07:00"
+  },
+  "expected": [
+    {
+      "start": "2026-03-18T09:15:00-07:00",
+      "end": "2026-03-18T10:15:00-07:00"
+    },
+    {
+      "start": "2026-03-18T09:45:00-07:00",
+      "end": "2026-03-18T10:45:00-07:00"
+    },
+    {
+      "start": "2026-03-18T10:15:00-07:00",
+      "end": "2026-03-18T11:15:00-07:00"
+    }
+  ]
+}

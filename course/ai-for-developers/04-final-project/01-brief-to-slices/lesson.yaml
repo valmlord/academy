@@ -1,0 +1,60 @@
+id: final-brief-to-slices
+title: "Итоговый проект: от брифа к спецификации, примерам и срезам"
+type: artifact
+outcomes:
+  - "Разбивает бриф и протокол интервью на спецификацию с требованиями REQ, исполняемые примеры, которые совпадают с моделью заказчика и различают каждое из восьми его решений о времени, один ADR и упорядоченный план вертикальных срезов, где каждый срез ссылается на требования и команду проверки."
+estimatedMinutes: 115
+status: ready
+prerequisites:
+  - sdd-spec-adr-tasks
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "PEP 495: Local Time Disambiguation (fold=0 для повтора и разрыва)"
+    url: https://peps.python.org/pep-0495/
+    checkedAt: "2026-11-04"
+  - title: "Python: zoneinfo (fold при неоднозначном времени)"
+    url: https://docs.python.org/3/library/zoneinfo.html
+    checkedAt: "2026-11-04"
+  - title: "Temporal: ZonedDateTime, параметр disambiguation"
+    url: https://tc39.es/proposal-temporal/docs/zoneddatetime.html
+    checkedAt: "2026-11-04"
+  - title: "Java SE 21: java.time.ZonedDateTime.of(LocalDateTime, ZoneId)"
+    url: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/ZonedDateTime.html
+    checkedAt: "2026-11-04"
+  - title: "Go 1.27.3: time.Date (переходы на летнее время)"
+    url: https://pkg.go.dev/time@go1.27.3#Date
+    checkedAt: "2026-11-04"
+  - title: "RFC 3339: Date and Time on the Internet: Timestamps"
+    url: https://www.rfc-editor.org/rfc/rfc3339.html
+    checkedAt: "2026-11-04"
+  - title: "IANA Time Zone Database: переходы 2026 года (New York и Los Angeles 8.03 и 1.11, Berlin 29.03 и 25.10, Sydney 5.04 и 4.10; сверено через Python zoneinfo)"
+    url: https://www.iana.org/time-zones
+    checkedAt: "2026-11-10"
+  - title: "MADR 4.0.0: шаблон adr-template.md"
+    url: https://raw.githubusercontent.com/adr/madr/4.0.0/template/adr-template.md
+    checkedAt: "2026-11-04"
+checks:
+  - id: spec-form-trace
+    title: "Форма требований, срезов и ADR, связь срезов с требованиями (фильтр формы; смысл проверяют примеры и рубрика)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_spec_form.py"'
+    timeoutSec: 30
+    weight: 1
+  - id: spec-examples-agree
+    title: "Исполняемые примеры совпадают с моделью заказчика и различают все восемь решений о времени"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_examples.py"'
+    timeoutSec: 60
+    weight: 3
+  - id: slices-rubric
+    title: "Вертикальные срезы, решения из интервью в требованиях, ADR (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric.md
+    artifacts:
+      - docs/spec.md
+      - docs/tasks.md
+      - docs/adr/*.md
+    passScore: 0.7
+    weight: 3

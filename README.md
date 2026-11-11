@@ -225,7 +225,8 @@ teardown failed=...)`, where `check status` covers the probes, the red runs and 
    no bash, "Browser terminal" below). On a rebuild nothing changed for the service or your workspaces, there is
    nothing to undo. After a failed smoke test or a failed `docker tag` the new build stays as
    `academy-workspace:dev-candidate` for the bug report; `docker image rm academy-workspace:dev-candidate`
-   removes it. On "no space left on device", `docker system df` shows what holds the Docker disk. A line
+   removes it. On "no space left on device", `docker system df` shows what holds the Docker disk. Its
+   `Build Cache` line is explained in "Build cache" below. A line
    `academy-workspace:dev is now sha256:... (tested; previous: ...)` means the new, tested build
    is already delivered and only the extra tag is left: `docker image rm academy-workspace:dev-candidate` removes it,
    and on the first build step 4a goes on to 4b. A line `academy-workspace:dev is ... (before this run: ...)` means
@@ -376,6 +377,30 @@ docker network ls --filter label=academy.workspace.instance --format '{{.ID}} {{
   | grep -E "$pattern" | cut -d' ' -f1 | xargs -r docker network rm
 ```
 
+### Build cache
+
+Every build of the `web` and `workspace` images leaves build cache records on the Docker disk, also the builds
+of `isolated-stack.sh`, which removes its images but not the cache. A change to sources alone reuses the install
+step of both Dockerfiles. The install runs again when one of the files it is given changes: `pnpm-lock.yaml`,
+`pnpm-workspace.yaml`, the root `package.json`, or the `package.json` of `apps/web`, `packages/db`,
+`packages/lesson-schema` or `services/workspace`. Other `package.json` files, such as
+`images/workspace/package.json`, do not re-run it.
+`docker system df` shows the total on the `Build Cache` line. To free it, run these when no build is running:
+
+```zsh
+docker system df
+docker builder prune --filter 'type!=exec.cachemount'
+docker system df
+```
+
+This is not an academy-only clean-up. The prune works on the whole build cache of the current Docker builder: it
+removes the build cache of every project you have built on this Docker, not only of academy. It does not touch
+images, containers or volumes, and the filter is there to keep cache mounts, among them the pnpm package store both
+Dockerfiles mount (`--mount=type=cache,id=pnpm`). Without `-f` it asks for confirmation first.
+After it, expect the next build of each image to run its install and build steps again; with the store kept, the
+install should take its packages from the store instead of downloading them. No script or test in this repository
+prunes the build cache.
+
 ## Browser terminal
 
 Every lesson page has an environment region next to the lesson text with one tab, the terminal: a bash shell
@@ -390,17 +415,19 @@ started in the database (an enrollment and an `in-progress` `lesson_progress` ro
 **Before the first deploy:** build the lesson image and move off `WORKSPACE_IMAGE` ("Workspace image" above, step
 4). Without the image every lesson says that the environment image `academy-workspace:dev` is missing. The terminal
 runs `/bin/bash` (`TERMINAL_SHELL`), which the lesson image has and `node:22.23.4-alpine` does not: on that image
-the terminal does not open.
+the terminal closes right after it opens.
 
 - **`pnpm dev` has no terminal.** It runs `next dev` without web's custom server; the lesson's environment says it
   could not start. The terminal works in the compose stack on http://127.0.0.1:3080.
 - **The site does not depend on the workspace service.** Web starts after db only. With the service down or
   broken, every page works and only the lesson's terminal says the environment could not start, with a retry
   button; `docker compose up -d --build --wait` then exits non-zero after its wait timeout while web is up.
-- **Restarting or rebuilding the workspace service ends every open terminal session.** Each terminal reconnects
-  to a new shell; the old shells, and every program started in them, keep running in the background, invisible,
-  until the environment stops (idle stop after 30 minutes, or a restart). Files stay. Rebuilding web only makes
-  open terminals reconnect to the same session.
+- **Restarting or rebuilding the workspace service ends every open terminal session and its shell.** Each terminal
+  reconnects to a new shell; the old shell and the programs started in it get SIGHUP and, 2 seconds later, SIGKILL.
+  A program that detached itself with `setsid` (a daemon) keeps running until the environment stops (idle stop after
+  30 minutes, or a restart); so does everything if the service crashed instead of stopping. Files stay. Rebuilding
+  web only makes open terminals reconnect to the same session.
+- **`exit` in the terminal also stops its background jobs** (`npm run dev &`, `nohup ...`) the same way.
 - **An open terminal renews its connection silently about every 15 minutes** (`TERMINAL_RELAY_MAX_SECONDS`, 900),
   and each renewal checks the session again: after a sign-out in another tab or a re-key, an open terminal stops
   within that bound and the page shows the session alert. The shell keeps running across a renewal; a text

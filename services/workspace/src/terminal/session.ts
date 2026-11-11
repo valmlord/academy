@@ -37,6 +37,8 @@ export const terminalLine = {
     `terminal ${workspaceId} ${conn}: socket error (${code})`,
   resizeFailed: (workspaceId: string, conn: string, errorName: string): string =>
     `terminal ${workspaceId} ${conn}: resize failed (${errorName})`,
+  killFailed: (workspaceId: string, conn: string, errorName: string): string =>
+    `terminal ${workspaceId} ${conn}: kill failed (${errorName})`,
 };
 
 // The pattern of web's relay (apps/web/server/relay.ts), restated because the two share no package.
@@ -51,6 +53,23 @@ export function errorName(error: unknown): string {
   // Read once: a getter could pass the checks with one value and return another.
   const name: unknown = error.name;
   return typeof name === "string" && ERROR_NAME.test(name) ? name : "Error";
+}
+
+/**
+ * Starts the kill of the shell's process session without waiting for it (#110); a failure reaches `onFailure` as
+ * an `errorName` only. Both a synchronous throw and a rejection are contained (the 3.2.2 C1 pattern): the callers
+ * run inside catch blocks and `end` must never throw, and the port cannot promise that every adapter's `terminate`
+ * is an async function.
+ */
+export function startShellKill(shell: ShellHandle, onFailure: (errorName: string) => void): void {
+  let started: Promise<void>;
+  try {
+    started = shell.terminate();
+  } catch (error: unknown) {
+    onFailure(errorName(error));
+    return;
+  }
+  started.catch((error: unknown) => onFailure(errorName(error)));
 }
 
 /** The server-held screen: a headless xterm fed with every byte of output, serialized on a resumed attach. */
@@ -319,9 +338,10 @@ export class Session {
   }
 
   /**
-   * The one teardown (idempotent). Destroying the exec stream releases the service's side only: the shell
-   * process keeps running unless it has already exited (residual R-orphan, D16). The headless Terminal is
-   * disposed, never reset first; writes still queued in it are parsed by xterm's scheduled timer, and their
+   * The one teardown (idempotent). Destroying the exec stream releases the service's side; every end except 4002
+   * also starts the kill of the shell's process session (fire-and-forget, a failure is logged: #110). 4002 needs
+   * none: the container is stopping and takes every process with it. The headless Terminal is disposed, never
+   * reset first; writes still queued in it are parsed by xterm's scheduled timer, and their
    * callbacks then return on `ended` (A5-N4).
    */
   end(code: EndCode, exitText?: string): void {
@@ -339,6 +359,12 @@ export class Session {
     this.#stream.off("drain", this.#onDrain);
     this.#stream.on("error", ignoreLateError);
     this.#stream.destroy();
+    // Before the sockets close and the screen is disposed, so the kill is started even if a later step throws.
+    if (code !== CLOSE.environmentStopped) {
+      startShellKill(this.#options.shell, (name) =>
+        this.#options.log.warn(terminalLine.killFailed(this.workspaceId, this.#lastConn, name)),
+      );
+    }
     const reason = endReason(code, exitText);
     for (const connection of [this.#client, this.#pending]) {
       if (connection === null) continue;

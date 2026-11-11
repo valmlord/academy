@@ -64,6 +64,7 @@ describe("stops and the terminal (U-stopping)", () => {
 
       expect(lateClosed).toEqual({ code: 4002, reason: "environment stopped" });
       expect(await client.closed).toEqual({ code: 4002, reason: "environment stopped" });
+      expect(current.shell().terminations).toBe(0);
     },
   );
 

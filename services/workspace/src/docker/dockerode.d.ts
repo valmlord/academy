@@ -69,6 +69,11 @@ declare module "dockerode" {
       hijack: true;
       stdin: true;
     }): Promise<unknown>;
+    /**
+     * `POST /exec/<id>/start` detached, without an upgrade. `isStream` is always set: resolves with the response
+     * stream, which the caller must destroy.
+     */
+    start(options: { _body: { Detach: true; Tty: false } }): Promise<unknown>;
     /** `h` and `w` go in the query string. */
     resize(options: { h: number; w: number }): Promise<unknown>;
     inspect(): Promise<unknown>;

@@ -81,7 +81,7 @@ export interface ShellSpec {
 /**
  * One running terminal shell (design 3.5): the attached TTY stream in both directions. Destroying the stream
  * releases only the service's side: Docker keeps a TTY exec running after its attach connection closes, so the
- * shell lives on until it exits or the container stops (residual R-orphan, D16; I-exec-close-orphans).
+ * shell lives on until `terminate` or the container stops.
  */
 export interface ShellHandle {
   stream: Duplex;
@@ -89,6 +89,11 @@ export interface ShellHandle {
   resize(cols: number, rows: number): Promise<void>;
   /** The shell's exit code, `null` while it still runs or when Docker reports none. */
   exitCode(): Promise<number | null>;
+  /**
+   * Starts a detached exec that sends HUP, then KILL after 2 s, to every process of the shell's session, and resolves
+   * once Docker started it; the grace runs in the container. Rejects with the runtime's classified errors.
+   */
+  terminate(): Promise<void>;
 }
 
 export interface WorkspaceRuntime {

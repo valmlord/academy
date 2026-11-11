@@ -1,0 +1,850 @@
+{
+ "_comment": "Must-fail probes of api-read-conformance (design #44, 4.L4). Each case changes one thing in a valid request drawn per run; status and code are what the contract (3.2) requires. verify_read_api.py asserts that every case here is probed every run.",
+ "cases": [
+  {
+   "id": "schedule-missing-name",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "name"
+   },
+   "label": "нет поля name",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-missing-timeZone",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "timeZone"
+   },
+   "label": "нет поля timeZone",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-missing-weekly",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "weekly"
+   },
+   "label": "нет поля weekly",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-missing-overrides",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "overrides"
+   },
+   "label": "нет поля overrides",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-missing-weekly[0].weekday",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "weekly[0].weekday"
+   },
+   "label": "нет поля weekly[0].weekday",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-missing-weekly[0].end",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "weekly[0].end"
+   },
+   "label": "нет поля weekly[0].end",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-missing-overrides[0].intervals",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "overrides[0].intervals"
+   },
+   "label": "нет поля overrides[0].intervals",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-missing-overrides[0].intervals[0].start",
+   "op": "POST /schedules",
+   "mutation": {
+    "remove": "overrides[0].intervals[0].start"
+   },
+   "label": "нет поля overrides[0].intervals[0].start",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-null-name",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "name",
+    "value": null
+   },
+   "label": "name равно null",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-extra-field-top",
+   "op": "POST /schedules",
+   "mutation": {
+    "extraField": ""
+   },
+   "label": "лишнее поле в теле",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-extra-field-weekly[0]",
+   "op": "POST /schedules",
+   "mutation": {
+    "extraField": "weekly[0]"
+   },
+   "label": "лишнее поле в weekly[0]",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-extra-field-overrides[0]",
+   "op": "POST /schedules",
+   "mutation": {
+    "extraField": "overrides[0]"
+   },
+   "label": "лишнее поле в overrides[0]",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-extra-field-overrides[0].intervals[0]",
+   "op": "POST /schedules",
+   "mutation": {
+    "extraField": "overrides[0].intervals[0]"
+   },
+   "label": "лишнее поле в overrides[0].intervals[0]",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-weekday-0",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].weekday",
+    "value": 0
+   },
+   "label": "weekday = 0",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-weekday-8",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].weekday",
+    "value": 8
+   },
+   "label": "weekday = 8",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-weekday-string",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].weekday",
+    "value": "1"
+   },
+   "label": "weekday строкой \"1\"",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-weekday-fraction",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].weekday",
+    "value": 1.5
+   },
+   "label": "weekday = 1.5",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-name-empty",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "name",
+    "value": ""
+   },
+   "label": "name пустой",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-name-121",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "name",
+    "value": "$text121"
+   },
+   "label": "name длиной 121 символ",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-name-number",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "name",
+    "value": 42
+   },
+   "label": "name числом",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-start-24",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].start",
+    "value": "24:00"
+   },
+   "label": "start = 24:00",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-start-25",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].start",
+    "value": "25:00"
+   },
+   "label": "start = 25:00",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-start-one-digit-hour",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].start",
+    "value": "9:00"
+   },
+   "label": "start = 9:00 (одна цифра часа)",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-end-24-30",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly[0].end",
+    "value": "24:30"
+   },
+   "label": "end = 24:30",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-override-start-24",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "overrides[0].intervals[0].start",
+    "value": "24:00"
+   },
+   "label": "start исключения = 24:00",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-zone-mars",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "timeZone",
+    "value": "Mars/Olympus_Mons"
+   },
+   "label": "неизвестный пояс Mars/Olympus_Mons",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-zone-atlantis",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "timeZone",
+    "value": "Europe/Atlantis"
+   },
+   "label": "неизвестный пояс Europe/Atlantis",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-weekly-object",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "weekly",
+    "value": {
+     "weekday": 1,
+     "start": "09:00",
+     "end": "10:00"
+    }
+   },
+   "label": "weekly объектом, а не массивом",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-date-feb-30",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "overrides[0].date",
+    "value": "2026-02-30"
+   },
+   "label": "дата 2026-02-30",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-date-slashes",
+   "op": "POST /schedules",
+   "mutation": {
+    "set": "overrides[0].date",
+    "value": "2026/03/01"
+   },
+   "label": "дата 2026/03/01",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-start-equals-end",
+   "op": "POST /schedules",
+   "mutation": {
+    "special": "start-equals-end"
+   },
+   "label": "start равен end",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-start-after-end",
+   "op": "POST /schedules",
+   "mutation": {
+    "special": "start-after-end"
+   },
+   "label": "start позже end",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-overlap-weekly",
+   "op": "POST /schedules",
+   "mutation": {
+    "special": "overlap-weekly"
+   },
+   "label": "окна одного дня недели пересекаются",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-overlap-override",
+   "op": "POST /schedules",
+   "mutation": {
+    "special": "overlap-override"
+   },
+   "label": "окна исключения пересекаются",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-malformed-json",
+   "op": "POST /schedules",
+   "mutation": {
+    "raw": "malformed"
+   },
+   "label": "тело не JSON",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "schedule-array-body",
+   "op": "POST /schedules",
+   "mutation": {
+    "raw": "array"
+   },
+   "label": "тело массив, а не объект",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-title",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "title"
+   },
+   "label": "нет поля title",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-durationMinutes",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "durationMinutes"
+   },
+   "label": "нет поля durationMinutes",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-slotIncrementMinutes",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "slotIncrementMinutes"
+   },
+   "label": "нет поля slotIncrementMinutes",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-bufferBeforeMinutes",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "bufferBeforeMinutes"
+   },
+   "label": "нет поля bufferBeforeMinutes",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-bufferAfterMinutes",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "bufferAfterMinutes"
+   },
+   "label": "нет поля bufferAfterMinutes",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-minimumNoticeMinutes",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "minimumNoticeMinutes"
+   },
+   "label": "нет поля minimumNoticeMinutes",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-bookingWindowDays",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "bookingWindowDays"
+   },
+   "label": "нет поля bookingWindowDays",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-missing-scheduleId",
+   "op": "POST /event-types",
+   "mutation": {
+    "remove": "scheduleId"
+   },
+   "label": "нет поля scheduleId",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-extra-field",
+   "op": "POST /event-types",
+   "mutation": {
+    "extraField": ""
+   },
+   "label": "лишнее поле в теле",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-durationMinutes-below",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "durationMinutes",
+    "value": 4
+   },
+   "label": "durationMinutes = 4",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-durationMinutes-above",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "durationMinutes",
+    "value": 481
+   },
+   "label": "durationMinutes = 481",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-slotIncrementMinutes-below",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "slotIncrementMinutes",
+    "value": 4
+   },
+   "label": "slotIncrementMinutes = 4",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-slotIncrementMinutes-above",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "slotIncrementMinutes",
+    "value": 241
+   },
+   "label": "slotIncrementMinutes = 241",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-bufferBeforeMinutes-below",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "bufferBeforeMinutes",
+    "value": -1
+   },
+   "label": "bufferBeforeMinutes = -1",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-bufferBeforeMinutes-above",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "bufferBeforeMinutes",
+    "value": 241
+   },
+   "label": "bufferBeforeMinutes = 241",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-bufferAfterMinutes-below",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "bufferAfterMinutes",
+    "value": -1
+   },
+   "label": "bufferAfterMinutes = -1",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-bufferAfterMinutes-above",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "bufferAfterMinutes",
+    "value": 241
+   },
+   "label": "bufferAfterMinutes = 241",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-minimumNoticeMinutes-below",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "minimumNoticeMinutes",
+    "value": -1
+   },
+   "label": "minimumNoticeMinutes = -1",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-minimumNoticeMinutes-above",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "minimumNoticeMinutes",
+    "value": 43201
+   },
+   "label": "minimumNoticeMinutes = 43201",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-bookingWindowDays-below",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "bookingWindowDays",
+    "value": 0
+   },
+   "label": "bookingWindowDays = 0",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-bookingWindowDays-above",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "bookingWindowDays",
+    "value": 366
+   },
+   "label": "bookingWindowDays = 366",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-title-empty",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "title",
+    "value": ""
+   },
+   "label": "title пустой",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-title-121",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "title",
+    "value": "$text121"
+   },
+   "label": "title длиной 121 символ",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-duration-fraction",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "durationMinutes",
+    "value": 30.5
+   },
+   "label": "durationMinutes = 30.5",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-duration-string",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "durationMinutes",
+    "value": "30"
+   },
+   "label": "durationMinutes строкой \"30\"",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-schedule-id-number",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "scheduleId",
+    "value": 7
+   },
+   "label": "scheduleId числом",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-malformed-json",
+   "op": "POST /event-types",
+   "mutation": {
+    "raw": "malformed"
+   },
+   "label": "тело не JSON",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "event-type-unknown-schedule",
+   "op": "POST /event-types",
+   "mutation": {
+    "set": "scheduleId",
+    "value": "$unknownId"
+   },
+   "label": "scheduleId несуществующего расписания",
+   "status": 422,
+   "code": "unknown_reference"
+  },
+  {
+   "id": "slots-from-offsetless",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "from": "$offsetless"
+    }
+   },
+   "label": "from без смещения",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-to-offsetless",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "to": "$offsetless"
+    }
+   },
+   "label": "to без смещения",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-from-missing",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "from": "$missing"
+    }
+   },
+   "label": "нет параметра from",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-to-missing",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "to": "$missing"
+    }
+   },
+   "label": "нет параметра to",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-to-equals-from",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "to": "$equal"
+    }
+   },
+   "label": "to равен from",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-to-before-from",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "to": "$before"
+    }
+   },
+   "label": "to раньше from",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-range-31-days-1-minute",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "to": "$over31"
+    }
+   },
+   "label": "диапазон 31 сутки и 1 минута",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-from-not-a-time",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "query": {
+     "from": "tomorrow"
+    }
+   },
+   "label": "from = tomorrow",
+   "status": 400,
+   "code": "validation_failed"
+  },
+  {
+   "id": "slots-unknown-event-type",
+   "op": "GET /event-types/{eventTypeId}/slots",
+   "mutation": {
+    "target": "$unknownId"
+   },
+   "label": "несуществующий вид встречи",
+   "status": 404,
+   "code": "not_found"
+  },
+  {
+   "id": "event-type-unknown",
+   "op": "GET /event-types/{eventTypeId}",
+   "mutation": {
+    "target": "$unknownId"
+   },
+   "label": "несуществующий вид встречи",
+   "status": 404,
+   "code": "not_found"
+  }
+ ],
+ "unmatched": [
+  {
+   "method": "GET",
+   "path": "/nope-$random"
+  },
+  {
+   "method": "GET",
+   "path": "/event-types/$eventTypeId/slots/$random"
+  },
+  {
+   "method": "POST",
+   "path": "/schedules/$random"
+  },
+  {
+   "method": "GET",
+   "path": "/schedule"
+  }
+ ],
+ "methodNotAllowed": [
+  {
+   "method": "GET",
+   "path": "/schedules",
+   "allow": [
+    "POST"
+   ]
+  },
+  {
+   "method": "DELETE",
+   "path": "/event-types",
+   "allow": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "method": "PUT",
+   "path": "/event-types/$eventTypeId",
+   "allow": [
+    "GET"
+   ]
+  },
+  {
+   "method": "POST",
+   "path": "/event-types/$eventTypeId/slots",
+   "allow": [
+    "GET"
+   ]
+  }
+ ]
+}

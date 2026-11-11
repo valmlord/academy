@@ -238,6 +238,50 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
 .input[aria-invalid="true"] { border-color: var(--destructive); }
 .input[aria-invalid="true"]:focus-visible { outline-color: var(--destructive); }
 
+/* ---------- RadioGroup, Checkbox (shadcn radio-group, checkbox) ---------- */
+/* Native inputs drawn as shadcn's size-4 controls. The boundary is --input (3.641:1 / 3.606:1 on
+   --background), never --border (1.260:1); the radio dot and the checkbox fill and border are --primary
+   (17.928:1 / 15.717:1 on --background); a checked radio keeps its --input border, as upstream. The focus
+   ring is the global 2px --ring outline. Every departure from upstream is listed in README "Quiz panel".
+   .choice-indicator is the same drawing on an aria-hidden span, for the quiz review, which shows answers
+   without inputs. */
+
+.choice-group { display: flex; flex-direction: column; gap: var(--space-3); }
+/* The whole label is the target: at least one text-base line (1.5rem, --hit-min) tall, as wide as its text. */
+.choice {
+  display: flex; align-items: flex-start; gap: var(--space-3); width: fit-content; max-width: 100%;
+  min-height: var(--hit-min); font-size: var(--text-base); line-height: var(--text-base-line); cursor: pointer;
+}
+/* Long inline code in an option wraps instead of widening the page at 320px (WCAG 1.4.10). */
+.choice-text { min-width: 0; overflow-wrap: anywhere; }
+.radio, .checkbox, .choice-indicator {
+  appearance: none; flex: none; display: inline-grid; place-content: center;
+  width: 1rem; height: 1rem; margin: var(--space-1) 0 0;
+  border: 1px solid var(--input); background: var(--background); color: var(--primary);
+  font-size: var(--text-xs); line-height: 1; font-weight: 600; cursor: inherit;
+}
+.radio, .choice-indicator[data-type="radio"] { border-radius: var(--radius-full); }
+.checkbox, .choice-indicator[data-type="checkbox"] { border-radius: var(--radius-sm); }
+.radio::before, .checkbox::before, .choice-indicator::before { content: ""; }
+.radio:checked::before, .choice-indicator[data-type="radio"][data-checked="true"]::before {
+  width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); background: currentColor;
+}
+.checkbox:checked, .choice-indicator[data-type="checkbox"][data-checked="true"] {
+  border-color: var(--primary); background: var(--primary); color: var(--primary-foreground);
+}
+.checkbox:checked::before, .choice-indicator[data-type="checkbox"][data-checked="true"]::before { content: "\2713"; }
+/* The glyph stands in for lucide CheckIcon size-3.5, which the app draws (no icon set in the prototype). */
+/* Locked while sending (aria-disabled on every option and its group, the change cancelled by proto.js):
+   the cursor changes and nothing else. A muted fill would drop the dark boundary to 2.757:1 (--input on
+   --muted), and the busy button, not the options, holds the reason (R1). */
+.choice-group[aria-disabled="true"] .choice, .choice:has(> [aria-disabled="true"]) { cursor: not-allowed; }
+/* Forced colours paint every background Canvas, so a drawn dot would vanish: the inputs use the native
+   controls. The review's .choice-indicator has none; it is drawn in system colours with the status icons
+   (Status icon, below). */
+@media (forced-colors: active) {
+  .radio, .checkbox { appearance: auto; }
+}
+
 /* ---------- Alert ---------- */
 
 .alert {
@@ -246,9 +290,16 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
   background: var(--card); color: var(--card-foreground); font-size: var(--text-sm); line-height: var(--text-sm-line);
 }
 .alert > .status-icon { grid-row: span 3; margin-top: var(--space-0-5); }
+/* Every part after the icon stays in the text column, however many lines follow the title (the quiz result
+   block has up to four), as the app's col-start-2 on title, description and actions does. */
+.alert > .status-icon ~ * { grid-column: 2; }
 .alert-title { font-weight: 600; }
 .alert-description { color: var(--muted-foreground); }
 .alert-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+/* A list of links in an Alert (the quiz error summary): each link is at least --hit-min (24px) tall, so
+   every target meets WCAG 2.5.8 by its size, not by the spacing exception. */
+.alert-links { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.alert-links a { display: inline-flex; align-items: center; min-height: var(--hit-min); }
 .alert[data-variant="destructive"] { border-color: var(--destructive); }
 .alert[data-variant="destructive"] .alert-title { color: var(--destructive); }
 .alert[data-variant="warning"] { border-color: var(--warning); }
@@ -281,6 +332,13 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
    rule select the exact value "running"; never select it by prefix or substring, or they reach this one. */
 .status-icon[data-status="running-still"] { color: var(--info); border-right-color: transparent; }
 .status-icon[data-status="muted"] { color: var(--muted-foreground); border-style: dotted; }
+/* The review mark "Ваш ответ": a solid ring with a dot, in --foreground. Its shape differs from the check
+   mark of "Верный ответ" (success) and from every status, because the mark is the learner's choice, not a
+   result. */
+.status-icon[data-status="chosen"] { color: var(--foreground); }
+.status-icon[data-status="chosen"]::before {
+  width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); background: currentColor;
+}
 /* Closed check (S2): a lock in the destructive ring, drawn by the two pseudo-elements on the same empty
    span as every other status (the app uses lucide Lock). The shape tells it from the failed cross. */
 .status-icon[data-status="closed"] { color: var(--destructive); flex-direction: column; }
@@ -291,7 +349,6 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
 .status-icon[data-status="closed"]::after {
   content: ""; width: var(--space-2); height: var(--space-1-5); background: currentColor;
 }
-
 /* ---------- Badge ---------- */
 
 .badge {
@@ -315,6 +372,19 @@ a:hover { text-decoration-thickness: var(--underline-hover-width); }
   font-size: var(--text-xs); color: currentColor;
 }
 .badge .status-icon[data-status="closed"]::before { border-width: 1px; }
+/* Forced colours paint backgrounds Canvas, which would empty the chosen radio's dot, the "Ваш ответ" dot and
+   the lock body (all background: currentColor), and the text backplate behind a glyph cuts the top and bottom
+   of a 1rem box or ring. The review indicators and the status icons opt out and draw in system colours:
+   CanvasText strokes, dots and glyphs on Canvas. The block follows the Badge section, whose
+   `.badge .status-icon { color: currentColor }` would otherwise paint the badge lock --destructive; its
+   selectors match the specificity of every coloured rule above, so these win by order. The running and
+   running-still icons keep their transparent right border. */
+@media (forced-colors: active) {
+  .status-icon, .status-icon[data-status], .choice-indicator, .choice-indicator[data-type][data-checked] {
+    forced-color-adjust: none; color: CanvasText; border-color: CanvasText; background: Canvas;
+  }
+  .status-icon[data-status="running"], .status-icon[data-status="running-still"] { border-right-color: transparent; }
+}
 
 /* ---------- DropdownMenu ---------- */
 
@@ -723,7 +793,7 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 /* The last-attempt warning (S4): warning icon first, words in foreground, not muted; on the trigger's
    hover surface the words take accent-foreground, as the trigger does. The 1.25rem icon equals the
    text-sm line, so it stays on the first line when the words wrap. */
-.check-row-meta > [data-tone="warning"] {
+.check-row-meta > [data-tone="warning"], .quiz-header > [data-tone="warning"] {
   display: inline-flex; align-items: flex-start; gap: var(--space-1-5); min-width: 0; color: var(--foreground);
 }
 .check-row-trigger:hover .check-row-meta > [data-tone="warning"] { color: var(--accent-foreground); }
@@ -732,6 +802,8 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
    item (a collapsed details block, an item of another state) takes no space, as with a flex gap. */
 .check-row-panel { padding: 0 var(--space-4) var(--space-4) calc(var(--space-4) + 1.25rem + var(--space-3)); }
 .check-row-panel > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-2); }
+/* The panel's one action ("Пройти квиз", after the counter): an outline sm Button on a line of its own. */
+.check-row-panel > .button { display: flex; width: fit-content; }
 .check-row-message {
   margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
   background: var(--muted); color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--text-sm-line);
@@ -759,7 +831,7 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 .prose ul, .prose ol { padding-left: var(--space-6); }
 .prose li + li { margin-top: var(--space-1); }
 .prose blockquote { margin-inline: 0; padding-left: var(--space-4); border-left: 2px solid var(--border); color: var(--muted-foreground); }
-.prose code {
+.prose code, .choice-text code {
   padding: var(--space-0-5) var(--space-1); border-radius: var(--radius-sm); background: var(--muted); color: var(--foreground);
   font-family: var(--font-mono); font-size: var(--text-sm);
 }
@@ -770,10 +842,44 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 .code-block { position: relative; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); }
 .code-block pre { margin: 0; padding: var(--space-3) var(--space-4); overflow-x: auto; font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--text-sm-line); }
 .code-block pre code { padding: 0; background: transparent; font-size: inherit; }
+/* A header-less block (a quiz prompt) whose pre takes Tab when it overflows: the ring follows the block's
+   corners. md minus the 1px border is the block's inner radius, not a scale step (README "Radius"). */
+.code-block > pre { border-radius: calc(var(--radius-md) - 1px); }
 .code-block-header { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border); }
 .toc { font-size: var(--text-sm); line-height: var(--text-sm-line); }
 .toc > :is(h2, h3, h4) { font-size: var(--text-sm); line-height: var(--text-sm-line); }
 .toc ol { margin: var(--space-2) 0 0; padding-left: var(--space-5); }
+
+/* ---------- Composition: quiz panel (Квиз tab, F15) ---------- */
+/* DOM order (quiz.md "Quiz panel, in DOM order"): .quiz-intro (panel h2, .quiz-header), the result block,
+   the error summary, the questions, the send error, "Отправить ответы". Parts are space-6 apart. */
+
+.quiz { display: flex; flex-direction: column; gap: var(--space-6); }
+.quiz > .button { align-self: flex-start; }
+.quiz-intro { display: flex; flex-direction: column; gap: var(--space-2); }
+/* Threshold, attempt line and the last-attempt warning: muted text-sm like .lesson-meta; the warning is the
+   check row meta's [data-tone="warning"] element (words in --foreground, rule above). */
+.quiz-header {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-1) var(--space-4);
+  font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground);
+}
+/* One question: h3, prompt, exact-set note, per-question error, then the group (or the review list and
+   the explanation). An anchor to an option (an error summary link) scrolls the block's top into view
+   (proto.js data-anchor-block), with space-4 above it. */
+.question { display: flex; flex-direction: column; gap: var(--space-3); scroll-margin-top: var(--space-4); }
+/* The verdict is inline in the h3, so the heading keeps its size and weight and its name reads
+   "Вопрос I из Q Верно" (a space, not a flex gap, separates the two). */
+.verdict {
+  display: inline-flex; align-items: center; gap: var(--space-1-5); margin-left: var(--space-2);
+  vertical-align: top; white-space: nowrap;
+}
+/* Review (F15.5): a static list, no inputs. Each option: the drawn indicator, its text, then its marks. */
+.review-options { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.review-option { display: flex; align-items: flex-start; gap: var(--space-3); font-size: var(--text-base); line-height: var(--text-base-line); }
+.review-option-body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.review-marks { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); font-size: var(--text-sm); line-height: var(--text-sm-line); }
+.review-mark { display: inline-flex; align-items: flex-start; gap: var(--space-1-5); }
+.explanation { display: flex; flex-direction: column; gap: var(--space-2); }
 
 /* ---------- Prototype chrome (state index, theme toggle): not part of the product ---------- */
 

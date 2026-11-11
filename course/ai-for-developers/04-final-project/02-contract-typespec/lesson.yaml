@@ -1,0 +1,61 @@
+id: final-contract-typespec
+title: "Итоговый проект: API-контракт на TypeSpec"
+type: artifact
+outcomes:
+  - "Описывает API на TypeSpec так, что компиляция закреплённым компилятором без JS-расширений даёт OpenAPI, совпадающий с обязательным контрактом по операциям, параметрам, схемам и кодам ошибок. Документирует каждую операцию и модель."
+estimatedMinutes: 85
+status: ready
+prerequisites:
+  - final-brief-to-slices
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "TypeSpec: CLI usage (tsp compile; сайт объявляет версию 1.17.0)"
+    url: https://typespec.io/docs/handbook/cli/
+    checkedAt: "2026-11-04"
+  - title: "TypeSpec: Configuration (--emit, --option, --config, --output-dir, --warn-as-error)"
+    url: https://typespec.io/docs/handbook/configuration/configuration/
+    checkedAt: "2026-11-04"
+  - title: "TypeSpec: @typespec/openapi3 emitter options (file-type, openapi-versions, seal-object-schemas)"
+    url: https://typespec.io/docs/emitters/openapi3/reference/emitter/
+    checkedAt: "2026-11-04"
+  - title: "TypeSpec HTTP: Content types"
+    url: https://typespec.io/docs/libraries/http/content-types/
+    checkedAt: "2026-11-04"
+  - title: "TypeSpec HTTP: Operations (@route, @path, @query, @body, @statusCode)"
+    url: https://typespec.io/docs/libraries/http/operations/
+    checkedAt: "2026-11-04"
+  - title: "TypeSpec: Built-in decorators (@doc, @error, @pattern, @minValue, @format, @service)"
+    url: https://typespec.io/docs/standard-library/built-in-decorators/
+    checkedAt: "2026-11-04"
+  - title: "TypeSpec: Models (spread, is, extends, optional properties)"
+    url: https://typespec.io/docs/language-basics/models/
+    checkedAt: "2026-11-04"
+  - title: "TypeSpec: Imports (relative files, directories, packages)"
+    url: https://typespec.io/docs/language-basics/imports/
+    checkedAt: "2026-11-04"
+  - title: "RFC 9457: Problem Details for HTTP APIs"
+    url: https://www.rfc-editor.org/rfc/rfc9457.html
+    checkedAt: "2026-11-04"
+  - title: "draft-ietf-httpapi-idempotency-key-header-08 (2026-10-22), разделы 2.1, 2.2, 2.7"
+    url: https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-08
+    checkedAt: "2026-11-04"
+  - title: "RFC 9651: Structured Field Values for HTTP, раздел 3.3.3 (Strings)"
+    url: https://www.rfc-editor.org/rfc/rfc9651.html
+    checkedAt: "2026-11-04"
+checks:
+  - id: contract-matches
+    title: "Контракт компилируется проверкой и совпадает с обязательным по всем восьми операциям"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_contract.py"'
+    timeoutSec: 120
+    weight: 3
+  - id: contract-rubric
+    title: "Документация и структура контракта (оценка ментора по рубрике)"
+    kind: rubric
+    rubric: checks/rubric.md
+    artifacts:
+      - contract/**/*.tsp
+    passScore: 0.7
+    weight: 1

@@ -11,6 +11,7 @@ import {
   type ScreenOptions,
   Session,
   START_SIZE,
+  startShellKill,
   TerminalConnection,
   terminalLine,
 } from "./session.js";
@@ -77,8 +78,8 @@ export class TerminalRegistry {
   }
 
   /**
-   * Row 24: service shutdown, before the HTTP server closes. Every session ends with 1001; a shell still
-   * running keeps running in its container without a terminal until the container stops (R-orphan, D16).
+   * Row 24: service shutdown, before the HTTP server closes. Every session ends with 1001, which starts the kill
+   * of its shell (#110); the requests in flight keep the process alive until Docker answered.
    */
   closeAll(): void {
     for (const session of [...this.#sessions.values()]) session.end(CLOSE.shuttingDown);
@@ -146,9 +147,11 @@ export class TerminalRegistry {
         heartbeatMs: this.#options.heartbeatMs ?? HEARTBEAT_INTERVAL_MS,
       });
     } catch (error: unknown) {
-      // The exec started but no session owns it: release the service's side before C4 closes the socket.
+      // The exec started but no session owns it: release the service's side and kill the shell before C4 closes
+      // the socket.
       shell.stream.on("error", () => undefined);
       shell.stream.destroy();
+      startShellKill(shell, (name) => log.warn(terminalLine.killFailed(id, connection.conn, name)));
       throw error;
     }
   }

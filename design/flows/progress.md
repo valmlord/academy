@@ -16,9 +16,11 @@ Built on #69 (the check panel, not yet on `main` when #72 was designed): the che
 format, the token rule and S1 (a passed check stays "Пройдено") are #69's (`checks.md`, `ia.md` after #69
 merges). Where `main` still has the #50 words, #69's replace them.
 
-Words (`ia.md` vocabulary, the two rows "attempt" of #69): in these flows **attempt** with no limit or
-counting word names the record of one run (ADR-0007 item 5, the `attempts` row, `schema.ts:183-217`); one
-check's result in it is a **check result** (`check_results`, `schema.ts:219-255`). The Russian "попытка"
+Words (`ia.md` vocabulary, the two rows "attempt" of #69, the first widened at the merge with #70): in
+these flows **attempt** with no limit or counting word names an attempt record (ADR-0007 item 5, the
+`attempts` row, `schema.ts:183-217`): the record of one run or, from #36, of one answered quiz send, a
+**quiz attempt record**, which is never a run (A72-17); one check's result in it is a **check result**
+(`check_results`, `schema.ts:219-255`). The Russian "попытка"
 keeps both of #69's senses. The record: "Последние попытки", "История попыток", "Попыток пока нет", the
 number "№ N". One check's result, in every string that counts or qualifies a check's results:
 "Неудачных попыток: N" and "Неудачных попыток: N из M" (F18.4), "Стоимость попытки: $N" (F19.2), the
@@ -51,7 +53,7 @@ progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before th
 2. F18.2 Learner sees one row per module in course order: title, "2 из 6 уроков", a bar; a module with
    status "Готовится" (`ia.md` set) shows the status and no bar.
 3. F18.3 From #35, learner sees section "Последние попытки": the `RECENT_ATTEMPTS_SHOWN` (5, A72-1) newest
-   attempts over every `ready` lesson of the course, newest first by `attempts.started_at`
+   attempts (runs and, from #36, quiz attempt records, A72-17) over every `ready` lesson of the course, newest first by `attempts.started_at`
    (`schema.ts:193`). Each row is one link, its accessible name its visible text in DOM order with the
    fields joined by ". " (A72-19): a status icon (`aria-hidden`, A72-8), the lesson title (`course/`), the
    date and time (`attempts.started_at`, format in `ia.md` "Page copy", A72-7), the attempt summary (`ia.md`
@@ -65,7 +67,7 @@ progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before th
    failed results (A72-2). Order: by the latest counted failure, newest first (for a closed check, the failure
    that closed it), then by counted failed results, most first; closed checks get no precedence, so a check
    where the learner stumbles now pushes an older one out (A72-2). Each row is one link to the lesson's
-   Проверки tab (`?tab=checks`), its accessible name its visible text with the fields joined by ". "
+   Проверки tab (`?tab=checks`), for a quiz check (from #36) to its Квиз tab (`?tab=quiz`, A72-2), its accessible name its visible text with the fields joined by ". "
    (A72-19): the check title (`lesson.yaml` `title`), the lesson title, and "Закрыта: не пройдено" for a
    closed check or the counter "Неудачных попыток: N" / "Неудачных попыток: N из M" (R7) otherwise (one
    check's results, "Words" above). Data: the per-check fields of the #69 check-state read
@@ -103,7 +105,7 @@ F18.3-F18.5 too (`aria-hidden`), because they come from the same read (A72-4).
 
 **Exit:** a module row opens its catalog section (F5.2); from #35 a "Последние попытки" row opens F19 with
 that attempt open, and a "Где трудно" row opens the lesson's Проверки tab, where the check rows of F13 show
-the check's latest result (`checks.md` "Check row fields").
+the check's latest result (`checks.md` "Check row fields"), or for a quiz check the Квиз tab (A72-2).
 
 **Keyboard path:** after the Card's button (and "Повторить" when shown) Tab reaches, in reading order, the
 module rows, then from #35 the "Последние попытки" rows, then the "Где трудно" rows; each row is one link,
@@ -175,14 +177,18 @@ not-found page by itself, because the lesson exists. Before #35 the section is n
      says "Пройдено" and, while that result is the latest, "Проверка уже засчитана. ..." (`checks.md`
      "Open panel by status word");
    - the grader message of that result, verbatim (`pre`, `check_results.details`, `schema.ts:228-229`, no
-     grader secrets, ADR-0007 item 5), when it has one;
+     grader secrets, ADR-0007 item 5), when it has one; for a quiz result (from #36) "Верно C из Q." in
+     its place, never `details` (A72-17);
    - "Подробности" (a Collapsible) with the raw error, when the result is a runner error and the server
      stored one;
    - from #37 / #39, "Стоимость попытки: $N" (`ia.md` "check row note", #69), the cost of that result, when
      it spends (ADR-0007 item 11);
    - from #37, the mentor review of that check (`mentor_reviews.check_id`, `schema.ts:262-263`) as D3
      designs the review block (`mentor.md` F16); a whole-attempt review (`check_id` null) after the last
-     result. Hints are shown from the release that stores them with the attempt (A72-16).
+     result. For a quiz result the same rule: a review asked for by "Разобрать с ментором" in the closed
+     quiz block (F15.6) belongs to the quiz attempt record of the closing send (a requirement on #37,
+     A72-17), so it shows in that record's panel after "Верно C из Q.". Hints are shown from the release
+     that stores them with the attempt (A72-16).
 
    The words and "Подробности" of an old result need its flags and raw error stored with that result, not
    only with the latest one: #34 stores `isCounted`, `isFormatError`, `isBudgetExhausted` and the runner
@@ -205,12 +211,15 @@ mentor review of that attempt.
 - The check state cannot be read: the history is read only after the check state, in the same server
   read (A72-9), so F19 renders nothing (no heading, no error text of its own) and `attempt` has no effect.
   What the Проверки tab shows then is #69's state; #69's flows do not define it, so it is recorded as
-  question Q1 for #69 (`ia.md` FU9), and F19 adds nothing until #69 answers.
-- A re-read after a run ends fails: the list stays as it was, so nothing changes on screen and nothing is
-  announced, and the next page load or the next run's end reads again (A72-9), because an error replacing a
+  question Q1 for #69 (`ia.md` FU13), and F19 adds nothing until #69 answers.
+- A re-read that a new attempt record starts (a run's end; from #36 an answered quiz send or a visibility
+  re-read that finds a record this page has not shown, sent in another browser tab or by this page's own
+  send that timed out and the server recorded; Loading below) fails: the list stays as
+  it was, so nothing changes on screen and nothing is announced, and the next page load or new record
+  reads again (A72-9), because an error replacing a
   list the learner may be reading would be a background change that removes the focused row (`ia.md` R2),
   and the new attempt's results are already in the check rows above. When the history was empty (the first
-  run), it shows this error state instead, because an empty history has no row the learner could lose, and
+  run, the first answered quiz send, or the first record found by a visibility re-read), it shows this error state instead, because an empty history has no row the learner could lose, and
   keeping "Попыток пока нет" would deny the attempt just made: the h3 element stays and its text becomes
   "История попыток недоступна", so focus on it (deep link row 3) stays there; "Повторить" follows it.
   This is the one change in F19 that is announced: the history status container (`role="status"`,
@@ -219,24 +228,35 @@ mentor review of that attempt.
   of a heading, focused or not, is not reliably read. It is written only while the Проверки tab panel is
   shown (in one-pane mode, area "Урок"); otherwise nothing is written, and the learner meets the error
   heading on opening the tab. It happens at most once per page view, because every history read that starts
-  after a run's end holds that attempt, so no later read finds the history empty (a "Повторить" read that
+  after the page learned of a new record holds that record, so no later read finds the history empty (a "Повторить" read that
   started before it is followed by one more read, below). The check bar has announced the run's end in its
-  own container, so the two containers say different things, once each; the history container's text is
-  set no sooner than `CHECK_STATUS_TEXT_GAP_MS` after the check bar's end text is set (`checks.md` "Live
+  own container (an answered quiz send is announced by the result block's focus or, when the answer
+  arrived while the learner was away, by the quiz notice, `quiz.md` P9; a quiz sent in another browser
+  tab is announced in that tab, B27, and this page's own timed-out send the server recorded is announced
+  by the retry, whose recorded result carries the quiz outcome and, when that send changed the lesson status, the
+  lesson line, unless a run end or re-read since "Отправить ответы" was pressed already showed it as summary 5 or 6,
+  `quiz.md` "Lesson outcome after a send" ("Send window") and F15 Error states; a send answered during a run is said again by the run's end
+  text, the accepted double of `quiz.md` "Check bar after a quiz send" row "1, 2 or 3"), so the containers say different things, once each; the history
+  container's text is set no sooner than `CHECK_STATUS_TEXT_GAP_MS` after the check bar's end text is set,
+  or after the quiz notice text when one was set (a learner who saw the result block and then opened
+  Проверки before the re-read failed has no notice, and the gap then waits for nothing; `checks.md` "Live
   regions", text gap), and after that text when it still waits for its own gap, because two polite updates
   in one rendered frame can reach a screen reader as the second only, and the lost one would be the run's
-  outcome. The container is emptied, silently, when "Повторить" loads the history; until then a screen reader in browse mode meets the text twice (container, then h3),
+  or the quiz's outcome. The container is emptied, silently, when "Повторить" loads the history; until then a screen reader in browse mode meets the text twice (container, then h3),
   accepted, because emptying it on a timer could cut the announcement short.
-- In the error state (on load, after a failed "Повторить" or after the case above) a run's end does not
-  re-read the history; "Повторить" is the way back, because a background load would remove "Повторить",
+- In the error state (on load, after a failed "Повторить" or after the case above) a new record (a run's
+  end, an answered quiz send, a visibility re-read that finds one) does not re-read the history, and the history part of a visibility
+  re-read is ignored; "Повторить" is the way back, because a background load would remove "Повторить",
   possibly under the learner's focus, and the run's results are in the check rows above.
-- A run ends while a "Повторить" request is pending: when that request returns with the history, the history
+- A run ends (or from #36 a quiz send is answered, or a visibility re-read finds a new record) while a
+  "Повторить" request is pending: when that request returns with the history, the history
   is re-read once more in the background (as Loading below), because the request may have read the history
   before the attempt was finished; when it fails, the error state stays (the rule above). That second read is
   "the history re-read after that run's end" of Empty states, so an empty list it replaces shows "Попыток
   пока нет" alone until it returns, never the first form; if it fails while the history is empty, the case
   above applies (error state, the history status container written once). So F19 never settles on "Попыток
-  пока нет" while a finished attempt exists. Focus: "Повторить" moves it to the h3 "История попыток" (R2),
+  пока нет" while a finished attempt record exists that this page has learned of (its own run or send, an
+  attached run, or a record a visibility re-read found). Focus: "Повторить" moves it to the h3 "История попыток" (R2),
   and the second read keeps that element, as every re-read does.
 - Session expired: F2 (the page-level alert, `?tab=checks&attempt=...` kept in `next`).
 - The lesson page whose course cannot be read: no Проверки tab, no history (F7 error states).
@@ -261,20 +281,40 @@ mentor review of that attempt.
   доступна после запуска", "Сначала запустите окружение", `ia.md` R1), the first form stays, because no
   run has been made: "когда будете готовы" points to a later press, and the reason under the button says
   what comes first. A start the service refuses (no attempt record, "Проверить" stays enabled, `checks.md`
-  F13 error states) also keeps the first form. The second form is the text a deep link lands next to in
+  F13 error states) also keeps the first form. On a lesson whose check bar has no "Проверить" (a
+  quiz-only lesson, from #36, not drawn) the empty history always shows the second form, because the long text
+  names a button that is not there (A72-17, Q3). A quiz send on a lesson with "Проверить" keeps the first form until its answer,
+  because the long text still offers a press that has not happened, and the re-read after the answer
+  replaces it with the list (A72-17). The second form is the text a deep link lands next to in
   row 3 of `ia.md` "Attempt deep link" when the history is empty. Before #35 the Проверки tab's own empty
-  state during the first run is #69's (`ia.md` FU9, Q5).
+  state during the first run is #69's (`ia.md` FU13, Q5).
 
 **Loading:** none of its own: the history is read on the server together with the check state when the
 page loads (A72-9), as the check rows are; the lesson page draws no loading skeleton
-(`lesson/acceptance.md`). When the page learns that a run ended, the history is re-read in the background
-(not in the error state; once more after a "Повторить" that was pending at the run's end returns, Error
-states) and the new attempt is inserted at the top; the rows already shown keep their expanded state and focus.
-"Learns that a run ended" is every case in which #69 replaces the page's baseline
-(`latestFinishedAttempt.attemptId`, `checks.md` "Baseline of a re-read"): the end of its own or an attached
-run (B19), a reconnect that finds the run ended (B14, B17), and a visibility re-read that finds a newer
-finished run (B9, B10). A visibility re-read that finds the same baseline (B11) does not re-read the history, because
-no attempt was added.
+(`lesson/acceptance.md`). **History baseline.** The run baseline of `checks.md` ("Baseline of a re-read",
+`latestFinishedAttempt.attemptId`) names runs only, so it cannot tell the history that a quiz attempt
+record was added; the history keeps its own: the id of the newest finished attempt record of any kind this
+page has read (`latestAttemptRecordId`, run or quiz attempt record, null when there is none), which the
+check-state read serves from #35 (a requirement on #35, A72-17), set on load and by every history read that
+returns. When the page learns of a record it has not read, the history is re-read in the background (not in
+the error state; once more after a "Повторить" that was pending then returns, Error states) and the new
+record is inserted in its place by `attempts.started_at` (A72-10): at the top, except a run that ends after
+a quiz attempt record sent while it was going, which goes below that record; the rows already shown keep
+their expanded state and focus. "Learns of a record" is:
+- a run ended: every case in which #69 replaces the run baseline: the end of its own or an attached run
+  (B19), a reconnect that finds the run ended (B14, B17), and a visibility re-read that finds a newer
+  finished run (B9, B10);
+- from #36 an answered quiz send (failed, passed, closed, or refused, because a refusal means another
+  browser tab sent one): the history is read in the same server read as the check states the send
+  re-reads (A72-17); a send error re-reads nothing;
+- from #36 a visibility re-read (B9-B11, B27) whose `latestAttemptRecordId` differs from the history
+  baseline: a quiz send this page has not shown (B27: sent in another browser tab, or this page's own send
+  that timed out and the server recorded) is such a record, which the run baseline does not see.
+  Every visibility re-read reads the history in the same server read as the check states, so the quiz check
+  row and the new history row change in one render, as after a send (A72-17); in the error state the
+  history part of that read is ignored and "Повторить" stays (Error states).
+A visibility re-read whose `latestAttemptRecordId` equals the history baseline leaves the history as it is,
+because no record was added.
 
 **Exit:** F19.3; "Проверить" (F13); another tab.
 
@@ -292,7 +332,13 @@ container, the visually hidden history status container (`role="status"`, R2), p
 the section is rendered and written in one case only (Error states, a failed re-read of an empty history).
 Every other change in F19 is not announced: the end of a run is announced by the check bar alone
 (`checks.md` "Live regions"), a new row records that same run, and the empty-text change follows the
-run's start, which the check bar announces.
+run's start, which the check bar announces. From #36 a new quiz attempt record row, and an empty text the
+row replaces, follow a quiz send whose outcome the result block's focus or the quiz notice has announced
+(`quiz.md` P9), or a send this page has not shown (`checks.md` B27): one in another browser tab, announced
+there, or this page's own timed-out send the server recorded, announced by the retry, whose recorded result
+carries the quiz outcome and, when that send changed the lesson status, the lesson line, unless a run end or
+re-read since "Отправить ответы" was pressed already showed it as summary 5 or 6 (`quiz.md` "Lesson outcome
+after a send", "Send window", and F15 Error states).
 
 **Time limits:** none.
 
@@ -303,13 +349,14 @@ run's start, which the check bar announces.
 - The transcript of an attempt in the browser (#38): no flow shows it.
 - A page listing all attempts across lessons: none (A7); the history of one lesson is F19.
 - Showing the check kind in history rows: the same deferral as the check rows (`checks.md` "Check kind").
-- Focusing the check row on arrival from a "Где трудно" row: that row opens `?tab=checks` and moves no
-  focus, as any load of the tab. A `?check=` parameter would need its own fallback set (unknown id,
-  removed check, check not shown); left for the author phase to propose (`ia.md` FU9).
+- Focusing the check row on arrival from a "Где трудно" row: that row opens `?tab=checks` (a quiz check's
+  row `?tab=quiz`, A72-2) and moves no focus, as any load of the tab. A `?check=` parameter would need its own fallback set (unknown id,
+  removed check, check not shown); left for the author phase to propose (`ia.md` FU13).
 - Open questions handed to other tasks: Q1 for #69 (what the Проверки tab shows when the check state
-  cannot be read), Q2 and Q3 for #70 (the quiz's "Попытка N из M" next to "№ N"; the F19 empty text on a
-  quiz-only lesson), Q4 for #69 and #39 (the word of a budget-spent result reported as not counted, A72-6),
-  Q5 for #69 (the Проверки tab's own empty text during the first run before #35), `ia.md` FU9.
+  cannot be read), Q4 for #69 and #39 (the word of a budget-spent result reported as not counted, A72-6),
+  Q5 for #69 (the Проверки tab's own empty text during the first run before #35, answered by #70 for a
+  lesson with a quiz check), `ia.md` FU13. Q2 and Q3, handed to #70, are decided in A72-17, because #70
+  merged without them.
 
 ## Decisions (#72)
 
@@ -337,8 +384,16 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   "Закрыта: не пройдено" and its panel holds the closed note and the last grader message (`checks.md`
   "Open panel by status word"), which is what the learner can reread in #35; from #37 the same panel also
   offers the mentor review and the hint levels "Скелет" and "Скажи прямо", which only a closed check
-  unlocks (F16, F17.4, the hint lock "Откроется, когда проверка будет закрыта"). The heading "Где трудно" names the learner's experience and claims no
-  topic; the empty text "Пока нет проверок, которые не удаются" is true on the first run too.
+  unlocks (F16, F17.4, the hint lock "Откроется, когда проверка будет закрыта"). From #36 a quiz check
+  qualifies by the same rule, and its row links the Квиз tab (`?tab=quiz`), not Проверки, because there
+  its Проверки row would show nothing the "Где трудно" row has not said: the panel holds the counter only,
+  no closed note and no grader message (`quiz.md`, "Quiz check row in Проверки"), while the Квиз panel holds
+  what the learner can do about that check: the questions with "Попытка A из M" while it is open, the
+  review with explanations once closed (F15.5), and from #37 "Разобрать с ментором" (F15.6). The arrival
+  follows `ia.md` "Deep links" (`?tab=quiz`, no focus move on load; a quiz check gone from the lesson
+  falls back to Теория). The link target is the one difference from the other rows; the row's name and
+  fields are the same (A72-19). The heading "Где трудно" names the learner's experience and
+  claims no topic; the empty text "Пока нет проверок, которые не удаются" is true on the first run too.
 - **A72-3. Attempts of lessons that are not `ready`: not listed, but paid for.** "Последние попытки" lists
   only attempts of `ready` lessons in the current tree, because a row must open F19 and such a lesson has
   no route (it is not-found, `ia.md` inventory), and ADR-0007 item 5 "Dashboard" ignores such rows. The total
@@ -354,7 +409,8 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   "Пройдено", because an attempt covers a subset of the checks (ADR-0007 item 5 "Attempt scope") and a bare
   "Пройдено" would read as the lesson passed; not the check bar's "Пройдено: N из M", which counts the
   lesson. A running attempt (dashboard only, A72-9) reads "Идёт проверка", #69's word for a run going
-  (check bar summary 1), because an attempt record is a run ("Words" above), not one check. An attempt
+  (check bar summary 1), because a running attempt record is a run ("Words" above), not one check; a
+  quiz attempt record is never running (A72-17). An attempt
   with no result, or whose every result is a runner error, reads as the check bar's summary 4, "Сбой
   проверки, попытка не засчитана". Otherwise the summary is "Пройдено проверок: N из M" with at most one
   note, "Проверок с незасчитанной попыткой: N" (its N is the count K below), shown when K is at least 1.
@@ -376,7 +432,7 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   - a budget-spent result the server reports as not counted (from #39): #69 gives it the word "Не пройдено:
     исчерпан бюджет $N" "as the server reports" and no wording of its own for "not counted" (`checks.md`
     "Status of one check", the paragraph after the token rule, and #69's design note residuals). Until #69
-    or #39 names one (`ia.md` FU9, Q4) it is left out of K by this rule; if the word it gets contains
+    or #39 names one (`ia.md` FU13, Q4) it is left out of K by this rule; if the word it gets contains
     "попытка не засчитана", it enters K with no change here.
   So the summary tells a result that did not pass and whose word says it did not count from one whose word
   does not, exactly as its panel does; whether a failure counted toward a limit is read where the limit is
@@ -399,7 +455,8 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   | budget spent, counted, "Не пройдено: исчерпан бюджет $N" (from #39) | `destructive` | yes | M | `destructive` |
   | budget spent, reported not counted, the same word until Q4 (from #39) | `destructive` | no | M (K once its word says "попытка не засчитана") | `destructive` |
   | any of the above for a check no longer in the lesson (A72-15) | as its word | as its word | as its word | as its word |
-  | a quiz result (from #36, A72-17) | #70's | #70's | by its word, under the same rule | by its words |
+  | a quiz result, passed, "Пройдено" (from #36, A72-17) | `success` | - (a pass) | M, N | `success` |
+  | a quiz result, failed, "Не пройдено" (from #36, also the failure that closes the quiz; no failure after a pass, P5 of `quiz.md`) | `destructive` | yes | M | `destructive` |
   | "Не запускалась", "В очереди", "Идёт", "Закрыта: не пройдено" | - | - | never: check states, not results; a finished attempt holds results only (ADR-0007 item 5 "Attempt scope", one result per included check) and a closed check is never in a run (S2) | - |
   | no result at all (A72-14) | - | - | summary 4 | `warning` |
   | the attempt still running (dashboard only) | - | - | "Идёт проверка" | the motionless `running` ring (A72-8) |
@@ -450,16 +507,22 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   not. The panel shows each result's own word and icon by #69's rule, so the kind is never lost.
 - **A72-9. A running attempt is not in F19, and F19 is not a live view of the run.** The check rows above
   are the live view of a run (#69); a second live view of the same run would be announced twice. When the
-  run ends the history is re-read silently and the new row appears at the top; a failed re-read keeps the
+  run ends the history is re-read silently and the new row appears in its place by `started_at` (F19
+  Loading); a failed re-read keeps the
   list (an empty history shows the error state instead, announced once by the history status container,
   because that error is news the check bar does not give; F19 error states). The dashboard
   shows "Идёт проверка" as of its read, with the motionless `running` ring (A72-8); its link carries the
   attempt id, so a click after the run ended opens that attempt, and a click while it still runs lands on
   the history heading (`ia.md` "Attempt deep link").
 - **A72-10. "№ N" numbers every attempt.** Oldest = 1 per user and lesson by `started_at`, runner errors
-  included, because the learner pressed "Проверить" each time (GitHub numbers every run, `run_number`,
-  research §5); derived, so no schema change. "Попытка N" is not used, because it is the quiz's per-check
-  string (`quiz.md`).
+  and quiz attempt records included, because each record is one action of the learner: a press of
+  "Проверить" (or "Запустить"), or from #36 an answered quiz send (GitHub numbers every run, `run_number`,
+  research §5); derived, so no schema change. A running run is counted too, so a shown number never
+  changes: a quiz sent while a run is going gets the number after that run's, and the history shows the gap
+  until the run ends and its row fills it (F19 Loading), because a number that changes under the learner
+  would misname the attempt it was read for. "Попытка A" is not used, because it is the quiz's per-check
+  string (`quiz.md`, "Попытка A из M" / "Попытка A"): a quiz attempt record has both numbers, and they
+  differ (A72-17).
 - **A72-11. The total names what it sums, and what it leaves out.** "Потрачено на проверки и разборы",
   with the note "Расход агента в терминале сюда не входит", because the terminal agent uses the same API
   key and the platform records none of it (learning-process §1, research §1.3), so an unlabelled figure would
@@ -483,12 +546,66 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
 - **A72-16. Hints in F19.2 only once they are stored.** No table stores hints (#72 research §1.2), so F19.2
   promises none in #35 or #37; `mentor.md` F17 "saved with the attempt" stays a requirement on #37, and when
   a release stores them F19.2 lists them as D3 designs them.
-- **A72-17. Quiz attempts are attempts.** If #36 writes a sent quiz as an attempt record (R5), it appears in
-  F18.3 and F19 under the same rules, with its one result's status word; #70 (quiz design) may add a score
-  line. Nothing is excluded, because a quiz attempt is part of what the learner tried; before #36 there are
-  none. Two points stay with #70 (`ia.md` FU9, questions Q2 and Q3): a quiz attempt would carry both the
-  quiz's "Попытка N из M" and the history's "№ N"; and the F19 empty text "Нажмите "Проверить"" is wrong on
-  a quiz-only lesson, whose check bar shows "Пройти квиз" from #36 (`checks.md`).
+- **A72-17. Quiz attempt records are attempt records.** From #36 every answered quiz send is an attempt record with
+  one check result, the quiz check's, because ADR-0007 has no other place for it: a `check_results` row
+  needs its `attempt_id` (`schema.ts:222`, not null), #36 is one of item 5's writers, and #70 stores the
+  sent answers in `check_results.details` (`quiz.md`, "Requirements for #36", item 7). A refused send
+  (the quiz changed in another browser tab) writes no record, because it counts nothing (`quiz.md` Error
+  states); a send whose answer is lost (the send error) may have been recorded, and its client attempt id
+  keeps the retry to that one record (#36). So a
+  quiz attempt record appears in F18.3 and F19 under the same rules, numbered "№ N" among the lesson's records
+  (A72-10), its summary "Пройдено проверок: 1 из 1" or "Пройдено проверок: 0 из 1" (A72-6 table); before
+  #36 there are none. It is a record, not a run: a run never includes the quiz (`checks.md` "Run
+  composition"), and the vocabulary keeps the two apart (`ia.md`, row "attempt record (of a run or of a quiz
+  send)" names both kinds, row "run" ties the run-only fields to runs). What #36, #34, #35 and #37 must do
+  for it is item 11 of `quiz.md` "Requirements for #36", the list #36 is built against. Decided at the
+  merge with #70, which left FU13's questions Q2 and Q3 open:
+  - **Two numbers stay apart (Q2).** The history row shows "№ N" only and adds no quiz line, and the quiz
+    header shows "Попытка A из M" only. They count different things (every record of the lesson; the
+    quiz's own sends) and never stand in one panel: "№ N" is in Проверки, "Попытка A" in Квиз, the same
+    reason #70 gives for its "Вопрос I из Q" next to the hint level "Вопрос" (`ia.md` vocabulary, "quiz
+    question"). Showing both on one row would set two different numbers side by side for one attempt.
+  - **What an open quiz result shows (F19.2).** The check title, its result word ("Пройдено" or "Не
+    пройдено", never "Закрыта: не пройдено", a check state) and, in place of the grader message, "Верно C
+    из Q." from the quiz set (`ia.md`), with C and Q of that attempt, which #36 stores with the result. Not
+    `details` verbatim: it holds the selected answers, and from a failed attempt it must not lead to which
+    answers were wrong before the quiz is passed or closed (`quiz.md`, "Requirements for #36", item 1); the
+    review with verdicts and explanations is the Квиз tab's (F15.5). Not "Нужно K.", because K is the
+    quiz's current threshold and an old attempt's line must stay true if the quiz changes; the result word
+    already says whether it passed. No "Стоимость попытки" (a quiz result spends nothing: its null
+    `cost_usd` is zero, ADR-0007 item 11), so the record shows no "Потрачено: $N" either, unless from #37 a
+    mentor review belongs to it (item 11, "Whether an attempt shows a cost at all"; F19.2, the closed
+    quiz's "Разобрать с ментором", F15.6, whose review #37 stores with the record of the closing send); no
+    "Подробности" (a quiz has no runner error).
+  - **The empty text on a lesson without "Проверить" (Q3).** A lesson whose check bar shows "Пройти квиз"
+    in place of "Проверить" (a quiz-only lesson, from #36, `checks.md` empty states; none exists, not drawn)
+    shows "Попыток пока нет" alone in F19 (F19 empty states), because the long text names a button that
+    is not there; no new string is needed.
+  - **After a send the history changes with the quiz row.** The check-state re-read that follows an
+    answered send (`quiz.md`, "Lesson outcome after a send") reads the history too, as the page load does
+    (A72-9), so the quiz check row and the new history row change in one render and the history never says
+    "Попыток пока нет" next to a quiz row "Неудачных попыток: 1" (the reason of `quiz.md` "Empty states").
+    From #35 F19's empty states own the Проверки empty text, and they agree with `quiz.md` "Empty states":
+    with no record, every `command` row reads "Не запускалась" (or a run is going, the short form) and the
+    quiz row "Ответы не отправлялись".
+  - **Run-only fields exclude it.** `latestFinishedAttempt` and `runningAttemptId` name runs only
+    (`checks.md` "Baseline of a re-read"), and #36 writes a quiz attempt record already finished, never
+    `running`. So a quiz send, here or in another browser tab, never sets a run's end text, never shows
+    "Открыть результаты" through B9 or B10 and never attaches as a running run; the check bar follows P6-P8
+    of `quiz.md` (B26, and B27 for a send this page has not shown: in another browser tab, or its own
+    timed-out send the server recorded). The "Открыть результаты" that P8 shows is
+    Stepan's decision for #70 and stays.
+  - **The history sees it through its own baseline.** Because the run baseline does not, F19 keeps the
+    history baseline over every record kind (`latestAttemptRecordId`, F19 Loading), and every visibility
+    re-read carries the history, so a quiz send this page has not shown (another browser tab, or its own
+    timed-out send the server recorded) reaches F19 in the same render as the
+    quiz check row, and the history never says "Попыток пока нет" next to a quiz row that shows a send.
+  - **Every other reader.** F18.3: listed like any record, its link is row 1 of `ia.md` "Attempt deep
+    link" (never rows 2-3: it always holds its one result and is never running), icon `success` or
+    `destructive` by A72-8 ("1 из 1", or "0 из 1" with K = 0); "Где трудно": the quiz check qualifies by
+    A72-2 from its counted failed results (`failedCount`, `lastCountedFailureAt` from the quiz result's
+    `created_at`) and links `?tab=quiz`; F18.5: adds nothing but the reviews #37 attaches to it; R5: a sent
+    quiz already starts a lesson (`ia.md` R5, "a check run or a sent quiz").
 - **A72-18. A deep link focuses what it asked for.** `?attempt=` moves focus once on load, as a module row
   focuses its catalog section heading (F5.2), because the learner asked for that attempt: to its
   disclosure button, or to its plain item (A72-14); while it still runs, to the heading "История попыток",

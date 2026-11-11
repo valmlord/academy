@@ -1,0 +1,54 @@
+id: final-api-read-side
+title: "Итоговый проект: API чтения на Go"
+type: project
+outcomes:
+  - "Реализует по контракту операции чтения и создания HTTP-бэкенда (расписания, виды встреч, слоты), которые проходят пробы соответствия: problem+json, 400/404/405/422, отказ от лишних полей, время только со смещением."
+  - "Отдаёт через HTTP слоты, совпадающие с моделью заказчика в восьми часовых поясах, в дни перевода часов и в обычные дни."
+estimatedMinutes: 125
+status: ready
+prerequisites:
+  - final-slot-engine
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Go 1.27.3: package net/http (ServeMux patterns, PathValue, ResponseWriter)"
+    url: https://pkg.go.dev/net/http
+    checkedAt: "2026-11-04"
+  - title: "The Go Blog: Routing Enhancements for Go 1.22 (405 with Allow, GET matches HEAD, trailing slash)"
+    url: https://go.dev/blog/routing-enhancements
+    checkedAt: "2026-11-04"
+  - title: "Go 1.27.3: package encoding/json (DisallowUnknownFields, null, case-insensitive keys, nil slice)"
+    url: https://pkg.go.dev/encoding/json
+    checkedAt: "2026-11-04"
+  - title: "Go: package net/url (QueryUnescape turns + into space)"
+    url: https://pkg.go.dev/net/url
+    checkedAt: "2026-11-04"
+  - title: "Go: package unicode/utf8 (RuneCountInString)"
+    url: https://pkg.go.dev/unicode/utf8
+    checkedAt: "2026-11-04"
+  - title: "The Go Programming Language Specification: The zero value, String types"
+    url: https://go.dev/ref/spec
+    checkedAt: "2026-11-04"
+  - title: "Go Modules Reference: vendoring, -mod=vendor"
+    url: https://go.dev/ref/mod
+    checkedAt: "2026-11-04"
+  - title: "JSON Schema Validation 2020-12, раздел 6.3.1 (maxLength в символах)"
+    url: https://json-schema.org/draft/2020-12/json-schema-validation
+    checkedAt: "2026-11-04"
+  - title: "RFC 9457: Problem Details for HTTP APIs"
+    url: https://www.rfc-editor.org/rfc/rfc9457.html
+    checkedAt: "2026-11-04"
+  - title: "RFC 3339: Date and Time on the Internet: Timestamps"
+    url: https://www.rfc-editor.org/rfc/rfc3339.html
+    checkedAt: "2026-11-04"
+  - title: "oapi-codegen README (strict server: no request validation; nethttp-middleware)"
+    url: https://github.com/oapi-codegen/oapi-codegen
+    checkedAt: "2026-11-04"
+checks:
+  - id: api-read-conformance
+    title: "API чтения отвечает по контракту и как модель заказчика на случайных пробах (схемы, problem+json, 400/404/405/422, слоты в 8 поясах)"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_read_api.py"'
+    timeoutSec: 420
+    weight: 3

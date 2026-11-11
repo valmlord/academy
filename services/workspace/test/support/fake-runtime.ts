@@ -36,6 +36,10 @@ export interface FakeShell {
   resizeFailures: unknown[];
   /** What `exitCode()` answers, or the error it rejects with. */
   exitCode: number | null | Error;
+  /** Calls of `terminate`, failed ones included. */
+  terminations: number;
+  /** How `terminate` fails: a rejected promise, a synchronous throw, or not at all (`null`). */
+  terminateFailure: { when: "async"; error: unknown } | { when: "sync"; error: Error } | null;
 }
 
 /** What a GC primitive answers for one container Id, or what it throws. */
@@ -174,6 +178,8 @@ export class FakeRuntime implements WorkspaceRuntime {
       resizes: [],
       resizeFailures: [],
       exitCode: null,
+      terminations: 0,
+      terminateFailure: null,
     };
     this.shells.push(shell);
     return {
@@ -186,6 +192,14 @@ export class FakeRuntime implements WorkspaceRuntime {
       exitCode: async () => {
         if (shell.exitCode instanceof Error) throw shell.exitCode;
         return shell.exitCode;
+      },
+      // Not async, so a synchronous throw can reach the caller, as from an adapter that is not an async function.
+      terminate: () => {
+        shell.terminations += 1;
+        const failure = shell.terminateFailure;
+        if (failure === null) return Promise.resolve();
+        if (failure.when === "sync") throw failure.error;
+        return Promise.reject(failure.error);
       },
     };
   }

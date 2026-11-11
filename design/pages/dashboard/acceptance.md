@@ -171,7 +171,11 @@ target.
   read until the next load, with the motionless ring.
 - From #35: "Где трудно" row: link to `/courses/[courseId]/lessons/[lessonId]?tab=checks`, no `attempt`
   and no `check` parameter; the lesson opens on Проверки and moves no focus, as any load (`progress.md` "Not
-  designed in #72"). The prototype links `../lesson/prototype.html?tab=checks#state-checks-weak`.
+  designed in #72"). The prototype links `../lesson/prototype.html?tab=checks#state-checks-weak`. From #36
+  a row of a quiz check links `/courses/[courseId]/lessons/[lessonId]?tab=quiz` instead, no `attempt` and
+  no `check` parameter: the lesson opens on Квиз and moves no focus; a quiz check gone from the lesson falls
+  back to Теория (`progress.md` A72-2, `ia.md` "Deep links"). Its name and fields are those of any row. No
+  sample quiz check qualifies in the drawn states, so the prototype draws no such row (AC60).
 - User menu: Enter or Space opens it, focus on the first item; arrows, Home, End; Esc closes and returns
   focus to the button; "Выйти" goes to sign-in with "Вы вышли" (F3.3).
 - "Войти снова": `/sign-in?next=%2F` (the current path `/`, URL-encoded; F2.2). The prototype links
@@ -290,7 +294,8 @@ max_turns, неизвестный инструмент, MCP-образный с�
 
 AC1-AC6, AC8 and AC9 apply from #30. AC7 and AC10-AC13 apply in both releases; before #30 AC7's `main` is
 shown whatever the course holds (AC14). AC14 applies before #30 only (`ia.md` R6, "Before the catalog ships").
-AC15-AC44 apply from #35; AC45-AC59 apply from #37 (`ia.md` R6, "Progress by release (#72)");
+AC15-AC44 apply from #35; AC45-AC59 apply from #37 (`ia.md` R6, "Progress by release (#72)"); AC60
+applies from #36 with #35;
 AC3 is scoped by release in its text.
 
 - AC1: the Card shows the first `ready` lesson in catalog order that is not finished, with module title,
@@ -452,6 +457,13 @@ AC3 is scoped by release in its text.
   zero (`cost-at-least`, $1.20), "нет данных" when no term is known (`cost-no-data`); a row cost is never above
   its state's total.
 - AC59: (#37) the Tab order of AC26 is unchanged: the total section adds no stop.
+- AC60: (#36 with #35) a quiz check that qualifies by AC24 (not passed, closed or with at least 2 counted
+  failed quiz attempts) is a "Где трудно" row like any other (AC25: check title, lesson title, then
+  "Закрыта: не пройдено" or "Неудачных попыток: N из M" / "Неудачных попыток: N") whose link is
+  `/courses/[courseId]/lessons/[lessonId]?tab=quiz`, not `?tab=checks`; the lesson opens with Квиз selected
+  (the questions with "Попытка A из M" while the quiz is open, the review once closed) and focus not moved;
+  a quiz check no longer in the lesson opens Теория (or Задание without theory). Not drawn: tested in the app
+  against the lesson prototype's `#state-quiz-failed` (open) and `#state-quiz-closed` (closed) Квиз panels.
 
 ## Open questions
 
@@ -467,5 +479,5 @@ AC3 is scoped by release in its text.
    Back returns to the dashboard state the row was clicked in.
 3. The progress section still has no heading of its own in the `ia.md` copy register, so the course line is
    its h2; a separate heading would need a register entry first. A "Где трудно" row focusing its check row on
-   arrival (`?check=`) is not designed (`progress.md` "Not designed in #72", FU9); not proposed here, because
+   arrival (`?check=`) is not designed (`progress.md` "Not designed in #72", FU13); not proposed here, because
    it needs its own fallback set and the lesson page shows the check rows at the top of the tab anyway.
