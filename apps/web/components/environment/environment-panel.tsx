@@ -3,6 +3,9 @@
 import { FitAddon } from "@xterm/addon-fit";
 import type { ITerminalOptions } from "@xterm/xterm";
 import { type ReactElement, useEffect, useId, useRef, useState } from "react";
+import { useLessonLayout } from "@/components/lesson/lesson-layout-context";
+import { LESSON_PANE_IDS } from "@/components/lesson/lesson-panels";
+import { PaneSwitch } from "@/components/lesson/pane-switch";
 import { regionStep } from "@/components/region-cycle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -206,6 +209,13 @@ export function EnvironmentPanel({
   }, [actions, createTerminal, hintId, reconnectAttempts, startSlowSeconds]);
 
   const view = status === null ? null : statusView(status);
+  const attention = view?.attention ?? null;
+  const setEnvironmentAttention = useLessonLayout()?.setEnvironmentAttention;
+
+  // The environment switch tab names a stopped or failed environment while the pane is hidden (design 2.3).
+  useEffect(() => {
+    setEnvironmentAttention?.(attention);
+  }, [attention, setEnvironmentAttention]);
 
   function act(): void {
     machineRef.current?.act();
@@ -221,14 +231,18 @@ export function EnvironmentPanel({
   }
 
   return (
+    // Only `pane`: the lesson layout's CSS sizes the section, and a utility for the same property would compete.
     <section
+      id={LESSON_PANE_IDS.environment}
       data-region
+      data-pane="environment"
       aria-labelledby={headingId}
-      className="flex min-w-0 flex-col gap-2 p-4 lg:sticky lg:top-0 lg:self-start"
+      className="pane"
     >
       <h2 id={headingId} className="sr-only">
         {environmentRegionHeading}
       </h2>
+      <PaneSwitch />
       <StatusBar
         view={view}
         courseHref={courseHref}
@@ -246,7 +260,9 @@ export function EnvironmentPanel({
           />
         }
       />
-      <Tabs value="terminal" activationMode="automatic">
+      {/* min-h-0 here and on the content: their automatic minimum would hold xterm's current height, so the
+          terminal could grow with the pane but never shrink (design 2.2.4). */}
+      <Tabs value="terminal" activationMode="automatic" className="min-h-0 flex-1 px-4 pt-2 pb-4">
         <TabsList aria-label={environmentTabsLabel}>
           <TabsTrigger value="terminal">{terminalTabLabel}</TabsTrigger>
         </TabsList>
@@ -254,11 +270,13 @@ export function EnvironmentPanel({
         <TabsContent
           value="terminal"
           tabIndex={-1}
+          className="flex min-h-0 flex-1"
           aria-busy={view?.isAwaitingAttach === true ? "true" : undefined}
         >
           {/* Connecting: keys are dropped until `attached` (design 3.6.1 row 32), so the cursor must not invite
               typing; nothing is lost, so the frame keeps its solid border. */}
           <div
+            data-terminal-frame
             data-connection={
               view?.isConnectionLost === true
                 ? "lost"
@@ -266,7 +284,7 @@ export function EnvironmentPanel({
                   ? "connecting"
                   : undefined
             }
-            className="flex h-[min(70vh,40rem)] min-h-48 flex-col rounded-md border bg-terminal p-3 font-mono text-sm text-terminal-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[connection=lost]:border-dashed data-[connection=lost]:border-warning [&[data-connection=lost]_.xterm-cursor]:invisible [&[data-connection=connecting]_.xterm-cursor]:invisible"
+            className="flex min-h-48 flex-col rounded-md border bg-terminal p-3 font-mono text-sm text-terminal-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring data-[connection=lost]:border-dashed data-[connection=lost]:border-warning [&[data-connection=lost]_.xterm-cursor]:invisible [&[data-connection=connecting]_.xterm-cursor]:invisible"
           >
             {/* Clipped: before the first fit xterm is 80 columns wide, which must never scroll the page sideways. */}
             <div ref={frameRef} className="min-h-0 flex-1 overflow-hidden" />

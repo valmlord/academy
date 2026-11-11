@@ -6,9 +6,11 @@ import { CourseError } from "@/components/course-error";
 import { EnvironmentRegion } from "@/components/environment/environment-region";
 import { FocusOnMount } from "@/components/focus-on-mount";
 import { LESSON_TITLE_ID, LessonHeader } from "@/components/lesson/lesson-header";
-import { type LessonTab, lessonTabOf } from "@/components/lesson/lesson-panels";
+import { LessonLayout } from "@/components/lesson/lesson-layout";
+import { LESSON_PANE_IDS, type LessonTab, lessonTabOf } from "@/components/lesson/lesson-panels";
 import { LessonTabs } from "@/components/lesson/lesson-tabs";
 import { LessonText } from "@/components/lesson/lesson-text";
+import { PaneSwitch } from "@/components/lesson/pane-switch";
 import { PrerequisiteAlert } from "@/components/lesson/prerequisite-alert";
 import {
   Breadcrumb,
@@ -18,6 +20,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   breadcrumbLabel,
   courseErrorTitle,
@@ -54,8 +57,9 @@ export async function generateMetadata(props: LessonPageProps): Promise<Metadata
 }
 
 // The lesson region: breadcrumb, header, the prerequisite Alert, the theory and task tabs. A lesson with a
-// `workspace` gets the environment region next to it (#32 design 3.6: stacked below lg, two equal columns
-// from lg, no handle); one without keeps design/pages/lesson `#state-m0`, full width with the M0 line.
+// `workspace` gets the two-pane lesson layout with the environment region (#106 design 2.2: two panes and the
+// split handle from 64rem, one pane with the switch below); one without keeps design/pages/lesson `#state-m0`,
+// full width with the M0 line.
 // `main` is no F6 stop of its own (ia.md R3: the regions are), so the second F6 lands on the breadcrumb's
 // course link. A course that cannot be read uses the catalog's error composition (#30 design notes, D2); an
 // unknown, foreign or invisible lesson is not found.
@@ -77,56 +81,76 @@ export default async function LessonPage(props: LessonPageProps): Promise<ReactE
   const lesson = toLessonView(course.value, found);
   const initialTab: LessonTab = lessonTabOf((await props.searchParams).tab) ?? "theory";
   const hasEnvironment = found.node.lesson.workspace !== undefined;
+  const heading = (
+    <h2 id="lesson-region-heading" className="sr-only">
+      {lessonRegionHeading}
+    </h2>
+  );
+  const content = (
+    <>
+      <Breadcrumb aria-label={breadcrumbLabel} className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={catalogPath(lesson.courseId)}>{courseLinkLabel}</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={moduleAnchorPath(lesson.courseId, lesson.module.id)}>
+                {lesson.module.title}
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{lesson.title}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <LessonHeader lesson={lesson} />
+      <FocusOnMount id={LESSON_TITLE_ID} />
+      {hasEnvironment ? null : <p className="mb-4 text-sm text-muted-foreground">{m0LessonNote}</p>}
+      <PrerequisiteAlert courseId={lesson.courseId} prerequisites={lesson.prerequisites} />
+      <LessonTabs
+        initialTab={initialTab}
+        theory={<LessonText lessonDir={found.node.dir} kind="theory" sources={lesson.sources} />}
+        task={<LessonText lessonDir={found.node.dir} kind="task" sources={lesson.sources} />}
+      />
+    </>
+  );
+  if (!hasEnvironment) {
+    return (
+      <main id="main" tabIndex={-1} className="w-full min-w-0">
+        <section
+          data-region
+          aria-labelledby="lesson-region-heading"
+          className="flex min-w-0 flex-col p-4"
+        >
+          {heading}
+          {content}
+        </section>
+      </main>
+    );
+  }
   return (
-    <main
-      id="main"
-      tabIndex={-1}
-      className={
-        hasEnvironment ? "grid w-full min-w-0 grid-cols-1 lg:grid-cols-2" : "w-full min-w-0"
+    <LessonLayout
+      lesson={
+        // Only `pane`: the layout CSS sizes the section, and a utility for the same property would compete.
+        <section
+          id={LESSON_PANE_IDS.lesson}
+          data-region
+          data-pane="lesson"
+          aria-labelledby="lesson-region-heading"
+          className="pane"
+        >
+          {heading}
+          <PaneSwitch />
+          <ScrollArea className="flex-1 p-4">{content}</ScrollArea>
+        </section>
       }
-    >
-      <section
-        data-region
-        aria-labelledby="lesson-region-heading"
-        className="flex min-w-0 flex-col p-4"
-      >
-        <h2 id="lesson-region-heading" className="sr-only">
-          {lessonRegionHeading}
-        </h2>
-        <Breadcrumb aria-label={breadcrumbLabel} className="mb-4">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href={catalogPath(lesson.courseId)}>{courseLinkLabel}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href={moduleAnchorPath(lesson.courseId, lesson.module.id)}>
-                  {lesson.module.title}
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{lesson.title}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        <LessonHeader lesson={lesson} />
-        <FocusOnMount id={LESSON_TITLE_ID} />
-        {hasEnvironment ? null : (
-          <p className="mb-4 text-sm text-muted-foreground">{m0LessonNote}</p>
-        )}
-        <PrerequisiteAlert courseId={lesson.courseId} prerequisites={lesson.prerequisites} />
-        <LessonTabs
-          initialTab={initialTab}
-          theory={<LessonText lessonDir={found.node.dir} kind="theory" sources={lesson.sources} />}
-          task={<LessonText lessonDir={found.node.dir} kind="task" sources={lesson.sources} />}
-        />
-      </section>
-      {hasEnvironment ? (
+      environment={
         <EnvironmentRegion
           courseId={lesson.courseId}
           lessonId={lesson.id}
@@ -141,7 +165,7 @@ export default async function LessonPage(props: LessonPageProps): Promise<ReactE
             START_SLOW_SECONDS,
           )}
         />
-      ) : null}
-    </main>
+      }
+    />
   );
 }

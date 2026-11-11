@@ -1,6 +1,6 @@
 "use client";
 
-import { type FocusEvent, type KeyboardEvent, useId, useState } from "react";
+import { type FocusEvent, type KeyboardEvent, useEffect, useId, useState } from "react";
 
 // design/system/README.md "Tooltip" and proto.css `.tooltip-anchor`, `.tooltip`, written in the app (D6) rather
 // than taken from Radix: the description must be tied by a permanent `aria-describedby` (Radix adds it only while
@@ -45,6 +45,16 @@ function isKeyboardFocused(element: Element): boolean {
 export function useTooltip(): Tooltip {
   const id = useId();
   const [isOpen, setIsOpen] = useState(false);
+  // Esc closes an open tip wherever focus is, as proto.js's document listener does: a tip opened by hover while
+  // focus sits elsewhere must be dismissable without moving the pointer or the focus (WCAG 1.4.13).
+  useEffect(() => {
+    if (!isOpen) return;
+    function onKeyDown(event: globalThis.KeyboardEvent): void {
+      if (event.key === "Escape") setIsOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
   return {
     isOpen,
     anchorProps: {

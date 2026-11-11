@@ -108,6 +108,18 @@ export const lessonTabsLabel = "Разделы урока";
 export const theoryTabLabel = "Теория";
 export const taskTabLabel = "Задание";
 
+// design/pages/lesson/acceptance.md, Copy "one-pane switch label", "one-pane switch tabs" and "switch suffix
+// (hidden)": the switch shown in each pane below 64rem, and the hidden word after "Окружение".
+export const paneSwitchLabel = "Область";
+export const lessonPaneTabLabel = "Урок";
+export const environmentPaneTabLabel = "Окружение";
+export const environmentStoppedSuffix = "остановлено";
+export const environmentErrorSuffix = "ошибка";
+
+// design/pages/lesson/acceptance.md, Copy "split handle name" and "split handle tooltip".
+export const splitHandleLabel = "Граница панелей";
+export const splitHandleTooltip = "Перетащите или щёлкните, чтобы сменить ширину";
+
 // design/flows/ia.md, copy register "lesson (F6-F13, F19)": the M0 line under the lesson header.
 export const m0LessonNote = "Окружение и проверки появятся в следующей версии платформы";
 
