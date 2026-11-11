@@ -126,3 +126,23 @@ section 0 of the #30 design (PR #85), working notes that are not published.
 - A second course needs a design (navigation, dashboard) and an amendment of item 6.
 - The three Turbopack "whole project" warnings disappear (no web import reaches `validate.js`), so the
   standalone output no longer copies `apps/web` sources and tests.
+
+## Amendments
+- #101 (Proposed), 2026-11-09. Check titles and result messages may reach the browser. Proposed until Stepan accepts
+  it in the #101 PR; the original text above stays, and the text here wins once accepted.
+  - Item 3 gains: "Exception: the check-state views (`apps/web/lib/progress/check-state.ts`, built field by field)
+    carry per check exactly `id`, `kind`, `title`, `timeoutSec` (command, hidden-task), `attempts.limit`,
+    `attempts.mentorAfter`, `spendsTokens` and `maxSpendUsd` (hidden-task `budgetUsd`), plus progress data and result
+    messages. Never `run`, `file`, `rubric`, `artifacts`, `task`, `verify`, `answers`, `passScore`, `minFound`,
+    `weight`, `workspace`, file names, paths or scores. Check titles are learner text (`design/flows/checks.md` F13.3
+    shows them); the grader's message of a result is learner output whose content ADR-0001 item 8 and ADR-0007 rules
+    2 and 3 govern." Item 3 also gains: "The dashboard view carries lesson counts computed from checks, never a
+    check."
+  - Item 10, guards: "The e2e scan forbids fragments of the check fields `run`, `file`, `rubric`, `task`, `verify`,
+    `answers` and of every grader file; check titles join the allowed corpus. The unit canary fixture gives its
+    command check a visible title marker; a unit test over the check-state views asserts no `CANARY-` string and the
+    title marker present. A page that renders results (from #34) adds exactly the messages of the results its test
+    produced to that test's allowed corpus, never a pattern."
+  - Consequences, the bullet "Accepted residual: grader metadata in the image.": "check titles" leave the parenthesis
+    (they are learner text), and its scan sentence reads "the unit canary and the e2e response scan of item 10 are
+    built from exactly these values, check titles excepted (#101)", because the e2e scan no longer forbids titles.

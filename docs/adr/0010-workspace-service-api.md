@@ -177,3 +177,8 @@ contract between them is costly to change once #32 builds its client on it, so i
     session closes its sockets with 4002. A failed exec resize is ignored and logged.
   - Item 11 unchanged: the terminal writes nothing durable; web records "lesson started" (ADR-0007 item 5).
   - Consequences, first bullet: "adds the `depends_on` of item 10" no longer applies (item 10 as amended).
+- #101 (Proposed), 2026-11-09. Item 9, last sentence as amended by #32 is replaced: "#34 calls `POST W/activity` at
+  the start of a check run, every 30 s while it runs, and at its end." With `ENVIRONMENT_IDLE_STOP_MINUTES` at its
+  minimum of 5 and the warning up to 4 minutes before the stop, the warning can fire after 1 minute without activity
+  (`services/workspace/src/config.ts`), and a command check may run up to 1800 s; a fixed 30 s cadence, the
+  terminal's own, stays below every legal window and needs no new setting in web.

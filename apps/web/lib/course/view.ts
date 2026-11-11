@@ -1,10 +1,15 @@
 import type { Lesson } from "@academy/lesson-schema/schema";
+import { countedCheckCount } from "../progress/rules";
+import { type CheckKind, SHIPPED_CHECK_KINDS } from "../progress/shipped-kinds";
 import type { CourseTree, LessonNode, ModuleNode } from "./read";
 
 // View models are built field by field from the parsed tree (ADR-0009 item 3): they never carry checks,
 // workspace, file names or directory paths, because everything a page renders can reach the browser.
 // Progress is not read in #30: every lesson is "not started" and every prerequisite counts as not passed
 // (Stepan, 2026-10-30; #35 replaces this).
+// The dashboard counts only visible lessons with at least one counted check, and only such a lesson can be
+// next (ADR-0007 rule 8 as amended by #101, D6): a lesson with nothing to check can never be finished, so
+// it would hold the course bar below 100% for ever. The catalog still lists those lessons.
 
 export type LessonType = Lesson["type"];
 
@@ -152,12 +157,21 @@ export function toCatalogView(tree: CourseTree): CatalogView {
   };
 }
 
-/** The next lesson is the first visible one in course order: without progress nothing is finished. */
-export function toDashboardView(tree: CourseTree): DashboardView {
+/**
+ * The next lesson is the first counted lesson in course order: without progress nothing is finished.
+ * `next` and `totalLessons` come from the same counted lessons, so `next !== null` iff `totalLessons >= 1`;
+ * the page relies on that to never render a progress bar over 0 lessons (D12).
+ */
+export function toDashboardView(
+  tree: CourseTree,
+  shippedKinds: ReadonlySet<CheckKind> = SHIPPED_CHECK_KINDS,
+): DashboardView {
   let next: NextLessonView | null = null;
   let totalLessons = 0;
   const modules = tree.modules.map((module): DashboardModuleView => {
-    const lessons = visibleLessons(module);
+    const lessons = visibleLessons(module).filter(
+      (node) => countedCheckCount(node.lesson, shippedKinds) >= 1,
+    );
     const [first] = lessons;
     if (next === null && first !== undefined) {
       next = {
@@ -172,6 +186,8 @@ export function toDashboardView(tree: CourseTree): DashboardView {
     return {
       id: module.module.id,
       title: module.module.title,
+      // A module with 0 counted lessons has no status and no percentage (ADR-0007 "Dashboard"), so it is
+      // shown like one being prepared rather than as "0 of 0".
       isAvailable: lessons.length > 0,
       lessonCount: lessons.length,
     };

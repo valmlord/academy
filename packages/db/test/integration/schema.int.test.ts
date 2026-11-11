@@ -7,6 +7,7 @@ import { migrateDatabase } from "../../src/migrate.js";
 import {
   accounts,
   attempts,
+  checkClosures,
   checkResults,
   enrollments,
   lessonProgress,
@@ -60,7 +61,7 @@ interface SeededAttempt {
   transcriptPath: string;
 }
 
-/** The I6 fixture: one finished attempt with two check results and one mentor review. */
+/** The I6 fixture: one finished attempt with two check results, one mentor review and a closure. */
 async function seedAttempt(userId: string): Promise<SeededAttempt> {
   await seedProgress(userId);
   const transcriptPath = `${randomUUID()}/agent.jsonl`;
@@ -103,6 +104,15 @@ async function seedAttempt(userId: string): Promise<SeededAttempt> {
     body: "What did the timeout tell you?",
     costUsd: "0.5",
     completedAt: new Date(),
+  });
+  await db.insert(checkClosures).values({
+    userId,
+    courseId: COURSE,
+    lessonId: LESSON,
+    checkId: "model-routing",
+    checkKind: "command",
+    attemptLimit: 1,
+    failedCount: 1,
   });
   return { attemptId: attempt.id, transcriptPath };
 }
@@ -157,7 +167,7 @@ describe("schema", () => {
     ).resolves.toBeDefined();
   });
 
-  it("I9 deleting a user removes its rows from all five child tables", async () => {
+  it("I9 deleting a user removes its rows from all six child tables", async () => {
     const { attemptId } = await seedAttempt("u-i9");
 
     await db.delete(users).where(eq(users.id, "u-i9"));
@@ -171,8 +181,9 @@ describe("schema", () => {
         .from(checkResults)
         .where(inArray(checkResults.attemptId, [attemptId])),
       await db.select().from(mentorReviews).where(eq(mentorReviews.attemptId, attemptId)),
+      await db.select().from(checkClosures).where(eq(checkClosures.userId, "u-i9")),
     ];
-    expect(remaining.map((rows) => rows.length)).toEqual([0, 0, 0, 0, 0]);
+    expect(remaining.map((rows) => rows.length)).toEqual([0, 0, 0, 0, 0, 0]);
   });
 
   it("I10 refuses an attempt for a lesson without a progress row", async () => {
@@ -193,10 +204,13 @@ describe("I11 row constraints", () => {
   const userId = "u-i11";
   let attemptId: string;
 
+  // Finished, so no case below shares a lesson with a running attempt (attempts_one_running_idx); it
+  // only carries the check-result and mentor-review cases, which do not depend on its status.
   beforeAll(async () => {
     await seedProgress(userId);
     const { rows } = await raw.query(
-      `INSERT INTO attempts (user_id, course_id, lesson_id) VALUES ($1, $2, $3) RETURNING id`,
+      `INSERT INTO attempts (user_id, course_id, lesson_id, status, finished_at)
+       VALUES ($1, $2, $3, 'failed', now()) RETURNING id`,
       [userId, COURSE, LESSON],
     );
     const id: unknown = rows[0]?.id;
@@ -206,11 +220,24 @@ describe("I11 row constraints", () => {
     attemptId = id;
   });
 
-  function insertAttempt(status: string, finishedAt: Date | null, transcriptPath: string | null) {
+  /**
+   * Each attempt gets a lesson of its own, so the running ones never meet attempts_one_running_idx
+   * and every rejection below comes from the CHECK it names.
+   */
+  async function insertAttempt(
+    status: string,
+    finishedAt: Date | null,
+    transcriptPath: string | null,
+  ): Promise<pg.QueryResult> {
+    const lessonId = `i11-${randomUUID()}`;
+    await raw.query(
+      "INSERT INTO lesson_progress (user_id, course_id, lesson_id) VALUES ($1, $2, $3)",
+      [userId, COURSE, lessonId],
+    );
     return raw.query(
       `INSERT INTO attempts (user_id, course_id, lesson_id, status, finished_at, transcript_path)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, COURSE, LESSON, status, finishedAt, transcriptPath],
+      [userId, COURSE, lessonId, status, finishedAt, transcriptPath],
     );
   }
 
@@ -436,5 +463,305 @@ describe("Better Auth tables (#29)", () => {
       code: "23505",
       constraint: "accounts_provider_account_unique",
     });
+  });
+});
+
+/** Inserts an attempt through the raw client and returns its id. */
+async function insertRawAttempt(
+  userId: string,
+  lessonId: string,
+  status: string,
+  executor: pg.Client = raw,
+): Promise<string> {
+  const finishedAt = status === "running" ? null : new Date();
+  const { rows } = await executor.query(
+    `INSERT INTO attempts (user_id, course_id, lesson_id, status, finished_at)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [userId, COURSE, lessonId, status, finishedAt],
+  );
+  const id: unknown = rows[0]?.id;
+  if (typeof id !== "string") {
+    throw new Error("insert into attempts returned no id");
+  }
+  return id;
+}
+
+const ONE_RUNNING = { code: "23505", constraint: "attempts_one_running_idx" };
+const LOCK_WAIT_POLL_MS = 50;
+const LOCK_WAIT_LIMIT_MS = 10_000;
+
+/** Waits until the backend `pid` is blocked on a lock it has not been granted. */
+async function waitUntilBlocked(pid: number): Promise<void> {
+  const deadline = Date.now() + LOCK_WAIT_LIMIT_MS;
+  while (Date.now() < deadline) {
+    const { rows } = await raw.query("SELECT 1 FROM pg_locks WHERE pid = $1 AND NOT granted", [
+      pid,
+    ]);
+    if (rows.length > 0) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_POLL_MS));
+  }
+  throw new Error(`backend ${pid} never waited for a lock`);
+}
+
+describe("I12 one running attempt per lesson", () => {
+  it("I12 rejects a second running attempt of the same lesson", async () => {
+    await seedProgress("u-i12a");
+    await insertRawAttempt("u-i12a", LESSON, "running");
+
+    expect(await failureOf(insertRawAttempt("u-i12a", LESSON, "running"))).toEqual(ONE_RUNNING);
+  });
+
+  it("I12 accepts a running attempt next to a finished one of the same lesson", async () => {
+    await seedProgress("u-i12b");
+    await insertRawAttempt("u-i12b", LESSON, "failed");
+
+    await expect(insertRawAttempt("u-i12b", LESSON, "running")).resolves.toBeTypeOf("string");
+  });
+
+  it("I12 accepts running attempts of two lessons of one learner", async () => {
+    await seedProgress("u-i12c");
+    await db
+      .insert(lessonProgress)
+      .values({ userId: "u-i12c", courseId: COURSE, lessonId: "other" });
+    await insertRawAttempt("u-i12c", LESSON, "running");
+
+    await expect(insertRawAttempt("u-i12c", "other", "running")).resolves.toBeTypeOf("string");
+  });
+
+  it("I12b lets one of two concurrent starts commit and rejects the other", async () => {
+    await seedProgress("u-i12d");
+    const first = await openClient(fresh.url);
+    const second = await openClient(fresh.url);
+    try {
+      await first.query("BEGIN");
+      await insertRawAttempt("u-i12d", LESSON, "running", first);
+      await second.query("BEGIN");
+      const { rows } = await second.query("SELECT pg_backend_pid() AS pid");
+      const secondInsert = failureOf(insertRawAttempt("u-i12d", LESSON, "running", second));
+      await waitUntilBlocked(Number(rows[0]?.pid));
+
+      await first.query("COMMIT");
+
+      expect(await secondInsert).toEqual(ONE_RUNNING);
+      await second.query("ROLLBACK");
+      const running = await raw.query(
+        "SELECT count(*)::int AS n FROM attempts WHERE user_id = $1 AND status = 'running'",
+        ["u-i12d"],
+      );
+      expect(running.rows[0]?.n).toBe(1);
+    } finally {
+      await first.end();
+      await second.end();
+    }
+  });
+});
+
+describe("I13 result and attempt facts", () => {
+  const userId = "u-i13";
+  let attemptId: string;
+
+  beforeAll(async () => {
+    await seedProgress(userId);
+    attemptId = await insertRawAttempt(userId, LESSON, "failed");
+  });
+
+  interface ResultFacts {
+    kind: string;
+    status: string;
+    isFormatError?: boolean;
+    isBudgetExhausted?: boolean;
+    message?: string | null;
+    rawError?: string | null;
+  }
+
+  function insertResult(facts: ResultFacts): Promise<pg.QueryResult> {
+    return raw.query(
+      `INSERT INTO check_results
+         (attempt_id, check_id, check_kind, status, is_format_error, is_budget_exhausted, message, raw_error)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        attemptId,
+        `i13-${randomUUID()}`,
+        facts.kind,
+        facts.status,
+        facts.isFormatError ?? false,
+        facts.isBudgetExhausted ?? false,
+        facts.message ?? null,
+        facts.rawError ?? null,
+      ],
+    );
+  }
+
+  function insertIncluded(ids: string[], kinds: string[]): Promise<pg.QueryResult> {
+    return raw.query(
+      `INSERT INTO attempts
+         (user_id, course_id, lesson_id, status, finished_at, included_check_ids, included_check_kinds)
+       VALUES ($1, $2, $3, 'failed', now(), $4, $5)`,
+      [userId, COURSE, LESSON, ids, kinds],
+    );
+  }
+
+  const rejected: [label: string, facts: ResultFacts, constraint: string][] = [
+    [
+      "a format error with status timeout",
+      { kind: "command", status: "timeout", isFormatError: true },
+      "check_results_format_error_check",
+    ],
+    [
+      "a budget flag on a command result",
+      { kind: "command", status: "failed", isBudgetExhausted: true },
+      "check_results_budget_check",
+    ],
+    [
+      "both flags on one result",
+      { kind: "hidden-task", status: "failed", isFormatError: true, isBudgetExhausted: true },
+      "check_results_flags_check",
+    ],
+    [
+      "raw_error on a failed result",
+      { kind: "command", status: "failed", rawError: "pre-start: exec-start" },
+      "check_results_raw_error_check",
+    ],
+  ];
+  for (const [label, facts, constraint] of rejected) {
+    it(`I13 rejects ${label}`, async () => {
+      expect(await failureOf(insertResult(facts))).toEqual({ code: "23514", constraint });
+    });
+  }
+
+  it("I13 accepts a format error with status failed", async () => {
+    await expect(
+      insertResult({ kind: "command", status: "failed", isFormatError: true }),
+    ).resolves.toBeDefined();
+  });
+
+  it("I13 accepts an exhausted budget on a failed hidden-task result", async () => {
+    await expect(
+      insertResult({ kind: "hidden-task", status: "failed", isBudgetExhausted: true }),
+    ).resolves.toBeDefined();
+  });
+
+  it("I13 accepts raw_error on an error result", async () => {
+    await expect(
+      insertResult({ kind: "command", status: "error", rawError: "platform-stop: web-restart" }),
+    ).resolves.toBeDefined();
+  });
+
+  it("I13 accepts a message on every check result status", async () => {
+    for (const status of CHECK_RESULT_STATUSES) {
+      await expect(
+        insertResult({ kind: "command", status, message: "grader says hello" }),
+      ).resolves.toBeDefined();
+    }
+  });
+
+  it("I13 rejects included check ids and kinds of different lengths", async () => {
+    expect(await failureOf(insertIncluded(["a", "b"], ["command"]))).toEqual({
+      code: "23514",
+      constraint: "attempts_included_checks_check",
+    });
+  });
+
+  it("I13 rejects an included kind outside the lesson contract", async () => {
+    expect(await failureOf(insertIncluded(["a"], ["essay"]))).toEqual({
+      code: "23514",
+      constraint: "attempts_included_check_kinds_check",
+    });
+  });
+
+  it("I13 accepts included check ids with a kind for each", async () => {
+    await expect(insertIncluded(["a", "b"], ["command", "quiz"])).resolves.toBeDefined();
+  });
+});
+
+describe("I14 check closures", () => {
+  const userId = "u-i14";
+
+  beforeAll(async () => {
+    await seedProgress(userId);
+  });
+
+  function insertClosure(
+    checkId: string,
+    kind: string,
+    attemptLimit: number,
+    failedCount: number,
+    lessonId = LESSON,
+  ): Promise<pg.QueryResult> {
+    return raw.query(
+      `INSERT INTO check_closures
+         (user_id, course_id, lesson_id, check_id, check_kind, attempt_limit, failed_count)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [userId, COURSE, lessonId, checkId, kind, attemptLimit, failedCount],
+    );
+  }
+
+  it("I14 rejects a second closure of the same check id and kind", async () => {
+    await insertClosure("dup", "command", 10, 10);
+
+    expect(await failureOf(insertClosure("dup", "command", 10, 11))).toEqual({
+      code: "23505",
+      constraint: "check_closures_pkey",
+    });
+  });
+
+  it("I14 accepts a closure of the same check id under another kind", async () => {
+    await insertClosure("changed", "command", 10, 10);
+
+    await expect(insertClosure("changed", "quiz", 3, 3)).resolves.toBeDefined();
+  });
+
+  it("I14 rejects a closure for a lesson without a progress row", async () => {
+    expect(await failureOf(insertClosure("orphan", "command", 1, 1, "never-opened"))).toEqual({
+      code: "23503",
+      constraint: "check_closures_lesson_progress_fk",
+    });
+  });
+
+  it("I14 rejects a closure whose failed count is below its limit", async () => {
+    expect(await failureOf(insertClosure("early", "command", 10, 9))).toEqual({
+      code: "23514",
+      constraint: "check_closures_count_check",
+    });
+  });
+
+  it("I14 rejects a closure of a kind outside the lesson contract", async () => {
+    expect(await failureOf(insertClosure("essay", "essay", 1, 1))).toEqual({
+      code: "23514",
+      constraint: "check_closures_check_kind_check",
+    });
+  });
+});
+
+const CONSTRAINTS_OF_101 = [
+  "attempts_included_check_kinds_check",
+  "attempts_included_checks_check",
+  "check_closures_check_id_check",
+  "check_closures_check_kind_check",
+  "check_closures_count_check",
+  "check_closures_lesson_progress_fk",
+  "check_closures_pkey",
+  "check_results_budget_check",
+  "check_results_flags_check",
+  "check_results_format_error_check",
+  "check_results_raw_error_check",
+];
+
+describe("constraint names of #101", () => {
+  it("names every new constraint and the running-attempt index with its predicate", async () => {
+    const { rows: constraints } = await raw.query(
+      "SELECT conname FROM pg_constraint WHERE conname = ANY($1::text[]) ORDER BY conname",
+      [CONSTRAINTS_OF_101],
+    );
+    const { rows: indexes } = await raw.query(
+      "SELECT indexdef FROM pg_indexes WHERE indexname = 'attempts_one_running_idx'",
+    );
+
+    expect(constraints.map((row) => row.conname)).toEqual(CONSTRAINTS_OF_101);
+    expect(indexes).toHaveLength(1);
+    expect(indexes[0]?.indexdef).toContain("CREATE UNIQUE INDEX attempts_one_running_idx");
+    expect(indexes[0]?.indexdef).toContain("WHERE (status = 'running'::text)");
   });
 });
