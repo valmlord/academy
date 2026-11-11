@@ -68,7 +68,11 @@ requireDestructiveE2eInCi({ env: process.env, rootEnvKeys, decision: DESTRUCTIVE
 
 // The specs that type into a terminal run in their own projects after every other spec, so no other spec has
 // a page open on a terminal lesson and takes its session over meanwhile (design 10.5).
-const TERMINAL_SPECS = [/terminal\.spec\.ts/, /region-keys\.spec\.ts/];
+const TERMINAL_SPECS = [
+  /terminal\.spec\.ts/,
+  /region-keys\.spec\.ts/,
+  /environment-actions\.spec\.ts/,
+];
 const REGION_KEYS_SPEC = /region-keys\.spec\.ts/;
 
 // No webServer: the tests run against the compose stack (or a server the caller started).

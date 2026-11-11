@@ -15,19 +15,23 @@ export interface TerminalLessons {
   terminal: RepoLesson;
   /** The one before it: region-keys.spec.ts, so the two terminal specs never share a session. */
   regionKeys: RepoLesson;
+  /** The one before that: environment-actions.spec.ts, whose restart and reset touch no other spec's workspace. */
+  environmentActions: RepoLesson;
 }
 
 export async function terminalLessons(): Promise<TerminalLessons> {
   const lessons = await repoLessons();
   const terminal = lessons.at(-1);
   const regionKeys = lessons.at(-2);
-  if (terminal === undefined || regionKeys === undefined) {
-    throw new Error("the course needs at least two visible lessons for the terminal specs");
+  const environmentActions = lessons.at(-3);
+  if (terminal === undefined || regionKeys === undefined || environmentActions === undefined) {
+    throw new Error("the course needs at least three visible lessons for the terminal specs");
   }
-  if (terminal.view.id === regionKeys.view.id) {
-    throw new Error("the terminal specs need two different lessons");
+  const ids = new Set([terminal.view.id, regionKeys.view.id, environmentActions.view.id]);
+  if (ids.size !== 3) {
+    throw new Error("the terminal specs need three different lessons");
   }
-  return { terminal, regionKeys };
+  return { terminal, regionKeys, environmentActions };
 }
 
 export function pathOf(lesson: RepoLesson): string {
