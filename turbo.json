@@ -19,6 +19,8 @@
         "E2E_TERMINAL",
         "E2E_WEBKIT",
         "E2E_FIREFOX",
+        "E2E_DISPOSABLE_STACK",
+        "CI",
         "DATABASE_URL"
       ]
     },
@@ -64,7 +66,8 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/design/system/tokens.css",
-        "$TURBO_ROOT$/course/**"
+        "$TURBO_ROOT$/course/**",
+        "$TURBO_ROOT$/.env.example"
       ]
     }
   }

@@ -1,13 +1,15 @@
 import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
-import { loadRootEnv } from "./lib/root-env.ts";
+import { destructiveE2eDecision, requireDestructiveE2eInCi } from "./lib/disposable-stack.ts";
+import { loadRootEnv, readRootEnvKeys } from "./lib/root-env.ts";
 
 // The specs read SEED_EMAIL / SEED_PASSWORD from the root .env when it exists, like pnpm dev and the
 // seed; a variable already set in the shell wins over the file. ACADEMY_SKIP_ROOT_ENV=1 skips the file for
 // isolated runs (lib/root-env.ts).
+const rootEnvFile = path.join(import.meta.dirname, "../../.env");
 loadRootEnv({
   env: process.env,
-  file: path.join(import.meta.dirname, "../../.env"),
+  file: rootEnvFile,
   log: (line) => console.error(line),
 });
 
@@ -31,7 +33,7 @@ export class InvalidE2eSwitchError extends Error {
  * fails the run at config load instead of silently skipping the terminal specs.
  */
 export function isSwitchOn(
-  name: "E2E_TERMINAL" | "E2E_WEBKIT" | "E2E_FIREFOX" | "E2E_SERVICE_DOWN",
+  name: "E2E_TERMINAL" | "E2E_WEBKIT" | "E2E_FIREFOX" | "E2E_SERVICE_DOWN" | "E2E_DISPOSABLE_STACK",
 ): boolean {
   const value = process.env[name];
   if (value === undefined || value === "") return false;
@@ -54,6 +56,15 @@ isSwitchOn("E2E_TERMINAL");
 isSwitchOn("E2E_SERVICE_DOWN");
 const isWebkit = isSwitchOn("E2E_WEBKIT");
 const isFirefox = isSwitchOn("E2E_FIREFOX");
+isSwitchOn("E2E_DISPOSABLE_STACK");
+
+// #106 design 2.8: e2e/environment-actions.spec.ts resets a working folder, so it runs only on a disposable stack
+// (isolated-stack.sh --e2e, CI) and skips with this decision's reason anywhere else. The root .env's names are
+// read in every Playwright process alike, so a switch from the file never counts as one from the shell. Where CI
+// runs the terminal suite, a skip would hide a lost wiring: the config fails at load instead.
+const rootEnvKeys = readRootEnvKeys({ env: process.env, file: rootEnvFile });
+export const DESTRUCTIVE_E2E = destructiveE2eDecision({ env: process.env, rootEnvKeys, baseURL });
+requireDestructiveE2eInCi({ env: process.env, rootEnvKeys, decision: DESTRUCTIVE_E2E });
 
 // The specs that type into a terminal run in their own projects after every other spec, so no other spec has
 // a page open on a terminal lesson and takes its session over meanwhile (design 10.5).

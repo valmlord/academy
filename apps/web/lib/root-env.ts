@@ -4,7 +4,8 @@
 // Erasable syntax only (no enum, namespace or parameter property): Node's strip-only TypeScript loader
 // loads this file for next.config.ts, and anything else makes Next fall back to its legacy loader.
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 
 export const ROOT_ENV_OPT_OUT = "ACADEMY_SKIP_ROOT_ENV";
 
@@ -50,4 +51,24 @@ export function loadRootEnv({
   }
   load(file);
   return "loaded";
+}
+
+export interface ReadRootEnvKeysOptions {
+  env: Record<string, string | undefined>;
+  file: string;
+  read?: (file: string) => string;
+}
+
+/**
+ * The names the root .env defines, never their values (#106 design 2.8): a switch the file sets does not count as
+ * one set in the shell. Parsed with Node's own .env parser, so a line counts exactly when the loader counts it.
+ */
+export function readRootEnvKeys({
+  env,
+  file,
+  read = (path) => readFileSync(path, "utf8"),
+}: ReadRootEnvKeysOptions): string[] {
+  if (env[ROOT_ENV_OPT_OUT] === "1") return [];
+  if (!existsSync(file)) return [];
+  return Object.keys(parseEnv(read(file)));
 }
