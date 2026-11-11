@@ -7,6 +7,36 @@ import type { ActivityResult, IdleResult } from "../workspace/environment";
 // moves later (ADR-0010 item 9 as amended), so a read at the predicted time either confirms it or finds a later
 // one. Reads never record activity, or polling would keep an idle environment alive.
 
+/**
+ * Window events between the environment panel, which runs the watcher, and the notifications region, which
+ * shows the warning (design 5). Their details cross a component boundary, so the listener validates them.
+ */
+export const IDLE_WARNING_EVENT = "academy:idle-warning";
+export const IDLE_CLEARED_EVENT = "academy:idle-cleared";
+export const IDLE_CONTINUE_EVENT = "academy:idle-continue";
+
+// The service accepts ENVIRONMENT_IDLE_WARNING_MINUTES from 1 to the stop minutes less one, whose maximum is 1440
+// (services/workspace/src/config.ts), so no warning outside 1-1439 can be real.
+const MIN_WARNING_MINUTES = 1;
+const MAX_WARNING_MINUTES = 1439;
+
+/** The minutes of an `IDLE_WARNING_EVENT` detail `{ minutes }`, or null for anything else. */
+export function parseIdleWarningDetail(detail: unknown): number | null {
+  if (typeof detail !== "object" || detail === null) return null;
+  const minutes: unknown = Reflect.get(detail, "minutes");
+  if (typeof minutes !== "number" || !Number.isInteger(minutes)) return null;
+  return minutes >= MIN_WARNING_MINUTES && minutes <= MAX_WARNING_MINUTES ? minutes : null;
+}
+
+/**
+ * Whether an `IDLE_CLEARED_EVENT` says the environment stopped: only an object whose `isEnvironmentStopped` is
+ * exactly `true`; anything else, a missing detail included, reads as no stop.
+ */
+export function parseIdleClearedDetail(detail: unknown): boolean {
+  if (typeof detail !== "object" || detail === null) return false;
+  return Reflect.get(detail, "isEnvironmentStopped") === true;
+}
+
 /** The lesson page's idle server actions, already bound to the course and lesson. */
 export interface IdleActions {
   readEnvironmentIdle(): Promise<IdleResult>;

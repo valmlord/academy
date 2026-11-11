@@ -1,9 +1,12 @@
 import type { FitAddon } from "@xterm/addon-fit";
 import type { ITerminalOptions } from "@xterm/xterm";
 import type { PanelTerminal } from "@/components/environment/environment-panel";
+import type { IdleActions } from "@/lib/environment/idle";
 import type { EnvironmentActions } from "@/lib/terminal/machine";
 import type {
+  ActivityResult,
   EnvironmentResult,
+  IdleResult,
   LessonStartedResult,
   OpenTerminalResult,
 } from "@/lib/workspace/environment";
@@ -97,13 +100,15 @@ export class FakeWebSocket {
 }
 
 export interface PanelActions {
-  actions: EnvironmentActions;
+  actions: EnvironmentActions & IdleActions;
   peeks: Deferred<EnvironmentResult>[];
   starts: Deferred<EnvironmentResult>[];
   opens: Deferred<OpenTerminalResult>[];
   records: Deferred<LessonStartedResult>[];
   restarts: Deferred<EnvironmentResult>[];
   resets: Deferred<EnvironmentResult>[];
+  idleReads: Deferred<IdleResult>[];
+  activities: Deferred<ActivityResult>[];
 }
 
 /** Server actions whose every call waits in its queue until the test answers it. */
@@ -114,6 +119,8 @@ export function fakePanelActions(): PanelActions {
   const records: Deferred<LessonStartedResult>[] = [];
   const restarts: Deferred<EnvironmentResult>[] = [];
   const resets: Deferred<EnvironmentResult>[] = [];
+  const idleReads: Deferred<IdleResult>[] = [];
+  const activities: Deferred<ActivityResult>[] = [];
   const next = <T>(queue: Deferred<T>[]): Promise<T> => {
     const deferred = new Deferred<T>();
     queue.push(deferred);
@@ -127,6 +134,8 @@ export function fakePanelActions(): PanelActions {
       recordLessonStarted: () => next(records),
       restartEnvironment: () => next(restarts),
       resetEnvironment: () => next(resets),
+      readEnvironmentIdle: () => next(idleReads),
+      recordEnvironmentActivity: () => next(activities),
     },
     peeks,
     starts,
@@ -134,5 +143,7 @@ export function fakePanelActions(): PanelActions {
     records,
     restarts,
     resets,
+    idleReads,
+    activities,
   };
 }

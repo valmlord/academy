@@ -37,8 +37,8 @@ import {
   terminalName,
   workspaceResetNote,
 } from "@/lib/copy";
+import { IDLE_CLEARED_EVENT, IDLE_WARNING_EVENT } from "@/lib/environment/idle";
 import { SCREEN_READER_MODE_KEY } from "@/lib/environment/screen-reader-mode";
-import type { EnvironmentActions } from "@/lib/terminal/machine";
 import { SESSION_EXPIRED_EVENT } from "@/lib/terminal/state";
 import { RecordingResizeObserver } from "@/test/dom-stubs";
 import { FakeWebSocket, FakeXterm, fakePanelActions, type PanelActions } from "@/test/panel-fakes";
@@ -54,13 +54,13 @@ const COURSE_HREF = "/courses/c1";
 interface Setup extends PanelActions {
   terminals: FakeXterm[];
   unmount: () => void;
-  rerender: (actions: EnvironmentActions) => FakeXterm[];
+  rerender: (actions: PanelActions["actions"]) => FakeXterm[];
 }
 
 function setup(options: { reconnectAttempts?: number; startSlowSeconds?: number } = {}): Setup {
   const terminals: FakeXterm[] = [];
   const fakes = fakePanelActions();
-  const panel = (actions: EnvironmentActions): ReactElement => (
+  const panel = (actions: PanelActions["actions"]): ReactElement => (
     <EnvironmentPanel
       actions={actions}
       createTerminal={(terminalOptions) => {
@@ -723,3 +723,76 @@ function blurActive(): void {
 function frameOf(terminal: FakeXterm | undefined): HTMLElement | null {
   return terminal?.textarea?.parentElement?.parentElement ?? null;
 }
+
+describe("EnvironmentPanel idle watcher (#106 design 5)", () => {
+  const WARNING = { kind: "idle", warnInMs: 0, stopInMs: 240_000, warningMinutes: 5 } as const;
+
+  const removals: (() => void)[] = [];
+
+  afterEach(() => {
+    for (const remove of removals.splice(0)) remove();
+  });
+
+  /** Every detail the panel dispatched with `type` on window, recorded until the test ends. */
+  function recordDetails(type: string): unknown[] {
+    const details: unknown[] = [];
+    const listener = (event: Event): void => {
+      details.push(event instanceof CustomEvent ? event.detail : undefined);
+    };
+    window.addEventListener(type, listener);
+    removals.push(() => window.removeEventListener(type, listener));
+    return details;
+  }
+
+  async function flushMicrotasks(): Promise<void> {
+    await act(async () => undefined);
+  }
+
+  it("reads once when running, then dispatches the warning and, after a stop, the cleared event (P9)", async () => {
+    vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+    const warnings = recordDetails(IDLE_WARNING_EVENT);
+    const cleared = recordDetails(IDLE_CLEARED_EVENT);
+    const env = setup();
+    const socket = await reachRunning(env);
+    expect(env.idleReads).toHaveLength(1);
+
+    await answer(env.idleReads, WARNING);
+    await flushMicrotasks();
+    expect(warnings).toEqual([{ minutes: 5 }]);
+
+    act(() => socket.closedBy(4002));
+    await answer(env.peeks, { kind: "stopped" });
+    await flushMicrotasks();
+    expect(cleared).toEqual([{ isEnvironmentStopped: true }]);
+  });
+
+  it("dispatches the cleared event with no stop when a restart ends the running state (P9)", async () => {
+    vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+    const cleared = recordDetails(IDLE_CLEARED_EVENT);
+    const env = setup();
+    await reachRunning(env);
+    await answer(env.idleReads, WARNING);
+    await flushMicrotasks();
+
+    openMenu();
+    pressEnter(screen.getByRole("menuitem", { name: restartEnvironmentLabel }));
+    await flushMicrotasks();
+
+    expect(env.restarts).toHaveLength(1);
+    expect(cleared).toEqual([{ isEnvironmentStopped: false }]);
+  });
+
+  it("reads nothing in a tab hidden when the environment starts running, and reads once it shows (P12)", async () => {
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    const env = setup();
+    await reachRunning(env);
+    expect(env.idleReads).toHaveLength(0);
+
+    hidden.mockReturnValue(false);
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(env.idleReads).toHaveLength(1);
+  });
+});

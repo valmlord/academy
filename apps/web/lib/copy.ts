@@ -41,6 +41,13 @@ export const notificationsHeading = "Уведомления";
 // design/flows/ia.md, copy register "page alert (region Уведомления)", F2.1.
 export const sessionExpiredMessage = "Сессия закончилась. Файлы в рабочей папке сохранены.";
 
+// design/pages/lesson/acceptance.md, Copy "idle alert" and "idle action" (F10.1, F10.2); `minutes` is the
+// service's ENVIRONMENT_IDLE_WARNING_MINUTES.
+export function idleWarningMessage(minutes: number): string {
+  return `Окружение остановится через ${minutes} мин без активности. Файлы сохранятся.`;
+}
+export const continueWorkLabel = "Продолжить работу";
+
 // design/flows/ia.md, copy register "dashboard (F4, F18)": the empty state (dashboard AC7).
 export const noReadyLessonsMessage = "В курсе пока нет готовых уроков";
 

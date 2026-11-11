@@ -716,3 +716,58 @@ test("E-f6-one-pane: F6 shows the hidden pane and lands on its switch tab", asyn
   await page.keyboard.press("F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
 });
+
+interface LiveContainers {
+  live: (string | null)[];
+  isUnhidden: boolean[];
+  lessonPaneHidden: string | null | undefined;
+}
+
+/** The two notification containers and the environment status: what a modal leaves announced (ia.md R2). */
+function liveContainers(page: Page): Promise<LiveContainers> {
+  return page.evaluate(() => {
+    const containers = [
+      document.querySelector('[data-notifications] > [role="alert"]'),
+      document.querySelector('[data-notifications] > [role="status"]'),
+      document.querySelector('#environment-pane [role="status"]'),
+    ];
+    return {
+      live: containers.map((element) => element?.getAttribute("aria-live") ?? null),
+      isUnhidden: containers.map(
+        (element) => element !== null && element.closest('[aria-hidden="true"]') === null,
+      ),
+      lessonPaneHidden: document.getElementById("lesson-pane")?.getAttribute("aria-hidden"),
+    };
+  });
+}
+
+test("E-live: the live containers stay announced under the user menu and the modal Действия menu (AC51, AC52)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(pathOf(firstLesson));
+  const expected: LiveContainers = {
+    live: ["assertive", "polite", "polite"],
+    isUnhidden: [true, true, true],
+    lessonPaneHidden: "true",
+  };
+
+  await page.locator('header [aria-haspopup="menu"]').click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  expect(await liveContainers(page), "under the user menu").toEqual(expected);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+
+  // Opened from the keyboard, so Radix focuses the first item.
+  await page.getByRole("button", { name: actionsMenuLabel }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu")).toBeVisible();
+  expect(await liveContainers(page), "under the actions menu").toEqual(expected);
+  await expect(page.getByRole("menuitem").first()).toBeFocused();
+  await page.keyboard.press("Tab");
+  expect(
+    await page.evaluate(() => document.activeElement?.closest('[role="menu"]') != null),
+    "Tab stays in the modal menu",
+  ).toBe(true);
+  await page.keyboard.press("Escape");
+});

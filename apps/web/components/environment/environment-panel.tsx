@@ -14,6 +14,13 @@ import {
   terminalName,
   terminalTabLabel,
 } from "@/lib/copy";
+import {
+  IDLE_CLEARED_EVENT,
+  IDLE_CONTINUE_EVENT,
+  IDLE_WARNING_EVENT,
+  type IdleActions,
+  IdleWatcher,
+} from "@/lib/environment/idle";
 import { readScreenReaderMode, writeScreenReaderMode } from "@/lib/environment/screen-reader-mode";
 import {
   browserClock,
@@ -52,7 +59,8 @@ export interface PanelTerminal extends MachineTerminal {
 export type TerminalFactory = (options: ITerminalOptions) => PanelTerminal;
 
 export interface EnvironmentPanelProps {
-  actions: EnvironmentActions;
+  /** The machine's actions and the idle watcher's, bound to this lesson. */
+  actions: EnvironmentActions & IdleActions;
   createTerminal: TerminalFactory;
   /** The course page, where the rejected state's action leads. */
   courseHref: string;
@@ -208,6 +216,44 @@ export function EnvironmentPanel({
     };
   }, [actions, createTerminal, hintId, reconnectAttempts, startSlowSeconds]);
 
+  const isRunning = status !== null && isEnvironmentRunning(status);
+
+  // The idle watcher runs while the environment runs (#106 design 5). Its callbacks dispatch in a microtask, so a
+  // listener always runs after React has finished the commit that triggered it. The cleared event reads the
+  // machine's live status there: the cleanup that stops the watcher runs with the previous render's closure.
+  useEffect(() => {
+    if (!isRunning) return;
+    const dispatchLater = (event: Event): void => queueMicrotask(() => window.dispatchEvent(event));
+    const watcher = new IdleWatcher({
+      actions,
+      clock: browserClock,
+      onWarning: (minutes) => {
+        if (minutes !== null) {
+          dispatchLater(new CustomEvent(IDLE_WARNING_EVENT, { detail: { minutes } }));
+          return;
+        }
+        queueMicrotask(() => {
+          const isEnvironmentStopped = machineRef.current?.status.kind === "stopped";
+          window.dispatchEvent(
+            new CustomEvent(IDLE_CLEARED_EVENT, { detail: { isEnvironmentStopped } }),
+          );
+        });
+      },
+      onSessionExpired: () => dispatchLater(new Event(SESSION_EXPIRED_EVENT)),
+    });
+    const onVisibilityChange = (): void => watcher.setHidden(document.hidden);
+    const onContinue = (): void => watcher.continue();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener(IDLE_CONTINUE_EVENT, onContinue);
+    // No visibilitychange fires for a tab that was already hidden, so the start is told.
+    watcher.start({ isHidden: document.hidden });
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener(IDLE_CONTINUE_EVENT, onContinue);
+      watcher.stop();
+    };
+  }, [isRunning, actions]);
+
   const view = status === null ? null : statusView(status);
   const attention = view?.attention ?? null;
   const setEnvironmentAttention = useLessonLayout()?.setEnvironmentAttention;
@@ -251,7 +297,7 @@ export function EnvironmentPanel({
         onAct={act}
         actionsMenu={
           <ActionsMenu
-            isEnvironmentRunning={status !== null && isEnvironmentRunning(status)}
+            isEnvironmentRunning={isRunning}
             isScreenReaderMode={isScreenReaderMode}
             onRestart={() => machineRef.current?.restart()}
             onReset={() => machineRef.current?.reset()}
