@@ -2,14 +2,12 @@
 
 import { type ReactElement, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { collapsibleTriggerClassName } from "@/components/ui/collapsible";
 import { collapseOutcomesLabel, outcomesHeading, showAllOutcomesLabel } from "@/lib/copy";
 
 const MORE_ID = "outcomes-more";
 // lesson-environment.md F7.1: the list collapses only with more than two outcomes.
 const MAX_SHOWN_IN_FULL = 2;
-
-const CHEVRON_CLASS_NAME =
-  "inline-flex items-center gap-1.5 after:size-1.5 after:rotate-45 after:border-r-2 after:border-b-2 after:border-current after:transition-transform after:duration-150 after:ease-[cubic-bezier(0.2,0,0,1)] aria-expanded:after:-rotate-[135deg] motion-reduce:after:transition-none";
 
 // design/pages/lesson F7.1, `#state-outcomes-collapsed` / `-expanded`. Not the Radix Collapsible: the
 // prototype keeps the second list in the DOM (`hidden`) and `aria-controls` on the button in both states,
@@ -30,7 +28,7 @@ export function Outcomes({ outcomes }: { outcomes: string[] }): ReactElement {
             variant="link"
             aria-expanded={isExpanded}
             aria-controls={MORE_ID}
-            className={`self-start ${CHEVRON_CLASS_NAME}`}
+            className={`self-start ${collapsibleTriggerClassName}`}
             onClick={() => setIsExpanded((value) => !value)}
           >
             {isExpanded ? collapseOutcomesLabel : showAllOutcomesLabel}

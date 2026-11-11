@@ -232,9 +232,10 @@
   [aria-invalid="true"]:focus-visible {
     outline-color: var(--destructive);
   }
-  /* (d) Menu items keep the accent background and also draw the ring, inset, so it stays inside the
-     menu: the background alone measures 1.090:1 (light) on popover. */
-  [role="menuitem"]:focus-visible {
+  /* (d) Menu items, checkbox items included, keep the accent background and also draw the ring, inset,
+     so it stays inside the menu: the background alone measures 1.090:1 (light) on popover. */
+  [role="menuitem"]:focus-visible,
+  [role="menuitemcheckbox"]:focus-visible {
     outline-offset: -2px;
   }
 }
