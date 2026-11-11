@@ -77,4 +77,12 @@ Each release state is one named state (rule R6 in `ia.md`, "Before the catalog s
   release. No exit to the catalog; F4.1-F4.3 and F18 are not shown. Prototype state
   `#state-before-catalog`.
 - **From #30**: F4 and F18.1-F18.2 as designed above, with "Курс" in the top bar (left out while the
-  course id is unknown, `ia.md` R6 "Course id unknown").
+  course id is unknown, `ia.md` R6 "Course id unknown"). No element of F18.3-F18.5: no section, no
+  heading, no placeholder, no cost.
+- **From #35**: as from #30, plus F18.3 "Последние попытки" and F18.4 "Где трудно" (`progress.md`), with
+  their empty texts, and no cost element anywhere: no attempt cost in the rows and no total, because before
+  #37 nothing writes a cost (Stepan, #72 architect brief, O3). Tab order after the module rows: the
+  "Последние попытки" rows, then the "Где трудно" rows; `F6` to `main` still lands on the Card's button.
+- **From #37**: as from #35, plus the attempt cost in each "Последние попытки" row that can spend and the
+  total F18.5 "Потрачено на проверки и разборы: $N" with its note (ADR-0007 item 11, Proposed). Every
+  member each release renders: `ia.md` R6, "Progress by release (#72)".
