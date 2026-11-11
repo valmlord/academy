@@ -6,6 +6,7 @@ import { InvalidConfigError } from "./errors.js";
 import { buildApp } from "./http/app.js";
 import { IdleTracker } from "./idle.js";
 import { KeyedMutex } from "./lock.js";
+import { errorKindAndCode } from "./log-fields.js";
 import { type ServiceLog, WorkspaceManager } from "./manager.js";
 import { Reconciler } from "./reconcile.js";
 import { TerminalRegistry } from "./terminal/registry.js";
@@ -132,11 +133,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  const kind = error instanceof Error ? error.constructor.name : typeof error;
-  const code: unknown =
-    typeof error === "object" && error !== null ? Reflect.get(error, "code") : undefined;
-  console.error(
-    `workspace: startup failed: ${kind}${typeof code === "string" ? ` (${code})` : ""}`,
-  );
+  console.error(`workspace: startup failed: ${errorKindAndCode(error)}`);
   process.exit(1);
 });

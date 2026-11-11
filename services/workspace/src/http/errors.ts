@@ -16,6 +16,7 @@ import {
   WorkspaceNotFoundError,
   WorkspaceNotRunningError,
 } from "../errors.js";
+import { errorCode, errorKind } from "../log-fields.js";
 
 // The closed error contract of design 7 and ADR-0010: every non-2xx answer is `{ error: { code, message } }`.
 // Our own classes carry messages built for this (no secret, file contents or Docker text, design 10); anything
@@ -90,12 +91,11 @@ export function mapError(error: unknown): MappedError {
 }
 
 function describeForLog(error: unknown): string {
-  const kind = error instanceof Error ? error.constructor.name : typeof error;
+  const kind = errorKind(error);
   const isOurs = CLASS_MAP.some(([errorClass]) => error instanceof errorClass);
   if (isOurs && error instanceof Error) return `${kind}: ${error.message}`;
-  const code: unknown =
-    typeof error === "object" && error !== null ? Reflect.get(error, "code") : undefined;
-  return typeof code === "string" ? `${kind} (code ${code})` : kind;
+  const code = errorCode(error);
+  return code === null ? kind : `${kind} (code ${code})`;
 }
 
 function logFailure(log: FastifyBaseLogger, status: number, error: unknown): void {

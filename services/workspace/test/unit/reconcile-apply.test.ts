@@ -252,3 +252,31 @@ describe("Reconciler.runPass", () => {
     );
   });
 });
+
+describe("Reconciler.runPass with a hostile error (#121)", () => {
+  it.each([
+    [
+      "a class named with a newline",
+      () =>
+        new (Object.defineProperty(class extends Error {}, "name", { value: "Evil\nINJECT" }))("x"),
+    ],
+    [
+      "a class whose name getter throws",
+      () =>
+        new (Object.defineProperty(class extends Error {}, "name", {
+          get: () => {
+            throw new Error("INJECT");
+          },
+        }))("x"),
+    ],
+  ])("logs the failure as Error and still resolves (%s)", async (_case, hostile) => {
+    const container = invalidContainer("a", "exited");
+    const { reconciler, runtime, logged } = setup([container]);
+    runtime.setGcBehaviour(container.containerId, hostile());
+
+    await expect(reconciler.runPass()).resolves.toBeUndefined();
+
+    expect(logged).toContain(`reconcile: ${container.containerId}: Error`);
+    expect(logged.join("\n")).not.toContain("INJECT");
+  });
+});

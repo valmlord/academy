@@ -8,6 +8,7 @@ import {
 import { type WorkspaceKey, workspaceId, workspaceNames } from "./identity.js";
 import type { IdleTracker, IdleWindow } from "./idle.js";
 import type { KeyedMutex } from "./lock.js";
+import { errorKind } from "./log-fields.js";
 import type { EnsureOutcome, WorkspaceInfo, WorkspaceRuntime } from "./runtime.js";
 
 // The lifecycle rules above the runtime (design 4.8, 6.3, 6.4): one lock per workspace, the lesson lookup
@@ -160,8 +161,7 @@ export class WorkspaceManager {
       await this.#stopping(id, () => runtime.stop(key));
       log.info(`idle stop: ${id}`);
     } catch (error: unknown) {
-      const kind = error instanceof Error ? error.constructor.name : typeof error;
-      log.warn(`idle stop failed: ${id}: ${kind}`);
+      log.warn(`idle stop failed: ${id}: ${errorKind(error)}`);
       if (error instanceof DockerUnavailableError) return;
     }
     tracker.forget(id);
