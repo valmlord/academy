@@ -269,7 +269,10 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
   apt sources (the live archive in the download stage, the dated snapshot for the image) go through
   `images/workspace/apt-download.sh` (#130): apt retries each request five times with backoff, and the whole update
   and download is tried up to three times, 60 s apart, so an apt outage of up to about three minutes does not fail
-  the build. A slow source is waited for; the CI step timeout is the only time limit. A longer outage fails the build
-  with one line naming the sources and the attempts; the build never switches to another mirror, because the
-  snapshot is what makes a rebuild install the same packages (item 10). A build still fails when one of the other
-  hosts is down or a pinned file changed, and the apt snapshot freezes security fixes until its date is bumped.
+  the build. From the snapshot every index must arrive, because the dependencies are not pinned; the download stage
+  goes on when only indexes its unpinned tools do not need fail, as it did before. A slow source is waited for; the
+  CI step timeout is the only time limit. A longer outage that fails fast ends the build with one line naming the
+  sources and the attempts; a stalled or very slow source can reach the step timeout first, without that line. The
+  build never switches to another mirror, because the snapshot is what makes a rebuild install the same packages
+  (item 10). A build still fails when one of the other hosts is down or a pinned file changed, and the apt snapshot
+  freezes security fixes until its date is bumped.

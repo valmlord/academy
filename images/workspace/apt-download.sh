@@ -2,6 +2,10 @@
 # Fetches apt packages for an image build with retries, without installing them (#130).
 # apt 2.8.3 retries 5xx and timeouts per request, but not a size or hash mismatch or an empty-body 5xx, and
 # update exits 0 on a failed index unless told otherwise; hence whole attempts around update and download.
+# Two modes. Without --incomplete-lists-ok (the snapshot) every index must arrive: the dependencies are not pinned,
+# so a missing pocket would resolve other versions. With it (the download stage's unpinned tools) a failed index
+# ends the attempt only when the packages then do not resolve, as an unreachable pocket they do not need was only
+# a warning before #130.
 # Bounded by attempts, not by time: a slow mirror is not an outage (green CI apt phases took up to 431 s on
 # 2026-11-10); each try ends after 30 s without data; a stalled request costs about 6.5 min, so a full stall
 # ends at the CI step timeout, which is the only wall bound.
@@ -9,11 +13,13 @@
 # retry downloads everything again, and on success the last apt call here is the download.
 # The caller's --no-download install is trusted because archives/ is written in that RUN only by apt calls of
 # this script, from lists apt checked against the archive signing key, and apt moves a file from partial/ to
-# archives/ only after it matches the hash in the signed index. Only --cainfo is accepted, so no caller
-# can weaken apt's signature or date checks. It never falls back to another mirror: the dated snapshot is what
-# makes a rebuild install the same packages (ADR-0002 item 10).
-# 3 attempts 60 s apart and 5 apt retries cover the 1- to 2-minute outage windows of 2026-11-10 and fit the
-# 15-minute CI build step; 30 s is the no-data timeout per request.
+# archives/ only after it matches the hash in the signed index. Only --cainfo and --incomplete-lists-ok are
+# accepted, and no package may contain "/" (apt-get install takes such an argument as a local .deb and installs it
+# without a signature check), so no caller can weaken apt's signature or date checks. It never falls back to
+# another mirror: the dated snapshot is what makes a rebuild install the same packages (ADR-0002 item 10).
+# 3 attempts 60 s apart and 5 apt retries cover the 1- to 2-minute outage windows of 2026-11-10, and a fast-failing
+# give-up fits the 15-minute CI build step, while a stall or a slow source may reach that step timeout first, with
+# no give-up line; 30 s is the no-data timeout per request.
 set -euo pipefail
 
 attempts_max=3
@@ -22,7 +28,7 @@ network_options=(-o Acquire::Retries=5 -o Debug::Acquire::Retries=true -o Acquir
 
 # The caller's arguments are printed as data inside a fixed format, never used as a format or evaluated.
 usage() {
-  printf 'workspace image: apt-download.sh: usage: bash apt-download.sh [--cainfo <readable file>] <package>... (no other options); got: %s\n' "${original_args[*]}" >&2
+  printf 'workspace image: apt-download.sh: usage: bash apt-download.sh [--cainfo <readable file>] [--incomplete-lists-ok] <package>... (no other options, no "/" in a package); got: %s\n' "${original_args[*]}" >&2
   exit 2
 }
 
@@ -33,10 +39,16 @@ if [ "${1-}" = --cainfo ]; then
   apt_options=(-o "Acquire::https::CAInfo=$2")
   shift 2
 fi
+incomplete_lists_ok=no
+if [ "${1-}" = --incomplete-lists-ok ]; then
+  incomplete_lists_ok=yes
+  shift
+fi
 if [ "$#" -eq 0 ]; then usage; fi
 for arg in "$@"; do
   case "$arg" in
     -*) usage ;;
+    */*) usage ;;
   esac
 done
 packages=("$@")
@@ -55,9 +67,22 @@ while :; do
   attempt=$((attempt + 1))
   rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/partial/*
   if apt-get "${apt_options[@]}" "${network_options[@]}" update --error-on=any; then
-    if ! apt-get "${apt_options[@]}" install --simulate -y --no-install-recommends "${packages[@]}" >/dev/null; then
+    update_rc=0
+  else
+    update_rc=$?
+  fi
+  if [ "$update_rc" -ne 0 ] && [ "$incomplete_lists_ok" = no ]; then
+    last_failure="apt-get update exited $update_rc"
+  elif ! apt-get "${apt_options[@]}" install --simulate -y --no-install-recommends "${packages[@]}" >/dev/null; then
+    if [ "$update_rc" -eq 0 ]; then
       printf "workspace image: apt-get update succeeded but the requested packages do not resolve against %s; the package list or a pin is wrong (apt's E: line above), so no retry: %s\n" "$(source_uris)" "${packages[*]}" >&2
       exit 1
+    fi
+    # With incomplete lists a failed resolve may be caused by the indexes that did not arrive, so it is retried.
+    last_failure="apt-get update exited $update_rc"
+  else
+    if [ "$update_rc" -ne 0 ]; then
+      printf "workspace image: apt-get update exited %s on attempt %s (apt's E: lines above name the indexes); the packages resolve without them, so this attempt continues\n" "$update_rc" "$attempt" >&2
     fi
     if apt-get "${apt_options[@]}" "${network_options[@]}" install -y --no-install-recommends --download-only "${packages[@]}"; then
       printf 'workspace image: apt downloads complete on attempt %s after %s s\n' "$attempt" "$SECONDS" >&2
@@ -65,8 +90,6 @@ while :; do
     else
       last_failure="apt-get install --download-only exited $?"
     fi
-  else
-    last_failure="apt-get update exited $?"
   fi
   if [ "$attempt" -ge "$attempts_max" ]; then break; fi
   printf "workspace image: apt attempt %s of %s failed: %s after %s s; apt's E: lines above give the reason; next attempt in %s s\n" "$attempt" "$attempts_max" "$last_failure" "$SECONDS" "$pause_seconds" >&2
