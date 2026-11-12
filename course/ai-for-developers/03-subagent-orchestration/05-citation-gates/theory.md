@@ -165,12 +165,13 @@ reference):
   `last_assistant_message` "is not the delivered report": отчёт лежит в `tool_input.message` вызова `SubagentHandback`, и его видит хук `PreToolUse` или `PostToolUse` с
   matcher `SubagentHandback`. В результате Agent вместо отчёта короткая заметка о передаче (hooks
   reference).
-- **Скрипт, читающий `stream-json`.** Если `claude -p` запущен с `--output-format stream-json
-  --verbose`, в потоке есть сообщения основного разговора (у них `parent_tool_use_id` равен `null`,
-  headless). Страница agent loop: `UserMessage` "emitted after each tool execution with the tool result
-  content sent back to Claude", а "A subagent returns only its final response". Значит, `tool_result`
-  вызова Agent на переднем плане это строка потока с отчётом субагента. С `--output-format json` скрипт
-  получает только итоговое сообщение `result` (урок 2).
+- **Скрипт, читающий `stream-json`.** Если `claude -p` запущен с
+  `--output-format stream-json --verbose`, в потоке есть сообщения основного разговора (у них
+  `parent_tool_use_id` равен `null`, headless). Страница agent loop: `UserMessage` "emitted after
+  each tool execution with the tool result content sent back to Claude", а "A subagent returns only
+  its final response". Значит, `tool_result` вызова Agent на переднем плане это строка потока с
+  отчётом субагента. С `--output-format json` скрипт получает только итоговое сообщение `result`
+  (урок 2).
 
 В этом уроке вы пишете проверку для своего пайплайна. Хук `SubagentStop` разбираем, но не строим:
 роли пайплайна не субагенты, а хук во frontmatter под `-p` не сработал бы.
