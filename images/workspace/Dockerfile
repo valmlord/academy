@@ -37,8 +37,13 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 # From the live archive, not the snapshot: these tools never reach the final image and everything they fetch is
 # checked against a pinned sha256. They also supply the CA bundle the final stage needs for the HTTPS-only snapshot.
-RUN apt-get update; \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl gnupg python3 xz-utils; \
+# apt-download.sh fetches with retries (#130); --no-download then installs only what it fetched, so dpkg runs once
+# and never touches the network. The incomplete-lists flag: these tools are unpinned, so any pocket that lists them
+# will do, as before #130; the helper retries only when they do not resolve.
+RUN --mount=type=bind,source=apt-download.sh,target=/run/apt-download.sh \
+    packages=(ca-certificates curl gnupg python3 xz-utils); \
+    bash /run/apt-download.sh --incomplete-lists-ok "${packages[@]}"; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-download "${packages[@]}"; \
     rm -rf /var/lib/apt/lists/*
 
 ARG TARGETARCH
@@ -128,10 +133,15 @@ ARG TZDATA_VERSION=2026e-0ubuntu0.24.04.1
 # architectures. The base has no CA bundle and the snapshot is HTTPS-only: the fetch stage's bundle is bind-mounted,
 # so it lands in no layer. DEBIAN_FRONTEND is set per command, never as ENV, so it does not reach the runtime.
 # less: git log and git diff page through it.
+# apt-download.sh fetches from the snapshot with retries and never switches to another source (#130); the
+# install uses only those downloads. No incomplete-lists flag here: the dependencies are not pinned, so every index
+# of the snapshot must arrive.
 RUN --mount=type=bind,from=fetch,source=/etc/ssl/certs/ca-certificates.crt,target=/run/bootstrap-ca.crt \
+    --mount=type=bind,source=apt-download.sh,target=/run/apt-download.sh \
+    packages=(ca-certificates=20260816ubuntu0.24.04.1 git=1:2.43.0-1ubuntu7.4 less=590-2ubuntu2.1 make=4.3-4.1build2 python3=3.12.3-0ubuntu2.1 ripgrep=14.1.0-1 "tzdata=${TZDATA_VERSION}"); \
     printf 'Types: deb\nURIs: https://snapshot.ubuntu.com/ubuntu/%s/\nSuites: noble noble-updates noble-security\nComponents: main universe\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n' "$APT_SNAPSHOT" > /etc/apt/sources.list.d/ubuntu.sources; \
-    apt-get -o Acquire::https::CAInfo=/run/bootstrap-ca.crt update; \
-    DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::https::CAInfo=/run/bootstrap-ca.crt install -y --no-install-recommends ca-certificates=20260816ubuntu0.24.04.1 git=1:2.43.0-1ubuntu7.4 less=590-2ubuntu2.1 make=4.3-4.1build2 python3=3.12.3-0ubuntu2.1 ripgrep=14.1.0-1 "tzdata=${TZDATA_VERSION}"; \
+    bash /run/apt-download.sh --cainfo /run/bootstrap-ca.crt "${packages[@]}"; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --no-download "${packages[@]}"; \
     test "$(dpkg-query -W -f='${Version}' python3.12)" = 3.12.3-1ubuntu0.17; \
     rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log /var/cache/debconf/*-old
 
