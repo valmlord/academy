@@ -1,0 +1,576 @@
+{
+  "source": "https://code.claude.com/docs/en/cli-reference, section 'CLI flags' (docs for 2.1.317, checked 2026-11-03)",
+  "note": "One entry per table row, spellings as the row writes them, long form first. Arity of the C10 flags follows design 4.3 Parsing; the arity of every other flag is best effort and only shapes parsing after a C10 failure.",
+  "flags": [
+    {
+      "spellings": [
+        "--add-dir"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--advisor"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--agent"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--agents"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--allow-dangerously-skip-permissions"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--allowedTools",
+        "--allowed-tools"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--append-subagent-system-prompt"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--append-subagent-system-prompt-file"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--append-system-prompt"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--append-system-prompt-file"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--autocompact"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--ax-screen-reader"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--bare"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--betas"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--bg",
+        "--background"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--channels"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--chrome"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--cloud"
+      ],
+      "arity": "optional",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--continue",
+        "-c"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--dangerously-load-development-channels"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--dangerously-skip-permissions"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--debug"
+      ],
+      "arity": "none",
+      "equalsDocumented": true
+    },
+    {
+      "spellings": [
+        "--debug-file"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--desktop"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--disable-slash-commands"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--disallowedTools",
+        "--disallowed-tools"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--effort"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--enable-auto-mode"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--environment"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--exclude-dynamic-system-prompt-sections"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--exec"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--fallback-model"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--fork-session"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--forward-subagent-text"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--from-pr"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--ide"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--init"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--init-only"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--include-hook-events"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--include-partial-messages"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--input-format"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--json-schema"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--maintenance"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--max-budget-usd"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--max-turns"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--mcp-config"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--model"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--name",
+        "-n"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--no-chrome"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--no-session-persistence"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--output-format"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--permission-mode"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--permission-prompt-tool"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--permission-prompts"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--plugin-dir"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--plugin-url"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--print",
+        "-p"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--prompt-suggestions"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--ref"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--remote"
+      ],
+      "arity": "optional",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--remote-control",
+        "--rc"
+      ],
+      "arity": "optional",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--remote-control-session-name-prefix"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--replay-user-messages"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--restricted"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--resume",
+        "-r"
+      ],
+      "arity": "optional",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--safe-mode"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--session-id"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--setting-sources"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--settings"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--strict-mcp-config"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--system-prompt"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--system-prompt-file"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--system-prompt-snapshot"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--teleport"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--teammate-mode"
+      ],
+      "arity": "one",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--tmux"
+      ],
+      "arity": "none",
+      "equalsDocumented": true
+    },
+    {
+      "spellings": [
+        "--tools"
+      ],
+      "arity": "variadic",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--verbose"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--version",
+        "-v"
+      ],
+      "arity": "none",
+      "equalsDocumented": false
+    },
+    {
+      "spellings": [
+        "--worktree",
+        "-w"
+      ],
+      "arity": "optional",
+      "equalsDocumented": false
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+version: 1
+questions:
+  - id: skipped-agent-files
+    type: multiple
+    prompt: |
+      В новом проекте четыре файла. Отметьте каждый файл, который Claude Code 2.1.317 пропустит и не
+      загрузит как субагента.
+
+      - `.claude/agents/a.md`: frontmatter открывается `---` в первой строке, в нём `name: a-review` и
+        `tools: Read`, а поля `description` нет.
+      - `.claude/agents/b.md`: `---` в первой строке, `name: "review:strict"` и `description: Strict review`.
+      - `.claude/agents/sub/c.md`: первая строка `<!-- reviewer -->`, `---` на второй строке, дальше
+        `name: c-review` и `description: Review`.
+      - `.claude/agents/team/d.md`: `---` в первой строке, `name: d-review` и `description: Review`.
+    options:
+      - { id: a, text: "`.claude/agents/a.md`" }
+      - { id: b, text: "`.claude/agents/b.md`" }
+      - { id: c, text: "`.claude/agents/sub/c.md`" }
+      - { id: d, text: "`.claude/agents/team/d.md`" }
+    correct: [a, b, c]
+    explanation: |
+      В списке "Subagent files Claude Code skips" на странице про субагентов есть все три случая: `name`
+      без `description`, `name` с двоеточием (оно зарезервировано для имён плагинов) и открывающая `---`
+      не в первой строке (тогда файл считается документацией). Вложенная папка ничему не мешает:
+      `.claude/agents/` сканируется рекурсивно, а субагента определяет только поле `name`.
+
+  - id: duplicate-name-same-tree
+    type: single
+    prompt: |
+      В проекте два корректных файла с `name: code-reviewer`: `.claude/agents/reviewer.md` и
+      `.claude/agents/old/reviewer.md`. Какое определение загрузит Claude Code 2.1.317?
+    options:
+      - { id: a, text: "Из `.claude/agents/reviewer.md`: файл верхнего уровня важнее вложенного" }
+      - { id: b, text: "Из `.claude/agents/old/reviewer.md`: вложенный файл переопределяет верхний" }
+      - { id: c, text: "Тот файл, который изменяли последним" }
+      - { id: d, text: "Один из двух, по порядку чтения файловой системы; документированного приоритета нет, поэтому оставить нужно один файл" }
+    correct: [d]
+    explanation: |
+      Страница про субагентов: если два файла в одном дереве `.claude/agents/`, включая подпапки, объявляют
+      одно имя, Claude Code загружает только один из них, "chosen by filesystem read order rather than a
+      documented precedence". Ни глубина, ни время изменения не решают. Единственный надёжный способ
+      знать, какое определение работает, это оставить одно.
+
+  - id: force-overrides-frontmatter
+    type: single
+    prompt: |
+      В `.claude/settings.json` в `env` стоят `"CLAUDE_CODE_SUBAGENT_MODEL": "opus"` и
+      `"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "Yes"`. У субагента в frontmatter `model: haiku`. Главная сессия
+      идёт на Sonnet 5 через Anthropic API, вызов модель не называет. На какой модели работает субагент
+      в Claude Code 2.1.317?
+    options:
+      - { id: a, text: "Haiku 5.5: модель из frontmatter важнее переменной окружения" }
+      - { id: b, text: "Opus 5.5" }
+      - { id: c, text: "Sonnet 5, модель главной сессии" }
+      - { id: d, text: "Sonnet 5.5" }
+    correct: [b]
+    explanation: |
+      Переключатели вкл/выкл принимают `1`, `true`, `yes`, `on` в любом регистре (справка по переменным
+      окружения), так что `"Yes"` включает FORCE. Когда FORCE включён и задана `CLAUDE_CODE_SUBAGENT_MODEL`,
+      субагенты работают на этой модели, а поле `model` в определениях Claude Code игнорирует. Алиас
+      `opus` в Anthropic API указывает на Opus 5.5. Модель главной сессии досталась бы субагенту, только
+      если бы FORCE был задан без `CLAUDE_CODE_SUBAGENT_MODEL`.
+
+  - id: denylist-only-keeps
+    type: multiple
+    prompt: |
+      У субагента в frontmatter из инструментов задано только `disallowedTools: Write, Edit`, поля `tools`
+      нет. В сессии подключён MCP-сервер `tracker`. Отметьте всё, что этот субагент по-прежнему может
+      сделать в Claude Code 2.1.317.
+    options:
+      - { id: a, text: "Изменить файл инструментом Edit" }
+      - { id: b, text: "Запустить команду оболочки инструментом Bash" }
+      - { id: c, text: "Создать файл инструментом Write" }
+      - { id: d, text: "Вызвать инструменты MCP-сервера `tracker`" }
+    correct: [b, d]
+    explanation: |
+      На странице про субагентов разобран ровно этот пример: `disallowedTools: Write, Edit` наследует набор
+      инструментов, кроме Write и Edit, и "the subagent keeps Bash, MCP tools, and the rest of its pool".
+      Список запрещённых убирает только названное. Bash по-прежнему может писать файлы (`sed -i`, `>`),
+      поэтому read-only ревьюер задают закрытым списком `tools`, а не запретами.
+
+  - id: vendor-reviewer-not-read-only
+    type: single
+    prompt: |
+      В документации Claude Code есть пример ревьюера с `tools: Read, Grep, Glob, Bash`. Почему такой
+      ревьюер не read-only, если запрет должен исполнять сам Claude Code?
+    options:
+      - { id: a, text: "Bash выполняет любую команду оболочки, а команды оболочки могут менять файлы (`sed -i`, `>`)" }
+      - { id: b, text: "Grep умеет записывать найденное обратно в файлы" }
+      - { id: c, text: "Промпт субагента важнее списка `tools`, и модель может его расширить" }
+      - { id: d, text: "Каждый субагент всегда получает Edit, что бы ни было в `tools`" }
+    correct: [a]
+    explanation: |
+      В справке по инструментам Bash "Executes shell commands in your environment", а Grep "Searches for
+      patterns in file contents".
+      Read-only набор в документации SDK это `Read`, `Grep`, `Glob`: "Can examine code but not modify or
+      execute"; best practices советуют дать ревьюеру только `tools: Read, Grep, Glob`, и тогда ограничение
+      "enforced by Claude Code rather than requested in a prompt". Список `tools` закрытый: с
+      `Read, Grep, Glob, Bash` субагент, по странице Claude Code про субагентов (раздел "Restrict which tools
+      a subagent can use"), "can't edit files, write files", то есть Edit он не получает, но Bash остаётся.
+
+  - id: fork-not-fresh-eyes
+    type: single
+    prompt: |
+      Команда отдаёт ревью форку текущего разговора: "он и так всё знает про задачу". Что здесь не так?
+    options:
+      - { id: a, text: "Форк не может читать файлы" }
+      - { id: b, text: "Форк всегда работает на Haiku" }
+      - { id: c, text: "Форк наследует весь разговор, включая рассуждения автора изменения, так что свежего взгляда нет" }
+      - { id: d, text: "Форк не может вернуть отчёт в главную сессию" }
+    correct: [c]
+    explanation: |
+      Страница про субагентов: форк "inherits the entire conversation so far instead of starting fresh" и
+      видит те же системный промпт, инструменты, модель и историю сообщений; обратно приходит только его
+      итог. Обычный субагент начинает с чистого контекста и видит только сообщение о делегировании. Для
+      ревью ценно именно это: ревьюер не читал, почему автор считает код правильным.

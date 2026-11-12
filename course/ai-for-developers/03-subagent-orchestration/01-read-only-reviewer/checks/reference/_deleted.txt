@@ -1,0 +1,2 @@
+.claude/agents/review/code-reviewer.md
+.claude/agents/strict-reviewer.md

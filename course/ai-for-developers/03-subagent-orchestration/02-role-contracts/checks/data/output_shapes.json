@@ -1,0 +1,49 @@
+{
+  "source": "starter/docs/pipeline-brief.md (the demo asserts that the brief's JSON blocks equal `samples` and `unusableExamples`)",
+  "roleNames": {"coder": "кодера", "reviewer": "ревьюера", "summarizer": "роли summarizer"},
+  "sections": ["Цель", "Формат вывода", "Границы"],
+  "finding": {
+    "id": "string",
+    "file": "string",
+    "line": "integer",
+    "quote": "string",
+    "claim": "string",
+    "severity": {"enum": ["high", "medium", "low"]}
+  },
+  "roles": {
+    "coder": {"diff_path": "string", "summary": "string"},
+    "reviewer": {"findings": {"arrayOf": "finding"}},
+    "summarizer": {"summary": "string", "finding_ids": {"arrayOf": "string"}}
+  },
+  "wrongTypeValues": {
+    "string": [7, true, null, ["F-3a9c01d2e4"], {}],
+    "integer": ["3", 2.5, true, null, [18], {}],
+    "enum": [3, true, null, ["high"], {}],
+    "array": [{}, "F-3a9c01d2e4", 7, true, null],
+    "object": ["F-3a9c01d2e4", 7, true, null, []]
+  },
+  "outsideEnum": ["critical"],
+  "samples": {
+    "coder": [
+      {"diff_path": "runs/2026-11-03-late-fee/coder.diff", "summary": "Пеня теперь округляется до целых центов вниз; добавлен тест на границу 30 дней."}
+    ],
+    "reviewer": [
+      {"findings": [
+        {"id": "F-3a9c01d2e4", "file": "src/invoices/late_fee.py", "line": 18, "quote": "    days = (today - due).days + 1", "claim": "Лишний день: счёт, оплаченный в срок, получает пеню за один день.", "severity": "high"},
+        {"id": "F-77b0e5c912", "file": "tests/test_late_fee.py", "line": 41, "quote": "    def test_fee_after_due_date(self):", "claim": "Нет теста на оплату ровно в день срока.", "severity": "medium"}
+      ]},
+      {"findings": []}
+    ],
+    "summarizer": [
+      {"summary": "Изменение пени содержит ошибку на один день; нужен тест на оплату в день срока.", "finding_ids": ["F-3a9c01d2e4", "F-77b0e5c912"]}
+    ]
+  },
+  "unusableExamples": {
+    "coder": [{"summary": "Пеня исправлена."}],
+    "reviewer": [
+      {"findings": [{"id": "F-3a9c01d2e4", "file": "src/invoices/late_fee.py", "line": "18", "quote": "    days = (today - due).days + 1", "claim": "Лишний день.", "severity": "high"}]},
+      {"findings": [{"id": "F-3a9c01d2e4", "file": "src/invoices/late_fee.py", "line": 18, "quote": "    days = (today - due).days + 1", "claim": "Лишний день.", "severity": "critical"}]}
+    ],
+    "summarizer": [{"summary": "Есть ошибка в пене.", "finding_ids": "F-3a9c01d2e4"}]
+  }
+}

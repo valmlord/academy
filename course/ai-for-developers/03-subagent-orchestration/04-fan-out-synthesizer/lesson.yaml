@@ -1,0 +1,55 @@
+id: orch-fan-out
+title: "Fan-out ревьюеров и synthesizer"
+type: artifact
+outcomes:
+  - "Запускает параллельных ревьюеров по разделам (безопасность, производительность, тесты) с общим synthesizer. Ревьюеры независимы друг от друга, synthesizer сохраняет происхождение каждой находки, а упавший раздел помечается непроверенным. Для сценария выбирает одного агента, шаблон workflow (цепочка с гейтами, маршрутизация, sectioning, voting, orchestrator-workers, evaluator-optimizer) или несколько агентов по измеренным признакам и по контексту, а не по должностям ролей."
+estimatedMinutes: 80
+status: ready
+prerequisites:
+  - orch-chain
+sources:
+  - title: "Anthropic: Building effective agents (Erik S., Barry Zhang, 2024-12-19; workflows и predefined code paths, routing, sectioning и voting с примерами, orchestrator-workers и subtasks aren't pre-defined, evaluator-optimizer и When to use this workflow)"
+    url: https://www.anthropic.com/engineering/building-effective-agents
+    checkedAt: "2026-11-03"
+  - title: "Anthropic: How we built our multi-agent research system (Hadfield и др., 2025-06-13; Opus 4 ведущий и Sonnet 4 субагенты, +90.2% на internal research eval, около 4x и 15x токенов, most coding tasks involve fewer truly parallelizable tasks)"
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+    checkedAt: "2026-11-03"
+  - title: "Claude blog: Building multi-agent systems: When and how to use them (Cara Phillips и др., 2026-01-23; 3-10x more tokens than single-agent approaches, context-centric против problem-centric)"
+    url: https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them
+    checkedAt: "2026-11-03"
+  - title: "Claude Platform: Optimizing for cost and intelligence (Tune one model before you add a second, Build a pairing only if it beats the single model's whole curve, delegation came out ahead in only two situations: рутинная работа с длинным хвостом стоимости на более ранних моделях и работа больше одного окна контекста, где Opus 5.5 с субагентами Sonnet 5.5 дешевле примерно на треть с примерно тем же результатом; одна зависимая цепочка; Haiku 5.5 под Opus 5.5: -32% стоимости, около -4 пунктов)"
+    url: https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence
+    checkedAt: "2026-11-11"
+  - title: "Cemri и др.: Why Do Multi-Agent LLM Systems Fail? (MAST), arXiv:2503.13657 v3, 2025-10-26 (performance gains on popular benchmarks are often minimal)"
+    url: https://arxiv.org/abs/2503.13657
+    checkedAt: "2026-11-03"
+  - title: "Jwalapuram и др.: The Illusion of Multi-Agent Advantage, arXiv:2606.13003 v2, 2026-06-13, препринт без рецензии (автоматически собранные MAS уступают CoT-SC при стоимости до 10x)"
+    url: https://arxiv.org/abs/2606.13003
+    checkedAt: "2026-11-03"
+  - title: "Cognition: Don't Build Multi-Agents (Walden Yan, 2025-06-12; Principle 2: actions carry implicit decisions, пример Flappy Bird)"
+    url: https://cognition.com/blog/dont-build-multi-agents
+    checkedAt: "2026-11-03"
+  - title: "Python 3.12: concurrent.futures (Executor.submit возвращает Future; Future.result ждёт и повторно бросает исключение вызова)"
+    url: https://docs.python.org/3.12/library/concurrent.futures.html
+    checkedAt: "2026-11-03"
+  - title: "Python 3.12: subprocess (Popen.communicate: Wait for process to terminate)"
+    url: https://docs.python.org/3.12/library/subprocess.html
+    checkedAt: "2026-11-03"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: fan-out
+    title: "Fan-out: три раздела одновременно и независимо, synthesizer с source_ids после всех разделов, упавший раздел в unreviewed, остановка при сбое кодера или всех разделов, журнал, отчёт, файлы прогона в каталоге прогона"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_fan_out.py"'
+    timeoutSec: 300
+    weight: 2
+  - id: orchestration-quiz
+    title: "Квиз: какой шаблон, сколько агентов и какая модель для роли"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
+    attempts:
+      limit: 3

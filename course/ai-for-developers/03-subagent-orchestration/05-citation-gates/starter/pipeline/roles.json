@@ -1,0 +1,9 @@
+{
+  "coder": {"model": "opus", "max_budget_usd": 1.50},
+  "reviewer": {"model": "claude-sonnet-5-5", "max_budget_usd": 0.50},
+  "security": {"model": "claude-sonnet-5-5", "max_budget_usd": 0.50},
+  "performance": {"model": "claude-sonnet-5-5", "max_budget_usd": 0.50},
+  "tests": {"model": "claude-sonnet-5-5", "max_budget_usd": 0.50},
+  "synthesizer": {"model": "sonnet", "max_budget_usd": 0.30},
+  "summarizer": {"model": "haiku", "max_budget_usd": 0.10}
+}

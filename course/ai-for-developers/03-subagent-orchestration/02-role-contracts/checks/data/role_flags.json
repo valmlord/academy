@@ -1,0 +1,68 @@
+{
+  "source": "design #43 revision 6, section 4.3 (the C10 list and the values per role)",
+  "c10": [
+    "--print",
+    "--output-format",
+    "--verbose",
+    "--model",
+    "--max-budget-usd",
+    "--json-schema",
+    "--max-turns",
+    "--tools",
+    "--allowedTools",
+    "--disallowedTools",
+    "--permission-mode",
+    "--bare",
+    "--strict-mcp-config",
+    "--system-prompt",
+    "--system-prompt-file",
+    "--append-system-prompt",
+    "--append-system-prompt-file"
+  ],
+  "outputFormats": ["json", "stream-json"],
+  "materialValueFlags": ["--system-prompt", "--append-system-prompt"],
+  "materialFileFlags": ["--system-prompt-file", "--append-system-prompt-file"],
+  "reader": {
+    "toolsAllowed": ["Read", "Grep", "Glob", "LSP"],
+    "toolsRequired": ["Read"],
+    "reviewToolsRequired": ["Read", "Grep", "Glob"],
+    "allowedToolsAllowed": ["Read", "Grep", "Glob", "LSP"],
+    "modes": ["default", "manual", "dontAsk"]
+  },
+  "coder": {
+    "toolsAllowed": ["Read", "Edit", "Write", "NotebookEdit", "Grep", "Glob", "LSP"],
+    "toolsRequired": ["Read", "Edit"],
+    "allowedToolsAllowed": ["Edit", "Write", "NotebookEdit", "Read", "Grep", "Glob", "LSP"],
+    "disallowedForbidden": ["Edit", "Read"],
+    "modeThatApproves": "acceptEdits",
+    "modesWithEditRule": ["default", "manual", "dontAsk"],
+    "courseRuleMode": "auto",
+    "bypassMode": "bypassPermissions"
+  },
+  "knownTools": [
+    "Agent", "Artifact", "AskUserQuestion", "Bash", "CronCreate", "CronDelete", "CronList", "Edit",
+    "EndConversation", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "LSP",
+    "Monitor", "MultiEdit", "NotebookEdit", "PowerShell", "PushNotification", "Read", "RemoteTrigger",
+    "ScheduleWakeup", "SendMessage", "SendUserFile", "ShareOnboardingGuide", "Skill", "SubagentHandback", "Task",
+    "TaskStop", "TodoWrite", "ToolSearch", "WaitForMcpServers", "WebFetch", "WebSearch", "Workflow", "Write"
+  ],
+  "messages": {
+    "C3": "каждый вызов берёт модель и лимит расходов своей роли из конфигурации ролей в момент вызова; лимит записан цифрами с необязательной дробной частью",
+    "C4": "вызов передаёт схему вывода своей роли из её контракта прямо в строке вызова, и функция возвращает проверенный объект",
+    "C6": "роль-читатель уже в самом вызове ограничена инструментами чтения и поиска, закрыта от MCP и не одобряет ничего сверх чтения",
+    "C7-approval": "кодер правит файлы без запроса разрешения: правки одобряет сам вызов, режимом acceptEdits или правилом allow для Edit",
+    "C7-allow": "одобрение в вызове кодера не шире acceptEdits: правила allow только для инструментов кодера из C7",
+    "C7-mode": "режим кодера пропускает его правки и не шире acceptEdits: это acceptEdits или режим, в котором правки одобряет правило allow из вызова (default, manual, dontAsk)",
+    "C7-bypass": "у кодера нет обхода разрешений: одобрение записано в вызове и не шире acceptEdits",
+    "C7-tools": "инструменты кодера только из набора C7 (Read, Edit, Write, NotebookEdit, Grep, Glob, LSP), среди них Read и Edit; убрать можно MCP и другие инструменты из документации, но не Read и Edit",
+    "C7-auto": "C7 (правило курса): кодер не работает в режиме auto: команды там одобряет классификатор, а не правило в вызове",
+    "C8": "формат вызова: claude из PATH в headless-режиме, промпт через stdin или одним позиционным аргументом, каждый флаг один раз и значение отдельным аргументом, флаг без значения без =, машиночитаемый формат вывода",
+    "C8-tools": "C8 (правило курса): имена инструментов в списочных флагах пишутся без скобок, с заглавной буквы, как в документации",
+    "C8-env": "вызов не добавляет и не меняет переменные окружения",
+    "C8-turns": "лимит ходов, если он задан в вызове, это целое число больше нуля, записанное цифрами",
+    "C9": "конфигурация Claude Code в проекте и пользовательская конфигурация Claude Code остались такими, какими их выдаёт урок",
+    "C10": "C10: в вызове роли только флаги, которым учит урок (список в task.md): так всё, что строка вызова задаёт в правах и выводе роли, разобрано в уроке",
+    "C10-rest": "остальные требования к этому вызову проверяются, когда в нём останутся только флаги урока",
+    "C10-prompt-hint": "если это промпт, начинающийся с \"-\", передайте его через stdin или после \"--\""
+  }
+}

@@ -1,0 +1,73 @@
+id: orch-citation-gates
+title: "Цитаты и перекрёстные проверки на стыках"
+type: artifact
+outcomes:
+  - "Пишет детерминированную проверку на стыке. Она пропускает дальше только находки с проверяемой цитатой (существующий файл снимка, строка в диапазоне, цитата с этой строки) и итоговые находки, сводимые к принятым исходным. Ставит её так, чтобы ни одна роль и ни одно поле отчёта не получили непроверенную находку, и выбирает, где проверка исполняется в headless- и интерактивном режиме."
+estimatedMinutes: 100
+status: ready
+prerequisites:
+  - orch-fan-out
+sources:
+  - title: "Anthropic: How we built our multi-agent research system (Hadfield и др., 2025-06-13; CitationAgent: identify specific locations for citations)"
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+    checkedAt: "2026-11-03"
+  - title: "claude.com blog: Building multi-agent systems: When and how to use them (Cara Phillips и др., 2026-01-23; verification subagents: marking outputs as passing without thorough testing; один источник одного вендора)"
+    url: https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them
+    checkedAt: "2026-11-03"
+  - title: "Cemri и др., Why Do Multi-Agent LLM Systems Fail? (MAST), arXiv:2503.13657 v3, 2025-10-26 (Insight 3; explicit verifiers; приложение H: ProgramDev-v0, 32 задачи, смена топологии ChatDev, do not constitute substantial improvements)"
+    url: https://arxiv.org/html/2503.13657v3
+    checkedAt: "2026-11-03"
+  - title: "Singh, Pawar, The Hallucination Snowball, arXiv:2608.14588 v1 (ПРЕПРИНТ; на странице Submitted on 22 Jun 2026; 4-агентный финансовый пайплайн на FinanceBench, 346 внесённых ошибок; проверки на границах против проверки в конце, по аннотации; принятие на FAGEN заявлено авторами)"
+    url: https://arxiv.org/abs/2608.14588v1
+    checkedAt: "2026-11-03"
+  - title: "FAGEN Workshop (Failure Modes in Agentic AI), ICML 2026: This is a non-archival venue; списка принятых работ нет"
+    url: https://fagen-workshop.github.io/
+    checkedAt: "2026-11-03"
+  - title: "Jamshidi, Moradi Dakhel, Nafi, Khomh, Hallucination Cascade, arXiv:2606.07937 v1, 2026-06-06 (ПРЕПРИНТ; цепочки из трёх агентов, net attenuation, по аннотации)"
+    url: https://arxiv.org/abs/2606.07937v1
+    checkedAt: "2026-11-03"
+  - title: "Xie и др., From Spark to Fire, arXiv:2603.04474 v2, 2026-05-11 (ПРЕПРИНТ; a single atomic error seed leads to widespread failure, по аннотации)"
+    url: https://arxiv.org/abs/2603.04474v2
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Hooks reference (SubagentStop: поля ввода, last_assistant_message, decision block, exit 2, внутренние агенты и пустой agent_type, matcher; Stop input: stop_hook_active is true when Claude Code is already continuing as a result of a stop hook; SubagentHandback и tool_input.message, content результата Agent: a short note about that hand-back; PostToolUse на Agent для foreground и async_launched; хуки во frontmatter субагента проекта и -p; лимит 8 продолжений подряд)"
+    url: https://code.claude.com/docs/en/hooks
+    checkedAt: "2026-11-04"
+  - title: "Claude Code: Environment variables (CLAUDE_CODE_STOP_HOOK_BLOCK_CAP: Stop или SubagentStop, по умолчанию 8, 0 снимает лимит)"
+    url: https://code.claude.com/docs/en/env-vars
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Tools reference (SubagentHandback: только в режиме auto, субагентам, которых Agent запускает локально, кроме форков; v2.1.271+)"
+    url: https://code.claude.com/docs/en/tools-reference
+    checkedAt: "2026-11-04"
+  - title: "Claude Code: Configure permissions (таблица What runs before you trust a folder: хуки из файлов настроек Used, хуки во frontmatter субагента проекта Not used)"
+    url: https://code.claude.com/docs/en/permissions
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Run Claude Code programmatically (headless; Follow subagent messages: parent_tool_use_id, null у основного разговора; stream-json с --verbose)"
+    url: https://code.claude.com/docs/en/headless
+    checkedAt: "2026-11-03"
+  - title: "Claude Agent SDK: How the agent loop works (UserMessage emitted after each tool execution with the tool result; A subagent returns only its final response)"
+    url: https://code.claude.com/docs/en/agent-sdk/agent-loop
+    checkedAt: "2026-11-03"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: citation-gate
+    title: "Проверка на стыке: check_findings и check_synthesis отклоняют ровно находки, нарушающие G1-G4, на 235 случайных находках в 5 случайных снимках"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_citation_gate.py"'
+    timeoutSec: 120
+    weight: 2
+  - id: gate-wired
+    title: "Проверки на каждом стыке пайплайна: ни роль, ни отчёт не получают плохую находку, каждая отклонённая в журнале, хорошие доходят без изменений"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_gate_wired.py"'
+    timeoutSec: 240
+    weight: 2
+  - id: cascade-quiz
+    title: "Квиз: где проверка видит отчёт субагента и что говорят исследования о месте проверки"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
+    attempts:
+      limit: 3

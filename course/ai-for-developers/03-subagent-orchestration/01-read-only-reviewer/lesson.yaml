@@ -1,0 +1,58 @@
+id: orch-read-only-reviewer
+title: "Read-only ревьюер: запрет, который исполняет харнесс"
+type: artifact
+outcomes:
+  - "Описывает в `.claude/agents/` ревьюера, у которого запрет менять файлы, запускать команды и делегировать обеспечивает сам Claude Code закрытым списком инструментов, а не промптом. Назначает ему модель, которая действительно запустится в заданном сценарии. Находит, какой файл определения загружается и какая настройка переопределяет модель."
+estimatedMinutes: 80
+status: ready
+prerequisites:
+  - patterns-anti-patterns
+sources:
+  - title: "Claude Code: Create custom subagents (пример code-reviewer с Bash, пропуск файлов, дубликат name, рекурсивный обход, неизвестные поля, tools и disallowedTools, запись disallowedTools с уточнением убирает инструмент целиком, значения permissionMode (manual как алиас default), memory, Agent/Task, Skill, порядок выбора модели, ловушка алиаса семейства, CLAUDE_CODE_SUBAGENT_MODEL и _FORCE, свежий контекст, форки и v2.1.302, --agent, 19 полей frontmatter)"
+    url: https://code.claude.com/docs/en/sub-agents
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Tools reference (Glob и Grep на macOS, Linux и WSL, столбец Permission required, Bash, Skill, Agent, SendMessage, TaskStop, LSP: jump to definitions, find references)"
+    url: https://code.claude.com/docs/en/tools-reference
+    checkedAt: "2026-11-04"
+  - title: "Claude Code: Best practices (ревьюер только с tools: Read, Grep, Glob; когда субагенты окупаются; та же или меньшая модель)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-11-03"
+  - title: "Claude Agent SDK: Subagents in the SDK (Read-only analysis: Can examine code but not modify or execute)"
+    url: https://code.claude.com/docs/en/agent-sdk/subagents
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Permission modes (что идёт без вопроса в acceptEdits, auto, bypassPermissions)"
+    url: https://code.claude.com/docs/en/permission-modes
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Model configuration (алиасы на Anthropic API, best, opusplan, default, [1m], окно 1M у Sonnet 5.5, непроверяемая опечатка в --model)"
+    url: https://code.claude.com/docs/en/model-config
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Environment variables (переключатели вкл/выкл в любом регистре, CLAUDE_CODE_SUBAGENT_MODEL_FORCE)"
+    url: https://code.claude.com/docs/en/env-vars
+    checkedAt: "2026-11-03"
+  - title: "Claude Platform: Models overview (строки Claude API ID и Claude API alias: claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5, claude-fable-5-2; ссылки Legacy models на страницы десяти прежних моделей с их ID (среди них Fable 5.1, claude-fable-5-1))"
+    url: https://platform.claude.com/docs/en/about-claude/models/overview
+    checkedAt: "2026-11-11"
+  - title: "Claude blog: Building multi-agent systems: When and how to use them (2026-01-23; context-centric против problem-centric, роли тратят токены на координацию)"
+    url: https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them
+    checkedAt: "2026-11-03"
+  - title: "Codex: Subagents (субагент наследует песочницу и одобрения родителя; инструкции не создают read-only песочницу)"
+    url: https://learn.chatgpt.com/docs/agent-configuration/subagents
+    checkedAt: "2026-11-03"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: reviewer-definition
+    title: "Определение ревьюера: ровно один code-reviewer, только инструменты чтения, без делегирования, Sonnet 5.5; coder и настройки команды целы"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_reviewer.py"'
+    timeoutSec: 60
+    weight: 3
+  - id: reviewer-quiz
+    title: "Квиз: какие файлы пропускаются, дубликат name, FORCE против frontmatter, список запретов, Bash в примере, форк"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
+    attempts:
+      limit: 3

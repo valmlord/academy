@@ -1,0 +1,70 @@
+id: orch-role-contracts
+title: "Контракт роли и вызов `claude -p` из скрипта"
+type: artifact
+outcomes:
+  - "Оформляет контракт роли (цель, формат вывода в виде JSON Schema, границы) и вызывает роль из Python через `claude -p`. Модель и лимит расходов берутся из конфигурации, структуру вывода проверяет сам Claude Code, у ролей-читателей только инструменты чтения без MCP, у кодера правка без запроса разрешения в headless-режиме без обхода разрешений. Каждый сбой вызова (код выхода, ошибка лимита, нет `structured_output`, исчерпаны попытки структурного вывода) распознаётся, а не принимается за ответ."
+estimatedMinutes: 100
+status: ready
+prerequisites:
+  - orch-read-only-reviewer
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+sources:
+  - title: "Claude Code: Run Claude Code programmatically (headless: -p, коды выхода, сбой как result на stdout, --json-schema и structured_output, bare mode и ANTHROPIC_API_KEY, хуки и .mcp.json без --bare, загрузка ~/.claude, Manual в -p с 2.1.302, Non-interactive mode reads stdin; stream-json: real-time streaming, system/init первым, result последней строкой)"
+    url: https://code.claude.com/docs/en/headless
+    checkedAt: "2026-11-11"
+  - title: "Claude Code: CLI reference (строки --tools, --allowedTools, --disallowedTools, --bare, --strict-mcp-config, --safe-mode, --settings, --max-budget-usd, --max-turns (No limit by default; пример --max-turns 3, о 0 и дробных значениях ничего), --version/-v, --debug, --tmux, --plugin-dir, --plugin-url; о -- нет ничего)"
+    url: https://code.claude.com/docs/en/cli-reference
+    checkedAt: "2026-11-04"
+  - title: "Claude Code: CLI reference, System prompt flags (--system-prompt и --system-prompt-file заменяют системный промпт, --append-system-prompt и --append-system-prompt-file добавляют текст к промпту по умолчанию)"
+    url: https://code.claude.com/docs/en/cli-reference#system-prompt-flags
+    checkedAt: "2026-11-11"
+  - title: "Claude Code: Configure permissions (таблица What runs before you trust a folder; раздел Project allow rules and workspace trust: deny и ask rules aren't affected; Edit rules apply to all built-in tools that edit files; env проекта действует и с --bare)"
+    url: https://code.claude.com/docs/en/permissions
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Permission modes (семь значений и manual, Manual в claude -p с 2.1.302, что одобряют acceptEdits, plan, auto, dontAsk (mod you installed can still approve some calls), bypassPermissions)"
+    url: https://code.claude.com/docs/en/permission-modes
+    checkedAt: "2026-11-04"
+  - title: "Claude Agent SDK: Get structured output from agents (draft-07, StructuredOutput, error_max_structured_output_retries, Error handling: success сам по себе не ответ, сбой при is_error true или без structured_output, примеры схем без additionalProperties)"
+    url: https://code.claude.com/docs/en/agent-sdk/structured-outputs
+    checkedAt: "2026-11-11"
+  - title: "Claude Agent SDK: TypeScript reference (SDKResultMessage: ветка success и четыре подтипа ошибки, errors без result и structured_output)"
+    url: https://code.claude.com/docs/en/agent-sdk/typescript
+    checkedAt: "2026-11-03"
+  - title: "Claude API: Structured outputs, JSON Schema limitations (неподдерживаемые ключевые слова, 10 значений format, additionalProperties false)"
+    url: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Settings files and precedence (When edits take effect: watches your settings files and reloads them; user, project, local, managed; файл, созданный посреди сессии; model читается только при старте)"
+    url: https://code.claude.com/docs/en/settings
+    checkedAt: "2026-11-04"
+  - title: "Claude Code: Environment variables (MAX_STRUCTURED_OUTPUT_RETRIES, ENABLE_CLAUDEAI_MCP_SERVERS)"
+    url: https://code.claude.com/docs/en/env-vars
+    checkedAt: "2026-11-03"
+  - title: "Claude Code: Subagents (--strict-mcp-config не фильтрует серверы из --agents; --agent и модель)"
+    url: https://code.claude.com/docs/en/sub-agents
+    checkedAt: "2026-11-03"
+  - title: "Anthropic: How we built our multi-agent research system (Hadfield и др., 2025-06-13; objective, output format, tools and sources, task boundaries)"
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+    checkedAt: "2026-11-03"
+checks:
+  - id: role-contracts
+    title: "Контракты ролей: цель, формат вывода, границы; схемы вывода в подмножестве курса, по брифу, разные у ролей"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_contracts.py"'
+    timeoutSec: 60
+    weight: 2
+  - id: role-call
+    title: "call_role: модель и лимит из конфигурации, контракт и схема роли в вызове, права роли в строке вызова, каждый сбой распознан"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_role_call.py"'
+    timeoutSec: 120
+    weight: 3
+  - id: contracts-rubric
+    title: "Контракты ролей: конкретная цель, вывод для следующего этапа, границы, всё нужное в промпте, коротко (оценка ментора)"
+    kind: rubric
+    rubric: checks/rubric.md
+    artifacts:
+      - pipeline/contracts/*.md
+    passScore: 0.7
+    weight: 1
