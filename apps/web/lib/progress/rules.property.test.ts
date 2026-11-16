@@ -22,7 +22,8 @@ import type { CheckKind } from "./shipped-kinds";
 
 // Properties P1-P12 of the #101 design (4.4) over arbitrary lessons and stored facts: checks of every
 // kind with optional limits, result sequences with format errors, errors, timeouts, passes, kind
-// changes and missing rows, closures of any kind, and a running last attempt.
+// changes and missing rows, closures of any kind, a running last attempt, and a shipped
+// token-spending check that has passed.
 
 const KINDS: readonly CheckKind[] = ["quiz", "command", "rubric", "hidden-task", "bug-hunt"];
 const RESULT_STATUSES: readonly CheckResultStatus[] = ["passed", "failed", "timeout", "error"];
@@ -204,6 +205,41 @@ function withoutRunning(scenario: Scenario): Scenario {
   return { ...scenario, isLastRunning: false };
 }
 
+// Restates the token-spending kinds of shipped-kinds.ts on purpose: an oracle read from
+// CHECK_KIND_TRAITS would change together with a changed trait and never disagree with it. A changed
+// trait of a kind in KINDS turns P6 red. P6 draws kinds only from KINDS, so a new kind is checked
+// only once it is added there, and to this set if it spends tokens.
+const TOKEN_SPENDING_KINDS: ReadonlySet<CheckKind> = new Set<CheckKind>(["rubric", "hidden-task"]);
+
+// scenarioArb alone yields a counted, passed, open token-spending check in 1.235% of scenarios (20000
+// samples at seed 42, #148 research), about a 71% chance per 100-run property, so P6 also draws from
+// this generator: it appends such a check and a final attempt that passes it to any scenario.
+const tokenPassedScenarioArb: fc.Arbitrary<Scenario> = fc
+  .tuple(scenarioArb, fc.constantFrom(...TOKEN_SPENDING_KINDS))
+  .map(([scenario, kind]) => {
+    const pass: AttemptGen = {
+      status: "passed",
+      entries: [
+        {
+          slot: scenario.checks.length,
+          kind: null,
+          status: "passed",
+          isFormatError: false,
+          isBudgetExhausted: false,
+          isPresent: true,
+        },
+      ],
+    };
+    return appended(
+      {
+        ...scenario,
+        checks: [...scenario.checks, { kind, limit: undefined }],
+        shippedKinds: [...new Set([...scenario.shippedKinds, kind])],
+      },
+      [pass],
+    );
+  });
+
 const NON_PASSING: readonly CheckResultStatus[] = ["failed", "timeout", "error"];
 
 describe("rules properties", () => {
@@ -333,17 +369,22 @@ describe("rules properties", () => {
     );
   });
 
-  it("P6 puts only counted open checks in the next run, never a passed token-spending one, and refuses an empty run", () => {
+  it("P6 puts only counted open checks in the next run, re-runs a passed check unless it spends tokens, and refuses an empty run", () => {
     fc.assert(
-      fc.property(scenarioArb, (scenario) => {
+      fc.property(fc.oneof(scenarioArb, tokenPassedScenarioArb), (scenario) => {
         const evaluation = evaluateScenario(scenario);
 
         for (const check of evaluation.checks) {
+          const isTokenSpending = TOKEN_SPENDING_KINDS.has(check.kind);
+          expect(check.spendsTokens).toBe(isTokenSpending);
           if (check.isInNextRun) {
             expect(check.isCounted).toBe(true);
             expect(check.isClosed).toBe(false);
             expect(scenario.shippedKinds).toContain(check.kind);
-            expect(check.spendsTokens && check.hasPassed).toBe(false);
+            expect(isTokenSpending && check.hasPassed).toBe(false);
+          }
+          if (check.isCounted && !check.isClosed && check.hasPassed && !isTokenSpending) {
+            expect(check.isInNextRun).toBe(true);
           }
         }
         const isRefused = composeRun(evaluation).kind === "refused";

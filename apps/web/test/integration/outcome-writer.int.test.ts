@@ -8,6 +8,7 @@ import {
   LessonProgressMissingError,
   OutcomeIsolationError,
   type OutcomeTarget,
+  type OutcomeWrite,
   recomputeLessonOutcome,
 } from "@/lib/progress/outcome-writer";
 import type { CheckKind } from "@/lib/progress/shipped-kinds";
@@ -237,6 +238,81 @@ describe("I-out applyLessonOutcome", () => {
     }
   });
 
+  // Pins only the check_results read, which moves with loadLessonFacts as a whole. A change that
+  // reads only the attempts or the closures before the lock is not caught. Closures are written only
+  // by this writer, under the same row lock and from the failed counts, so a closure committed while
+  // it waited follows from results it reads after the lock anyway. The attempts read alone would need
+  // a holder that also changes an attempt. The open #162 also changes facts.ts.
+  it("I-out-7b reads the facts only after the progress row lock, so a result committed while it waited counts", async () => {
+    const db = await seeded();
+    const running = await insertAttempt(db.db, KEY, {
+      status: "running",
+      included: [{ checkId: "a", checkKind: "command" }],
+    });
+    const holder = createDb(db.url);
+    let release: () => void = () => undefined;
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let signalLocked: () => void = () => undefined;
+    const locked = new Promise<void>((resolve) => {
+      signalLocked = resolve;
+    });
+    // Stands in for a #34 transaction that has written a check result and holds the progress row lock
+    // (ADR-0007 rule 7). Setting an attempt final is another such write; this test covers only the
+    // result. #34 writes first and locks in applyLessonOutcome; the holder locks first only so the
+    // test knows when the lock is held. The writer waits on the same state either way: lock held,
+    // result not committed.
+    const holding = holder.db.transaction(async (tx) => {
+      await tx.execute(
+        sql`SELECT 1 FROM lesson_progress WHERE user_id = ${USER} FOR NO KEY UPDATE`,
+      );
+      await insertResult(tx, running, { checkId: "a", status: "passed" });
+      signalLocked();
+      await released;
+    });
+    let call: Promise<OutcomeWrite> | undefined;
+    try {
+      await locked;
+      let reportPid: (pid: number) => void = () => undefined;
+      const writerPid = new Promise<number>((resolve) => {
+        reportPid = resolve;
+      });
+
+      call = db.db.transaction(
+        async (tx) => {
+          await tx.execute(sql`SET LOCAL lock_timeout = '10s'`);
+          const { rows } = await tx.execute(sql`SELECT pg_backend_pid() AS pid`);
+          const pid = rows[0]?.pid;
+          if (typeof pid !== "number") {
+            throw new Error(`pg_backend_pid() returned a ${typeof pid}, not a number`);
+          }
+          reportPid(pid);
+          return applyLessonOutcome(tx, target([commandCheck("a")]));
+        },
+        { isolationLevel: "read committed" },
+      );
+      const pid = await Promise.race([
+        writerPid,
+        call.then(() => {
+          throw new Error("the writer ended before it reported its backend pid");
+        }),
+      ]);
+      await waitUntilBlocked(db, pid);
+      release();
+      await holding;
+      const write = await call;
+
+      expect(write).toEqual({ status: "completed", isChanged: true, closedCheckIds: [] });
+      expect(await statusOf(db)).toBe("completed");
+    } finally {
+      release();
+      await holding.catch(() => undefined);
+      await call?.catch(() => undefined);
+      await holder.close();
+    }
+  });
+
   it("I-out-8 never lets another user's results or closures change this user's outcome", async () => {
     const db = await seeded();
     const other: SeededLesson = { ...KEY, userId: "user_b" };
@@ -284,3 +360,23 @@ describe("I-out applyLessonOutcome", () => {
     ]);
   });
 });
+
+// Bounds, not measurements: in the #148 research the whole file, this wait included, ran in
+// about 3.3 s on a local Docker run.
+// The writer's lock_timeout (10 s) is longer than the limit, so the writer never gives up while
+// the poll is still waiting for it.
+const LOCK_WAIT_LIMIT_MS = 5_000;
+const LOCK_WAIT_POLL_MS = 20;
+
+/** Polls pg_locks on a second pool client until the backend waits for a lock, or fails at the limit. */
+async function waitUntilBlocked(db: TestDatabase, pid: number): Promise<void> {
+  const deadline = Date.now() + LOCK_WAIT_LIMIT_MS;
+  while (Date.now() < deadline) {
+    const { rows } = await db.db.execute(
+      sql`SELECT 1 FROM pg_locks WHERE pid = ${pid} AND NOT granted`,
+    );
+    if (rows.length > 0) return;
+    await new Promise((resolve) => setTimeout(resolve, LOCK_WAIT_POLL_MS));
+  }
+  throw new Error(`backend ${pid} did not wait for a lock within ${LOCK_WAIT_LIMIT_MS} ms`);
+}
