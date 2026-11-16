@@ -16,27 +16,55 @@ export interface LessonKey {
 
 export type StoredLessonFacts = Pick<LessonFacts, "attempts" | "results" | "closures">;
 
-/** A stored kind outside the lesson contract: the DB CHECKs forbid it, so the schema and code disagree. */
+// The value comes from node-pg's text[] parser (strings, null, nested arrays of those), which
+// JSON.stringify shows exactly and never throws on. For anything else the narrowing keeps a
+// non-array from printing undefined (function, symbol) or throwing (a bare BigInt), and the catch
+// covers an array JSON.stringify throws a TypeError on: a BigInt or a cycle inside it, or an
+// element whose own toJSON throws a TypeError. Only a non-TypeError (say, one an element's own
+// toJSON throws) still throws through the constructor, because swallowing an arbitrary error would
+// hide a real defect; no node-pg value reaches that path. A missing element prints as bare words,
+// so it cannot be confused with any stored string, which always prints in JSON quotes.
+function storedValueText(value: unknown): string {
+  if (value === undefined) {
+    return "no value";
+  }
+  if (typeof value !== "string" && value !== null && !Array.isArray(value)) {
+    return `a value of type ${typeof value}`;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch (error: unknown) {
+    if (!(error instanceof TypeError)) {
+      throw error;
+    }
+    return "an array JSON cannot show";
+  }
+}
+
+/**
+ * A stored kind outside the lesson contract, or no kind at a position (`value` undefined): the DB
+ * CHECKs forbid both, so the schema and code disagree.
+ */
 export class StoredFactError extends Error {
   constructor(
     readonly row: string,
     readonly column: string,
-    readonly value: string,
+    readonly value: unknown,
   ) {
-    super(`${column} of ${row} holds "${value}", which is not a known check kind`);
+    super(`${column} of ${row} holds ${storedValueText(value)}, which is not a known check kind`);
     this.name = "StoredFactError";
   }
 }
 
 const KNOWN_KINDS: ReadonlySet<string> = new Set(CHECK_KINDS);
 
-function isCheckKind(value: string): value is CheckKind {
-  return KNOWN_KINDS.has(value);
+function isCheckKind(value: unknown): value is CheckKind {
+  return typeof value === "string" && KNOWN_KINDS.has(value);
 }
 
-function checkKindOf(value: string | undefined, row: string, column: string): CheckKind {
-  if (value === undefined || !isCheckKind(value)) {
-    throw new StoredFactError(row, column, value ?? "<missing>");
+function checkKindOf(value: unknown, row: string, column: string): CheckKind {
+  if (!isCheckKind(value)) {
+    throw new StoredFactError(row, column, value);
   }
   return value;
 }
@@ -50,7 +78,7 @@ function includedChecks(
     checkId,
     checkKind: checkKindOf(
       kinds[position],
-      `attempt ${attemptId}`,
+      `attempt ${attemptId}, element ${position + 1}`,
       "attempts.included_check_kinds",
     ),
   }));

@@ -735,6 +735,107 @@ describe("I14 check closures", () => {
   });
 });
 
+describe("I15 included check arrays (#162)", () => {
+  const userId = "u-i15";
+
+  beforeAll(async () => {
+    await seedProgress(userId);
+  });
+
+  // SQL array literals rather than JS arrays, so the test shows exactly the value Postgres receives.
+  function insertIncludedLiteral(ids: string, kinds: string): Promise<pg.QueryResult> {
+    return raw.query(
+      `INSERT INTO attempts
+         (user_id, course_id, lesson_id, status, finished_at, included_check_ids, included_check_kinds)
+       VALUES ($1, $2, $3, 'failed', now(), $4::text[], $5::text[])`,
+      [userId, COURSE, LESSON, ids, kinds],
+    );
+  }
+
+  // Each value violates only the named constraint, so the name does not depend on firing order.
+  const rejected: [name: string, ids: string, kinds: string, constraint: string][] = [
+    [
+      "I15 rejects two-dimensional check ids with 23514, not 0A000",
+      "{{a},{b}}",
+      "{command,quiz}",
+      "attempts_included_check_ids_dims_check",
+    ],
+    [
+      "I15 rejects a NULL check id",
+      "{a,NULL}",
+      "{command,quiz}",
+      "attempts_included_check_ids_nulls_check",
+    ],
+    [
+      "I15 rejects an empty check id",
+      '{a,""}',
+      "{command,quiz}",
+      "attempts_included_check_ids_empty_check",
+    ],
+    [
+      "I15 rejects two-dimensional check kinds",
+      "{a,b}",
+      "{{command},{quiz}}",
+      "attempts_included_check_kinds_dims_check",
+    ],
+    [
+      "I15 rejects a two-dimensional check id array that also holds a NULL",
+      "{{a},{NULL}}",
+      "{command,quiz}",
+      "attempts_included_check_ids_dims_check",
+    ],
+    [
+      "I15 rejects a NULL check kind through the kind list check",
+      "{a,b}",
+      "{command,NULL}",
+      "attempts_included_check_kinds_check",
+    ],
+    [
+      "I15 rejects an empty check kind through the kind list check",
+      "{a,b}",
+      '{command,""}',
+      "attempts_included_check_kinds_check",
+    ],
+  ];
+  for (const [name, ids, kinds, constraint] of rejected) {
+    it(name, async () => {
+      expect(await failureOf(insertIncludedLiteral(ids, kinds))).toEqual({
+        code: "23514",
+        constraint,
+      });
+    });
+  }
+
+  // With the dimension check out of the way, only the CASE stands between array_position and a
+  // 2-D value; alphabetical firing order hides its absence from every other test.
+  it("I15 the NULL check never raises on a two-dimensional array, whatever order the checks run in", async () => {
+    await raw.query("BEGIN");
+    try {
+      await raw.query(
+        "ALTER TABLE attempts DROP CONSTRAINT attempts_included_check_ids_dims_check",
+      );
+
+      const inserted = await insertIncludedLiteral("{{a},{b}}", "{command,quiz}");
+
+      expect(inserted.rowCount).toBe(1);
+    } finally {
+      await raw.query("ROLLBACK");
+    }
+  });
+
+  const accepted: [name: string, ids: string, kinds: string][] = [
+    ["I15 accepts empty included arrays", "{}", "{}"],
+    ["I15 accepts one-dimensional ids with a kind for each", "{a,b}", "{command,quiz}"],
+    // No code indexes these arrays in SQL, and node-pg returns the elements only.
+    ["I15 accepts an array whose lower bound is not 1", "[0:1]={a,b}", "{command,quiz}"],
+  ];
+  for (const [name, ids, kinds] of accepted) {
+    it(name, async () => {
+      await expect(insertIncludedLiteral(ids, kinds)).resolves.toBeDefined();
+    });
+  }
+});
+
 const CONSTRAINTS_OF_101 = [
   "attempts_included_check_kinds_check",
   "attempts_included_checks_check",
@@ -763,5 +864,23 @@ describe("constraint names of #101", () => {
     expect(indexes).toHaveLength(1);
     expect(indexes[0]?.indexdef).toContain("CREATE UNIQUE INDEX attempts_one_running_idx");
     expect(indexes[0]?.indexdef).toContain("WHERE (status = 'running'::text)");
+  });
+});
+
+const CONSTRAINTS_OF_162 = [
+  "attempts_included_check_ids_dims_check",
+  "attempts_included_check_ids_empty_check",
+  "attempts_included_check_ids_nulls_check",
+  "attempts_included_check_kinds_dims_check",
+];
+
+describe("constraint names of #162", () => {
+  it("names every #162 constraint", async () => {
+    const { rows } = await raw.query(
+      "SELECT conname FROM pg_constraint WHERE conname = ANY($1::text[]) ORDER BY conname",
+      [CONSTRAINTS_OF_162],
+    );
+
+    expect(rows.map((row) => row.conname)).toEqual(CONSTRAINTS_OF_162);
   });
 });

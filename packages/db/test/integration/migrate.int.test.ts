@@ -77,6 +77,13 @@ async function waitForLockWaiter(url: string): Promise<void> {
 }
 
 const PRE_101_MIGRATIONS = ["0000_init", "0001_auth"];
+const PRE_162_MIGRATIONS = [...PRE_101_MIGRATIONS, "0002_check_limits"];
+const CONSTRAINTS_OF_162 = [
+  "attempts_included_check_ids_dims_check",
+  "attempts_included_check_ids_empty_check",
+  "attempts_included_check_ids_nulls_check",
+  "attempts_included_check_kinds_dims_check",
+];
 // The columns 0002_check_limits adds, left out when a row is compared across the upgrade.
 const COLUMNS_OF_101 = [
   "included_check_ids",
@@ -88,11 +95,14 @@ const COLUMNS_OF_101 = [
 ];
 const SEEDED_TABLES = ["users", "enrollments", "lesson_progress", "attempts", "check_results"];
 
-/** A migrations folder holding only the migrations merged before #101, with their journal. */
-async function pre101MigrationsFolder(): Promise<string> {
-  const folder = await mkdtemp(path.join(tmpdir(), "academy-pre-101-"));
+/**
+ * `tags` must be the first entries of the journal, in journal order: the copied journal keeps its
+ * first `tags.length` entries by count and never compares their tags with `tags`.
+ */
+async function migrationsFolderWith(tags: readonly string[]): Promise<string> {
+  const folder = await mkdtemp(path.join(tmpdir(), "academy-migrations-"));
   await mkdir(path.join(folder, "meta"));
-  for (const tag of PRE_101_MIGRATIONS) {
+  for (const tag of tags) {
     await copyFile(path.join(MIGRATIONS_FOLDER, `${tag}.sql`), path.join(folder, `${tag}.sql`));
   }
   const journal: unknown = JSON.parse(
@@ -106,7 +116,7 @@ async function pre101MigrationsFolder(): Promise<string> {
   ) {
     throw new Error("meta/_journal.json has no entries array");
   }
-  const entries = journal.entries.slice(0, PRE_101_MIGRATIONS.length);
+  const entries = journal.entries.slice(0, tags.length);
   await writeFile(path.join(folder, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));
   return folder;
 }
@@ -125,6 +135,42 @@ async function seededRows(url: string): Promise<Record<string, unknown>[]> {
     );
   }
   return rows;
+}
+
+/**
+ * A fresh database migrated up to 0002 holding one finished attempt per `[ids, kinds]` pair of SQL
+ * array literals, each valid under 0002; returns its url.
+ */
+async function pre162WithAttempts(
+  literals: readonly (readonly [ids: string, kinds: string])[],
+): Promise<string> {
+  const url = await database();
+  const folder = await migrationsFolderWith(PRE_162_MIGRATIONS);
+  try {
+    await migrateDatabase(url, { migrationsFolder: folder });
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+  await queryRows(
+    url,
+    "INSERT INTO users (id, name, email) VALUES ('u-up', 'Learner', 'u-up@example.invalid')",
+  );
+  await queryRows(url, "INSERT INTO enrollments (user_id, course_id) VALUES ('u-up', 'c')");
+  await queryRows(
+    url,
+    `INSERT INTO lesson_progress (user_id, course_id, lesson_id, status, completed_at)
+     VALUES ('u-up', 'c', 'open', 'in-progress', NULL), ('u-up', 'c', 'done', 'completed', now())`,
+  );
+  for (const [ids, kinds] of literals) {
+    await queryRows(
+      url,
+      `INSERT INTO attempts
+         (user_id, course_id, lesson_id, status, finished_at, included_check_ids, included_check_kinds)
+       VALUES ('u-up', 'c', 'done', 'passed', now(), $1::text[], $2::text[])`,
+      [ids, kinds],
+    );
+  }
+  return url;
 }
 
 describe("migrateDatabase", () => {
@@ -206,7 +252,7 @@ describe("migrateDatabase", () => {
 
   it("I-upgrade adds the #101 columns to existing rows and leaves their data unchanged", async () => {
     const url = await database();
-    const folder = await pre101MigrationsFolder();
+    const folder = await migrationsFolderWith(PRE_101_MIGRATIONS);
     try {
       await migrateDatabase(url, { migrationsFolder: folder });
     } finally {
@@ -253,7 +299,44 @@ describe("migrateDatabase", () => {
         "SELECT included_check_ids::text AS ids, included_check_kinds::text AS kinds FROM attempts",
       ),
     ).toEqual([{ ids: "{}", kinds: "{}" }]);
-    expect(await journalRows(url)).toHaveLength(PRE_101_MIGRATIONS.length + 1);
+    expect(await journalRows(url)).toHaveLength(journalEntryCount());
+  });
+
+  it("I-upgrade-162 keeps existing valid included arrays across 0003", async () => {
+    const url = await pre162WithAttempts([
+      ["{}", "{}"],
+      ["{a,b}", "{command,quiz}"],
+      ["[0:1]={a,b}", "{command,quiz}"],
+    ]);
+    const includedArrays =
+      "SELECT id, included_check_ids::text AS ids, included_check_kinds::text AS kinds FROM attempts ORDER BY id";
+    const before = await queryRows(url, includedArrays);
+
+    await migrateDatabase(url);
+
+    expect(await queryRows(url, includedArrays)).toEqual(before);
+    expect(await journalRows(url)).toHaveLength(journalEntryCount());
+  });
+
+  it("I-upgrade-162 refuses 0003 over an attempt with a NULL check id and applies none of it", async () => {
+    const url = await pre162WithAttempts([["{a,NULL}", "{command,quiz}"]]);
+
+    const error = await rejectionOf(migrateDatabase(url), MigrationError);
+
+    expect(error.stage).toBe("apply");
+    expect(error.message).toContain("(23514)");
+    expect(error.message).toContain("no migration from this run was applied");
+    expect(causeCodes(error)).toContain("23514");
+    expect(await journalRows(url)).toHaveLength(PRE_162_MIGRATIONS.length);
+    // The dims check is added before the failing one, so this also proves it was rolled back.
+    expect(
+      await queryRows(
+        url,
+        "SELECT count(*)::int AS n FROM pg_constraint WHERE conname = ANY($1::text[])",
+        [CONSTRAINTS_OF_162],
+      ),
+    ).toEqual([{ n: 0 }]);
+    expectNoSecret(error, testPassword());
   });
 
   it("I12 reports a wrong password as stage connect without either password", async () => {
