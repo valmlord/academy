@@ -99,11 +99,27 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
   "Курс" kept unless the course id is unknown. "Повторить" reloads: the lesson opens with focus on its h1
   (`<title>` the lesson title); a second failure focuses the error h1 (`<title>` unchanged); a course that
   loads while the URL is a way into the not-found page (`ia.md` page inventory, not-found Route) shows the
-  not-found page with focus on its h1 (`<title>` "Страница не найдена"; R2, page-level retry table).
+  not-found page with focus on its h1 (`<title>` "Страница не найдена"; R2, page-level retry table). The
+  lesson h1 and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2,
+  retry focus guard).
 - A direct link that is a way into the not-found page (`ia.md` page inventory, not-found Route, ways (3)
   and (4)): the not-found page (`catalog.md` F5 error states).
 - theory.md or task.md cannot be read: the tab shows "Не удалось загрузить текст урока" with
-  "Повторить"; the other tab and the environment stay usable.
+  "Повторить"; the other tab and the environment stay usable. The alert's title is an h2 (`tabindex="-1"`)
+  at the level of the panel's other h2s (the theory sections, "Содержание", "Источники"), so on Теория it
+  comes before the h2 "Источники", which stays.
+  "Повторить" reloads: the tab panel opens with focus on it; a second failure focuses the error h2, so a
+  screen reader reads "Не удалось загрузить текст урока" and its heading level again; `<title>` unchanged
+  (`ia.md` R2, page-level retry table). Both moves happen only while focus is still on "Повторить", on
+  `body` or inside that tab panel, and the panel is shown (R2, retry focus guard). When the retry ends
+  while its tab panel is hidden (the learner selected another tab, or one-pane mode now shows "Окружение"),
+  both outcomes alike make no focus move: a hidden element cannot take focus (HTML focusing steps), so
+  focus stays where the learner put it, nothing is announced because nothing becomes visible, and the panel
+  shows the text or the error, with focus not moved, at its next showing. When the panel stays shown but
+  focus has left it (two panes: "Повторить" pressed, then a click into the terminal or the editor; a
+  Shift+Tab to the tab list), focus stays there too, so the terminal keeps its keys and the tab list its
+  arrow keys; nothing is owed, because the error stays unchanged in view while the retry runs and a text
+  that loads is page content.
 - A broken link in "Источники" is not detected by the UI; the dated `checkedAt` tells the learner how old
   it is.
 - Copy to clipboard denied by the browser: the button reads "Не скопировано, выделите текст вручную".

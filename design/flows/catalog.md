@@ -38,7 +38,9 @@ unknown"); the module crumb on a lesson page (lands on that module's section).
   keeps "Курс" unless `course.yaml` itself is unreadable (`ia.md` R6, "Course id unknown"). `<title>`
   "Не удалось загрузить курс". "Повторить" focuses the course h1 when the course loads (`<title>` the
   course title), the error h1 when it fails again, and the not-found h1 when the course loads but its id
-  is not the URL's (`<title>` "Страница не найдена"; `ia.md` R2, page-level retry table).
+  is not the URL's (`<title>` "Страница не найдена"; `ia.md` R2, page-level retry table). The course h1
+  and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2, retry
+  focus guard).
 - A URL that is a way into the not-found page (`ia.md` page inventory, not-found Route): the not-found page
   (`design/pages/not-found/`, #83): h1 "Страница не найдена", the sentence "Возможно, в адресе опечатка
   или ссылка устарела." and "Открыть курс" (only while the course id is known, see below); no breadcrumb, no "404", no destructive colour, because the

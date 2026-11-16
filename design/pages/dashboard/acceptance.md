@@ -73,7 +73,7 @@ each part from #35 on has `space-4` more above it (`space-8` in all). Part headi
 | Badge | lesson type (`outline`, e.g. "артефакт"); module status "Готовится" (`outline`, `data-tone="muted"`) |
 | Progress | course bar (`role="progressbar"`, labelled by the course line, `aria-valuetext` "N из M"); module bars inside the row links are `aria-hidden` (the row text already says "N из M уроков") |
 | Item | module rows, each one link to the catalog section; from #35 the "Последние попытки" rows and the "Где трудно" rows, each one link (`a.item`) in an `ul.item-group` |
-| Alert | course load error (destructive, static); session expired in "Уведомления" (destructive) |
+| Alert | course load error (destructive, static; its title is an h2, `tabindex="-1"`); session expired in "Уведомления" (destructive) |
 | DropdownMenu | user menu: label with the email and "Выйти" (link item) inside one `role="group"` named by the label (`aria-labelledby`, label `role="presentation"`), as in `components.html` |
 | Empty | "В курсе пока нет готовых уроков" (`.empty-title`); from #35 the empty texts "Попыток пока нет" and "Пока нет проверок, которые не удаются" (`.empty-description` only, no title), each in place of its `ul` |
 | Skeleton | loading; from #35 also over F18.3-F18.5 |
@@ -100,7 +100,8 @@ Compositions: top bar, "Уведомления" (R2), and the "Прогресс 
 | all ready lessons passed | `#state-all-passed` | Card "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "Открыть курс"; "Пройдено уроков: 6 из 6" |
 | no ready lessons | `#state-no-ready-lessons` | Empty "В курсе пока нет готовых уроков", no button, no progress section (nothing focusable in `main`, R3) |
 | loading | `#state-loading` | Skeletons for the Card and the progress section (`aria-hidden`) |
-| course load error | `#state-course-error` | Alert "Не удалось загрузить курс" with "Повторить" instead of the Card; no progress section; the top bar works, with "Курс" left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown"; the prototype draws the id-known bar) |
+| course load error | `#state-course-error` | Alert "Не удалось загрузить курс" (its title the h2 `#course-error-title`, `tabindex="-1"`, under the h1 "Главная") with "Повторить" instead of the Card; no progress section; the top bar works, with "Курс" left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown"; the prototype draws the id-known bar) |
+| course load error, "Повторить" fails again | `#state-course-error-fails-again` | the same Alert and top bar as `#state-course-error`; its "Повторить" stands for a second failure: it opens `#state-course-error` with focus on the h2 "Не удалось загрузить курс" (`ia.md` R2, page-level retry table) |
 | progress unavailable (F4 and F18 errors) | `#state-progress-unavailable` | Card: first lesson, "Начать", line "Прогресс недоступен, показан первый урок"; progress section: line "Прогресс недоступен" and "Повторить". The same in every release: from #35 no F18.3-F18.5 element is rendered (A72-4) |
 | session expired (F2.1) | `#state-session-expired` | in-progress content plus the Alert in "Уведомления" with "Войти снова" |
 | user menu open (F3.1) | `#state-user-menu` | in-progress content with the user menu open |
@@ -150,14 +151,27 @@ target.
   regions "Последние попытки" and "Где трудно" are landmarks, not `F6` stops.
 - From #30: "Начать" / "Продолжить": navigation (`a href`); target tab per F4.3.
 - From #30: course error "Повторить" (prototype: proto.js `data-goto-state` + `data-focus`): reloads the Card; focus moves to the Card heading "Следующий урок"
-  (`tabindex="-1"`, R2) and the `<title>` stays "Главная". If the course fails again, focus stays on
-  "Повторить" itself, because the dashboard Alert title is not a heading (`ia.md` R2, page-level retry
-  table).
+  (`tabindex="-1"`, R2) and the `<title>` stays "Главная". If the course fails again, focus moves to the
+  h2 "Не удалось загрузить курс" (`#course-error-title`, `tabindex="-1"`, the Alert title in the Card's
+  place), on every later failure too, and the `<title>` stays "Главная" (`ia.md` R2, page-level retry
+  table). A pointer press on "Повторить" that did not focus it (Safari) puts focus on it before the retry
+  ends, so a failure always moves focus from "Повторить" to the error heading (`ia.md:323-353`). The closing
+  focus move happens only while focus is still on "Повторить", on `body` or inside the Alert, and its target
+  is shown; otherwise focus stays where the learner put it and nothing is announced, because the error is
+  unchanged on screen and a load that succeeds is page content (`ia.md:338-353`, retry focus guard). A
+  Shift+Tab to the top bar before the retry ends keeps focus there,
+  in both outcomes. Prototype limit: proto.js draws neither the press focus nor the guard;
+  `#state-course-error-fails-again` draws the second failure.
 - From #30: **progress "Повторить" (round-4 advisory):** reloads the progress section **and** the Card, because the
   next lesson and "Начать" / "Продолжить" are progress data; focus moves to the progress section heading
   (the course line, `tabindex="-1"`, R2). The Card updates in place without taking focus. From #35 the
   same one read loads F18.3 and F18.4 too (from #37 F18.5), rendered together with F18.1-F18.2; nothing
   else moves focus. Fails again: focus to "Прогресс недоступен" (R2 row "dashboard progress section").
+  A pointer press on "Повторить" that did not focus it (Safari) puts focus on it before the retry ends, so a
+  failure always moves focus from "Повторить" to the error heading (`ia.md:323-353`). The closing focus move
+  happens only while focus is still on "Повторить", on `body` or inside the progress section, and its target
+  is shown; otherwise focus stays where the learner put it and nothing is announced, because the error is
+  unchanged on screen and a load that succeeds is page content (`ia.md:338-353`, retry focus guard).
 - From #30: module row: link to `/courses/[courseId]#[moduleId]` (`ia.md`; `moduleId` is the `module.yaml` `id`, e.g.
   `#introduction`), which focuses that module's section heading (F5.2). The prototype links
   `../catalog/prototype.html#<moduleId>` with no `#state-`: the catalog opens its default state.
@@ -264,7 +278,7 @@ max_turns, неизвестный инструмент, MCP-образный с�
   from load; text inserted, never the container (R2). The course error and the progress line are static,
   not live: they render with the page. From #35 nothing in F18.3-F18.5 is live and nothing needs to be: the
   sections render with the page and are never re-read in the background; they change only through the
-  progress "Повторить", which moves focus (R2).
+  progress "Повторить", which moves focus (R2), under the retry focus guard.
 - From #35: "Идёт проверка" takes `.status-icon[data-status="running-still"]`, the `running` ring with no
   animation in any motion setting (WCAG 2.2.2), because the row is a snapshot; never the spinning
   `running`. The ring keeps 3:1 against every surface the row sits on (#72 design note §5: light
@@ -318,10 +332,23 @@ AC3 is scoped by release in its text.
 - AC8: a course read failure replaces the Card with "Не удалось загрузить курс" and "Повторить"; the top
   bar works, without "Курс" while the course id is unknown, only when `course.yaml` itself cannot be read
   (ia.md R6, "Course id unknown"); "Повторить"
-  reloads and focuses the Card heading; if the course fails again, focus stays on "Повторить" itself.
+  reloads and focuses the Card heading; if the course fails again, focus moves to the h2 "Не удалось
+  загрузить курс" (`tabindex="-1"`), and again on every later failure; `<title>` "Главная". A pointer press on
+  "Повторить" that did not focus it (Safari) puts focus on it before the retry ends, so a failure always moves
+  focus from "Повторить" to the error heading (`ia.md:323-353`).
+  The closing focus move happens only while focus is still on "Повторить", on `body` or inside the Alert, and
+  its target is shown; otherwise focus stays where the learner put it and nothing is announced, because the
+  error is unchanged on screen and a load that succeeds is page content (`ia.md:338-353`, retry focus guard).
+  Test: a Shift+Tab to the top bar before the retry ends keeps focus there, in both
+  outcomes.
 - AC9: a progress read failure shows the first lesson with "Начать" and "Прогресс недоступен, показан
   первый урок", and the progress section "Прогресс недоступен" with "Повторить"; "Повторить" reloads the
-  section and the Card and focuses the section heading.
+  section and the Card and focuses the section heading. A pointer press on "Повторить" that did not focus it
+  (Safari) puts focus on it before the retry ends, so a failure always moves focus from "Повторить" to the
+  error heading (`ia.md:323-353`). The closing focus move happens only while focus is still on "Повторить", on
+  `body` or inside the progress section, and its target is shown; otherwise focus stays where the learner put
+  it and nothing is announced, because the error is unchanged on screen and a load that succeeds is page
+  content (`ia.md:338-353`, retry focus guard).
 - AC10: a rejected request mid-session puts "Сессия закончилась. Файлы в рабочей папке сохранены." with
   "Войти снова" into the existing `role="alert"` container without moving focus; the wrapper becomes the
   "Уведомления" region; "Войти снова" goes to `/sign-in?next=/`.
@@ -378,6 +405,11 @@ AC3 is scoped by release in its text.
 - AC31: (#35) when the progress read fails, no F18.3-F18.5 element is rendered: no heading, no second error
   text, no second "Повторить" (A72-4); the one "Повторить" that loads renders F18.1-F18.4 (from #37 F18.5)
   together and focuses the course line; one that fails focuses "Прогресс недоступен" (`progress-unavailable`).
+  A pointer press on "Повторить" that did not focus it (Safari) puts focus on it before the retry ends, so a
+  failure always moves focus from "Повторить" to the error heading (`ia.md:323-353`). The closing focus move
+  happens only while focus is still on "Повторить", on `body` or inside the progress section, and its target
+  is shown; otherwise focus stays where the learner put it and nothing is announced, because the error is
+  unchanged on screen and a load that succeeds is page content (`ia.md:338-353`, retry focus guard).
 - AC32: (#35) a progress section that renders also renders both "Последние попытки" and "Где трудно" (each
   with its rows or its empty text); no state shows one without the other.
 - AC33: (#35) `attempts` row 1 (and `attempts-weak-none` row 1) "5 ноября, 15:20. Идёт проверка" opens

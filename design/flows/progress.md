@@ -85,7 +85,8 @@ progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before th
 - Progress cannot be read: the section shows "Прогресс недоступен" with "Повторить"; F4 still works (see
   its error state). F18.3-F18.5 come from the same read (A72-4), so none of them is rendered then: no
   second error text, no second "Повторить". The retry and its focus are unchanged (`ia.md` R2, row
-  "dashboard progress section"); a retry that loads renders F18.1-F18.5 together.
+  "dashboard progress section", and its retry focus guard: the move happens only while focus is still on
+  "Повторить", on `body` or in the section); a retry that loads renders F18.1-F18.5 together.
 - Session expired during the read: F2 (the page-level alert), not this error state.
 
 **Empty states:**
@@ -119,7 +120,7 @@ list, while heading navigation still reaches the h2 (as the F19 section). In an 
 holds its empty text in place of the `ul` (no empty named list is rendered). Nothing in F18 is live, and
 nothing needs to be: F18.3-F18.5 render with the page and are never re-read in the background, so after
 load they change only through the progress section's "Повторить", which moves focus to what it shows
-(`ia.md` R2, row "dashboard progress section"); the rows show the state of the read; an attempt still
+(`ia.md` R2, row "dashboard progress section", under its retry focus guard); the rows show the state of the read; an attempt still
 `running` reads "Идёт проверка" with the `running` ring held still until the next load (A72-8, A72-9).
 
 **Time limits:** none.
@@ -204,7 +205,8 @@ mentor review of that attempt.
 - History cannot be read (the check state read succeeded): the section heading reads "История попыток
   недоступна" (h3, `tabindex="-1"`) with "Повторить"; the check rows, the check bar and the run (F13) are
   unaffected. "Повторить" re-reads the history only: loads -> focus to the heading "История попыток"; fails
-  again -> focus to the heading "История попыток недоступна" (`ia.md` R2, row "lesson attempt history").
+  again -> focus to the heading "История попыток недоступна" (`ia.md` R2, row "lesson attempt history"),
+  each only while focus is still on "Повторить", on `body` or in the history section (R2, retry focus guard).
   Arriving by a deep link in this state moves focus to that error heading once, on load, whatever the
   `attempt` value, because the page cannot show any attempt and the learner asked for one (`ia.md`
   "Attempt deep link").
@@ -256,7 +258,7 @@ mentor review of that attempt.
   пока нет" alone until it returns, never the first form; if it fails while the history is empty, the case
   above applies (error state, the history status container written once). So F19 never settles on "Попыток
   пока нет" while a finished attempt record exists that this page has learned of (its own run or send, an
-  attached run, or a record a visibility re-read found). Focus: "Повторить" moves it to the h3 "История попыток" (R2),
+  attached run, or a record a visibility re-read found). Focus: "Повторить" moves it to the h3 "История попыток" (R2, under its retry focus guard),
   and the second read keeps that element, as every re-read does.
 - Session expired: F2 (the page-level alert, `?tab=checks&attempt=...` kept in `next`).
 - The lesson page whose course cannot be read: no Проверки tab, no history (F7 error states).

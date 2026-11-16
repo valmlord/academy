@@ -170,7 +170,7 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 | Field, Label, Input | `.field`, `.label`, `.input`, `.field-description`, `.field-error` | sign-in; lesson, Квиз (`.field-description` and `.field-error` in the question block) | default, `aria-invalid="true"` |
 | RadioGroup | `.choice-group` (`role="radiogroup"`), `label.choice`, `input.radio`, `.choice-text` | lesson, Квиз (from #36) | unchecked, checked, focused, locked (`aria-disabled="true"` on the group and every option). Not in `apps/web` yet |
 | Checkbox | `.choice-group` (`role="group"`), `label.choice`, `input.checkbox`, `.choice-text` | lesson, Квиз (from #36) | as RadioGroup. Not in `apps/web` yet (only the menu's `DropdownMenuCheckboxItem`, `ui/dropdown-menu.tsx:76`, a menu item, not a form control) |
-| Alert | `.alert`, `.alert-title`, `.alert-description`, `.alert-actions`, `.alert-links` | all | default, destructive, warning (custom: border in `warning`, words in `foreground`; for the prerequisite alert F6.2 and the API key note). A message that takes focus instead of a live region (sign-in, R2; the quiz result block, error summary and send error) is `<div class="alert" role="group" tabindex="-1" aria-labelledby="<title id>" [aria-describedby="<description ids>"]>`: a name on a `div` without a role is not exposed. Every part after the leading icon sits in the text column, however many `p.alert-description` lines follow (the app's `col-start-2`, `ui/alert.tsx:47`, `:58`). `.alert-links`: a `ul role="list"` of links after the title (the quiz error summary), each link at least `--hit-min` tall |
+| Alert | `.alert`, `.alert-title`, `.alert-description`, `.alert-actions`, `.alert-links` | all | default, destructive, warning (custom: border in `warning`, words in `foreground`; for the prerequisite alert F6.2 and the API key note). A message that takes focus instead of a live region (sign-in, R2; the quiz result block, error summary and send error) is `<div class="alert" role="group" tabindex="-1" aria-labelledby="<title id>" [aria-describedby="<description ids>"]>`: a name on a `div` without a role is not exposed. A load error whose failed retry focuses its title (`ia.md` R2 page-level retry table: the dashboard course error, the lesson text load error, the quiz load error) keeps the plain Alert (no role, no tabindex on the Alert) and makes its title a heading, `h1`-`h3` by its place, with `class="alert-title text-sm"` and `tabindex="-1"`, as the catalog course error. Every part after the leading icon sits in the text column, however many `p.alert-description` lines follow (the app's `col-start-2`, `ui/alert.tsx:47`, `:58`). `.alert-links`: a `ul role="list"` of links after the title (the quiz error summary), each link at least `--hit-min` tall |
 | DropdownMenu | `.dropdown`, `.dropdown-menu`, `.dropdown-item`, `.dropdown-item-reason`, `.dropdown-check`, `.dropdown-label`, `.dropdown-separator` | top bar, lesson | item (`button`), link item (`a.dropdown-item`, for an item that navigates: "Выйти"; no underline), checkbox item, `aria-disabled` item with a reason line (`.dropdown-item-reason` is `aria-hidden="true"` with an `id`, tied to the item by `aria-describedby` only, so the name is the label alone). The user menu is named by its trigger (`aria-labelledby="<trigger id>"`, the email), never by an `aria-label`. A menu owns only items, groups and separators, so a `.dropdown-label` is `role="presentation"` with an `id` and names a `<div role="group" aria-labelledby="<label id>">` wrapping the label, the separator and the items it heads |
 | Breadcrumb | `.breadcrumb` (`nav > ol > li`) | lesson | links plus `aria-current="page"` |
 | Tabs | `.tabs`, `.tabs-list`, `.tabs-trigger`, `.tabs-content` | lesson | left pane, environment, one-pane switch (`.pane-switch`) |
@@ -309,6 +309,13 @@ status line holds that state's end text (`progress.md` F19 error states); those 
 other container has them. Its one dependency on the system, the gap, it reads from
 `window.proto.statusTextGapMs` ("proto.js API", status-text gap), so the gap has one value.
 
+The quiz load status container (`role="status"`, `ia.md` R2, `quiz.md` "The quiz load status container")
+is page script too, for the same reason: it is written in one case only, once per failed load, with
+"Не удалось загрузить квиз" (a load fails with the Квиз panel shown and no focus move announces it), only
+while the Квиз panel is shown, after the panel's `aria-busy` is removed, `window.proto.statusTextGapMs` after
+a recent check bar text, and no sooner than `QUIZ_LOAD_STATUS_MIN_AGE_MS` (100 ms) after the panel was shown;
+it is emptied when a load starts.
+
 AlertDialog with a list (the budget confirmation): `p.alert-dialog-description` then
 `ul.alert-dialog-list`, siblings, because a `ul` cannot sit inside the description's `p` (shadcn's
 `AlertDialogDescription` renders Radix `Description`, `Primitive.p` in `@radix-ui/react-dialog` 1.3.1
@@ -337,6 +344,7 @@ Markup, in DOM order (ids are the page's):
 <div class="quiz">
   <div class="quiz-intro">
     <h2 id="quiz-heading" tabindex="-1"><!-- the quiz check title --></h2>
+    <div class="sr-only" role="status" aria-live="polite" id="quiz-load-status"></div>
     <div class="quiz-header">
       <p>Нужно 5 из 6</p>
       <p>Попытка 3 из 3</p>
@@ -434,8 +442,10 @@ Markup, in DOM order (ids are the page's):
   line id in `aria-describedby`. Error summary: destructive variant, the title, then `ul.alert-links`, one link
   per unanswered question to its first option (`href="#<option id>"`). Each link is at least 24px tall, so it
   meets WCAG 2.5.8 by size; the spacing exception is not needed. Send error: destructive variant, the title
-  only. Load error: the plain destructive Alert (no role, no tabindex) with "Повторить" (secondary, sm)
-  described by the title.
+  only. Load error: the plain destructive Alert (no role, no tabindex on the Alert), its title an
+  `h3.alert-title.text-sm` with `tabindex="-1"` (`#quiz-load-error-title`, focused when "Повторить" fails
+  again), with "Повторить" (secondary, sm) described by the title; on the page a visually hidden
+  `role="status" aria-live="polite"` container (`#quiz-load-status`) sits right after the panel heading.
 - Review (F15.5): the group is replaced by `ul.review-options` (`role="list"`, because `list-style: none`
   drops the list role in Safari). Each `li.review-option` holds the `.choice-indicator` (`aria-hidden`, the
   control's look, `data-checked="true"` for the learner's choice), then `.review-option-body` with
@@ -501,7 +511,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
   emptied, then the text is set again a gap later.
   Controls follow the state at once; only this text waits. Other containers and pages keep the immediate
   replacement. `window.proto.statusTextGapMs` is the gap's value, for a page script that writes its own
-  container after this line (the lesson's history status container, "Attempt row" above).
+  container after this line (the lesson's history status container, "Attempt row" above, and the quiz load
+  status container, "Quiz panel" above).
 - **State-driven openings.** `data-open-in-states="<names>"` on a menu trigger, a `<dialog>`, a tooltip
   trigger or a collapsible trigger opens it in those states; `data-select-in-states="<names>"` on a tab
   (or a one-pane switch tab) selects it. Focus is not moved. Tab selection follows decision A17:

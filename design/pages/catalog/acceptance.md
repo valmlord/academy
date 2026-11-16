@@ -97,8 +97,15 @@ Not-found is its own page (`design/pages/not-found/`), not a catalog state.
 - "Повторить": reloads the course (`ia.md` R2, page-level retry table): focus on the course h1 with
   `<title>` the course title on success; the error h1 (`id="course-error-title"`, `tabindex="-1"`) with
   `<title>` "Не удалось загрузить курс" on a second failure; the not-found h1 with `<title>` "Страница не
-  найдена" when the course loads but its id is not the URL's. The prototype simulates the first outcome
-  only (proto.js `data-goto-state="default"`, `data-focus="#course-title"`).
+  найдена" when the course loads but its id is not the URL's. A pointer press on "Повторить" that did not
+  focus it (Safari) puts focus on it before the retry ends, so a failure always moves focus from "Повторить"
+  to the error heading (`ia.md:323-353`). The closing focus move happens only while focus is still on
+  "Повторить", on `body` or inside `main`, and its target is shown; otherwise focus stays where the learner
+  put it and nothing is announced, because the error is unchanged on screen and a load that succeeds is page
+  content (`ia.md:338-353`, retry focus guard). The guard covers the course h1 and error h1 moves; the
+  not-found move keeps its statement (#95). The prototype
+  simulates the first outcome only (proto.js `data-goto-state="default"`, `data-focus="#course-title"`) and
+  draws neither the press focus nor the guard.
 - `F6` cycle: "Верхняя панель" ("Академия"), "Уведомления" ("Войти снова", only when non-empty), `main`
   (first module link, or "Повторить" in the error state). R3.
 - "Войти снова": `/sign-in?next=<current path, URL-encoded>`, e.g. `/sign-in?next=%2Fcourses%2Fai-for-developers`
@@ -167,7 +174,13 @@ titles, summaries, outcomes, lesson numbers ("01".."06") and titles, lesson type
   "Course id unknown"). "Повторить" puts focus
   on the course h1 with `<title>` the course title on success; the error h1 with `<title>` "Не удалось
   загрузить курс" on a second failure; the not-found h1 with `<title>` "Страница не найдена" when the
-  course loads but its id is not the URL's.
+  course loads but its id is not the URL's. A pointer press on "Повторить" that did not focus it (Safari) puts
+  focus on it before the retry ends, so a failure always moves focus from "Повторить" to the error heading
+  (`ia.md:323-353`). The closing focus move happens only while focus is still on "Повторить", on `body` or
+  inside `main`, and its target is shown; otherwise focus stays where the learner put it and nothing is
+  announced, because the error is unchanged on screen and a load that succeeds is page content
+  (`ia.md:338-353`, retry focus guard). The guard covers the course h1 and error h1 moves; the not-found move
+  keeps its statement (#95).
 - AC9: a progress read failure shows "Прогресс недоступен" once, removes every lesson status and
   prerequisite note, and keeps every lesson openable.
 - AC10: session expiry fills the existing `role="alert"` container without moving focus (as dashboard

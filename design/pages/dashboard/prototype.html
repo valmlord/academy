@@ -23,7 +23,7 @@
 
   <header class="topbar" data-region>
     <a class="topbar-brand" href="prototype.html">Академия</a>
-    <nav class="topbar-nav"><a href="prototype.html" aria-current="page">Главная</a><a href="../catalog/prototype.html" data-state="first-run in-progress all-passed no-ready-lessons loading course-error progress-unavailable session-expired user-menu attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none attempts-loading cost-first-run cost cost-at-least cost-no-data">Курс</a></nav>
+    <nav class="topbar-nav"><a href="prototype.html" aria-current="page">Главная</a><a href="../catalog/prototype.html" data-state="first-run in-progress all-passed no-ready-lessons loading course-error course-error-fails-again progress-unavailable session-expired user-menu attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none attempts-loading cost-first-run cost cost-at-least cost-no-data">Курс</a></nav>
     <div class="topbar-end">
       <div class="dropdown">
         <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
@@ -74,10 +74,13 @@
       </div>
 
       <!-- F4 error: course data cannot be read. The card is replaced; the top bar stays usable. -->
-      <div class="alert" data-variant="destructive" data-state="course-error">
+      <!-- The title is an h2 with tabindex="-1" in the Card's place: a retry that fails again focuses it (ia.md R2,
+           page-level retry table). #state-course-error-fails-again shows the same Alert; its "Повторить" stands for
+           a second failure. -->
+      <div class="alert" data-variant="destructive" data-state="course-error course-error-fails-again">
         <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
-        <p class="alert-title">Не удалось загрузить курс</p>
-        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="first-run" data-focus="#next-lesson-heading">Повторить</button></div>
+        <h2 class="alert-title text-sm" id="course-error-title" tabindex="-1">Не удалось загрузить курс</h2>
+        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-state="course-error" data-goto-state="first-run" data-focus="#next-lesson-heading">Повторить</button><button class="button" type="button" data-variant="secondary" data-size="sm" data-state="course-error-fails-again" data-goto-state="course-error" data-focus="#course-error-title">Повторить</button></div>
       </div>
 
       <!-- F4 empty: no ready lesson at all (no-ready-lessons), and every course before #30 (before-catalog,
@@ -261,6 +264,7 @@
     <span hidden data-state="no-ready-lessons" data-state-label="no ready lessons"></span>
     <span hidden data-state="loading" data-state-label="loading"></span>
     <span hidden data-state="course-error" data-state-label="course load error"></span>
+    <span hidden data-state="course-error-fails-again" data-state-label="course load error, Повторить fails again"></span>
     <span hidden data-state="progress-unavailable" data-state-label="progress unavailable"></span>
     <span hidden data-state="session-expired" data-state-label="session expired (F2.1)"></span>
     <span hidden data-state="user-menu" data-state-label="user menu open (F3.1)"></span>

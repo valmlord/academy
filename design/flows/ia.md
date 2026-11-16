@@ -77,7 +77,7 @@ one meaning each, `quiz.md` "Placeholders") or it does not exist. "When" says wh
 | terminal connection (status bar) | "Соединение с терминалом потеряно. Переподключаемся...", "Не удалось переподключиться", "Сеанс терминала завершён" | environment status bar (F9) | v1 |
 | one-pane switch suffix | "остановлено", "ошибка" (appended to the accessible name of the tab "Окружение") | the switch "Урок / Окружение" (A8) | v1 |
 | page alert (region "Уведомления") | "Сессия закончилась. Файлы в рабочей папке сохранены.", "Окружение остановится через N мин без активности. Файлы сохранятся."; quiz notice (P9, from #36), exactly these and no other combination (`quiz.md`, "Quiz notice (P9)", rows 1-11): "Ответы квиза проверены. Верно C из Q. Нужно K.", "Ответы квиза проверены. Верно C из Q. Нужно K. Осталась 1 попытка.", "Квиз пройден.", "Квиз пройден. Урок пройден.", "Квиз пройден. Урок завершён: не пройден. Пройдено: N из M.", "Квиз не пройден: попытки исчерпаны.", "Квиз не пройден: попытки исчерпаны. Урок завершён: не пройден. Пройдено: N из M.", "Ответы квиза не отправлены. Попробуйте снова.", "Ответы квиза не приняты: квиз изменился в другой вкладке." | every page with the top bar (F2.1), lesson (F10.1; the quiz notice, F15) | v1; the quiz notice D2, after #36 |
-| quiz (D2; designed in #70) | "Нужно K из Q", "Попытка A из M", "Попытка A" (limit unknown, R7), "Верно C из Q. Нужно K.", "Верно C из Q.", "Квиз пройден", "Квиз не пройден: попытки исчерпаны", "Ответы не отправлялись" (quiz check row, in place of "Не запускалась"), question verdicts "Верно" / "Неверно" and option marks "Ваш ответ" / "Верный ответ" (review), "Ответьте на все вопросы: осталось U", "Ответы не отправлены. Попробуйте снова.", "Не удалось загрузить квиз", refusal result block (a send refused because the quiz changed in another browser tab): title "Ответы не приняты: квиз изменился в другой вкладке." and, while the quiz is open, "Последний результат: Верно C из Q. Нужно K." | Квиз tab (F15); from #35 "Верно C из Q." alone also in an open attempt of the history (F19.2, a quiz result, `progress.md` A72-17); the quiz check row in Проверки, which otherwise uses the check status set ("Пройдено", "Не пройдено", "Закрыта: не пройдено"), the check row meta set ("Осталась 1 попытка", also in the quiz header) and the check row note set ("Неудачных попыток: N", "Неудачных попыток: N из M") | D2, after #36; "из M" and "Осталась 1 попытка" only with a known limit (R7, from #68). Q, K, C, A and M come from the server (`quiz.md`, Stepan's decision P2); the letters: `quiz.md` "Placeholders". "Нужно N%", "Результат: N%. Нужно N%." and "Несколько вариантов" (#50) are replaced (#70) |
+| quiz (D2; designed in #70) | "Нужно K из Q", "Попытка A из M", "Попытка A" (limit unknown, R7), "Верно C из Q. Нужно K.", "Верно C из Q.", "Квиз пройден", "Квиз не пройден: попытки исчерпаны", "Ответы не отправлялись" (quiz check row, in place of "Не запускалась"), question verdicts "Верно" / "Неверно" and option marks "Ваш ответ" / "Верный ответ" (review), "Ответьте на все вопросы: осталось U", "Ответы не отправлены. Попробуйте снова.", "Не удалось загрузить квиз" (the load error's title, an h3 under the panel heading, R2 page-level retry table; also the one text of the quiz load status container, R2), refusal result block (a send refused because the quiz changed in another browser tab): title "Ответы не приняты: квиз изменился в другой вкладке." and, while the quiz is open, "Последний результат: Верно C из Q. Нужно K." | Квиз tab (F15); from #35 "Верно C из Q." alone also in an open attempt of the history (F19.2, a quiz result, `progress.md` A72-17); the quiz check row in Проверки, which otherwise uses the check status set ("Пройдено", "Не пройдено", "Закрыта: не пройдено"), the check row meta set ("Осталась 1 попытка", also in the quiz header) and the check row note set ("Неудачных попыток: N", "Неудачных попыток: N из M") | D2, after #36; "из M" and "Осталась 1 попытка" only with a known limit (R7, from #68). Q, K, C, A and M come from the server (`quiz.md`, Stepan's decision P2); the letters: `quiz.md` "Placeholders". "Нужно N%", "Результат: N%. Нужно N%." and "Несколько вариантов" (#50) are replaced (#70) |
 | mentor (D3) | "Ментор читает попытку", "до $N", "Оценка N из M, нужно N", "Стоимость разбора: $N", "Разбор готов", "Бюджет на разбор исчерпан", "Ментор не ответил", "Ключ API не задан, разбор недоступен. Добавьте ключ в .env.", "Ментор не видел транскрипт работы с агентом" | review block and hint ladder in Проверки (F16, F17) | D3, after #37 |
 | budget confirmation (AlertDialog) | title "Потратить до $N с вашего ключа API?"; description "Эта проверка расходует токены:" (one listed check) or "Эти проверки расходуют токены:" (two or more); list item "<check title>: до $N"; buttons "Отмена", "Запустить" | budget confirmation (F13.1) | from #37 / #39; lists only checks the run includes, never a passed one (S11). "Проверка с агентом потратит до $N" (#50) is replaced (#69) |
 | editor (D5) | "Загружаем редактор", "Редактор не отвечает" | Редактор tab (F12) | D5, after #40 |
@@ -93,13 +93,13 @@ text only from this list or from the two tables above and below. Quotes of cours
 | Page | Copy (Russian, exact) |
 |------|----------------------|
 | sign-in (F1, F3) | "Вход" (`<title>` and h1), field labels "Почта" and "Пароль", "Входим..." (busy label of "Войти"), "Неверная почта или пароль", "Не удалось связаться с сервером. Проверьте, что платформа запущена (docker compose up), и попробуйте снова.", "Введите почту", "Введите пароль", "Слишком много попыток входа. Подождите и попробуйте снова.", "Пользователя создаёт скрипт seed, см. README", "Вы вышли" |
-| dashboard (F4, F18) | "Следующий урок", "около N мин", "Не удалось загрузить курс", "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; F18.3-F18.5: the row "dashboard, progress (#72)" |
+| dashboard (F4, F18) | "Следующий урок", "около N мин", "Не удалось загрузить курс" (the course error's title, an h2 in the Card's place, R2 page-level retry table), "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; F18.3-F18.5: the row "dashboard, progress (#72)" |
 | dashboard, progress (#72) | F18.3 (from #35): section h2 "Последние попытки" (also the name of its `ul`, `aria-labelledby`), the empty text "Попыток пока нет"; each row one link whose name is its fields joined by ". " (`progress.md` A72-19): lesson title (data), date and time (data, format below), the attempt summary (set "attempt summary"), from #37 the attempt cost (set "cost"), for example "Закрытый контур. 3 ноября, 18:40. Пройдено проверок: 1 из 1". F18.4 (from #35): section h2 "Где трудно" (also the name of its `ul`), the empty text "Пока нет проверок, которые не удаются"; each row one link whose name is its fields joined by ". ": check title (data), lesson title (data), and "Закрыта: не пройдено" (set "check status") or "Неудачных попыток: N" / "Неудачных попыток: N из M" (set "check row note", one check's results). An empty section holds its empty text in place of the `ul`. F18.5 (from #37): h2 the total (set "cost"), the note "Расход агента в терминале сюда не входит"; its `section` has no accessible name (`progress.md` F18 keyboard path). Date and time format (both pages): day, month name in the genitive, hours and minutes in the learner's local time, "4 ноября, 14:05"; the year after the month when it is not the current year, "4 ноября 2025, 14:05"; in `<time datetime="<ISO 8601>">`. The #50 strings "Слабые темы" and "Слабых тем пока нет" are dropped (vocabulary, "checks where the learner struggles") |
 | lesson, attempt history (F19; #72) | from #35, below the check list of the Проверки tab: section h3 "История попыток" (also the name of its `ul`); in the error state the h3 reads "История попыток недоступна" with "Повторить", and when the re-read started by the first attempt record (the first run's end, the first answered quiz send, or a visibility re-read that finds a record this page has not shown: sent in another browser tab, or this page's own timed-out send the server recorded) fails the same text is written once into the visually hidden history status container (R2, `progress.md` F19 error states); the empty text "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (in place of the `ul`), and "Попыток пока нет" alone from the moment the first run disables "Проверить" ("Дождитесь окончания проверки", "Результат проверки ещё не получен") until the history re-read after that run returns, and in place of the long text on a lesson whose check bar has no "Проверить" (a quiz-only lesson, from #36, not drawn) (`progress.md` F19 empty states); each attempt row a disclosure button whose name is its fields joined by ". " (`progress.md` A72-19): "№ N" (vocabulary, "attempt number"), date and time (format in the row above), the attempt summary, from #37 the attempt cost, for example "№ 3. 4 ноября, 14:05. Пройдено проверок: 1 из 2. Проверок с незасчитанной попыткой: 1"; an attempt with no check result a plain list item (`li`, `tabindex="-1"`, not a button) whose text holds the same fields, joins and order and the summary "Сбой проверки, попытка не засчитана", for example "№ 2. 4 ноября, 13:50. Сбой проверки, попытка не засчитана"; in an open panel per result: check title (data) or check id (data) with "Этой проверки больше нет в уроке", the result's status word (set "check status", result words only, `progress.md` F19.2), the grader message (data), for a quiz result "Верно C из Q." (set "quiz") in its place, "Подробности" with the raw error (data), from #37 / #39 "Стоимость попытки: $N" (set "check row note", #69), from #37 the review block (set "mentor"). The panel's list has no name of its own; the section has none either (no `region` landmark inside "Урок", `progress.md` F19 keyboard path). The three strings "История попыток", "Попыток пока нет. ..." and "История попыток недоступна" are also in the row "lesson (F6-F13, F19)" below, marked "(from #35, F19)" there |
-| catalog (F5, F6) | "Не удалось загрузить курс", "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>" |
+| catalog (F5, F6) | "Не удалось загрузить курс" (the course error's title, the page h1, R2 page-level retry table), "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>" |
 | not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"). No other text in `main`: no "404", no breadcrumb, no search |
 | lesson tabs | left pane "Теория", "Задание", "Проверки", "Квиз" (D2); environment "Терминал", "Редактор" (D5); one-pane switch "Урок", "Окружение" |
-| lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока", "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (from #35, F19). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
+| lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока" (the text load error's title, an h2 in the tab panel, R2 page-level retry table), "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (from #35, F19). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
 | lesson, accessible names (#69) | "Навигация" (breadcrumb `nav` label), "Область" (one-pane switch tab list label), "Разделы урока" (left-pane tab list label), "Окружение" (environment tab list label), "Терминал" (terminal frame name), the visually hidden region headings "Урок", "Проверка", "Окружение", "Уведомления" (the page region row of the vocabulary). The user menu is named by its trigger, the email (data, not copy) |
 | lesson, checks (F13, F14; #69) | the Проверки tab panel heading "Проверки"; the tab's visually hidden running part ", идёт проверка"; every check status, row meta, row note, status line text, disabled reason and the budget confirmation copy are in the closed sets above, and every button in Action labels. Grader messages and raw errors under "Подробности" are data, shown verbatim, not copy |
 | lesson, quiz (F15; #70, from #36) | the tab label "Квиз" with no state suffix (unlike "Проверки, идёт проверка", nothing in the quiz changes while the learner is on another tab); the panel heading is the quiz check `title` (data); the question heading "Вопрос I из Q", which is also the accessible name of its radio group or checkbox group (the prompt is the group's description); "Код к вопросу" (accessible name of a prompt's code block that overflows and so takes Tab); "Засчитывается только точный набор ответов" (note under every `multiple` prompt); per-question errors "Выберите ответ" (`single`) and "Выберите хотя бы один вариант" (`multiple`); error-summary links "Вопрос I из Q: выберите ответ" and "Вопрос I из Q: выберите хотя бы один вариант"; "Отправляем..." (busy label of "Отправить ответы"); result descriptions "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки." (limit known), "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения." (limit unknown), never after a refused send, and "Ниже верные ответы и пояснения." (pass, close, and a refusal that finds the quiz passed or closed); the explanation heading "Пояснение"; the result block's lesson line reuses the check bar's "Урок пройден" (from #69 also "Урок завершён: не пройден. Пройдено: N из M"). Prompts, options and explanations, including "Выберите все верные.", are quiz content (data), not copy |
@@ -186,9 +186,12 @@ Deferred cases follow the same rule: locked hint levels with "Откроется
 
 ### R2: live regions
 
-- Every live container exists in the DOM from page load; its text is inserted and replaced, never
+- Every live container exists in the DOM from page load (the history and quiz load status containers from
+  the moment their section or tab panel is rendered, below); its text is inserted and replaced, never
   inserted together with the container, because a live region added with its content is not reliably
-  announced. It is empty on load, with one exception: the check bar status line in the nothing-to-run
+  announced; a container that enters the accessibility tree with its tab panel waits a minimum age before
+  its first text (the quiz load status container, `QUIZ_LOAD_STATUS_MIN_AGE_MS`, below; the history status
+  container, FU15). It is empty on load, with one exception: the check bar status line in the nothing-to-run
   state (S3, `checks.md` "Run composition") is rendered with its text as part of the page, so that text is
   not announced on load (next bullet); it is still never inserted together with the container. Two
   consecutive texts of the check status line, the empty one of an equal-string re-set included, are at
@@ -221,7 +224,25 @@ Deferred cases follow the same rule: locked hint levels with "Откроется
   Not the "Уведомления" status container, because a history error there would make "Уведомления" a
   landmark and an `F6` stop for a message that belongs to one tab panel; not the check bar status line,
   because its text is the run's outcome (`checks.md` "Live regions") and the history error would replace
-  it. D3 adds the review's `role="status"` ("Разбор готов"). Other pages with the top bar, and the lesson
+  it. From #36 (#99), on a lesson with a quiz check, the quiz load status container (`role="status"`,
+  visually hidden, inside the Квиз tab panel right after its heading), present and empty whenever the panel
+  is rendered, from the moment a load starts, before any text is set. One case only writes it, once per
+  failed load, with "Не удалось загрузить квиз": a quiz load (the first, or "Повторить") fails while the
+  Квиз panel is shown and no focus move announces it (the first load always; a "Повторить" when focus has
+  left the panel and is not on `body`, the retry focus guard below), because the error then replaces the
+  Skeletons in view, a status message (WCAG 4.1.3); set after the panel's `aria-busy` is removed and no
+  sooner than `CHECK_STATUS_TEXT_GAP_MS` after the check bar status line's last text when that text is
+  younger than the gap (after that text when it still waits for its own gap), as for the history status
+  container, and no sooner than `QUIZ_LOAD_STATUS_MIN_AGE_MS` (100 ms, React Aria's live announcer delay for
+  Safari, `quiz.md` "The quiz load status container") after the container entered the accessibility tree,
+  because Radix may unmount the inactive Квиз panel, so a first load from the Квиз tab mounts the container
+  as the load starts; the write waits for the latest of the three (for a "Повторить" the container has
+  been in the tree since the panel was shown, so the age has normally passed); never written with the panel not shown (nothing becomes visible) or when the h3 takes focus
+  (nothing said twice); emptied, silently, when a load starts, which also drops a write still waiting (the error it would announce is gone), so every failure is announced again
+  (`quiz.md` "Loading"). It never meets the history status container, because each is written only while
+  its own left-pane tab panel is shown. Not the quiz notice, for the reason given for the history error
+  (a landmark and `F6` stop for a message of one tab panel) and because the notice is P9's channel for a
+  send. D3 adds the review's `role="status"` ("Разбор готов"). Other pages with the top bar, and the lesson
   page whose course cannot be read (no "Проверка" or "Окружение" region exists then, R3): the
   "Уведомления" containers only.
   Sign-in has no live container: every error after "Войти" moves focus to its message, and a submit with
@@ -283,24 +304,53 @@ Deferred cases follow the same rule: locked hint levels with "Откроется
   "Запустить снова", "Переподключиться", "Открыть новый сеанс") moves focus to what the R3 table names for
   the region's new state (for example "Действия" while starting); the check bar's "Переподключиться" (F13)
   moves focus to "Проверить", the R3 landing of "Проверка". A page-level "Повторить" moves focus to
-  what replaced the block (`tabindex="-1"`, its heading when it has one), and the `<title>` is the one of
-  the page now shown. The target of each page-level retry, per outcome:
+  what replaced the block (`tabindex="-1"`, its heading when it has one), or, when the load fails again, to
+  the error's own heading, and the `<title>` is the one of the page now shown. The target of each
+  page-level retry, per outcome, under the retry focus guard below the table:
 
   | Retry | Loads | Fails again | Loads, but the URL is a way into the not-found page (page inventory, not-found Route) |
   |-------|-------|-------------|----------------------------------------------------------------|
-  | dashboard course error | the Card heading "Следующий урок"; `<title>` "Главная" | "Повторить" itself (the dashboard Alert title is not a heading) | - (the dashboard URL names no course) |
+  | dashboard course error | the Card heading "Следующий урок"; `<title>` "Главная" | the error heading "Не удалось загрузить курс" (h2, `tabindex="-1"`, the Alert title, in the Card's place); `<title>` "Главная" | - (the dashboard URL names no course) |
   | dashboard progress section | the section heading (the course line) | the section heading "Прогресс недоступен" | - |
   | catalog course error | the course h1; `<title>` the course title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
   | lesson course error | the lesson h1; `<title>` the lesson title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
-  | lesson text load error | the reloaded tab panel; `<title>` unchanged | "Повторить" itself | - (the course was read) |
-  | lesson attempt history (F19, from #35; #72) | the history heading "История попыток" (h3, `tabindex="-1"`); `<title>` unchanged | the error heading "История попыток недоступна" (h3, `tabindex="-1"`), so a second failure is read aloud (unlike FU6) | - (the course was read) |
-  | quiz load error (from #36) | the quiz panel heading (the check title); `<title>` unchanged | "Повторить" itself | - (the course was read) |
+  | lesson text load error | the reloaded tab panel; `<title>` unchanged | the error heading "Не удалось загрузить текст урока" (h2, `tabindex="-1"`, the Alert title, in the tab panel); `<title>` unchanged | - (the course was read) |
+  | lesson attempt history (F19, from #35; #72) | the history heading "История попыток" (h3, `tabindex="-1"`); `<title>` unchanged | the error heading "История попыток недоступна" (h3, `tabindex="-1"`) | - (the course was read) |
+  | quiz load error (from #36) | the quiz panel heading (the check title); `<title>` unchanged | the error heading "Не удалось загрузить квиз" (h3, `tabindex="-1"`, the Alert title, under the panel heading); when the guard keeps focus where it is and the Квиз panel is shown, the quiz load status container says "Не удалось загрузить квиз" (list above, `quiz.md` "Loading"); `<title>` unchanged | - (the course was read) |
 
   The not-found h1 (`tabindex="-1"`) is the target in the last column because it is the heading of what
   replaced the block and it is read before "Открыть курс"; the not-found page reached any other way does not
-  move focus. A retry that fails again on "Повторить" itself is not announced (the focus does not move and
-  the text does not change): an open follow-up ("Open follow-ups" below), not decided here. Sign-in's
-  "Повторить" sends the form, so focus moves to "Войти", which reads "Входим..." (R1 row).
+  move focus. Every "Fails again" target is a heading with `tabindex="-1"` that names the error (in the
+  course, text and quiz load errors the Alert title itself, in the catalog `#state-course-error`
+  composition, `.alert-title` sized `text-sm`; in the progress and history rows the section heading), and
+  never "Повторить" itself, because focus on an element that already has it fires no focus event (HTML focusing steps), so a screen
+  reader would say nothing. The retry starts on "Повторить" (or, for the quiz, on the panel heading its
+  loading state focuses) and ends on the heading, a different element, so the focus move is real and the
+  heading is read with its level, also on a second, third or later failure whose text equals the first one's.
+  A "Fails again" move needs no live container and no text gap, because no text is set; the one container a
+  retry writes is the quiz load status container, for a quiz failure that the guard keeps from moving focus
+  (list above). Pressing a page-level "Повторить" that stays rendered while its retry runs (every row except the
+  quiz load error, whose loading state removes it) puts focus on it when the press did not, because a
+  pointer press may not focus the button (Safari, MDN "Clicking and focus"), and the retry then starts on
+  "Повторить" in every browser, so the "Fails again" move always goes to a different element. A `tabindex="-1"` heading is skipped by the `F6`
+  landing (R3) and by Tab, so no landing and no Tab order changes; the next Tab from the heading reaches
+  "Повторить".
+  **Retry focus guard.** A retry's closing focus move (its "Loads" or "Fails again" target) is made only
+  when focus is still on "Повторить", on `body`, or inside the block the retry belongs to, and the target is
+  shown; otherwise focus stays where the learner put it. The block: the dashboard course error's Alert, the
+  dashboard progress section, `main` for the catalog and lesson course errors, the text load error's tab
+  panel, the F19 history section, and for the quiz the Квиз tab panel (its heading, which the loading state
+  focuses, included). Because a learner who moved on before the answer must not be pulled back: two panes,
+  "Повторить" pressed, then a click into the terminal; a Shift+Tab to the top bar or the Квиз tab, whose arrow
+  keys then keep working; an open menu, whose focus trap (Radix `FocusScope`) would fight a script focus move
+  or close the menu. A hidden target cannot take focus at all (HTML focusing steps), so a retry that ends
+  with its tab panel or pane hidden makes no move either. Nothing new is owed when focus stays: in every row
+  but the quiz the error stays rendered, unchanged, while its retry runs, so a failure changes nothing on
+  screen, and in every row a load that succeeds is page content, not a message about it; the quiz load
+  error's loading state replaces the error with Skeletons, so a failure there is visible again and the quiz
+  load status container says it (list above). The guard covers the "Loads" and "Fails again" columns; the
+  not-found column keeps its statement here and is #95's (FU1-FU4). Sign-in's "Повторить" sends the form, so focus moves to "Войти", which reads "Входим..." (R1
+  row).
 - Focus never falls back to `body`.
 
 ### R3: the `F6` cycle and where focus lands
@@ -682,12 +732,6 @@ filed and linked here, or when it is done.
   not `outline-color` right after focus, so a `transition-colors` that animates the ring in on catalog rows
   and breadcrumb links would pass. Assert `outline-color` against a probe styled `var(--ring)` at once
   after the key press, and watch it fail with `transition-colors` restored.
-- **FU6. design: a retry that fails again on "Повторить" itself is silent** (design). For the dashboard
-  course error and the lesson text load error, R2 keeps focus on "Повторить" after a second failure; the
-  focus does not move and the text does not change, so a screen reader user hears nothing. Decide an
-  announcement (a focus target with a heading, or a status) and update R2. The quiz load error (#70) has
-  the same case; its "Повторить" is described by the Alert title, so it reads "Не удалось загрузить квиз"
-  when reached, but the second failure itself is still not announced.
 - **FU7. docs(adr): lesson status when a quiz closes or a check kind ships after completion** (dev, ADR
   change approved by Stepan, from #70). ADR-0007 makes `completed` sticky and has no "finished, not
   passed" lesson; A19 counts a check only once its runner ships, so a module 00 lesson completed by its
@@ -740,6 +784,38 @@ filed and linked here, or when it is done.
   finished, is said by the result block (or the quiz notice) and again by the run's end text; report whether the second reading is heard as noise or lost, so #36 can keep or revise
   it. A proposal for the author phase: a "Где трудно" row could focus its check
   row on arrival (`?check=`), with its own fallback set (`progress.md` "Not designed in #72").
+- **FU14. fix(web): a retry that fails again focuses the error heading** (dev, from #99). R2, page-level
+  retry table, rows "dashboard course error" and "lesson text load error", the prose under the table and
+  its retry focus guard.
+  `apps/web/components/course-error.tsx` renders the dashboard's Alert title (`isPageHeading={false}`) as
+  an `h2` with `tabIndex={-1}` and `text-sm font-semibold` and makes it the error target in place of the
+  button; `apps/web/components/lesson/lesson-text.tsx` renders the title "Не удалось загрузить текст урока"
+  as an `h2` with `tabIndex={-1}`, one id per tab (Теория, Задание), the error target in place of the
+  button; `apps/web/components/retry-button.tsx` focuses itself on press when the press did not (a pointer
+  press may not, Safari). The guard: `retry-button.tsx` makes its error move, and `focus-on-mount.tsx` its
+  success move, only when focus is then on the button, on `body` (where it falls when the success view
+  removed the block it was in) or inside the retry's block, and the target is shown; otherwise neither moves
+  focus. This applies to every retry built on the button (dashboard and catalog and lesson course errors,
+  text load errors). e2e: on the dashboard course error and on each text load error, a "Повторить" that
+  fails again leaves focus on that h2, and a second press that fails again ends there again; a mouse click on
+  "Повторить" in WebKit while focus is on the heading moves focus to the button before the retry ends, here
+  and on the catalog and lesson course error, which use the same button; the skip link plus Tab, and `F6`
+  to `main` on the dashboard, still land on "Повторить"; with two panes and a text load error on Теория,
+  "Повторить" pressed and then a click into the terminal before the retry ends leaves focus in the terminal,
+  both when it fails again and when it loads, and on the dashboard a Shift+Tab to the top bar before the
+  retry ends leaves focus there in both outcomes. The quiz load error gets the same from #36
+  (`quiz.md` "Requirements for #36", item 9); the progress section and history retries get the press rule
+  and the guard when #35 builds them on the same button. `retry-button.tsx` is also changed by #95 (FU1).
+- **FU15. design: the history status container mounted with the Проверки panel** (design, from the #99
+  accessibility review, for #35 or the next F19 design task). Radix may unmount an inactive tab panel
+  (`apps/web/components/lesson/lesson-tabs.tsx` passes no `forceMount`), and the history status container
+  is "present and empty whenever the section is rendered" (`progress.md` F19), so it enters the
+  accessibility tree when the Проверки tab is shown. A history re-read that a run's end or a quiz send
+  started while another tab was shown can fail right after the learner opens Проверки, and the one write
+  would then follow the mount by milliseconds, which Safari with VoiceOver may miss (the reason for
+  `QUIZ_LOAD_STATUS_MIN_AGE_MS`, `quiz.md` "The quiz load status container"). To decide: the same minimum
+  age, counted from the section's mount, or a container kept outside the unmounted panel. Not designed in
+  #99, whose scope is the retry feedback.
 
 Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
 "Focus ring after a mouse click on a tab").

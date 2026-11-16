@@ -634,11 +634,11 @@
       </div>
       <div class="alert" data-variant="destructive">
         <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
-        <p class="alert-title" id="g-quiz-load-error-title">Не удалось загрузить квиз</p>
+        <h4 class="alert-title text-sm" id="g-quiz-load-error-title" tabindex="-1">Не удалось загрузить квиз</h4>
         <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" aria-describedby="g-quiz-load-error-title">Повторить</button></div>
       </div>
     </div>
-    <p class="gallery-note">Result block (failed, passed with the lesson line, closed, refused while the quiz is open) and send error: focusable messages (role="group", tabindex="-1", aria-labelledby the title, aria-describedby every line in order), never role="alert". Default variant with the icon of the outcome: cross (failed), check mark (passed), lock (closed), warning (refused); the send error is the destructive variant. One p.alert-description per line; the lesson line comes last. Load error: the plain destructive Alert of the lesson text load error (no role, no tabindex), its "Повторить" described by the title.</p>
+    <p class="gallery-note">Result block (failed, passed with the lesson line, closed, refused while the quiz is open) and send error: focusable messages (role="group", tabindex="-1", aria-labelledby the title, aria-describedby every line in order), never role="alert". Default variant with the icon of the outcome: cross (failed), check mark (passed), lock (closed), warning (refused); the send error is the destructive variant. One p.alert-description per line; the lesson line comes last. Load error: the plain destructive Alert of the lesson text load error, no role, no tabindex on the Alert; its title an h3 with tabindex="-1" (class alert-title text-sm, focused when "Повторить" fails again; here h4 in the gallery outline), its "Повторить" described by the title; on the page a visually hidden role="status" aria-live="polite" container sits right after the panel heading (not drawn here).</p>
   </div>
 
   <div class="gallery-section">
