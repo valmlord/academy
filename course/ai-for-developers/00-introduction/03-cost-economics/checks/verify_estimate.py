@@ -5,6 +5,9 @@ Numeric fields out of tolerance are named (they cannot be enumerated). The enum 
 count of wrong fields: a count lets a coordinate search find the key field by field within the
 attempt cap (student run C8). The lever is not graded here (Stepan's decision 2026-10-28): cost-quiz
 Q2 and the mentor assess it.
+
+Exit codes (ADR-0007 rule 3, ADR-0001 item 8): 0 passed; 3 format error, not counted toward the
+attempt limit and decided before any expected value is computed; 1 wrong answer, counted.
 """
 
 import json
@@ -23,6 +26,9 @@ REPRICE_TIER = "mid"
 RELATIVE_TOLERANCE = 0.01
 ABSOLUTE_TOLERANCE_USD = 0.001
 TOKENS_PER_PRICE_UNIT = 1_000_000
+PASSED_EXIT = 0
+FORMAT_ERROR_EXIT = 3
+COUNTED_EXIT = 1
 
 
 class AnswerFormatError(Exception):
@@ -65,17 +71,36 @@ def expected_values() -> dict[str, Any]:
     }
 
 
-def is_number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+def number_problem(value: Any) -> str:
+    """Empty for a finite number, otherwise what is wrong with the value."""
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return "ожидается число"
+    try:
+        is_finite = math.isfinite(value)
+    except OverflowError:
+        # An int too large for a float: the tolerance arithmetic would overflow on it too.
+        return "число слишком большое"
+    # NaN and Infinity are rejected while parsing, so a non-finite value is a literal like 1e999.
+    return "" if is_finite else "число слишком большое"
 
 
 def load_answers() -> dict[str, Any]:
     if not ANSWER_PATH.is_file():
         raise AnswerFormatError("answers.json не найден в корне рабочего места")
     try:
-        data = json.loads(ANSWER_PATH.read_text(encoding="utf-8"), parse_constant=reject_constant)
+        text = ANSWER_PATH.read_text(encoding="utf-8")
+    except UnicodeDecodeError as error:
+        raise AnswerFormatError("answers.json: файл не в кодировке UTF-8") from error
+    try:
+        data = json.loads(text, parse_constant=reject_constant)
     except json.JSONDecodeError as error:
         raise AnswerFormatError(f"answers.json: невалидный JSON (строка {error.lineno})") from error
+    except RecursionError as error:
+        raise AnswerFormatError("answers.json: невалидный JSON (слишком глубокая вложенность)") from error
+    except ValueError as error:
+        # Outside JSONDecodeError, json.loads raises ValueError only for an integer longer than
+        # Python's int-string conversion limit (sys.get_int_max_str_digits, 4300 digits by default).
+        raise AnswerFormatError("answers.json: невалидный JSON (слишком длинное число)") from error
     if not isinstance(data, dict):
         raise AnswerFormatError("answers.json: ожидается объект")
     errors: list[str] = []
@@ -84,12 +109,14 @@ def load_answers() -> dict[str, Any]:
             errors.append(f"answers.json: {group}: ожидается объект с ключами a, b, c")
     if not errors:
         for name in SESSIONS:
-            if not is_number(data["session_cost_usd"][name]):
-                errors.append(f"answers.json: session_cost_usd.{name}: ожидается число")
+            problem = number_problem(data["session_cost_usd"][name])
+            if problem:
+                errors.append(f"answers.json: session_cost_usd.{name}: {problem}")
             if data["largest_component"][name] not in COMPONENTS:
                 errors.append(f"answers.json: largest_component.{name}: ожидается одно из {'|'.join(COMPONENTS)}")
-    if not is_number(data.get("a_repriced_on_mid_tier_usd")):
-        errors.append("answers.json: a_repriced_on_mid_tier_usd: ожидается число")
+    problem = number_problem(data.get("a_repriced_on_mid_tier_usd"))
+    if problem:
+        errors.append(f"answers.json: a_repriced_on_mid_tier_usd: {problem}")
     miss = data.get("b_cache_miss_turn")
     if not isinstance(miss, int) or isinstance(miss, bool):
         errors.append("answers.json: b_cache_miss_turn: ожидается целое число")
@@ -108,8 +135,9 @@ def main() -> int:
     try:
         answers = load_answers()
     except AnswerFormatError as error:
+        print("Ошибка формата (попытка не засчитывается):")
         print(error)
-        return 1
+        return FORMAT_ERROR_EXIT
     expected = expected_values()
     numeric_misses: list[str] = []
     for name in SESSIONS:
@@ -125,12 +153,12 @@ def main() -> int:
     )
     if not numeric_misses and enums_right:
         print("Пройдено: все поля верны.")
-        return 0
+        return PASSED_EXIT
     if numeric_misses:
         print("Вне допуска или неверны: " + ", ".join(numeric_misses))
     if not enums_right:
         print("Поля-перечисления (largest_component, cheaper_per_task): не все верны.")
-    return 1
+    return COUNTED_EXIT
 
 
 if __name__ == "__main__":

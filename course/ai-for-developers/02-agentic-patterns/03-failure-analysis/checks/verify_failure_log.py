@@ -58,6 +58,12 @@ def stage0(key: dict[str, object]) -> tuple[dict[str, dict[str, str]] | None, li
         return None, [f"пункт 1: {LOG} не читается как UTF-8"]
     except json.JSONDecodeError as error:
         return None, [f"пункт 1: {LOG} не строгий JSON (строка {error.lineno})"]
+    except RecursionError:
+        return None, [f"пункт 1: {LOG} не строгий JSON (слишком глубокая вложенность)"]
+    except ValueError:
+        # Outside JSONDecodeError, json.loads raises ValueError only for an integer longer than
+        # Python's int-string conversion limit (sys.get_int_max_str_digits, 4300 digits by default).
+        return None, [f"пункт 1: {LOG} не строгий JSON (слишком длинное число)"]
     if not isinstance(data, dict):
         return None, [f"пункт 1: {LOG} должен быть объектом {{\"I01\": {{...}}, ...}}"]
     problems: list[str] = []

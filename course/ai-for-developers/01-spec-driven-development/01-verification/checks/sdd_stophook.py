@@ -86,11 +86,21 @@ def load_settings(path: Path) -> dict[str, object] | None:
     if not path.is_file():
         return None
     try:
-        data = json.loads(path.read_text(encoding="utf-8"), parse_constant=_reject_constant)
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as error:
+        raise SettingsFormatError(f"{path}: файл не в кодировке UTF-8") from error
+    try:
+        data = json.loads(text, parse_constant=_reject_constant)
     except json.JSONDecodeError as error:
         raise SettingsFormatError(f"{path}: невалидный JSON (строка {error.lineno})") from error
     except SettingsFormatError as error:
         raise SettingsFormatError(f"{path}: {error}") from error
+    except RecursionError as error:
+        raise SettingsFormatError(f"{path}: невалидный JSON (слишком глубокая вложенность)") from error
+    except ValueError as error:
+        # Outside JSONDecodeError, json.loads raises ValueError only for an integer longer than
+        # Python's int-string conversion limit (sys.get_int_max_str_digits, 4300 digits by default).
+        raise SettingsFormatError(f"{path}: невалидный JSON (слишком длинное число)") from error
     if not isinstance(data, dict):
         raise SettingsFormatError(f"{path}: ожидается JSON-объект")
     return data
@@ -183,6 +193,9 @@ def hook_file_problems(names_interpreter: bool) -> list[str]:
         compile(text, str(HOOK_FILE), "exec", dont_inherit=True)
     except (SyntaxError, ValueError) as error:
         problems.append(f"{HOOK_FILE}: не разбирается как Python (строка {getattr(error, 'lineno', '?')})")
+    except (MemoryError, RecursionError):
+        # A deeply nested expression overflows the parser or the compiler instead of raising SyntaxError.
+        problems.append(f"{HOOK_FILE}: не разбирается как Python (слишком глубокая вложенность)")
     if not names_interpreter:
         if not SHEBANG.match(text.split("\n", 1)[0]):
             problems.append(f"{HOOK_FILE}: без названного интерпретатора первая строка должна быть #!, называющая python3")

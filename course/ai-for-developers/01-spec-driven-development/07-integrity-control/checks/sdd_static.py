@@ -37,6 +37,10 @@ def parse_python(path: Path, label: str) -> tuple[ast.Module | None, str]:
     except (SyntaxError, ValueError) as error:
         line = getattr(error, "lineno", None)
         return None, f"{label}: не разбирается как Python" + (f" (строка {line})" if line else "")
+    except (MemoryError, RecursionError):
+        # A deeply nested expression overflows the parser ("Parser stack overflowed") or the AST
+        # construction depth instead of raising SyntaxError.
+        return None, f"{label}: не разбирается как Python (слишком глубокая вложенность)"
 
 
 def is_stdlib(module: str) -> bool:
@@ -87,7 +91,8 @@ def skip_problems(tree: ast.Module, label: str) -> list[str]:
 
 def report_stage0(problems: list[str]) -> int:
     print("Стадия 0 не пройдена (попытка не засчитывается):")
-    for problem in problems:
+    # One unreadable test file is found both by the test-name rule and by the artifact grammar.
+    for problem in dict.fromkeys(problems):
         print(f"- {problem}")
     return STAGE0_EXIT
 
@@ -100,7 +105,12 @@ def report_counted(problems: list[str]) -> int:
 
 
 def report_grader_fault(detail: str) -> int:
-    """A fault of the grader itself (the reference did not answer): not the learner's, so not counted."""
-    print("Проверка не выполнена из-за внутренней ошибки (попытка не засчитывается):")
+    """A fault of the grader itself after stage 0 passed (the reference did not answer).
+
+    Counted: STAGE0_EXIT means only a stage-0 rejection, and a fault after the grader starts counts
+    (ADR-0007 rule 3, decision D11). The reference server shares the learner's container, so an
+    uncounted end here would let a learner process kill it for a free attempt.
+    """
+    print("Проверка не выполнена из-за внутренней ошибки (попытка засчитывается):")
     print(f"- {detail}")
-    return STAGE0_EXIT
+    return COUNTED_EXIT
