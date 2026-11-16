@@ -235,6 +235,12 @@ Each item can be accepted or overturned on its own.
   `recordLessonStarted` server action (one function, `lib/progress/lesson-started.ts`), called by the browser;
   it can only mark the signed-in user's own lesson as started. Item 6: account deletion reaches an open terminal
   within `TERMINAL_RELAY_MAX_SECONDS` (ADR-0011 item 3).
+- Amended by #162 on 2026-11-16 (no item 2-9 changes): migration `0003_attempt_arrays` enforces item 4 as amended by
+  #101 for the included checks. `attempts.included_check_ids` refuses a value with more than one dimension, a NULL
+  element or an empty string (`attempts_included_check_ids_dims_check`, `_nulls_check`, `_empty_check`);
+  `included_check_kinds` refuses more than one dimension (`attempts_included_check_kinds_dims_check`), NULL and
+  empty kinds being refused already by `attempts_included_check_kinds_check`. Distinct ids stay a writer rule
+  (#165). No other decision changes.
 
 ### Amended by #101 (Proposed), 2026-11-09
 
