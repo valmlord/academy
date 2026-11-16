@@ -112,30 +112,32 @@ function lessonTexts(): string[] {
     );
 }
 
+// Relative and sorted so test names are the same on every machine: absolute paths differ per
+// checkout and readdirSync order differs between file systems.
+const lessonFiles: string[] = lessonTexts()
+  .map((file) => path.relative(COURSE, file))
+  .sort();
+
 describe("LessonMarkdown on the real course", () => {
-  it("shows every raw HTML node of every lesson text as literal text", () => {
-    let htmlNodes = 0;
-    const files = lessonTexts();
+  // it.each over an empty list registers no tests and passes, so an empty list fails here.
+  it("finds lesson texts to check", () => {
+    expect(lessonFiles.length).toBeGreaterThan(0);
+  });
 
-    for (const file of files) {
-      const markdown = readFileSync(file, "utf8");
-      const tree: Root = unified().use(remarkParse).use(remarkGfm).parse(markdown);
-      const values: string[] = [];
-      visit(tree, "html", (node: Html) => {
-        values.push(node.value);
-      });
-      const container = renderMarkdown(
-        markdown,
-        path.basename(file) === "task.md" ? "task" : "theory",
-      );
-      for (const value of values) expect(container.textContent, file).toContain(value);
-      expect(container.querySelector("script"), file).toBeNull();
-      htmlNodes += values.length;
-    }
+  it.each(lessonFiles)("shows every raw HTML node of %s as literal text", (relativeFile) => {
+    const markdown = readFileSync(path.join(COURSE, relativeFile), "utf8");
+    const tree: Root = unified().use(remarkParse).use(remarkGfm).parse(markdown);
+    const values: string[] = [];
+    visit(tree, "html", (node: Html) => {
+      values.push(node.value);
+    });
 
-    console.info(
-      `real course: ${files.length} lesson texts, ${htmlNodes} raw HTML nodes rendered as text`,
+    const container = renderMarkdown(
+      markdown,
+      path.basename(relativeFile) === "task.md" ? "task" : "theory",
     );
-    expect(files.length).toBeGreaterThan(0);
+
+    for (const value of values) expect(container.textContent, relativeFile).toContain(value);
+    expect(container.querySelector("script"), relativeFile).toBeNull();
   });
 });
