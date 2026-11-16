@@ -4,6 +4,7 @@ import { CONFIG_DEFAULTS, CONFIG_VARIABLES, loadConfig } from "../../src/config.
 import { InvalidConfigError } from "../../src/errors.js";
 
 const SECRET = "s".repeat(32);
+const AGENT_KEY = "t115-fake-agent-key-not-real";
 const REQUIRED = {
   WORKSPACE_SERVICE_SECRET: SECRET,
   WORKSPACE_INSTANCE: "local",
@@ -37,6 +38,7 @@ describe("loadConfig", () => {
       startSlowSeconds: 10,
       terminalShell: "/bin/bash",
       terminalScrollbackLines: 1000,
+      agentApiKey: null,
     });
   });
 
@@ -138,6 +140,29 @@ describe("loadConfig", () => {
     expect(configError({ ...REQUIRED, TERMINAL_SCROLLBACK_LINES: lines }).variable).toBe(
       "TERMINAL_SCROLLBACK_LINES",
     );
+  });
+
+  it("reads WORKSPACE_AGENT_API_KEY into agentApiKey as given", () => {
+    const config = loadConfig({ ...REQUIRED, WORKSPACE_AGENT_API_KEY: AGENT_KEY });
+
+    expect(config.agentApiKey).toBe(AGENT_KEY);
+  });
+
+  it("reads an empty WORKSPACE_AGENT_API_KEY as no key", () => {
+    const config = loadConfig({ ...REQUIRED, WORKSPACE_AGENT_API_KEY: "" });
+
+    expect(config.agentApiKey).toBeNull();
+  });
+
+  it.each([
+    ["a space", "t115-fake-canary key"],
+    ["a newline", "t115-fake-canary\n"],
+    ["1025 characters", `t115-fake-canary-${"x".repeat(1008)}`],
+  ])("refuses a WORKSPACE_AGENT_API_KEY with %s and never prints its value", (_case, value) => {
+    const error = configError({ ...REQUIRED, WORKSPACE_AGENT_API_KEY: value });
+
+    expect(error.variable).toBe("WORKSPACE_AGENT_API_KEY");
+    expect(inspect(error, { depth: Number.POSITIVE_INFINITY })).not.toContain("canary");
   });
 
   it("lists a default only for variables it reads", () => {

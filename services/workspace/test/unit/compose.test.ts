@@ -57,6 +57,7 @@ const EXPECTED_ENVIRONMENT: Readonly<Record<ConfigVariable | "DOCKER_HOST", stri
   ENVIRONMENT_START_SLOW_SECONDS: "${ENVIRONMENT_START_SLOW_SECONDS:-10}",
   TERMINAL_SHELL: "${TERMINAL_SHELL:-/bin/bash}",
   TERMINAL_SCROLLBACK_LINES: "${TERMINAL_SCROLLBACK_LINES:-1000}",
+  WORKSPACE_AGENT_API_KEY: "${WORKSPACE_AGENT_API_KEY:-}",
   DOCKER_HOST: "unix:///var/run/docker.sock",
 };
 
@@ -119,7 +120,7 @@ describe("docker-compose.yml (U-compose)", () => {
       compared += 1;
     }
 
-    expect(compared).toBe(9);
+    expect(compared).toBe(10);
   });
 
   it("refuses to start without the secret (the :? form)", () => {
@@ -148,6 +149,44 @@ describe("docker-compose.yml, web and the service (#32)", () => {
       TERMINAL_RELAY_MAX_SECONDS: "${TERMINAL_RELAY_MAX_SECONDS:-900}",
       ENVIRONMENT_START_SLOW_SECONDS: "${ENVIRONMENT_START_SLOW_SECONDS:-10}",
     });
+  });
+});
+
+// U-compose-key (#115): stated as the effect, so a renamed key, an env_file or a new service is caught too, not
+// only the variable's own name under web.
+describe("docker-compose.yml, the agent API key (U-compose-key)", () => {
+  const AGENT_KEY_VARIABLE = "WORKSPACE_AGENT_API_KEY";
+  const others = Object.entries(compose.services).filter(([name]) => name !== "workspace");
+
+  it("checks web, the service that shares a network with the workspace service", () => {
+    expect(others.map(([name]) => name)).toContain("web");
+  });
+
+  it.each(others)(
+    "gives %s no way to the key: no value refers to it, no key looks like it, no env_file",
+    (_name, other) => {
+      const environment = other.environment ?? {};
+
+      expect(JSON.stringify(other)).not.toContain(AGENT_KEY_VARIABLE);
+      expect(
+        Object.values(environment).filter((value) => value.includes(AGENT_KEY_VARIABLE)),
+      ).toEqual([]);
+      expect(Object.keys(environment).filter((key) => /AGENT_API_KEY|ANTHROPIC/.test(key))).toEqual(
+        [],
+      );
+      expect(other.env_file).toBeUndefined();
+    },
+  );
+
+  it("names the key in no top-level secrets or configs entry", () => {
+    expect(JSON.stringify(compose["secrets"] ?? {})).not.toContain(AGENT_KEY_VARIABLE);
+    expect(JSON.stringify(compose["configs"] ?? {})).not.toContain(AGENT_KEY_VARIABLE);
+  });
+
+  it("passes the workspace service no variable under the agent CLI's own prefix", () => {
+    const names = Object.keys(service("workspace").environment ?? {});
+
+    expect(names.filter((name) => name.startsWith("ANTHROPIC_"))).toEqual([]);
   });
 });
 

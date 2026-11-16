@@ -22,6 +22,7 @@ export const CONFIG_VARIABLES = [
   "ENVIRONMENT_START_SLOW_SECONDS",
   "TERMINAL_SHELL",
   "TERMINAL_SCROLLBACK_LINES",
+  "WORKSPACE_AGENT_API_KEY",
 ] as const;
 
 export type ConfigVariable = (typeof CONFIG_VARIABLES)[number];
@@ -29,7 +30,7 @@ export type ConfigVariable = (typeof CONFIG_VARIABLES)[number];
 /**
  * Defaults as the environment would spell them, so compose's `${VAR:-default}` can be compared with them.
  * The secret, the instance and `COURSE_ROOT` are required and have none. An empty `WORKSPACE_IMAGE` means
- * "no override" (design 8.1).
+ * "no override" (design 8.1), an empty `WORKSPACE_AGENT_API_KEY` "no key".
  */
 export const CONFIG_DEFAULTS: Readonly<Partial<Record<ConfigVariable, string>>> = {
   WORKSPACE_HOST: "127.0.0.1",
@@ -43,6 +44,7 @@ export const CONFIG_DEFAULTS: Readonly<Partial<Record<ConfigVariable, string>>> 
   ENVIRONMENT_START_SLOW_SECONDS: "10",
   TERMINAL_SHELL: "/bin/bash",
   TERMINAL_SCROLLBACK_LINES: "1000",
+  WORKSPACE_AGENT_API_KEY: "",
 };
 
 /** The three limits a workspace container gets, in the units the Docker Engine API takes. */
@@ -68,6 +70,8 @@ export interface Config {
   terminalShell: string;
   /** Lines the server-held screen keeps above the visible rows, replayed on reconnect (ADR-0011 item 10). */
   terminalScrollbackLines: number;
+  /** Passed to every terminal shell under the agent CLI's own name (ADR-0002 item 14); `null` when unset or empty. */
+  agentApiKey: string | null;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -92,6 +96,13 @@ const START_SLOW_SECONDS_RANGE = { min: 1, max: 120 };
 const SHELL_PATH_PATTERN = /^\/[A-Za-z0-9/_.-]+$/;
 /** ADR-0011 item 10; about 2-3 MB of headless memory per session at 1000 lines and 200 columns (design 3.2). */
 const SCROLLBACK_LINES_RANGE = { min: 100, max: 10_000 };
+/** A typo guard against a pasted file, not a format check: the agent CLI's documentation gives no key length. */
+const AGENT_API_KEY_MAX_LENGTH = 1024;
+/**
+ * Printable ASCII without space (0x21-0x7E), because the key goes into an HTTP header and a pasted space or newline
+ * is the common error. No vendor prefix is checked, so a gateway's or another provider's key passes.
+ */
+const AGENT_API_KEY_PATTERN = new RegExp(`^[\\x21-\\x7E]{1,${AGENT_API_KEY_MAX_LENGTH}}$`);
 
 function integerText(min: number, max: number): z.ZodType<number> {
   return z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(min).max(max));
@@ -198,6 +209,17 @@ export function loadConfig(env: Env): Config {
     integerText(SCROLLBACK_LINES_RANGE.min, SCROLLBACK_LINES_RANGE.max),
     `integer from ${SCROLLBACK_LINES_RANGE.min} to ${SCROLLBACK_LINES_RANGE.max}`,
   );
+  // Never trimmed: a silent trim would hide a broken `.env` line instead of refusing it.
+  const agentApiKeyText = rawValue(env, "WORKSPACE_AGENT_API_KEY");
+  const agentApiKey =
+    agentApiKeyText === undefined || agentApiKeyText === ""
+      ? null
+      : read(
+          env,
+          "WORKSPACE_AGENT_API_KEY",
+          z.string().regex(AGENT_API_KEY_PATTERN),
+          `printable ASCII without space, 1 to ${AGENT_API_KEY_MAX_LENGTH} characters`,
+        );
   return {
     secret,
     instance,
@@ -211,5 +233,6 @@ export function loadConfig(env: Env): Config {
     startSlowSeconds,
     terminalShell,
     terminalScrollbackLines,
+    agentApiKey,
   };
 }
