@@ -31,11 +31,17 @@ export function splitRange(
   paneMinPx: number,
   handleWidthPx: number,
 ): SplitRange {
-  const min = Math.ceil(Math.max(SPLIT_MIN_PERCENT, (paneMinPx / layoutWidthPx) * 100));
+  // When the widths are exact in binary (whole px or 1/64 px), multiplying by 100 before dividing leaves the
+  // division as the only rounding, so a bound that is exactly a whole percent (a pane keeping exactly 20rem)
+  // comes out as that whole number and rounding up or down cannot jump a percent. A fractional root font (17.6 px)
+  // or page zoom (90 %, 110 %) makes the widths inexact, and a bound within about 1e-13 of a whole percent can then
+  // still be off by one, as it could before. Dividing first gave 28.000000000000004 for 420 px of 1500 px, so the
+  // minimum became 29 (#156).
+  const min = Math.ceil(Math.max(SPLIT_MIN_PERCENT, (paneMinPx * 100) / layoutWidthPx));
   const max = Math.floor(
     Math.min(
       SPLIT_MAX_PERCENT,
-      ((layoutWidthPx - handleWidthPx - paneMinPx) / layoutWidthPx) * 100,
+      ((layoutWidthPx - handleWidthPx - paneMinPx) * 100) / layoutWidthPx,
     ),
   );
   if (min > max) return { min: FALLBACK_PERCENT, max: FALLBACK_PERCENT };
