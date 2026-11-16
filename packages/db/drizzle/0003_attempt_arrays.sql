@@ -1,0 +1,4 @@
+ALTER TABLE "attempts" ADD CONSTRAINT "attempts_included_check_ids_dims_check" CHECK (array_ndims("attempts"."included_check_ids") IS NULL OR array_ndims("attempts"."included_check_ids") = 1);--> statement-breakpoint
+ALTER TABLE "attempts" ADD CONSTRAINT "attempts_included_check_ids_nulls_check" CHECK (CASE WHEN array_ndims("attempts"."included_check_ids") = 1 THEN array_position("attempts"."included_check_ids", NULL) IS NULL ELSE true END);--> statement-breakpoint
+ALTER TABLE "attempts" ADD CONSTRAINT "attempts_included_check_ids_empty_check" CHECK ('' <> ALL("attempts"."included_check_ids"));--> statement-breakpoint
+ALTER TABLE "attempts" ADD CONSTRAINT "attempts_included_check_kinds_dims_check" CHECK (array_ndims("attempts"."included_check_kinds") IS NULL OR array_ndims("attempts"."included_check_kinds") = 1);

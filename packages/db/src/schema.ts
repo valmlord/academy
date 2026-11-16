@@ -233,6 +233,30 @@ export const attempts = pgTable(
       "attempts_included_check_kinds_check",
       sql`${t.includedCheckKinds} <@ ${arrayLiteral("attempts_included_check_kinds_check", CHECK_KINDS)}`,
     ),
+    // Position-by-position pairing (rule 5) needs one dimension: cardinality counts every element of
+    // a 2-D array, so attempts_included_checks_check alone lets {{a},{b}} through and the reader would
+    // get nested arrays. The IS NULL disjunct is redundant inside a CHECK (for {} the bare
+    // array_ndims(x) = 1 is NULL, which a CHECK accepts) and is kept for the issue's wording.
+    check(
+      "attempts_included_check_ids_dims_check",
+      sql`array_ndims(${t.includedCheckIds}) IS NULL OR array_ndims(${t.includedCheckIds}) = 1`,
+    ),
+    // array_position raises 0A000 on a multidimensional array; the CASE keeps it to 1-D values, so a
+    // bad value is refused with 23514 whatever order Postgres evaluates the checks in.
+    check(
+      "attempts_included_check_ids_nulls_check",
+      sql`CASE WHEN array_ndims(${t.includedCheckIds}) = 1 THEN array_position(${t.includedCheckIds}, NULL) IS NULL ELSE true END`,
+    ),
+    // A NULL element makes '' <> ALL(...) NULL, which a CHECK accepts; _nulls_check is what refuses
+    // NULLs.
+    check("attempts_included_check_ids_empty_check", sql`'' <> ALL(${t.includedCheckIds})`),
+    // NULL and '' kinds are already refused by attempts_included_check_kinds_check (<@ a list of
+    // kebab-case values, which assertVocabularyValues guarantees non-empty); <@ ignores dimensions,
+    // so only the dimension rule is new for kinds.
+    check(
+      "attempts_included_check_kinds_dims_check",
+      sql`array_ndims(${t.includedCheckKinds}) IS NULL OR array_ndims(${t.includedCheckKinds}) = 1`,
+    ),
   ],
 );
 
