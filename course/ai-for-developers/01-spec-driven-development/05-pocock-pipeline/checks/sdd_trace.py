@@ -13,8 +13,12 @@ TEST_NAME = re.compile(r"^test_req_\d{2}_\w*[A-Za-z0-9]$")
 
 def test_name_problems(test_file: Path) -> list[str]:
     """Item 3: names `test_req_NN_<words>`, at most two `req_NN` labels each."""
+    try:
+        names = sdd_grammar.test_method_names(test_file)
+    except sdd_grammar.ArtifactParseError as error:
+        return [str(error)]
     problems: list[str] = []
-    for line, name in sdd_grammar.test_method_names(test_file):
+    for line, name in names:
         labels = sdd_grammar.labels_of(name)
         if len(labels) > sdd_grammar.MAX_LABELS_PER_NAME:
             problems.append(f"{test_file}, строка {line}: слишком много требований в одном имени теста ({name})")

@@ -19,7 +19,7 @@ from pathlib import Path
 CHECKS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(CHECKS_DIR))
 
-from sdd_grammar import test_method_names  # noqa: E402
+from sdd_grammar import ArtifactParseError, test_method_names  # noqa: E402
 from sdd_accept import acceptance_source, draw_late_fee  # noqa: E402
 from sdd_seam import Mutant, OracleError, SeamLesson, verdict_acceptance, verdict_mutation  # noqa: E402
 from sdd_static import (  # noqa: E402
@@ -54,14 +54,25 @@ def stage0() -> list[str]:
     else:
         problems += import_problems(tests_tree, str(TEST_FILE), TEST_POLICY)
         problems += skip_problems(tests_tree, str(TEST_FILE))
-        if len(test_method_names(TEST_FILE)) < MIN_TESTS_STAGE0:
-            problems.append(f"{TEST_FILE}: меньше {MIN_TESTS_STAGE0} тестовых методов")
+        problems += test_count_problems()
     implementation_tree, problem = parse_python(IMPLEMENTATION, str(IMPLEMENTATION))
     if implementation_tree is None:
         problems.append(problem)
     else:
         problems += import_problems(implementation_tree, str(IMPLEMENTATION), IMPLEMENTATION_POLICY)
     return problems
+
+
+def test_count_problems() -> list[str]:
+    try:
+        names = test_method_names(TEST_FILE)
+    except ArtifactParseError as error:
+        # parse_python reads bytes and honours a coding cookie; the grammar reads UTF-8 text, so a
+        # latin-1 file passes the first and is rejected here, still in stage 0.
+        return [str(error)]
+    if len(names) < MIN_TESTS_STAGE0:
+        return [f"{TEST_FILE}: меньше {MIN_TESTS_STAGE0} тестовых методов"]
+    return []
 
 
 def load_mutants() -> list[tuple[Mutant, bytes]]:

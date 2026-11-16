@@ -72,6 +72,12 @@ def load_placement(rule_ids: list[str]) -> tuple[dict[str, str] | None, list[str
         return None, ["пункт 1: placement.json не читается как UTF-8"]
     except json.JSONDecodeError as error:
         return None, [f"пункт 1: placement.json не строгий JSON (строка {error.lineno})"]
+    except RecursionError:
+        return None, ["пункт 1: placement.json не строгий JSON (слишком глубокая вложенность)"]
+    except ValueError:
+        # Outside JSONDecodeError, json.loads raises ValueError only for an integer longer than
+        # Python's int-string conversion limit (sys.get_int_max_str_digits, 4300 digits by default).
+        return None, ["пункт 1: placement.json не строгий JSON (слишком длинное число)"]
     if not isinstance(data, dict):
         return None, ["пункт 1: placement.json должен быть объектом {\"R01\": ступень, ...}"]
     missing = [rule for rule in rule_ids if rule not in data]

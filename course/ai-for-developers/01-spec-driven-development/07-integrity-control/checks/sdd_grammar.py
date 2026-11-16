@@ -289,13 +289,25 @@ class ArtifactParseError(Exception):
     """A root the grammar cannot read (design 2.7: linter exit 2)."""
 
 
+def read_artifact(path: Path, label: str) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as error:
+        raise ArtifactParseError(f"{label}: файл не в кодировке UTF-8") from error
+
+
 def test_method_names(path: Path) -> list[tuple[int, str]]:
     """(line, name) of `def`/`async def` names starting with `test` at module level and directly in a
     module-level class body. Generated tests (setattr, loops) are invisible on purpose."""
+    source = read_artifact(path, path.name)
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    except (SyntaxError, ValueError, UnicodeDecodeError) as error:
+        tree = ast.parse(source, filename=str(path))
+    except (SyntaxError, ValueError) as error:
         raise ArtifactParseError(f"{path.name}: не разбирается как Python: {error}") from error
+    except (MemoryError, RecursionError) as error:
+        # A deeply nested expression overflows the parser ("Parser stack overflowed") or the AST
+        # construction depth instead of raising SyntaxError.
+        raise ArtifactParseError(f"{path.name}: не разбирается как Python (слишком глубокая вложенность)") from error
     names: list[tuple[int, str]] = []
     function_types = (ast.FunctionDef, ast.AsyncFunctionDef)
     for node in tree.body:
@@ -836,22 +848,29 @@ class Root:
 
 
 def load_root(root: Path) -> Root:
-    """Raise ArtifactParseError for a root the grammar cannot read: no `docs/spec.md`."""
+    """Raise ArtifactParseError for a root the grammar cannot read: no `docs/spec.md`, a file that is
+    not UTF-8, or a test file that does not parse."""
     spec_path = root / SPEC
     if not spec_path.is_file():
         raise ArtifactParseError(f"{SPEC}: файл не найден")
-    spec_text = normalize_newlines(spec_path.read_text(encoding="utf-8"))
+    spec_text = normalize_newlines(read_artifact(spec_path, SPEC))
     tasks_path = root / TASKS
-    tasks_text = normalize_newlines(tasks_path.read_text(encoding="utf-8")) if tasks_path.is_file() else ""
+    tasks_text = normalize_newlines(read_artifact(tasks_path, TASKS)) if tasks_path.is_file() else ""
     names: list[tuple[str, int, str]] = []
     for path in test_files(root):
         relative = path.relative_to(root).as_posix()
         names.extend((relative, line, name) for line, name in test_method_names(path))
+    adrs: list[Adr] = []
+    for path in adr_files(root):
+        # Checked here and not in parse_adr: 01/04 verify_sdd and 04/01 verify_spec_form call
+        # parse_adr directly, and this guard deliberately leaves their behaviour unchanged.
+        read_artifact(path, path.relative_to(root).as_posix())
+        adrs.append(parse_adr(root, path))
     return Root(
         root,
         parse_spec(spec_text),
         tuple(parse_tasks(tasks_text)),
-        tuple(parse_adr(root, path) for path in adr_files(root)),
+        tuple(adrs),
         tuple(names),
         spec_text,
         tasks_text,

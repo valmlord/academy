@@ -3,6 +3,9 @@
 Learner-facing messages are Russian (course language). Format errors name the field and the
 allowed form; key mismatches are reported only as an aggregate count, so a single submission
 never tells which card is wrong (design 2.3, attempt cap 2.5.6).
+
+Exit codes (ADR-0007 rule 3, ADR-0001 item 8): 0 passed; 3 format error, not counted toward the
+attempt limit and decided before any comparison with the key; 1 wrong answer, counted.
 """
 
 import json
@@ -19,6 +22,9 @@ ALLOWED = {
     "deployment": ("cloud", "local"),
     "binding_constraint": ("quality", "latency", "price", "context", "privacy"),
 }
+PASSED_EXIT = 0
+FORMAT_ERROR_EXIT = 3
+COUNTED_EXIT = 1
 REASON_MAX_CHARS = 200
 # Pass bar from the design: at least 5 of the 6 cards fully correct.
 MIN_CORRECT_CARDS = 5
@@ -36,9 +42,19 @@ def load_answers(card_ids: list[str]) -> dict[str, dict[str, object]]:
     if not ANSWER_PATH.is_file():
         raise RoutingFormatError("routing.json не найден в корне рабочего места")
     try:
-        data = json.loads(ANSWER_PATH.read_text(encoding="utf-8"), parse_constant=reject_constant)
+        text = ANSWER_PATH.read_text(encoding="utf-8")
+    except UnicodeDecodeError as error:
+        raise RoutingFormatError("routing.json: файл не в кодировке UTF-8") from error
+    try:
+        data = json.loads(text, parse_constant=reject_constant)
     except json.JSONDecodeError as error:
         raise RoutingFormatError(f"routing.json: невалидный JSON (строка {error.lineno})") from error
+    except RecursionError as error:
+        raise RoutingFormatError("routing.json: невалидный JSON (слишком глубокая вложенность)") from error
+    except ValueError as error:
+        # Outside JSONDecodeError, json.loads raises ValueError only for an integer longer than
+        # Python's int-string conversion limit (sys.get_int_max_str_digits, 4300 digits by default).
+        raise RoutingFormatError("routing.json: невалидный JSON (слишком длинное число)") from error
     if not isinstance(data, dict):
         raise RoutingFormatError("routing.json: ожидается объект {id карточки: ответ}")
     missing = [card for card in card_ids if card not in data]
@@ -87,15 +103,16 @@ def main() -> int:
     try:
         answers = load_answers(card_ids)
     except RoutingFormatError as error:
+        print("Ошибка формата (попытка не засчитывается):")
         print(error)
-        return 1
+        return FORMAT_ERROR_EXIT
     wrong = sum(1 for card in card_ids if not is_card_correct(answers[card], key[card]))
     total = len(card_ids)
     if total - wrong >= MIN_CORRECT_CARDS:
         print(f"Пройдено: не меньше {MIN_CORRECT_CARDS} из {total} карточек верны.")
-        return 0
+        return PASSED_EXIT
     print(f"{wrong} из {total} карточек неверны.")
-    return 1
+    return COUNTED_EXIT
 
 
 if __name__ == "__main__":
