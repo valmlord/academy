@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { brandName, courseLinkLabel, homeTitle, notFoundTitle, openCourseLabel } from "../lib/copy";
+import {
+  brandName,
+  courseLinkLabel,
+  homeTitle,
+  notFoundSentence,
+  notFoundTitle,
+  openCourseLabel,
+} from "../lib/copy";
 import { catalogPath } from "../lib/routes";
 import { repoCatalog } from "./course";
 import { useOwnBucket } from "./fixtures";
@@ -29,7 +36,14 @@ for (const { kind, path } of UNKNOWN_PATHS) {
 
     expect(response?.status(), "status of the not-found response").toBe(404);
     await expect(page).toHaveTitle(notFoundTitle);
-    await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).toBeVisible();
+    const heading = page.getByRole("heading", { level: 1, name: notFoundTitle });
+    await expect(heading).toBeVisible();
+    await expect(heading).toHaveAttribute("tabindex", "-1");
+    // AC2: the h1, the one sentence and "Открыть курс", nothing else in main.
+    const main = page.getByRole("main");
+    await expect(main.locator("p")).toHaveText([notFoundSentence]);
+    await expect(main.getByRole("alert")).toHaveCount(0);
+    await expect(main.locator("svg, img")).toHaveCount(0);
     const banner = page.getByRole("banner");
     for (const name of [homeTitle, courseLinkLabel]) {
       await expect(banner.getByRole("link", { name, exact: true })).not.toHaveAttribute(
@@ -47,3 +61,59 @@ for (const { kind, path } of UNKNOWN_PATHS) {
     expect(new URL(page.url()).pathname).toBe(catalogPath(catalog.id));
   });
 }
+
+test("an ordinary arrival at the not-found page leaves focus where the browser puts it", async ({
+  page,
+}) => {
+  await page.goto("/no/such/path");
+
+  // React marks a hydrated DOM node with an own key starting with __reactFiber$ (an internal detail). Waiting
+  // for it, then for one idle period, lets the h1's focus effect run first, so the assert can fail.
+  await page.waitForFunction(() => {
+    const heading = document.getElementById("not-found-title");
+    return heading !== null && Object.keys(heading).some((key) => key.startsWith("__reactFiber$"));
+  });
+  await page.evaluate(() => new Promise<void>((resolve) => requestIdleCallback(() => resolve())));
+
+  expect(await page.evaluate(() => document.activeElement?.tagName)).toBe("BODY");
+  await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).not.toBeFocused();
+});
+
+test("the sentence sits 16px between the h1 and Открыть курс, with no horizontal scroll", async ({
+  page,
+}) => {
+  await page.goto("/no/such/path");
+  const main = page.getByRole("main");
+  const heading = main.getByRole("heading", { level: 1, name: notFoundTitle });
+  const sentence = main.locator("p");
+  const openCourse = main.getByRole("link", { name: openCourseLabel });
+  await expect(openCourse).toBeVisible();
+
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    const headingBox = await heading.boundingBox();
+    const sentenceBox = await sentence.boundingBox();
+    const openCourseBox = await openCourse.boundingBox();
+    if (headingBox === null || sentenceBox === null || openCourseBox === null) {
+      throw new Error(
+        `not-found layout at ${width}: the h1, the sentence or Открыть курс has no box`,
+      );
+    }
+
+    expect(
+      Math.round(sentenceBox.y - (headingBox.y + headingBox.height)),
+      `h1 to sentence at ${width}`,
+    ).toBe(16);
+    expect(
+      Math.round(openCourseBox.y - (sentenceBox.y + sentenceBox.height)),
+      `sentence to Открыть курс at ${width}`,
+    ).toBe(16);
+    expect(openCourseBox.width, `Открыть курс narrower than the sentence at ${width}`).toBeLessThan(
+      sentenceBox.width,
+    );
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, `horizontal scroll at ${width}`).toBeLessThanOrEqual(0);
+  }
+});

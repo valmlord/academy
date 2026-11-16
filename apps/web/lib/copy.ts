@@ -65,8 +65,10 @@ export const openCourseLabel = "Открыть курс";
 // (catalog AC8, dashboard AC8).
 export const courseErrorTitle = "Не удалось загрузить курс";
 
-// design/flows/ia.md, copy register "catalog (F5, F6)": the not-found state, its title and h1.
+// design/flows/ia.md, copy register "not-found (F5, F7)": the title and h1, and the one sentence under the h1 in
+// every state.
 export const notFoundTitle = "Страница не найдена";
+export const notFoundSentence = "Возможно, в адресе опечатка или ссылка устарела.";
 
 // design/flows/ia.md, vocabulary "outcomes"; design/pages/catalog/acceptance.md, Copy "outcomes heading".
 export const outcomesHeading = "Чему научитесь";
