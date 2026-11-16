@@ -83,7 +83,12 @@ export function testApp(overrides: Partial<Pick<AppDeps, "manager">> = {}): Test
   const built = buildApp({
     secret: TEST_SECRET,
     manager,
-    settings: { idleStopMinutes: 30, idleWarningMinutes: 5, startSlowSeconds: 10 },
+    settings: {
+      idleStopMinutes: 30,
+      idleWarningMinutes: 5,
+      startSlowSeconds: 10,
+      hasAgentApiKey: false,
+    },
     limits: { nanoCpus: 2_000_000_000, memoryBytes: 2 * 1024 ** 3, pidsLimit: 512 },
     terminals,
     logStream,

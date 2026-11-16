@@ -81,6 +81,7 @@ async function startService(): Promise<Service> {
     instance,
     courseRoot: FIXTURE_COURSE_ROOT,
     limits: TEST_LIMITS,
+    agentApiKey: null,
   });
   const mutex = new KeyedMutex();
   const log: ServiceLog = { info: () => {}, warn: () => {} };
@@ -111,7 +112,12 @@ async function startService(): Promise<Service> {
   const { app } = buildApp({
     secret: SECRET,
     manager,
-    settings: { idleStopMinutes: 30, idleWarningMinutes: 5, startSlowSeconds: 10 },
+    settings: {
+      idleStopMinutes: 30,
+      idleWarningMinutes: 5,
+      startSlowSeconds: 10,
+      hasAgentApiKey: false,
+    },
     limits: TEST_LIMITS,
     terminals,
     // The request log is not under test here.

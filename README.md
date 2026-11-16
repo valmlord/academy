@@ -253,12 +253,40 @@ teardown failed=...)`, where `check status` covers the probes, the red runs and 
    rebuild reaches only workspaces created afterwards; existing workspace containers keep the image they were
    created with until they are removed (step 4e), and the previous image stays on disk untagged until you run the
    `docker image rm` line the script printed, once no container uses it.
-3. The agent CLI in a workspace: start it, then `/login` (press `c` to copy the login URL, paste the code back).
+3. The agent CLI in a workspace, with an API key or with `/login`.
+
+   **Optional: the agent key.** Copy the key, then run these lines one at a time in the repository root, so the key
+   reaches neither the shell history nor the screen:
+   ```zsh
+   /usr/bin/sed -i '' '/^WORKSPACE_AGENT_API_KEY=/d' .env
+   printf '\nWORKSPACE_AGENT_API_KEY=%s\n' "$(pbpaste)" >> .env
+   grep -c '^WORKSPACE_AGENT_API_KEY=' .env
+   ```
+   The last line must print `1`. Then run `docker compose up -d --build --wait`. The `sed` line removes an older key
+   line first, so there is never more than one. The leading `\n` is there because `.env` may not end with a newline:
+   without it the key would be glued onto the value of the previous line, and nothing would fail.
+
+   Every terminal opened after that has the key; the agent CLI asks once per workspace whether to use it, and then
+   uses it instead of `/login`. To check it without printing it, in a lesson terminal:
+   ```bash
+   [ -n "$ANTHROPIC_API_KEY" ] && echo key-present || echo key-absent
+   ```
+   Who can read it: every program in the workspace, the Docker socket holder, and anything that can open a terminal
+   through web or the workspace service (web itself, a signed-in session, and whoever holds `WORKSPACE_SERVICE_SECRET`
+   or `BETTER_AUTH_SECRET` from `.env`). So never type or paste the key into a terminal (bash history is on the
+   workspace volume), and do not run code you do not trust while the key is set (ADR-0002 item 14).
+
+   To rotate the key, run the three lines above again with the new key copied, then the same `up` command. To remove
+   it, run only the `sed` line; `grep -c '^WORKSPACE_AGENT_API_KEY=' .env` then prints `0`; then the `up` command. A
+   graceful restart of the service ends every open shell; the shells of a service that crashed, and programs detached
+   with `setsid`, keep the old key until the environment stops ("Browser terminal" below). A leaked key is revoked at
+   the provider; the platform cannot revoke it.
+
+   **Without the key**, start the agent CLI, then `/login` (press `c` to copy the login URL, paste the code back).
    The credentials are stored in the agent CLI's directory in the home on that workspace's volume: each lesson's
-   workspace logs in once, and deleting a workspace's volume deletes its login. They are a long-lived login token:
-   every program running in
-   that workspace can read it, so do not run code you do not trust there while logged in (ADR-0002 item 10). No API
-   key reaches workspaces yet; a follow-up issue decides how.
+   workspace logs in once, and deleting a workspace's volume deletes its login file, but not the token's validity
+   (ADR-0002 item 10). They are a long-lived login token: every program running in that workspace can read it, so do
+   not run code you do not trust there while logged in. To use a key instead, see "Optional: the agent key" above.
 4. Moving from `WORKSPACE_IMAGE` (once, in this order, one block at a time).
 
    4a. Build, as in step 2:

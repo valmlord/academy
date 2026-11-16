@@ -67,7 +67,13 @@ const specInput: ContainerSpecInput = {
 };
 
 function newRuntime(engine: DockerEngine): DockerRuntime {
-  return new DockerRuntime({ engine, instance, courseRoot: COURSE_ROOT, limits: TEST_LIMITS });
+  return new DockerRuntime({
+    engine,
+    instance,
+    courseRoot: COURSE_ROOT,
+    limits: TEST_LIMITS,
+    agentApiKey: null,
+  });
 }
 
 function learnerExec(containerId: string, command: readonly string[]): Promise<string> {

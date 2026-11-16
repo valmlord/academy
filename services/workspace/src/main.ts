@@ -55,6 +55,7 @@ async function main(): Promise<void> {
     instance: config.instance,
     courseRoot: config.courseRoot,
     limits: config.limits,
+    agentApiKey: config.agentApiKey,
   });
   const tracker = new IdleTracker({
     stopMinutes: config.idleStopMinutes,
@@ -108,6 +109,7 @@ async function main(): Promise<void> {
       idleStopMinutes: config.idleStopMinutes,
       idleWarningMinutes: config.idleWarningMinutes,
       startSlowSeconds: config.startSlowSeconds,
+      hasAgentApiKey: config.agentApiKey !== null,
     },
     limits: config.limits,
     terminals,

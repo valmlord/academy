@@ -27,7 +27,13 @@ const CPU_PERIOD_US = 100_000;
 const NANOS_PER_CPU = 1_000_000_000;
 
 function newRuntime(engine: DockerEngine, limits: WorkspaceLimits = TEST_LIMITS): DockerRuntime {
-  return new DockerRuntime({ engine, instance, courseRoot: FIXTURE_COURSE_ROOT, limits });
+  return new DockerRuntime({
+    engine,
+    instance,
+    courseRoot: FIXTURE_COURSE_ROOT,
+    limits,
+    agentApiKey: null,
+  });
 }
 
 async function runningWorkspace(runtime: DockerRuntime): Promise<string> {

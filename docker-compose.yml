@@ -97,6 +97,8 @@ services:
       ENVIRONMENT_START_SLOW_SECONDS: ${ENVIRONMENT_START_SLOW_SECONDS:-10}
       TERMINAL_SHELL: ${TERMINAL_SHELL:-/bin/bash}
       TERMINAL_SCROLLBACK_LINES: ${TERMINAL_SCROLLBACK_LINES:-1000}
+      # Optional; to this service only, which adds it to every terminal shell (ADR-0002 item 14).
+      WORKSPACE_AGENT_API_KEY: ${WORKSPACE_AGENT_API_KEY:-}
       DOCKER_HOST: unix:///var/run/docker.sock
     healthcheck:
       test:

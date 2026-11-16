@@ -18,11 +18,14 @@ const SECRET = "i-main-secret-0123456789abcdef-0123";
 const STARTUP_TIMEOUT_MS = 15_000;
 const SHUTDOWN_TIMEOUT_MS = 5_000;
 const POLL_MS = 100;
+/** A fake value with no real key's prefix. */
+const AGENT_KEY = "t115-fake-agent-key-not-real";
 
 const settingsSchema = z.object({
   idleStopMinutes: z.number(),
   idleWarningMinutes: z.number(),
   startSlowSeconds: z.number(),
+  hasAgentApiKey: z.boolean(),
 });
 
 /** A port nothing listens on at this moment, picked by the OS. */
@@ -38,6 +41,8 @@ async function freePort(): Promise<number> {
 
 interface Started {
   child: ChildProcess;
+  /** Pino's request log goes to stdout, so a leak check must read it too. */
+  stdout: () => string;
   stderr: () => string;
   exit: Promise<number | null>;
 }
@@ -47,7 +52,11 @@ function startMain(env: Readonly<Record<string, string>>): Started {
   const docker = process.env.DOCKER_HOST;
   const child = spawn(process.execPath, [MAIN], {
     env: { ...env, ...(docker === undefined ? {} : { DOCKER_HOST: docker }) },
-    stdio: ["ignore", "ignore", "pipe"],
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stdout = "";
+  child.stdout?.on("data", (chunk: Buffer) => {
+    stdout += chunk.toString("utf8");
   });
   let stderr = "";
   child.stderr?.on("data", (chunk: Buffer) => {
@@ -59,7 +68,7 @@ function startMain(env: Readonly<Record<string, string>>): Started {
   onCleanup(() => {
     if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
   });
-  return { child, stderr: () => stderr, exit };
+  return { child, stdout: () => stdout, stderr: () => stderr, exit };
 }
 
 async function healthzOnceUp(base: string): Promise<number> {
@@ -105,9 +114,30 @@ describe("main", () => {
       idleStopMinutes: 30,
       idleWarningMinutes: 5,
       startSlowSeconds: 10,
+      hasAgentApiKey: false,
     });
     expect(code).toBe(0);
     expect(Date.now() - stoppingAt).toBeLessThan(SHUTDOWN_TIMEOUT_MS);
+  });
+
+  it("I-main-key: reports that a key is set and prints it nowhere", async () => {
+    const port = await freePort();
+    const base = `http://127.0.0.1:${String(port)}`;
+    const started = startMain({ ...serviceEnv(port), WORKSPACE_AGENT_API_KEY: AGENT_KEY });
+
+    await healthzOnceUp(base);
+    const settings = await fetch(`${base}/v1/settings`, {
+      headers: { authorization: `Bearer ${SECRET}` },
+    });
+    const settingsText = await settings.text();
+    started.child.kill("SIGTERM");
+    // After the exit, so everything the process wrote has been collected.
+    await Promise.race([started.exit, sleep(SHUTDOWN_TIMEOUT_MS, "timeout")]);
+
+    expect(settingsSchema.parse(JSON.parse(settingsText)).hasAgentApiKey).toBe(true);
+    expect(settingsText).not.toContain(AGENT_KEY);
+    expect(started.stdout()).not.toContain(AGENT_KEY);
+    expect(started.stderr()).not.toContain(AGENT_KEY);
   });
 
   it("I-main: exits 1 without the secret, naming the variable", async () => {

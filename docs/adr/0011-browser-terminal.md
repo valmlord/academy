@@ -152,3 +152,10 @@ WebSocket). Facts, with sources:
   hit another of their own sessions, never PID 1's; a kill that runs after the session's last process is gone can
   only hit a new session reusing its number, which needs the container's pid counter to wrap within 2 s. An `exit` in
   the terminal also ends the jobs started in it (`npm run dev &`).
+
+## Amendments
+- #115 (Proposed), 2026-11-16. Item 4: the session exec's `Env` is `TERM=xterm-256color, LANG=C.UTF-8` and, when the
+  service has an agent API key, `ANTHROPIC_API_KEY` (ADR-0002 item 14). Item 4, last sentence, "A service restart
+  ends every session and the processes of its shell; files stay." now reads "A graceful stop of the service ends
+  every session and the processes of its shell; after the service is killed (SIGKILL, out of memory) no kill exec
+  runs, and its shells stay until their container stops (Consequences, the #110 residuals); files stay."
