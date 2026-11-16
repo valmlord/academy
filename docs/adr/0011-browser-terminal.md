@@ -30,7 +30,8 @@ WebSocket). Facts, with sources:
 - One terminal session per lesson; a new browser tab takes it over (Stepan, 2026-11-04).
 - ADR-0008 items 5 and 10 and ADR-0007 item 6 promise that sign-out, a password re-key and account deletion revoke
   sessions; a connection authorized once would outlive them.
-- `fastify@5.12.7` with GHSA-3qgw-9275-xf8w (ADR-0003 amendment #31).
+- `fastify@5.12.7` with GHSA-3qgw-9275-xf8w (ADR-0003 amendment #31), the state when this ADR was written, until
+  #107 (2026-11-16) moved the service to 5.12.8.
 
 ## Decision
 1. **Path.** The browser opens `ws://<host>/api/terminal/socket?ticket=<ticket>` on web's port. Web's custom server
@@ -143,7 +144,7 @@ WebSocket). Facts, with sources:
   marks for removal; without it a server-action redirect fetches through `0.0.0.0` and the sign-in page fails to read
   the session). A Node upgrade (the image tag in `apps/web/Dockerfile`) must re-verify that `shouldUpgradeCallback` is
   honoured. The e2e job fails when web logs a server error during the suite.
-- The `ws` override in `pnpm-workspace.yaml` is removed with the fastify 5.12.8 bump.
+- The `ws` override in `pnpm-workspace.yaml` was removed with the fastify 5.12.8 bump (#107).
 - Accepted residuals (Stepan, 2026-11-10, #110): processes that left the shell's session (`setsid`, daemons) keep
   running until the container stops; so do the shells of a service that crashed (SIGKILL, out of memory, a stop
   slower than Docker's 10 s grace) until a startup sweep exists (#125); a kill that cannot start (Docker unreachable,
