@@ -171,7 +171,11 @@ describe("SignInForm AC6: server unreachable", () => {
     fill(EMAIL, PASSWORD);
     submit();
 
-    fireEvent.click(await screen.findByRole("button", { name: retryLabel }));
+    const message = await screen.findByRole("group", { name: serverUnreachableMessage });
+    // The message takes focus in a passive effect. A Retry click before that effect runs lets the
+    // stale effect move focus back to the message, which Retry then removes, so focus lands on body (#157).
+    await waitFor(() => expect(message).toHaveFocus());
+    fireEvent.click(screen.getByRole("button", { name: retryLabel }));
 
     await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2));
     expect(fetchImpl.mock.calls[1]?.[1]?.body).toBe(fetchImpl.mock.calls[0]?.[1]?.body);
