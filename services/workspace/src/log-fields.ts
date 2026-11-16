@@ -9,7 +9,7 @@
 const ERROR_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
 // Web's SYSTEM_CODE character set with ERROR_NAME's length, deliberately not web's `{0,31}`: ws 8.22.0 raises
-// codes of 33-38 characters (WS_ERR_UNSUPPORTED_MESSAGE_LENGTH for an oversized browser frame) and fastify 5.12.7
+// codes of 33-38 characters (WS_ERR_UNSUPPORTED_MESSAGE_LENGTH for an oversized browser frame) and fastify 5.12.8
 // has 30 codes over 32 characters, and those must stay readable in the log.
 const ERROR_CODE = /^[A-Z][A-Z0-9_]{0,63}$/;
 
