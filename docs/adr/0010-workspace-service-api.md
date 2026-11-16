@@ -188,3 +188,8 @@ contract between them is costly to change once #32 builds its client on it, so i
   "Продолжить работу" (F10.2) calls `POST W/activity`; it is not terminal activity, so item 9 as amended by #32 and
   #101 still holds. While the environment runs, the lesson page reads `GET W` for `idle`; `GET` takes no lock and
   does not move the idle window. No route, field or error code changes.
+- #115 (Proposed), 2026-11-16. Item 5 and the item 3 row of `GET /v1/settings`: the body also has
+  `hasAgentApiKey: boolean`, true exactly when the service's `WORKSPACE_AGENT_API_KEY` is non-empty and accepted
+  (ADR-0002 item 14). It never carries the key, its length or any part of it. Additive within `/v1` (item 2). Item 6:
+  "which can hold an API key once #115 passes one into workspaces" now reads "and the exec create body of a terminal
+  shell carries the agent API key (ADR-0002 item 14)". No route or error code changes.

@@ -1,6 +1,6 @@
 # ADR-0002: Workspaces: local Docker, one container per lesson
 
-- Status: Proposed (refined by #31; becomes Accepted when Stepan accepts it in the PR)
+- Status: Proposed (refined by #31; becomes Accepted when Stepan accepts it in the PR); amended by #115 (Proposed)
 - Date: 2026-10-27, refined 2026-11-03
 - Issue: (bootstrap), refined by #31
 
@@ -212,14 +212,17 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
     `/opt/academy/node` with wrappers in `/opt/academy/bin`; the agent CLI in its own directory under `/opt` (the
     `ENV PATH` line of `images/workspace/Dockerfile` names it), never in `/usr/bin`, `/bin` or the `python3`
     directory (#43). `PATH`, `LANG` and `DISABLE_AUTOUPDATER=1` come from the
-    image; the create body adds only `HOME` (item 5). No API key is in the image or reaches a workspace (a follow-up
-    issue decides how); the learner signs in with `/login`. **Residual**: `/login` stores a long-lived OAuth token in
-    the agent CLI's credentials file in the home on each workspace volume. Every process in that workspace runs as
-    the same uid and
-    can read it, so can anyone holding the Docker socket (the service, or the host user), and a process in the
-    workspace can send it out through the outbound network that item 6 leaves open (its residuals). Accepted for
-    #33 because the learner is the only user and logs in deliberately; the follow-up issue decides the key and
-    login path. **Residual** of the layer scan: it searches raw bytes, so a secret re-encoded inside a file (UTF-16,
+    image; the create body adds only `HOME` (item 5). No API key is in the image. The agent API key reaches a
+    workspace only as item 14 says; without it the learner signs in with `/login`. **Residual**: `/login` stores a
+    long-lived OAuth token in the agent CLI's credentials file in the home on each workspace volume. Every process in
+    that workspace runs as the same uid and can read it, so can anyone holding the Docker socket (the service, or the
+    host user), so can every client of the service's terminal route `GET W/terminal`, which opens a uid-1000 shell in
+    the workspace (the readers item 14 lists for that route), and a process in the workspace can send it out through
+    the outbound network that item 6 leaves open (its residuals). Accepted for #33 because the learner is the only
+    user and logs in deliberately; #115 keeps `/login` as the path when no key is set (item 14). Deleting the volume
+    deletes the credentials file, not the token's validity, and the agent CLI's documentation describes server-side
+    revocation by `/logout` only for a console sign-in, not for a subscription `/login` token or a `setup-token`
+    token (read 2026-11-16, CLI 2.1.311). **Residual** of the layer scan: it searches raw bytes, so a secret re-encoded inside a file (UTF-16,
     base64) or inside a compressed file in a layer is not found; only the context allowlist
     (`images/workspace/.dockerignore`) keeps such files out of the build. `WORKSPACE_IMAGE` remains an override for
     test runs (the isolated recipe), empty in normal use. A
@@ -232,13 +235,56 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
     workspace: `Cmd ["/bin/sh", "-c", <wrapper>, TERMINAL_SHELL, <tag>]` (the wrapper records the shell's session
     id and `exec`s `TERMINAL_SHELL -l`, ADR-0011 item 4; `TERMINAL_SHELL`, default `/bin/bash` since #33, which the
     image of item 10 has), `User 1000:1000`, `WorkingDir /workspace/home/work`, `Env` adds `TERM=xterm-256color` and
-    `LANG=C.UTF-8` to the container's `HOME`; the exec create and start bodies are exact allowlists like the
-    container create body. A second exact allowlist, the kill exec (no TTY, nothing attached, `WorkingDir /`, started
-    detached), ends the shell's session when its terminal session ends (#110). The image must provide `/bin/sh`,
+    `LANG=C.UTF-8` to the container's `HOME`, and the agent API key as item 14 says; the exec create and start
+    bodies are exact allowlists like the container create body. A second exact allowlist, the kill exec (no TTY,
+    nothing attached, `WorkingDir /`, started detached), ends the shell's session when its terminal session ends (#110). The image must provide `/bin/sh`,
     `pkill` with `-s`, `sleep` and `rm`: the #33 image (procps) and `node:22.23.4-alpine` (busybox) do.
     Item 9's `WorkspaceRuntime` gains `openShell`, whose handle can `terminate` the shell. Residual 3 of item 6 is now in effect: web holds
     `WORKSPACE_SERVICE_SECRET` and relays long-lived terminal connections; a workspace that reaches web's port still
     needs a ticket minted for a signed-in session to open one, and malformed requests cannot stop web.
+14. **Agent API key** (#115, Proposed until Stepan accepts the #115 PR).
+    - **Host.** Optional `WORKSPACE_AGENT_API_KEY` in the root `.env`; compose passes it as
+      `${WORKSPACE_AGENT_API_KEY:-}` to the `workspace` service only (U-compose pins this, and that no other service's
+      environment refers to it or reads an `env_file`). The name is not the agent CLI's, so a host process that loads
+      the root `.env` (`apps/web/lib/root-env.ts` without `ACADEMY_SKIP_ROOT_ENV=1`) never switches a host agent CLI
+      to it. The value is in the service container's `Config.Env`, like `WORKSPACE_SERVICE_SECRET`. The service
+      refuses a non-empty value that is not 1-1024 printable ASCII characters without space, naming the variable and
+      the rule, never the value.
+    - **Entry.** Only as `ANTHROPIC_API_KEY=<value>` in the `Env` of the terminal shell's exec create body (item 13).
+      Never in the container create body (item 5: `Env` stays exactly `HOME`), the kill exec, any `Cmd` element or the
+      image. A key change reaches every shell opened after the service restarted with it, in existing containers
+      too. A graceful stop of the service ends every shell (ADR-0011 item 4). After the service is killed (SIGKILL,
+      OOM) no kill exec runs, and a shell opened before keeps its key until its container stops; a process the
+      learner detached with `setsid` keeps it until the container stops in either case.
+    - **Who can read it.** The terminal shell and every process it starts, including the agent CLI's own
+      subprocesses (its subprocess environment scrub is not set; whether its PID-namespace isolation works under
+      `CapDrop: ALL`, `no-new-privileges` and Docker's default seccomp profile is not verified); every other uid-1000
+      process in that container through `/proc/<pid>/environ` (same uid passes the `PTRACE_MODE_READ_FSCREDS` check
+      while the target is dumpable, proc_pid_environ(5); observed 2026-11-16 with a fake value on Docker Desktop,
+      `node:22.23.4-alpine`, with this item's user, init, `CapDrop` and `no-new-privileges` settings), which includes
+      lesson checks run as uid 1000; whoever holds the Docker socket; and every client of the service's terminal route
+      `GET W/terminal` (ADR-0010 item 13), which opens or takes over the workspace's keyed shell (ADR-0011 items 4
+      and 5): the web process, which holds `WORKSPACE_SERVICE_SECRET` and is the only other container on
+      `workspace-api`, anyone who runs code in web or holds that secret and reaches the service, and through web's
+      relay every signed-in session and every holder of `BETTER_AUTH_SECRET`, from which the terminal ticket's key
+      is derived (ADR-0011 item 3). A compromise of web is a compromise of the key (item 6, residual 3). Not shown by
+      container inspect or by exec inspect (Engine API v1.44 `ProcessConfig` carries the arguments, not the
+      environment). Process listings are no barrier: procps `ps e` prints a process's environment to any caller
+      that may read its `/proc/<pid>/environ`, and process listings add no reader beyond the uid-1000 and
+      socket-holder readers above.
+    - **Where copies can go.** Terminal output when a process prints it (the service-held scrollback and web's
+      relay; terminal logs carry no input or output); files on the volume (the agent CLI's transcripts and its record
+      of the approval); `~/.bash_history` on the volume if the learner types or pastes it; out through item 6's
+      residuals; and to any model base URL a settings file sets, once the learner trusts that folder.
+    - **Login.** With a key the agent CLI asks once per workspace in interactive mode and then uses the key instead
+      of `/login`; `-p` uses it without asking (authentication precedence, documentation read 2026-11-16 for CLI
+      2.1.311). Without a key `/login` per workspace stays (item 10). No login is shared across workspaces.
+    - **Revocation.** A console API key is revoked in the provider's console (not re-checked); removing it from
+      `.env` and restarting the service only stops new shells from getting it.
+    - **Consumers.** The terminal shell only. Lesson checks (#34) never get it in their environment, because they
+      run learner code; a check run as uid 1000 can still read a live shell's environment (above). Agent-eval checks
+      (#39) and the mentor (#37) are added here by their own amendment, each on its own exec.
+    - **Signal.** `GET /v1/settings` `hasAgentApiKey` (ADR-0010, amendment #115).
 
 ## Alternatives considered
 - Cloud sandboxes right away: faster start, but paid, and dependent on the service and the internet.
@@ -276,3 +322,8 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
   build never switches to another mirror, because the snapshot is what makes a rebuild install the same packages
   (item 10). A build still fails when one of the other hosts is down or a pinned file changed, and the apt snapshot
   freezes security fixes until its date is bumped.
+- Rollback of #115 (`git revert` of its squash commit): compose stops passing the variable, the service passes no
+  key, and the `.env` line becomes inert (nothing reads that name) and can be deleted. Shells open at the rollback
+  keep the key until a graceful stop of the old service ends them (ADR-0011 item 4); shells left by a killed service,
+  and processes detached with `setsid`, keep it until their container stops. The `/v1/settings` field disappears; no
+  client reads it yet.
