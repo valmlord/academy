@@ -26,6 +26,7 @@ const TIMEOUT_MS = 200;
 const IDLE_MS = 500;
 /** A shell's pid-file tag, as the adapter generates it (16 hex characters). */
 const TAG = "0123456789abcdef";
+const AGENT_KEY = "t115-fake-agent-key-not-real";
 /**
  * With 0 docker-modem sets no `req.setTimeout` (modem.js:296 `if (self.timeout)`; engine.ts keeps the 0, dockerode
  * docker.js:34 and modem.js:93 pass it through), so nothing in the client closes an idle socket by itself. Neither
@@ -173,7 +174,7 @@ function nextData(stream: Duplex): Promise<string> {
 describe("exec bodies (U-exec-body)", () => {
   // The script texts are restated as literals, not imported: this test is the reviewed allowlist.
   it("builds the exact exec create body of design 3.2", () => {
-    expect(execCreateBody("/bin/bash", TAG)).toStrictEqual({
+    expect(execCreateBody("/bin/bash", TAG, null)).toStrictEqual({
       AttachStdin: true,
       AttachStdout: true,
       AttachStderr: true,
@@ -184,6 +185,23 @@ describe("exec bodies (U-exec-body)", () => {
       WorkingDir: "/workspace/home/work",
       ConsoleSize: [24, 80],
     });
+  });
+
+  it("adds the agent key to the shell's Env only, under the agent CLI's variable (U-exec-key)", () => {
+    const body = execCreateBody("/bin/bash", TAG, AGENT_KEY);
+
+    expect(body).toStrictEqual({
+      AttachStdin: true,
+      AttachStdout: true,
+      AttachStderr: true,
+      Tty: true,
+      Cmd: ["/bin/sh", "-c", 'echo $$ > "/tmp/.terminal-$1.pid"; exec "$0" -l', "/bin/bash", TAG],
+      Env: ["TERM=xterm-256color", "LANG=C.UTF-8", `ANTHROPIC_API_KEY=${AGENT_KEY}`],
+      User: "1000:1000",
+      WorkingDir: "/workspace/home/work",
+      ConsoleSize: [24, 80],
+    });
+    expect(body.Cmd.filter((element) => element.includes(AGENT_KEY))).toEqual([]);
   });
 
   it("builds the exact kill exec create body", () => {
@@ -221,7 +239,7 @@ describe("exec bodies (U-exec-body)", () => {
   });
 
   it.each([
-    ["shell", execCreateBody("/bin/bash", TAG)],
+    ["shell", execCreateBody("/bin/bash", TAG, null)],
     ["kill", killExecCreateBody(TAG)],
   ])("sends the %s create body as JSON with no other key and no query", async (_name, body) => {
     const daemon = await fakeDaemon();

@@ -48,6 +48,11 @@ export interface DockerRuntimeOptions {
   instance: string;
   courseRoot: string;
   limits: WorkspaceLimits;
+  /**
+   * The agent key every terminal shell gets (ADR-0002 item 14), `null` for none. Required, so the service's wiring
+   * cannot drop it by omission; only this adapter holds it, never the registry or the sessions.
+   */
+  agentApiKey: string | null;
   /** The starter tar's mtime; injected so the archive stays a pure function of its inputs. */
   now?: () => Date;
 }
@@ -92,6 +97,7 @@ export class DockerRuntime implements WorkspaceRuntime {
   readonly #instance: string;
   readonly #courseRoot: string;
   readonly #limits: WorkspaceLimits;
+  readonly #agentApiKey: string | null;
   readonly #now: () => Date;
 
   constructor(options: DockerRuntimeOptions) {
@@ -99,6 +105,7 @@ export class DockerRuntime implements WorkspaceRuntime {
     this.#instance = options.instance;
     this.#courseRoot = options.courseRoot;
     this.#limits = options.limits;
+    this.#agentApiKey = options.agentApiKey;
     this.#now = options.now ?? (() => new Date());
   }
 
@@ -260,7 +267,10 @@ export class DockerRuntime implements WorkspaceRuntime {
     const { container } = await this.#checkedObjects(key);
     if (container === null) throw new WorkspaceNotFoundError(workspaceId(this.#instance, key));
     const tag = randomBytes(SHELL_TAG_BYTES).toString("hex");
-    const execId = await this.#engine.createExec(container.Id, execCreateBody(spec.shell, tag));
+    const execId = await this.#engine.createExec(
+      container.Id,
+      execCreateBody(spec.shell, tag, this.#agentApiKey),
+    );
     const stream = await this.#engine.startExec(execId);
     const engine = this.#engine;
     return {

@@ -86,6 +86,7 @@ function startService(courseRoot: string = FIXTURE_COURSE_ROOT): Service {
     instance,
     courseRoot,
     limits: TEST_LIMITS,
+    agentApiKey: null,
   });
   const tracker = new IdleTracker({ stopMinutes: 30, warningMinutes: 5, now });
   const mutex = new KeyedMutex();

@@ -15,6 +15,8 @@ export interface ServiceSettings {
   idleStopMinutes: number;
   idleWarningMinutes: number;
   startSlowSeconds: number;
+  /** Whether terminal shells get the agent key (ADR-0002 item 14); never the key or any part of it. */
+  hasAgentApiKey: boolean;
 }
 
 export interface AppDeps {

@@ -62,6 +62,7 @@ function newRuntime(engine: DockerEngine, pidsLimit = TEST_LIMITS.pidsLimit): Do
     instance,
     courseRoot: FIXTURE_COURSE_ROOT,
     limits: { ...TEST_LIMITS, pidsLimit },
+    agentApiKey: null,
   });
 }
 

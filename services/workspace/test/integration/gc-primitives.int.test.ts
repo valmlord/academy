@@ -28,6 +28,7 @@ function newRuntime(engine: DockerEngine): DockerRuntime {
     instance,
     courseRoot: FIXTURE_COURSE_ROOT,
     limits: TEST_LIMITS,
+    agentApiKey: null,
   });
 }
 

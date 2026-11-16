@@ -76,7 +76,8 @@ export function buildContainerSpec(input: ContainerSpecInput): ContainerCreateBo
     Image: input.image,
     // Numeric, so no passwd entry in the image is needed or trusted.
     User: `${LEARNER_UID}:${LEARNER_GID}`,
-    // Exactly this one variable: nothing else from the service's environment reaches a workspace in #31.
+    // Exactly this one constant: no value from the service's config enters this `Env`. Of the bodies sent to Docker,
+    // only a terminal shell's exec `Env` carries the agent key (ADR-0002 item 14).
     Env: [`HOME=${LEARNER_HOME}`],
     WorkingDir: WORK_DIR,
     Cmd: [...KEEPER_COMMAND],
@@ -113,7 +114,7 @@ export function buildContainerSpec(input: ContainerSpecInput): ContainerCreateBo
 }
 
 // The exec of a terminal shell (design 3.2, ADR-0002 item 13): exact allowlists like the container create
-// body, pinned by U-exec-body. No `Privileged`, no `DetachKeys`: the shell gets nothing the container lacks.
+// body, pinned by U-exec-body. No `Privileged`, no `DetachKeys`: the shell gets no privilege the container lacks.
 // The kill exec (#110) is a second exact allowlist: no TTY, nothing attached.
 
 /** The size Docker gives the TTY until the browser's first `resize` corrects it (rows, columns). */
@@ -123,6 +124,17 @@ const EXEC_CONSOLE_SIZE: [number, number] = [24, 80];
  * are POSIX sh, and every supported image has `/bin/sh` (Ubuntu dash, Alpine busybox ash).
  */
 const EXEC_SHELL = "/bin/sh";
+/**
+ * The variable the agent CLI reads its API key from (smoke row K1 proves it). One constant beside `agentKeyEnv`, so a
+ * later consumer of the key (ADR-0002 item 14) uses the same rule instead of retyping the name.
+ */
+const AGENT_API_KEY_VARIABLE = "ANTHROPIC_API_KEY";
+
+/** The exec `Env` entries that hand the agent CLI its key: none when the service has no key. */
+export function agentKeyEnv(agentApiKey: string | null): string[] {
+  return agentApiKey === null ? [] : [`${AGENT_API_KEY_VARIABLE}=${agentApiKey}`];
+}
+
 /** HUP to KILL, in the container, so the service never waits for it (Stepan, #110 decision 3). */
 const KILL_GRACE_SECONDS = 2;
 /** The kill script's `$0`: what `ps` and sh's error messages show for it. */
@@ -185,8 +197,15 @@ export interface DetachedExecStartBody {
   Tty: false;
 }
 
-/** `shell` is `TERMINAL_SHELL`, already checked as an absolute path by the config; `tag` names the pid file. */
-export function execCreateBody(shell: string, tag: string): ExecCreateBody {
+/**
+ * `shell` is `TERMINAL_SHELL`, already checked as an absolute path by the config; `tag` names the pid file;
+ * `agentApiKey` is the config's key, which only `Env` carries, never `Cmd`, because exec inspect shows the arguments.
+ */
+export function execCreateBody(
+  shell: string,
+  tag: string,
+  agentApiKey: string | null,
+): ExecCreateBody {
   return {
     AttachStdin: true,
     AttachStdout: true,
@@ -194,8 +213,9 @@ export function execCreateBody(shell: string, tag: string): ExecCreateBody {
     Tty: true,
     // Positional arguments, so neither the shell path nor the tag ever becomes shell syntax.
     Cmd: [EXEC_SHELL, "-c", SHELL_WRAPPER, shell, tag],
-    // Added to the container's own `HOME`; nothing from the service's environment reaches the shell.
-    Env: ["TERM=xterm-256color", "LANG=C.UTF-8"],
+    // Added to the container's own `HOME`. The agent key, when configured, is the only `Env` entry taken from the
+    // service's config (ADR-0002 item 14); `TERMINAL_SHELL` goes into `Cmd`, not here.
+    Env: ["TERM=xterm-256color", "LANG=C.UTF-8", ...agentKeyEnv(agentApiKey)],
     User: `${LEARNER_UID}:${LEARNER_GID}`,
     WorkingDir: WORK_DIR,
     ConsoleSize: [...EXEC_CONSOLE_SIZE],

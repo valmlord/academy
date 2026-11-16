@@ -98,14 +98,14 @@ describe("lesson routes", () => {
     expect(runtime.calls).toContain(`remove ${workspaceId(INSTANCE, KEY)}`);
   });
 
-  it("GET /v1/settings answers the idle and slow-start settings", async () => {
+  it("GET /v1/settings answers the idle and slow-start settings and whether a key is set", async () => {
     const { app } = openApp();
 
     const response = await app.inject({ method: "GET", url: "/v1/settings", headers: AUTHORIZED });
 
     expect([response.statusCode, response.json()]).toEqual([
       200,
-      { idleStopMinutes: 30, idleWarningMinutes: 5, startSlowSeconds: 10 },
+      { idleStopMinutes: 30, idleWarningMinutes: 5, startSlowSeconds: 10, hasAgentApiKey: false },
     ]);
   });
 });
