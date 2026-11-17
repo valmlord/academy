@@ -16,6 +16,11 @@ import { StarterRefusedError, StarterTooLargeError } from "../../../src/errors.j
 const FIXTURE = fileURLToPath(new URL("../../fixtures/course", import.meta.url));
 const REAL_COURSE = fileURLToPath(new URL("../../../../../course", import.meta.url));
 const LESSON = "sample-course/01-basics/01-with-workspace";
+// File system calls run on libuv's thread pool (4 threads by default), so a batch well above 4 keeps
+// every thread busy. 64 also keeps the descriptors open at once far below 256, macOS's default soft
+// `ulimit -n` (a platform default, not a measurement; hosts and CI may differ). The batch timings
+// were measured in #157.
+const FIXTURE_WRITE_BATCH = 64;
 
 let root: string;
 let starterPath: string;
@@ -57,8 +62,13 @@ async function tooLarge(): Promise<StarterTooLargeError> {
 async function freshStarter(files: number): Promise<void> {
   await rm(starterPath, { recursive: true });
   await mkdir(starterPath);
-  for (let index = 0; index < files; index += 1) {
-    await writeFile(join(starterPath, `f${index}`), "");
+  for (let start = 0; start < files; start += FIXTURE_WRITE_BATCH) {
+    const end = Math.min(start + FIXTURE_WRITE_BATCH, files);
+    const batch: Promise<void>[] = [];
+    for (let index = start; index < end; index += 1) {
+      batch.push(writeFile(join(starterPath, `f${index}`), ""));
+    }
+    await Promise.all(batch);
   }
 }
 
