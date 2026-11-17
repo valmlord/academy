@@ -242,9 +242,9 @@
 
 /* Lesson prose (theory.md, task.md), mirroring design/system/proto.css "Composition: prose". Tailwind's
    preflight resets heading sizes, list bullets and link underlines, so each is set here. h4 is one step
-   below h3 because proto.css has no `.prose h4` and two task.md files use ### (#30 design notes, D3). Programmatic
-   focus on a section h2 (tabindex -1) uses the global inset ring: the README's rule for headings wins over
-   proto.css's outside offset (#83). */
+   below h3, as proto.css's `.prose h4`, because the lesson renderer maps deeper headings to h4. Programmatic
+   focus on a section h2 (tabindex -1) takes the base layer's inset `[tabindex="-1"]` ring, as proto.css does
+   and as the README's focus-ring rule says for headings. */
 @layer components {
   .prose {
     max-width: 70ch;
