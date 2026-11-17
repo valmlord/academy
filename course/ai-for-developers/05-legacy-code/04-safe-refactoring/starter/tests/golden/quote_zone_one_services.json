@@ -1,0 +1,12 @@
+{
+  "declared_value_kopecks": 150000,
+  "postcode": "101000",
+  "services": [
+    "FRAGILE",
+    "SMS"
+  ],
+  "ship_date": "2026-03-04",
+  "total_kopecks": 51410,
+  "weight_grams": 1200,
+  "zone": "Z1"
+}

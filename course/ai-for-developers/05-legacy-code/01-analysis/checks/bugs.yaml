@@ -1,0 +1,281 @@
+# Answer key for legacy-hunt (design #45 6.1, format as module 01 L6 bugs.yaml).
+# Hidden: grader mount only. Line numbers are 1-based physical lines of transcript.md and equal the
+# printed numbers. Generated together with the transcript; ranges are pairwise non-overlapping.
+# Every range is a separate guessable block: 6 bugs over 7 ranges and 26 decoys. Per category
+# ranges/(ranges + decoys): unsafe-exploration 1/6, missed-dynamic-use 1/4, bug-called-fix 2/9,
+# missed-hidden-input 1/6, missed-side-effect 1/4, doc-over-code 1/4.
+# Harness event (line 280: auto-compaction) lies in no range. Line 57 (the format
+# example in task.md, a user line) lies in no range.
+# Student round 1: bugs and decoys are written alike. Every claim of a category uses the same wording
+# ("нигде не используется ... можно удалить", "зависит только от аргумента", "нет побочных эффектов ...
+# безопасно", "<doc> говорит ..., так что ..."); no decoy says it checked the code when the bug does not;
+# user pushback follows a decoy (D5a, D3f), not a bug; no command output or summary names a planted place.
+# Student rerun a2: no command output or summary settles a decoy or points at a bug by itself.
+# Final round (D13, after the blind reader passed on cues alone): the bug of two categories moved to an
+# episode that domain sense does not single out, and each old bug episode became a correct episode of the
+# same subject. unsafe-exploration: the successful `label` run is gone; the bug is a direct call of
+# labels._next_sequence (writes spool/.seq), beside a direct call of labels._tracking_code (writes nothing)
+# whose output looks just as much like a label artifact; the only `label` run is D1c, which fails before
+# make_label. missed-hidden-input: the bug is tariffs.zone_for "only postcode" (reads _TABLE and
+# data/tariffs.csv); make_label is now described correctly (D4e), and the file readers load_table and
+# _read_label, which look impure, are pure in the ladder's sense (D4a, D4d). missed-dynamic-use: the
+# `cut -f1-3 data/tariffs.csv` that hid the resolver column is gone, and so are the statements that the
+# current scheme covers only postcodes 1-5. bug-called-fix: D3g is a behaviour change in live code that
+# is a real bug fix (labels._surcharges_line drops repeated services and has hash order) and that no code
+# relies on; the manifest summary no longer lists the label fields it uses.
+# State (task.md): files and directories on disk except __pycache__/.pyc, and everything outside the
+# Python process. Module variables, in-memory caches and imports are hidden inputs, not state.
+# Ladder (task.md), first 'yes' decides: 1 unsafe-exploration, 2 missed-dynamic-use, 3 bug-called-fix,
+# 4 missed-hidden-input, 5 missed-side-effect, 6 doc-over-code. Every 'no' below is decided from a
+# starter file (parcel-desk master, line numbers as in plans/45-p0-report.md).
+version: 1
+report: findings.json
+maxReports: 7
+maxDecoyHits: 1
+categories: [unsafe-exploration, missed-dynamic-use, bug-called-fix, missed-hidden-input, missed-side-effect, doc-over-code]
+bugs:
+  # Walk (H1, next-sequence-call-writes-seq):
+  #   1 yes: a shell command run to look at the label number; labels._next_sequence adds 1 to _sequence and
+  #   writes it to config.SPOOL_DIR/.seq (labels.py 50-52); checked on a scratch copy: spool/.seq appears with "1"
+  - id: next-sequence-call-writes-seq
+    file: transcript.md
+    lines: [[249, 251]]
+    category: unsafe-exploration
+    title: "Чтобы посмотреть, как выглядит номер метки, агент вызвал labels._next_sequence(): функция увеличила счётчик и записала spool/.seq."
+    explanation: "labels.py строки 50-52: _next_sequence прибавляет 1 и пишет счётчик в spool/.seq. После такого вызова следующая настоящая метка получит номер на 1 больше. Формат номера виден без запуска: f\"{seq:06d}\" в _write_label. Соседний вызов _tracking_code ничего не пишет: он только выбирает буквы через random.choices."
+  # Walk (H2, zones-v1-called-dead):
+  #   1 no: rg is read-only
+  #   2 yes: the claim says unused/delete; the search covered only *.py; data/tariffs.csv lines 20-31 name shipping.legacy.zones_v1:resolve, tariffs.zone_for -> _named_resolvers -> _load_resolver imports it
+  - id: zones-v1-called-dead
+    file: transcript.md
+    lines: [[79, 82]]
+    category: missed-dynamic-use
+    title: "zones_v1.py назван мёртвым кодом, потому что ни один .py его не импортирует; его вызывает zone_for по имени из колонки resolver в data/tariffs.csv."
+    explanation: "Поиск только по .py пропускает вызов по строке из данных: data/tariffs.csv строки 20-31 называют shipping.legacy.zones_v1:resolve, а tariffs._load_resolver импортирует его через importlib. Без него индексы на 6-8 перестают получать зону."
+  # Walk (H3, bracket-fix-breaks-manifest):
+  #   1 no: Edit is not a shell command
+  #   2 no: no unused claim
+  #   3 yes: a change to the bracket rule of quote.py; manifest._carrier_bracket (line 80-86) uses the same >= with the comment that it must match quote.py
+  - id: bracket-fix-breaks-manifest
+    file: transcript.md
+    lines: [[168, 171], [173, 176]]
+    category: bug-called-fix
+    title: "Условие >= в _bracket_price названо off-by-one и исправлено на >, хотя manifest._carrier_bracket считает ступень перевозчика тем же >= и должна с ней совпадать."
+    explanation: "manifest.py строки 80-86: комментарий 'The carrier bills by this column, so it must match the bracket quote.py prices.' и тот же >=. После правки цена и ступень в манифесте расходятся; странное поведение, на которое опирается другой модуль, фиксируют тестом, а не исправляют."
+  # Walk (H4, zone-for-reads-table):
+  #   1-3 no: a claim, no command, no change proposed
+  #   4 yes: "depends only on postcode" is claimed; for a postcode _current_scheme_zone does not take, zone_for
+  #   calls get_table() (module variable _TABLE, filled from data/tariffs.csv, which is not an argument) and the
+  #   resolvers named there (tariffs.py 56-63, 77-90); checked: with _TABLE = {} zone_for("701000") gives None, not V4
+  - id: zone-for-reads-table
+    file: transcript.md
+    lines: [[147, 148]]
+    category: missed-hidden-input
+    title: "zone_for назван зависящим только от индекса, а для индексов вне текущей схемы он читает таблицу тарифов (переменная модуля _TABLE и файл data/tariffs.csv) и вызывает названные в ней resolver."
+    explanation: "tariffs.py строки 56-63: если _current_scheme_zone не дала зону, zone_for берёт get_table() и пробует resolver из колонки resolver. Зона индекса 701000 зависит от содержимого data/tariffs.csv и от кэша _TABLE, которые аргументом не передаются."
+  # Walk (H5, manifest-writes-and-renames):
+  #   1 no: no command run
+  #   2-3 no
+  #   4 no: the claim is "only reads", not "only arguments"
+  #   5 yes: only reads and safe on real data is claimed; it writes the CSV and renames labels
+  - id: manifest-writes-and-renames
+    file: transcript.md
+    lines: [[312, 314]]
+    category: missed-side-effect
+    title: "build_manifest назван функцией, которая только читает спул и безопасна на настоящем спуле склада, а она пишет manifest-YYYYMMDD.csv и переименовывает метки дня в .done."
+    explanation: "manifest.py строки 21-24 пишут CSV, строки 38-39 переименовывают обработанные метки в .done. Запуск на настоящем спуле меняет его; снимать golden нужно на копии спула во временном каталоге."
+  # Walk (H6, readme-daily-numbers):
+  #   1-5 no: a statement of behaviour from README, no command, no change, no dependency or side-effect claim
+  #   6 yes: README.md line 27 says numbers restart daily; labels._next_sequence keeps one global counter in spool/.seq
+  - id: readme-daily-numbers
+    file: transcript.md
+    lines: [[51, 52]]
+    category: doc-over-code
+    title: "По README номера меток каждый день начинаются заново, а код ведёт один сквозной счётчик в spool/.seq."
+    explanation: "labels._next_sequence читает и пишет spool/.seq без связи с датой (строки 42-53); README.md строка 27 устарел. Утверждение о поведении проверяют по коду, а не по README."
+decoys:
+  # Walk (D1a): 1 no: quote_parcel writes nothing; cli _quote prints; importing writes only __pycache__, which is not
+  #   state; postcode 101000 takes the current scheme, so no resolver is imported
+  - id: d1a
+    file: transcript.md
+    lines: [[149, 153]]
+    lookalike: unsafe-exploration
+    note: "quote run: quote.py writes no file; only __pycache__ (excluded from state)"
+  # Walk (D1b): 1 no: make -n runs no recipe line (designer rule 3 g holds for the Makefile); the answer at 319-320
+  #   is true: sh does not expand * to dot files, so spool/.gitkeep stays; 2-6 no
+  - id: d1b
+    file: transcript.md
+    lines: [[316, 320]]
+    lookalike: unsafe-exploration
+    note: "make -n prints the recipe and runs nothing (Makefile has no +, $(MAKE) or include)"
+  # Walk (D1c): 1 no: cli._label calls _quote_from first; quote_parcel -> _services_price raises ValueError for
+  #   EXPRESS before labels.make_label runs, so neither spool/.seq nor a .lbl is written (checked on a scratch copy:
+  #   spool unchanged, .seq still 1 after the H1 call); main prints the error and returns 1; 2-6 no
+  - id: d1c
+    file: transcript.md
+    lines: [[256, 258]]
+    lookalike: unsafe-exploration
+    note: "label run with an unknown service: fails in quote_parcel before make_label, writes nothing"
+  # Walk (D1d): 1 no: argparse prints the help and exits 0 before args.command runs, so build_manifest never
+  #   runs; the imports of cli, labels, manifest, quote, tariffs and config write nothing but __pycache__
+  #   (module level: config reads the ini, labels sets _sequence = None); 2-6 no; the line after it is true
+  - id: d1d
+    file: transcript.md
+    lines: [[283, 290]]
+    lookalike: unsafe-exploration
+    note: "manifest --help: prints usage, builds nothing"
+  # Walk (D1e): 1 no: importing labels runs only module-level code (config reads the ini, _sequence = None);
+  #   _tracking_code returns "PP" + random.choices(...) and touches no file (checked on a scratch copy: every
+  #   file outside __pycache__ unchanged); 2-6 no. The output is a tracking code, as artifact-like as H1's number.
+  - id: d1e
+    file: transcript.md
+    lines: [[244, 246]]
+    lookalike: unsafe-exploration
+    note: "direct _tracking_code() call: random letters, writes nothing"
+  # Walk (D2a): 1 no: read-only search; 2 no: nothing reaches it (the whole repo, data, Makefile and README
+  #   included, has no rates_float or its function names besides the definitions); 3-6 no
+  - id: d2a
+    file: transcript.md
+    lines: [[86, 91]]
+    lookalike: missed-dynamic-use
+    note: "rates_float.py: no reference in code, data, Makefile or README"
+  # Walk (D2b): 1 no; 2 no: only its definition in the whole repo; 3-6 no
+  - id: d2b
+    file: transcript.md
+    lines: [[92, 95]]
+    lookalike: missed-dynamic-use
+    note: "manifest._old_round referenced nowhere"
+  # Walk (D2c): 1 no; 2 no: only its definition in the whole repo; cli dispatches by function objects, not by name; 3-6 no
+  - id: d2c
+    file: transcript.md
+    lines: [[96, 99]]
+    lookalike: missed-dynamic-use
+    note: "labels._debug_dump referenced nowhere"
+  # Walk (D3a): 1 no: Edit; 2 no; 3 no: a README word, no behaviour; 4-6 no
+  - id: d3a
+    file: transcript.md
+    lines: [[333, 336]]
+    lookalike: bug-called-fix
+    note: "README typo, no behaviour"
+  # Walk (D3b): 1-2 no; 3 no: a docstring word; nothing reads __doc__; 4-6 no
+  - id: d3b
+    file: transcript.md
+    lines: [[337, 340]]
+    lookalike: bug-called-fix
+    note: "get_table docstring typo, no behaviour"
+  # Walk (D3c): 1-2 no; 3 no: the printed text changes, and no code, Makefile or data in the repo reads cli output; 4-6 no
+  - id: d3c
+    file: transcript.md
+    lines: [[341, 344]]
+    lookalike: bug-called-fix
+    note: "cli error text: nothing in the repo parses cli output"
+  # Walk (D3d): 1-2 no; 3 no: a local name, no behaviour change; 4-6 no
+  - id: d3d
+    file: transcript.md
+    lines: [[177, 182]]
+    lookalike: bug-called-fix
+    note: "local rename, same behaviour"
+  # Walk (D3e): 1 no; 2 no: comment lines are not reached by anything; 3 no: no behaviour change; 4-6 no
+  - id: d3e
+    file: transcript.md
+    lines: [[272, 276]]
+    lookalike: bug-called-fix
+    note: "deleting commented-out lines, no behaviour"
+  # Walk (D3f): 1-2 no; 3 no: a proposed and made behaviour change (framed as a bug fix, like H3), but nothing
+  #   in the repo reaches rates_float.py (D2a); 4-6 no. The user's hedge sits here, not at H3.
+  - id: d3f
+    file: transcript.md
+    lines: [[356, 365]]
+    lookalike: bug-called-fix
+    note: "rounding change in rates_float.py: nothing reaches it"
+  # Walk (D3g): 1 no: Read and Edit are not shell commands; 2 no; 3 no: a proposed and made behaviour change in
+  #   live code (make_label calls _surcharges_line, labels.py 24), and a real fix: quote._services_price charges
+  #   every repeated code (quote.py 67-71) while set() keeps one, and set order follows string hashing (checked:
+  #   PYTHONHASHSEED 1-6 give "FRAGILE, SMS" and "SMS, FRAGILE"); but nothing relies on the old line: the only
+  #   reader of "surcharges" is the label file itself; manifest._read_label parses every line into a dict and
+  #   build_manifest uses seq, tracking, weight, declared, ship date, stamp, status and path, never surcharges;
+  #   _debug_dump reads the first line only; cli._label prints seq, tracking and ship_date; 4 no: no
+  #   only-arguments claim; 5 no; 6 no: the claim is read from the code shown
+  - id: d3g
+    file: transcript.md
+    lines: [[346, 355]]
+    lookalike: bug-called-fix
+    note: "_surcharges_line keeps repeats and input order: live code, a real fix, and no code reads the line"
+  # Walk (D4a): 1-3 no; 4 no: reads only the file at its path argument, no _TABLE, no config, rows sorted; 5-6 no: no side-effect or doc claim
+  - id: d4a
+    file: transcript.md
+    lines: [[270, 271]]
+    lookalike: missed-hidden-input
+    note: "load_table depends only on the file passed as path"
+  # Walk (D4b): 1-3 no; 4 no: (kopecks + 49) // 100 only; 5-6 no
+  - id: d4b
+    file: transcript.md
+    lines: [[229, 230]]
+    lookalike: missed-hidden-input
+    note: "format_rubles is pure integer arithmetic"
+  # Walk (D4c): 1-3 no; 4 no: quote._saturday_surcharge(ship_date) returns 20000 when ship_date.weekday() == 5,
+  #   else 0; no now(), no config, no file; the clock is read by _ship_date, which is not this function; 5-6 no
+  - id: d4c
+    file: transcript.md
+    lines: [[220, 221]]
+    lookalike: missed-hidden-input
+    note: "_saturday_surcharge depends only on ship_date"
+  # Walk (D4d): 1-3 no; 4 no: manifest._read_label(path) (manifest.py 60-68) opens only the file at its path
+  #   argument, splits "key: value" lines and converts seq to int; no now(), no random, no module variable, no
+  #   other file; the seq, tracking code and stamp come from that file; 5-6 no
+  - id: d4d
+    file: transcript.md
+    lines: [[310, 311]]
+    lookalike: missed-hidden-input
+    note: "_read_label depends only on the file passed as path"
+  # Walk (D4e): 1-3 no; 4 no: the agent makes no only-arguments claim; it names make_label's hidden inputs, and
+  #   each is in the code: datetime.now() (labels.py 18), random via _tracking_code (59), the counter via
+  #   _next_sequence (20, 42-53), set() in _surcharges_line (67); 5-6 no
+  - id: d4e
+    file: transcript.md
+    lines: [[267, 269]]
+    lookalike: missed-hidden-input
+    note: "make_label: the agent names its clock, random, counter and set inputs (true, no only-arguments claim)"
+  # Walk (D5a): 1-4 no: no command, no change, no only-arguments claim (it names the clock and the files it
+  #   reads); 5 no: quote.py opens only data/holidays.txt for reading, tariffs.py only the CSV; the user's
+  #   pushback and the agent's repeat (line 117-118) are part of the same correct episode
+  - id: d5a
+    file: transcript.md
+    lines: [[115, 118]]
+    lookalike: missed-side-effect
+    note: "quote_parcel writes nothing; in-process cache and imports are not state"
+  # Walk (D5b): 1-4 no; 5 no: tariffs.py opens files only for reading (load_table); get_table fills the
+  #   in-process _TABLE cache and zone_for may import a resolver module (writes only __pycache__): hidden inputs, not state
+  - id: d5b
+    file: transcript.md
+    lines: [[113, 114]]
+    lookalike: missed-side-effect
+    note: "zone_for writes nothing; the _TABLE cache and the resolver import are not state"
+  # Walk (D5c): 1-4 no; 5 no: labels._debug_dump globs config.SPOOL_DIR/*.lbl, opens each with the default
+  #   read mode and returns a string; no mkdir, no write, no rename; 6 no
+  - id: d5c
+    file: transcript.md
+    lines: [[254, 255]]
+    lookalike: missed-side-effect
+    note: "_debug_dump opens labels for reading only"
+  # Walk (D6a): 1-5 no; 6 no: config.py reads cutoff_hour and fuel_percent from the ini; quote._ship_date and
+  #   labels._label_ship_date read config.CUTOFF_HOUR, so an ini edit moves the cut-off with no code change
+  - id: d6a
+    file: transcript.md
+    lines: [[48, 50]]
+    lookalike: doc-over-code
+    note: "README: cut-off hour and fuel percent are in config/shipping.ini; true"
+  # Walk (D6b): 1-5 no (the env variable is named as the input, not an only-arguments claim); 6 no: config.py
+  #   computes SPOOL_DIR at module level, SHIPPING_SPOOL first and `or` falls back to spool_dir when it is unset or empty
+  - id: d6b
+    file: transcript.md
+    lines: [[54, 56]]
+    lookalike: doc-over-code
+    note: "config.py docstring matches the code: read once at import, SHIPPING_SPOOL or spool/"
+  # Walk (D6c): 1-5 no; 6 no: labels._tracking_code draws from "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" after the
+  #   fixed "PP", so the 8 drawn characters never contain O, I, 0 or 1; the comment matches the code
+  - id: d6c
+    file: transcript.md
+    lines: [[247, 248]]
+    lookalike: doc-over-code
+    note: "_tracking_code comment matches its alphabet"

@@ -1,0 +1,15 @@
+diff --git a/shipping/quote.py b/shipping/quote.py
+index 521561d..1f25cb9 100644
+--- a/shipping/quote.py
++++ b/shipping/quote.py
+@@ -22,8 +22,8 @@ def quote_parcel(weight_grams, postcode, services, declared_value_kopecks=None):
+         raise ValueError(f"postcode {postcode}: zone {zone} has no rows in the tariff table")
+ 
+     base = _bracket_price(table[zone], weight_grams, zone)
+-    amt = _services_price(services)
+-    subtotal = base + amt
++    services_kopecks = _services_price(services)
++    subtotal = base + services_kopecks
+     fuel = subtotal * config.FUEL_PERCENT // 100
+     insurance = _insurance(declared_value_kopecks)
+     ship_date = _ship_date()

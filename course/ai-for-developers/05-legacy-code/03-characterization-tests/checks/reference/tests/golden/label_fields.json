@@ -1,0 +1,26 @@
+{
+  "file": [
+    "seq: 000001",
+    "tracking: PPKG9LYJMM",
+    "to: A. Petrova",
+    "weight: 1.2 kg",
+    "surcharges: ['FRAGILE', 'SIGNATURE', 'SMS']",
+    "declared: 150050",
+    "ship date: 04.03.2026",
+    "stamp: 04.03.2026 10:30"
+  ],
+  "label": {
+    "declared_kopecks": 150050,
+    "seq": 1,
+    "ship_date": "04.03.2026",
+    "stamp": "04.03.2026 10:30",
+    "surcharges": [
+      "FRAGILE",
+      "SIGNATURE",
+      "SMS"
+    ],
+    "to": "A. Petrova",
+    "tracking": "PPKG9LYJMM",
+    "weight_kg": 1.2
+  }
+}

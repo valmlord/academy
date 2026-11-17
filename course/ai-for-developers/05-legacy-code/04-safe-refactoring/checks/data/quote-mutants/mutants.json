@@ -1,0 +1,82 @@
+[
+  {
+    "id": "Q1",
+    "file": "shipping/quote.py",
+    "line": 52,
+    "old": "        if weight_grams >= row[\"max_grams\"]:",
+    "new": "        if weight_grams > row[\"max_grams\"]:",
+    "area": "граница весовой ступени"
+  },
+  {
+    "id": "Q2",
+    "file": "shipping/quote.py",
+    "line": 83,
+    "old": "    return round(declared_value_kopecks * 3 / 1000)",
+    "new": "    return int(declared_value_kopecks * 3 / 1000 + 0.5)",
+    "area": "округление страховки"
+  },
+  {
+    "id": "Q3",
+    "file": "shipping/quote.py",
+    "line": 88,
+    "old": "    if now.hour >= config.CUTOFF_HOUR:",
+    "new": "    if now.hour > config.CUTOFF_HOUR:",
+    "area": "момент отсечки"
+  },
+  {
+    "id": "Q4",
+    "file": "shipping/quote.py",
+    "line": 96,
+    "old": "    while candidate.weekday() >= 5 or candidate in holidays:",
+    "new": "    while candidate.weekday() >= 5:",
+    "area": "праздник после отсечки"
+  },
+  {
+    "id": "Q5",
+    "file": "shipping/tariffs.py",
+    "line": 59,
+    "old": "    for resolver_name in _named_resolvers(get_table()):",
+    "new": "    for resolver_name in _named_resolvers({}):",
+    "area": "старые индексы зон"
+  },
+  {
+    "id": "Q6",
+    "file": "shipping/quote.py",
+    "line": 27,
+    "old": "    fuel = subtotal * config.FUEL_PERCENT // 100",
+    "new": "    fuel = base * config.FUEL_PERCENT // 100",
+    "area": "топливная надбавка на услуги"
+  },
+  {
+    "id": "Q7",
+    "file": "shipping/quote.py",
+    "line": 80,
+    "old": "        return minimum_fee_kopecks",
+    "new": "        return 0",
+    "area": "страховка без объявленной ценности"
+  },
+  {
+    "id": "Q8",
+    "file": "shipping/quote.py",
+    "line": 70,
+    "old": "            raise ValueError(f\"unknown service {code!r}; known services: {known}\")",
+    "new": "            continue",
+    "area": "неизвестная услуга"
+  },
+  {
+    "id": "Q9",
+    "file": "shipping/quote.py",
+    "line": 114,
+    "old": "        return saturday_fee_kopecks",
+    "new": "        return 0",
+    "area": "надбавка за отправку в субботу"
+  },
+  {
+    "id": "Q10",
+    "file": "shipping/quote.py",
+    "line": 22,
+    "old": "        raise ValueError(f\"postcode {postcode}: zone {zone} has no rows in the tariff table\")",
+    "new": "        zone = max(table)",
+    "area": "зона вне таблицы тарифов"
+  }
+]
