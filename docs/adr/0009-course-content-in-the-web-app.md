@@ -46,7 +46,12 @@ section 0 of the #30 design (PR #85), working notes that are not published.
    `@academy/lesson-schema` and define no lesson types of their own (ADR-0001 item 1). The package gains a
    second entry point `@academy/lesson-schema/schema` (schemas and constants, no `node:fs`); the web and
    `@academy/db` import from it. This adds an import path and changes no format (ADR-0001 item 7 does not
-   apply).
+   apply). A third entry point, `@academy/lesson-schema/yaml` (#118), holds item 7's YAML parse rules and the
+   reasons a failed parse gives, importing only `yaml` (no `node:fs`). The web loader, the workspace service and
+   the validator parse every `course.yaml`, `module.yaml` and `lesson.yaml` through it and map its result to
+   their own errors or issues (content:validate rethrows a conversion failure, see Consequences). It is the
+   parse step, not the loader, so the alternative "the loader in `@academy/lesson-schema`" stays rejected; it
+   too changes no format.
 5. **Visibility.** A lesson is visible iff its own status is `ready` and its module's status is `ready`
    (ADR-0001 item 4; Stepan, 2026-10-30). A module is shown "Доступен" iff it has a visible lesson, else
    "Готовится". A lesson that is not visible does not exist for the learner: its URL is "not found".
@@ -92,7 +97,7 @@ section 0 of the #30 design (PR #85), working notes that are not published.
   grader file name outside `checks/` leaks by default. Rejected.
 - **The loader in `@academy/lesson-schema`**: one structure walk for validator and loader, but the package
   would own web view concerns (visible subset, view shapes) and every web change would be a contract-package
-  change. Rejected; only the fs-free entry point goes there.
+  change. Rejected; only fs-free entry points for the web go there (`./schema`, and `./yaml` since #118).
 - **A process-wide memo**: saves a few milliseconds per request, but "Повторить" could never recover from a
   memoised failure and `pnpm dev` would need a restart after each content edit. Rejected.
 
@@ -116,11 +121,12 @@ section 0 of the #30 design (PR #85), working notes that are not published.
   `invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)`. The exception is an
   unresolved alias used as a `%YAML 1.1` merge source (`<<: *nope`): the parser throws a plain error there,
   not the alias error, so the web loader and the workspace service report it as
-  `invalid YAML: document cannot be converted to a value` and content:validate lets it escape until #118.
-  The web loader and the workspace service report every other conversion failure (for example a `%YAML 1.1`
-  merge key whose source is not a map, `<<: 5`) with the same generic reason, and content:validate lets
-  those escape until #118. The rules exist in three copies (web, workspace service, validator) until one
-  package owns them (#118).
+  `invalid YAML: document cannot be converted to a value` and content:validate lets it escape as an uncaught
+  error (#188). The web loader and the workspace service report every other conversion failure (for example a
+  `%YAML 1.1` merge key whose source is not a map, `<<: 5`) with the same generic reason, and content:validate
+  lets those escape the same way (#188). The rules exist once, in `@academy/lesson-schema/yaml` (#118, item 4);
+  the web loader, the workspace service and content:validate map its result to their own errors or issues,
+  except the conversion failures above, which content:validate rethrows.
 - The workspace service (#31) and the grader read their own subsets (`starter/`, `checks/`) through their
   own allowlists; this ADR covers only the web image.
 - A second course needs a design (navigation, dashboard) and an amendment of item 6.
