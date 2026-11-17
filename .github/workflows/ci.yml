@@ -190,6 +190,11 @@ jobs:
       - name: the image holds only the learner-visible course files
         run: bash apps/web/scripts/check-image-course.sh
       - run: pnpm --filter @academy/web exec playwright install --with-deps --only-shell chromium
+      # #201: the netlink guard covers every Playwright step below (scripts/netlink-guard.sh).
+      - id: netlink_guard
+        name: start the netlink guard
+        timeout-minutes: 2
+        run: bash scripts/netlink-guard.sh start netlink.log "$RUNNER_TEMP/netlink.pid"
       # E2E_TERMINAL runs the specs that type into a terminal (D12); E-echo reads lesson_progress through the
       # host port compose.db-port.yaml publishes. E2E_DISPOSABLE_STACK allows the spec that resets a working
       # folder: this stack is thrown away after the job (#106).
@@ -241,6 +246,9 @@ jobs:
         env:
           E2E_BASE_URL: http://127.0.0.1:53082
           E2E_SERVICE_DOWN: "1"
+      - name: no interface address changed while Playwright ran
+        if: always() && steps.netlink_guard.outcome == 'success'
+        run: bash scripts/netlink-guard.sh check netlink.log "$RUNNER_TEMP/netlink.pid"
       - if: failure()
         run: |
           docker compose ps -a > compose-ps.txt
@@ -254,6 +262,7 @@ jobs:
             apps/web/test-results
             compose.log
             compose-ps.txt
+            netlink.log
           retention-days: 7
       - name: disk usage (on failure or cancel)
         if: failure() || cancelled()
