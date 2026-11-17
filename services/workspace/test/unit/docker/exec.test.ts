@@ -255,6 +255,7 @@ describe("exec bodies (U-exec-body)", () => {
   it.each([
     ["shell", execCreateBody("/bin/bash", TAG, null)],
     ["kill", killExecCreateBody(TAG)],
+    ["check", checkExecCreateBody(2000, CHECK_RUN)],
   ])("sends the %s create body as JSON with no other key and no query", async (_name, body) => {
     const daemon = await fakeDaemon();
     const engine = new DockerEngine({ socketPath: daemon.socketPath });
@@ -435,5 +436,39 @@ describe("DockerEngine exec calls", () => {
     const engine = new DockerEngine({ socketPath: daemon.socketPath });
 
     expect(await engine.inspectExec(EXEC_ID)).toStrictEqual({ Running: false, ExitCode: 3 });
+  });
+});
+
+describe("attached check exec (U-engine-attached)", () => {
+  it("starts a check exec attached without a TTY with exactly the check start body", async () => {
+    const daemon = await fakeDaemon();
+    const engine = new DockerEngine({ socketPath: daemon.socketPath });
+
+    const stream = await engine.startAttachedExec(EXEC_ID);
+    await daemon.shell;
+
+    expect(daemon.requests[0]?.url).toBe(`/v1.44/exec/${EXEC_ID}/start`);
+    expect(JSON.parse(daemon.requests[0]?.body ?? "")).toStrictEqual({ Detach: false, Tty: false });
+    stream.destroy();
+  });
+
+  it("an attached check socket survives the inactivity timeout", async () => {
+    const daemon = await fakeDaemon();
+    const engine = new DockerEngine({ socketPath: daemon.socketPath, timeoutMs: TIMEOUT_MS });
+    const stream = await engine.startAttachedExec(EXEC_ID);
+    const shell = await daemon.shell;
+    let timedOut = false;
+    stream.on("timeout", () => {
+      timedOut = true;
+    });
+
+    await sleep(IDLE_MS);
+    const fromShell = nextData(stream);
+    shell.write("alive");
+
+    expect(timedOut).toBe(false);
+    expect(stream.destroyed).toBe(false);
+    expect(await fromShell).toBe("alive");
+    stream.destroy();
   });
 });

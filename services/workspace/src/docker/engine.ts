@@ -23,8 +23,15 @@ import {
   volumeInspectSchema,
   volumeListSchema,
 } from "./schemas.js";
-import type { ContainerCreateBody, ExecCreateBody, KillExecCreateBody } from "./spec.js";
-import { detachedExecStartBody, execStartBody } from "./spec.js";
+import type {
+  CheckExecCreateBody,
+  CheckExecStartBody,
+  ContainerCreateBody,
+  ExecCreateBody,
+  ExecStartBody,
+  KillExecCreateBody,
+} from "./spec.js";
+import { checkExecStartBody, detachedExecStartBody, execStartBody } from "./spec.js";
 
 // The only module that talks to dockerode (U-boundary). The Engine API is HTTP over the daemon's unix socket;
 // every response is validated before use.
@@ -250,7 +257,7 @@ export class DockerEngine {
   /** Returns the new exec's Id; a stopped container is 409 and a missing one 404, both as `DockerApiError`. */
   async createExec(
     containerId: string,
-    body: ExecCreateBody | KillExecCreateBody,
+    body: ExecCreateBody | KillExecCreateBody | CheckExecCreateBody,
   ): Promise<string> {
     const handle = await call("create exec", () =>
       this.#docker.getContainer(containerId).exec({ _query: {}, _body: body }),
@@ -264,10 +271,27 @@ export class DockerEngine {
    * a terminal is idle for minutes, so the timeout is switched off (I-exec-idle).
    */
   async startExec(execId: string): Promise<Duplex> {
-    const stream = await call("start exec", () =>
-      this.#docker.getExec(execId).start({ _body: execStartBody(), hijack: true, stdin: true }),
+    return this.#startHijacked("start exec", execId, execStartBody());
+  }
+
+  /**
+   * Starts a check exec attached without a TTY and returns the hijacked socket: it carries the checks tar to the
+   * exec's stdin and Docker's framed stdout and stderr back. A check may print nothing for longer than the
+   * inactivity timeout, so it is switched off here too; bounding a check's duration is its caller's job.
+   */
+  async startAttachedExec(execId: string): Promise<Duplex> {
+    return this.#startHijacked("start attached exec", execId, checkExecStartBody());
+  }
+
+  async #startHijacked(
+    operation: string,
+    execId: string,
+    body: ExecStartBody | CheckExecStartBody,
+  ): Promise<Duplex> {
+    const stream = await call(operation, () =>
+      this.#docker.getExec(execId).start({ _body: body, hijack: true, stdin: true }),
     );
-    if (!isHijackedStream(stream)) throw new DockerResponseShapeError("start exec", "stream");
+    if (!isHijackedStream(stream)) throw new DockerResponseShapeError(operation, "stream");
     stream.setTimeout(0);
     return stream;
   }

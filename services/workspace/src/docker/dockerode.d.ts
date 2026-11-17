@@ -62,10 +62,11 @@ declare module "dockerode" {
   interface ExecHandle {
     /**
      * `POST /exec/<id>/start` with `Connection: Upgrade`: resolves with the hijacked socket once the daemon
-     * answers 101. `_body` is the JSON body; `stdin` keeps the request open for input.
+     * answers 101. `_body` is the JSON body: a terminal's with a TTY, a check's without one. `stdin` keeps the
+     * request open for input.
      */
     start(options: {
-      _body: { Detach: false; Tty: true };
+      _body: { Detach: false; Tty: true } | { Detach: false; Tty: false };
       hijack: true;
       stdin: true;
     }): Promise<unknown>;
