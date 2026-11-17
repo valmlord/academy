@@ -193,3 +193,9 @@ contract between them is costly to change once #32 builds its client on it, so i
   (ADR-0002 item 14). It never carries the key, its length or any part of it. Additive within `/v1` (item 2). Item 6:
   "which can hold an API key once #115 passes one into workspaces" now reads "and the exec create body of a terminal
   shell carries the agent API key (ADR-0002 item 14)". No route or error code changes.
+- #150 (Proposed), 2026-11-17. Web reads `outcome: "created"` of `PUT W` on a start or restart together with
+  ADR-0007's "lesson started" row: when both hold, the lesson page reads the working folder as gone and created
+  again from the starter and shows the F10 note. That reading includes folders removed on purpose (an interrupted
+  reset, a start between another tab's reset `DELETE` and `PUT`); the known cases and misses are listed in
+  ADR-0007 item 5 as amended by #150. A change of when `created` is returned therefore changes what the lesson page
+  tells the learner. No route, field or error code changes.
