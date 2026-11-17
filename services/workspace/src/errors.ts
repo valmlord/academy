@@ -242,3 +242,34 @@ export class ContainerNameUnresolvedError extends Error {
     this.waitedMs = waitedMs;
   }
 }
+
+/** What decided a `CheckNotStartedError`: the Docker call that failed, or the check that refused. */
+export type CheckNotStartedReason =
+  | "inspect"
+  | "identity-mismatch"
+  | "container-missing"
+  | "container-stopped"
+  | "archive"
+  | "exec-create"
+  | "exec-start";
+
+/**
+ * A check could not be started; `stage` is the contract's. `cause` is the error that decided it, `null` for a
+ * missing or stopped container, so a caller can log its status; the message carries neither Docker's text nor the
+ * check's `run`.
+ */
+export class CheckNotStartedError extends Error {
+  readonly stage: "container-not-running" | "exec-create" | "exec-start";
+  readonly reason: CheckNotStartedReason;
+
+  constructor(
+    stage: "container-not-running" | "exec-create" | "exec-start",
+    reason: CheckNotStartedReason,
+    cause: unknown,
+  ) {
+    super(`check not started at ${stage}: ${reason}`, { cause });
+    this.name = "CheckNotStartedError";
+    this.stage = stage;
+    this.reason = reason;
+  }
+}
