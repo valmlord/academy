@@ -49,9 +49,8 @@ section 0 of the #30 design (PR #85), working notes that are not published.
    apply). A third entry point, `@academy/lesson-schema/yaml` (#118), holds item 7's YAML parse rules and the
    reasons a failed parse gives, importing only `yaml` (no `node:fs`). The web loader, the workspace service and
    the validator parse every `course.yaml`, `module.yaml` and `lesson.yaml` through it and map its result to
-   their own errors or issues (content:validate rethrows a conversion failure, see Consequences). It is the
-   parse step, not the loader, so the alternative "the loader in `@academy/lesson-schema`" stays rejected; it
-   too changes no format.
+   their own errors or issues. It is the parse step, not the loader, so the alternative "the loader in
+   `@academy/lesson-schema`" stays rejected; it too changes no format.
 5. **Visibility.** A lesson is visible iff its own status is `ready` and its module's status is `ready`
    (ADR-0001 item 4; Stepan, 2026-10-30). A module is shown "Доступен" iff it has a visible lesson, else
    "Готовится". A lesson that is not visible does not exist for the learner: its URL is "not found".
@@ -119,14 +118,14 @@ section 0 of the #30 design (PR #85), working notes that are not published.
   loader and the workspace service report an alias that cannot be resolved (unknown anchor, or alias
   expansion past the parser's default limit of 100, for example 100 aliases to one scalar anchor) as
   `invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)`. The exception is an
-  unresolved alias used as a `%YAML 1.1` merge source (`<<: *nope`): the parser throws a plain error there,
-  not the alias error, so the web loader and the workspace service report it as
-  `invalid YAML: document cannot be converted to a value` and content:validate lets it escape as an uncaught
-  error (#188). The web loader and the workspace service report every other conversion failure (for example a
-  `%YAML 1.1` merge key whose source is not a map, `<<: 5`) with the same generic reason, and content:validate
-  lets those escape the same way (#188). The rules exist once, in `@academy/lesson-schema/yaml` (#118, item 4);
-  the web loader, the workspace service and content:validate map its result to their own errors or issues,
-  except the conversion failures above, which content:validate rethrows.
+  unresolved alias used as a `%YAML 1.1` merge source (`<<: *nope`): with yaml 2.9.1 the parser throws a plain
+  error there, not the alias error, so it is a conversion failure. content:validate, the web loader and the
+  workspace service give every conversion failure the fixed reason
+  `invalid YAML: document cannot be converted to a value` without a line, and content:validate reports it as an
+  issue on the file (#188); none of them reads the parser's message. Examples measured with yaml 2.9.1:
+  `<<: *nope`, a `%YAML 1.1` merge key whose source is not a map (`<<: 5`), and an `!!omap` whose alias key
+  repeats a later key. The rules exist once, in `@academy/lesson-schema/yaml` (#118, item 4); the web loader,
+  the workspace service and content:validate map its result to their own errors or issues.
 - The workspace service (#31) and the grader read their own subsets (`starter/`, `checks/`) through their
   own allowlists; this ADR covers only the web image.
 - A second course needs a design (navigation, dashboard) and an amendment of item 6.
