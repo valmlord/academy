@@ -161,9 +161,9 @@ jobs:
         timeout-minutes: 15
         shell: bash
         run: bash scripts/build-workspace-image.sh academy-workspace:dev
-      # #201: Chromium flushes its socket pools (ERR_NETWORK_CHANGED) on every interface address change. Interfaces
-      # created in the runner's (host) network namespace from here on (bridges and host-side veths) get no IPv6, so
-      # a workspace veth that comes up adds no fe80:: address there. The setting is per namespace: container
+      # #201: an added or removed interface address can make Chromium flush its socket pools (ERR_NETWORK_CHANGED).
+      # Interfaces created in the runner's (host) network namespace from here on (bridges and host-side veths) get no
+      # IPv6, so a workspace veth that comes up adds no fe80:: address there. The setting is per namespace: container
       # namespaces keep their own. `default`, not `all`: `all` would also take ::1 off lo and IPv6 off eth0.
       - name: no IPv6 on interfaces created in the runner's (host) network namespace from here on
         run: sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1

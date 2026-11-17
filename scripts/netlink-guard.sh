@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Fails the e2e job when an interface address changes in the runner's network namespace while Playwright runs.
-# Chromium flushes its socket pools with ERR_NETWORK_CHANGED on every RTM_NEWADDR / RTM_DELADDR on any non-loopback
-# interface, link-local included, so one such event in the window can fail a navigation or a chunk load (#201).
+# Fails the e2e job when an address line (add or delete) appears in the runner's network namespace during Playwright.
+# Chromium flushes its socket pools with ERR_NETWORK_CHANGED on an RTM_NEWADDR for an address that is new or whose
+# ifaddrmsg changed, and on an RTM_DELADDR for an address it knew; IPv6 temporary addresses are excepted. It skips
+# interfaces only by name, and that list is empty on Linux, so lo and link-local addresses count too. One such event
+# in the window can fail a navigation or a chunk load (#201). The guard fails on every address line except those on
+# lo and on its own probe: a deliberate superset that does not work out which of them Chromium would count.
 #
 #   bash scripts/netlink-guard.sh start <log> <pidfile>   start the monitor, prove it records a probe address
 #   bash scripts/netlink-guard.sh check <log> <pidfile>   stop the monitor, then scan the log
@@ -17,7 +20,8 @@ set -euo pipefail
 
 # One record per line from `ip -ts -o monitor link address`: an address record names the interface followed by
 # spaces and its family, a link record follows the name with "@peer:" or ":", and a deletion puts "Deleted "
-# after the timestamp. Any family counts, because Chromium filters neither by family nor by scope.
+# after the timestamp. Both IPv4 and IPv6 records count, because Chromium subscribes to both address groups and
+# filters neither by family nor by scope.
 ADDRESS_LINE='^\[[^]]+\] (Deleted )?[0-9]+: [^ :@]+ +inet6? '
 # lo by the guard's scope; guardprobe0 is the guard's own probe, made before the browser starts.
 EXEMPT_LINE='^\[[^]]+\] (Deleted )?[0-9]+: (lo|guardprobe0) +inet'
@@ -145,7 +149,7 @@ scan() {
   if [ -n "$offending" ]; then
     local count
     count=$(LC_ALL=C grep -c '' <<<"$offending")
-    echo "netlink guard: $count address lines while the Playwright steps ran (pnpm test:e2e to service-down); Chromium flushes its socket pools on each; see scripts/netlink-guard.sh header, #201"
+    echo "netlink guard: $count address lines while the Playwright steps ran (pnpm test:e2e to service-down); each can make Chromium flush its socket pools; see scripts/netlink-guard.sh header, #201"
     printf '%s\n' "$offending"
     exit 1
   fi
