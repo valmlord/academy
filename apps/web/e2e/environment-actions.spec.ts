@@ -1,4 +1,6 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { expect, type Locator, type Page, type TestInfo, test } from "@playwright/test";
 import {
   actionsMenuLabel,
   cancelLabel,
@@ -146,9 +148,22 @@ test("E-reset-cancel: Cancel keeps the folder, F6 stays in the dialog, Esc ends 
   await expectOutputRow(page, "cat stay-106.txt", "stay");
 });
 
+/** One screenshot per theme at the current viewport, each taken once `<html>` carries the applied theme. */
+async function screenshotThemes(page: Page, directory: string, width: number): Promise<void> {
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+    if (colorScheme === "dark") {
+      await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    } else {
+      await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+    }
+    await page.screenshot({ path: join(directory, `app-${width}-${colorScheme}.png`) });
+  }
+}
+
 test("E-reset: the folder goes back to the lesson's files and the note says so", async ({
   page,
-}) => {
+}, testInfo: TestInfo) => {
   await openLesson(page);
   await runInTerminal(page, "echo gone > reset-106.txt");
   // The file exists before the reset, so its absence afterwards is the reset's doing.
@@ -170,6 +185,22 @@ test("E-reset: the folder goes back to the lesson's files and the note says so",
       timeout: 30_000,
     })
     .toBe(true);
+  // #150: the reset-done state stands in for #state-volume-recreated in the ADR-0006 item 5
+  // screenshots (same status line, same note span and class, a different note text) until #192 adds a stage
+  // that produces the real state. Taken before the ls below, so the terminal shows the fresh prompt
+  // (prototype.html:2477).
+  const screenshots = join(testInfo.project.outputDir, "design", "lesson");
+  mkdirSync(screenshots, { recursive: true });
+  await screenshotThemes(page, screenshots, 1280);
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page
+    .getByRole("tablist", { name: paneSwitchLabel })
+    .getByRole("tab", { name: environmentPaneTabLabel })
+    .click();
+  await screenshotThemes(page, screenshots, 375);
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: null });
+  await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+  await page.setViewportSize({ width: 1280, height: 720 });
   const before = await noSuchFileRows(page);
   await runInTerminal(page, "ls reset-106.txt");
   await expect
