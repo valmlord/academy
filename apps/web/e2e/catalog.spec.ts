@@ -16,12 +16,13 @@ import {
 } from "../lib/copy";
 import { catalogPath } from "../lib/routes";
 import { repoCatalog } from "./course";
-import { credentials, useOwnBucket } from "./fixtures";
+import { credentials, trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
 // exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
 test.beforeEach(async ({ page }) => {
   await useOwnBucket(page);
+  trackLoadFailures(page);
 });
 
 function moduleHeading(module: { number: string; title: string }): string {
@@ -147,6 +148,7 @@ test("the course link is the current page, F6 reaches the first module link, no 
   await expect(
     banner.getByRole("button", { name: credentials().email, exact: true }),
   ).toBeVisible();
+  await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
   await page.keyboard.press("F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
   await page.keyboard.press("F6");
