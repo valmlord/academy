@@ -38,7 +38,14 @@ or #34 ships no lesson can be started, so the card always reads "Начать" (
 **Error states:**
 - Course data cannot be read (course files invalid or missing in the container): the card is replaced by
   an alert "Не удалось загрузить курс" with "Повторить"; the top bar stays usable (without "Курс" while
-  the course id is unknown, `ia.md` R6 "Course id unknown").
+  the course id is unknown, `ia.md` R6 "Course id unknown"). The alert's title is an h2 (`tabindex="-1"`)
+  in the Card's place, under the h1 "Главная", because it is what a retry that fails again focuses.
+  "Повторить" reloads: the Card opens with focus on its heading; a second failure focuses the error h2, so
+  a screen reader reads "Не удалось загрузить курс" and its heading level again; `<title>` "Главная" in both
+  outcomes (`ia.md` R2, page-level retry table). Either move happens only while focus is still on
+  "Повторить", on `body` or in the alert; a learner who moved on (Shift+Tab to the top bar) keeps focus there
+  and is told nothing, because the alert stays unchanged while the retry runs and a loaded Card is page
+  content (R2, retry focus guard).
 - Progress cannot be read (database down) but the course can: the card shows the first lesson with
   "Начать" and a muted line "Прогресс недоступен, показан первый урок", because the learner can still
   study.

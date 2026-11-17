@@ -232,42 +232,109 @@ renders summary 5), and it does not exist before #37.
 
 1. The panel heading, `h2`, `tabindex="-1"`: the quiz check `title` (data), because it says what the quiz
    covers and matches the quiz check row in Проверки.
-2. The header: "Нужно K из Q"; the attempt line; the last-attempt warning (limit known). No separate
+2. The quiz load status container, visually hidden, empty except after a load failure that no focus move
+   announces ("The quiz load status container" below); present in every state of the panel, because it
+   must exist before a load can fail; outside the parts that loading replaces.
+3. The header: "Нужно K из Q"; the attempt line; the last-attempt warning (limit known). No separate
    question count: "Нужно 5 из 6" names the total, and leaving out "6 вопросов" avoids a noun next to a
    numeral (no plural forms). The warning "Осталась 1 попытка" is the same element as #69's check row meta
    warning (`<span data-tone="warning">` with a leading warning `.status-icon`, words not muted), because one
    string has one look wherever it shows.
-3. The result block, only after a send or on a return visit with a result: an Alert used as a focusable
+4. The result block, only after a send or on a return visit with a result: an Alert used as a focusable
    message (`design/system/README.md` Alert: `role="group" tabindex="-1" aria-labelledby` the title,
    `aria-describedby` the lines). Never `role="alert"`: the app's `Alert` renders `role="alert"` by default
-   and must be overridden as sign-in does (`sign-in-form.tsx`), because R2 allows no live container here.
-4. The error summary, only after a blocked send: the same focusable-message pattern, title "Ответьте на все
+   and must be overridden as sign-in does (`sign-in-form.tsx`), because R2 allows no live element here but the
+   quiz load status container ("Loading").
+5. The error summary, only after a blocked send: the same focusable-message pattern, title "Ответьте на все
    вопросы: осталось U", then a list of links, one per unanswered question in question order.
-5. The questions, each a question block (below).
-6. The send error, only after a failed send: the same focusable-message pattern, title "Ответы не
+6. The questions, each a question block (below).
+7. The send error, only after a failed send: the same focusable-message pattern, title "Ответы не
    отправлены. Попробуйте снова.", placed right before the button so the next Tab reaches it.
-7. "Отправить ответы", last, while the quiz is open.
+8. "Отправить ответы", last, while the quiz is open.
 
-In the review (passed or closed) items 4, 6 and 7 are not rendered.
+In the review (passed or closed) items 5, 7 and 8 are not rendered.
 
-**Loading.** While the quiz is being read (the Квиз tab opened, a deep link, or "Повторить" after a load
-error), the heading (item 1) stays, everything after it is replaced by Skeleton blocks
-(`aria-hidden="true"`), and the panel has `aria-busy="true"` until the content is in place. Nothing is
-announced and focus does not move on its own, because loading is not news and R2 allows no live container
-here; the heading is shown from the start because its text is the check `title`, which the page already has
-from `lesson.yaml`. Only when #36 loads the quiz on the client; a server-rendered quiz has no loading state.
-"Повторить" is removed when the loading state replaces the load error, so focus moves to the panel heading at
-once and stays there when the quiz loads (R2 retry table); if the load fails again the error comes back and
-focus moves to its "Повторить", unless the learner is away ("Answer while the learner is away from the Квиз
-panel" below); then focus stays where the learner put it.
+**Loading.** While the quiz is being read (the first load: the Квиз tab opened for the first time in this
+page view, a deep link or "Пройти квиз"; or "Повторить" after a load error), the heading (item 1) and the
+quiz load status container (item 2) stay, items 3-8 are replaced by Skeleton blocks (`aria-hidden="true"`),
+and the panel has `aria-busy="true"` until the content is in place. Opening the Квиз tab again reads
+nothing: the panel shows the quiz, the load error or the load still running that it already has, kept above
+the tab panels with the unsent answers (Error states: Radix may unmount an inactive panel; the panel "does
+not re-read on its own"). The start of
+a load is not announced and focus does not move on its own, because loading is not news; the heading is
+shown from the start because its text is the check `title`, which the page already has from `lesson.yaml`.
+Only when #36 loads the quiz on the client; a server-rendered quiz has no loading state. "Повторить" is
+removed when the loading state replaces the load error, so focus moves to the panel heading at once and
+stays there when the quiz loads (R2 retry table). A load that succeeds is announced by nothing: the quiz
+replaces the Skeletons as the panel's content, which the learner asked for by opening the panel or pressing
+"Повторить", not a message about it (WCAG 4.1.3 covers results, waiting states, progress and errors). A load
+that fails puts the error in the Skeletons' place, a visible change, so it is announced exactly once, in one
+of two ways, and never by the quiz notice (P9 is for a send):
+- a "Повторить" that fails again while the Квиз panel is shown and focus is still on the panel heading (where
+  the loading state put it), elsewhere in the Квиз panel or on `body`: focus moves to the error heading "Не
+  удалось загрузить квиз" (h3), R2's retry focus guard;
+- every other failure while the Квиз panel is shown (the first load, whatever focus is on: the Квиз tab after
+  activating it, `body` after a Safari click on the tab or after a deep link, the panel heading after "Пройти
+  квиз"; and a "Повторить" after which focus left the panel: the Квиз tab, the check bar, the top bar,
+  "Уведомления", "Окружение", the split handle, an open menu or modal dialog): focus stays where it is and
+  the quiz load status container below says "Не удалось загрузить квиз", no sooner than
+  `QUIZ_LOAD_STATUS_MIN_AGE_MS` after the container entered the accessibility tree (a first load from the
+  Квиз tab mounts it as the load starts);
+- a failure while the Квиз panel is not shown: nothing is announced and focus does not move, because nothing
+  becomes visible; the error, with its h3 and "Повторить", waits in the panel for the next showing, as a
+  send's outcome does.
+So "away" (below) does not decide a load: every away place is outside the panel or hides it, so a load
+never moves focus while the learner is away, and a load needs no notice.
 
 **The load error** is a plain destructive Alert (`.alert` `data-variant="destructive"`, title "Не удалось
 загрузить квиз", "Повторить" in its actions), the same markup as the lesson text load error
-(`design/pages/lesson/prototype.html`, `#state-text-error`), with no `role` and no `tabindex`, because it
-never takes focus: it appears on load, which moves no focus, or after a failed retry, where focus goes to
-its "Повторить". "Повторить" has `aria-describedby` the Alert title's id, so on the focus move after a
-second failure, and whenever the learner reaches it, it reads "Повторить, Не удалось загрузить квиз"; that
-the second failure happened is still not announced (FU6).
+(`design/pages/lesson/prototype.html`, `#state-text-error`), with no `role` and no `tabindex` on the Alert
+itself, because the Alert as a whole never takes focus. Its title is an h3 with `tabindex="-1"` under the
+panel heading (h2, the check title), as the lesson text load error's title is an h2 in its tab panel (`ia.md`
+R2, page-level retry table): a retry that fails again moves focus from the panel heading, which the loading
+state focused, to this h3, a different element, so a screen reader reads "Не удалось загрузить квиз" and the
+heading level on every such failure, the second and later ones included. A first load moves no focus, so a
+focus on the Квиз tab keeps its arrow keys working. "Повторить" keeps `aria-describedby` the title's id
+(#70), so a learner who Tabs to it reads "Повторить, Не удалось загрузить квиз"; after the focus move the
+next Tab reads the same text once more as the button's description, which is accepted, because on load Tab
+skips the h3 and the description is then the only way the button names its error.
+
+**The quiz load status container.** A visually hidden (`.sr-only`) `role="status"` element with an explicit
+`aria-live="polite"` (R2, every live container), inside the Квиз tab panel right after its heading (outside the Skeletons and the load error),
+present and empty whenever the panel is rendered, from the moment a load starts, before any text is set;
+never inserted together with its text. One case writes it, once per failed load: a load (the first, or a
+"Повторить") fails while the Квиз panel is shown and no focus move announces the failure (the second bullet
+above). The text is "Не удалось загрузить квиз", the h3's own text, because that is what the learner sees
+appear; no new string. It is set after `aria-busy` is removed from the panel, at least one rendered frame
+later, because a screen reader may hold back changes inside a busy subtree; and no sooner than
+`CHECK_STATUS_TEXT_GAP_MS` after the check bar status line's last text when that text was set less than the
+gap before (after that text when it still waits for its own gap; `checks.md` "Live regions", text gap), as
+the history status container does (`progress.md` F19), because two polite updates in one rendered frame can
+reach a screen reader as the second only, and the lost one could be a run's outcome. And it is set no
+sooner than `QUIZ_LOAD_STATUS_MIN_AGE_MS` (100 ms) after the container entered the accessibility tree, that
+is, after the Квиз panel was last shown and mounted (Radix may unmount an inactive panel, Error states, so
+opening the Квиз tab mounts the container in the same moment the first load starts, and a local failure can
+come back within milliseconds): React Aria's live announcer waits 100 ms after creating its regions,
+because "less than 100ms were not consistent when announcing with Safari" (adobe/react-spectrum
+`packages/react-aria/src/live-announcer/LiveAnnouncer.tsx:32-34`). The write waits for whichever of the
+three is latest: one frame after `aria-busy` is gone, the text gap, the minimum age. A "Повторить" is not
+affected in practice: its container has been in the tree since the panel was shown, so the age has passed;
+the rule still applies to it, and to a load still running when the panel is shown again, by the same
+measure. The history status
+container never meets it: each is written only while its own left-pane tab panel is shown, and only one is
+shown at a time. It is emptied, silently (an emptied live region announces nothing), when a load starts, which also drops a write still waiting (the error it would announce is gone), so
+a second, third or later failure sets its text into an empty container and is announced again, and a
+"Повторить" whose failure moves focus to the h3 leaves it empty, so nothing is said twice. Until the next
+load a screen reader in browse mode meets the text twice (the container, then the h3), accepted, as for the
+history status container, because emptying it on a timer could cut the announcement short. Because it has
+`aria-live`, an open modal menu or dialog's `hideOthers` spares it ("The notice stays audible while a menu
+or dialog is open" below): it is in the DOM before the menu opens, since a load starts only from the panel's
+activation (a deep link at page load, the Квиз tab, "Пройти квиз") or "Повторить", and none of them can
+happen while a modal holds focus. Not the quiz notice in
+"Уведомления", because P9 is Stepan's channel for a send answered while away, and a load error there would
+make "Уведомления" a landmark and an `F6` stop for a message that belongs to one tab panel (R2, as for the
+history error); not the check bar status line, whose text is the run's outcome. Not a focus move on a first
+load, because a move off the Квиз tab would break the arrow keys of its tab list.
 
 ### Error summary and per-question messages
 
@@ -297,8 +364,8 @@ From the press of "Отправить ответы" until the server answers (re
 state, or a 401):
 - The button is busy (`aria-busy="true"`, `aria-disabled="true"`, Spinner, label "Отправляем...", the R1
   "Войти" pattern), and focus is on it: a keyboard press leaves focus there, and a pointer press focuses the
-  button by script when the browser does not (Safari, and Firefox on macOS, do not focus a clicked button,
-  MDN "Clicking and focus"), because the busy label is the reason (R1) and must be where focus is, and the
+  button by script when the browser does not (Safari does not focus a clicked button,
+  by design, MDN "Clicking and focus", WebKit bug 22261), because the busy label is the reason (R1) and must be where focus is, and the
   away rule below needs a defined starting point.
 - Every radio and checkbox is locked: `aria-disabled="true"` on each option control and on each group, and
   the change is cancelled (a click, Space and the arrow keys check or toggle nothing; in the app the
@@ -368,14 +435,15 @@ and with it not shown; "-" marks a combination that cannot occur.
 | "Окружение", two panes: the status action ("Повторить", "Запустить снова", "Переподключиться", "Открыть новый сеанс", "Открыть курс"), "Подробности" and its content, "Действия", the Терминал / Редактор tab list, the terminal, the editor (from #40) | away | away | the learner works there; this is where `F6` into "Окружение" lands ("Действия", R3) |
 | the "Действия" menu and its items (including "Режим для экранного диктора"), and every dialog opened from the region ("Сбросить рабочую папку?", F11.3), wherever they render in the DOM | away ("a menu or dialog opened from it") | away | portalled out of the pane but opened from it; a modal must keep focus |
 | "Окружение", one-pane mode with it shown | - | away | the panel is not shown |
-| `body` (a mouse learner in Safari or Firefox on macOS, whose clicks focus no button, radio or checkbox, MDN "Clicking and focus"; or a click on non-focusable page background) | not away | away | shown: deciding by "focus in the panel" alone made every Safari mouse learner away; not shown: the panel axis (a Safari mouse learner who clicked another tab) |
+| `body` (a mouse learner in Safari, whose clicks focus no button, radio or checkbox, MDN "Clicking and focus", WebKit bug 22261; or a click on non-focusable page background) | not away | away | shown: deciding by "focus in the panel" alone made every Safari mouse learner away; not shown: the panel axis (a Safari mouse learner who clicked another tab) |
 
 Why this split: a hidden panel, "Окружение" (with what it opens), "Уведомления" and every open menu or modal
 dialog are where moving focus to the result block would pull the learner out of work, out of a page alert or
 out of a dialog, or cannot happen at all; with the panel shown, everywhere else it is in front of them.
 
-Every outcome above that moves focus into the panel (result block, send error, the refusal, the second failure
-of "Повторить") does so whenever the learner is not away. The result block or send error is scrolled into view
+Every send outcome above that moves focus into the panel (result block, send error, the refusal) does so
+whenever the learner is not away; the second failure of "Повторить" moves focus to its h3 only by R2's retry
+focus guard ("Loading": focus still on the panel heading, elsewhere in the panel or on `body`). The result block or send error is scrolled into view
 as it takes focus (the browser's default, nearest edge), not with `preventScroll`, because after a press on
 "Отправить ответы" far down the questions the outcome is above the viewport, and a focused element out of view
 is lost to a sighted keyboard or mouse learner (WCAG 2.4.7: the focus indicator must be visible to be of use).
@@ -405,8 +473,10 @@ When the server answers while the learner is away:
   block cannot take focus without pulling the learner out of what they moved to, and the check bar status
   line gets no text (P6-P8). In the S3 corner the notice carries the lesson outcome, so P8's one
   announcement is the notice's instead of the result block's.
-- A load or a retry that ends while the learner is away announces nothing: a successful load is content, and a
-  second load failure is FU6's silent case; no notice is shown for loads.
+- A load or a "Повторить" of the load error is not a send, and "away" does not decide it ("Loading"): it
+  moves no focus while the learner is away, because every away place is outside the Квиз panel or hides
+  it; a failure with the Квиз panel shown is announced by the quiz load status container, one with the panel
+  not shown by nothing (nothing becomes visible), and no notice is set for a load.
 - A learner who leaves the page during a send finds the outcome on return (Requirements for #36, item 7), with
   no notice: an outcome found on load is page content.
 
@@ -506,7 +576,7 @@ heading as "Пройти квиз" does: this button exists for the outcome, and
 carry the detail the notice shortened (the description lines, the review below).
 
 **Removed while focused.** Any removal trigger can fire while focus is on "Открыть квиз", because a pointer
-press in Safari and Firefox on macOS moves no focus, and the window can widen without a focus move. One rule
+press in Safari moves no focus, and the window can widen without a focus move. One rule
 for every case: if the trigger is a press on a focusable element in the panel (an option, a summary link,
 "Отправить ответы", a code block with `tabindex="0"`, or a `tabindex="-1"` target: the panel heading, the result
 block, the send error, the error summary), focus moves to that element by script; "Отправить ответы" is then the busy
@@ -610,10 +680,10 @@ these differences, because a quiz is answered, not run:
 | send blocked (unanswered) | the error summary | GOV.UK error summary: focus must move to it on submit; no live region needed |
 | a summary link activated | the first option of that question (its first radio or checkbox), scrolled into view with its heading; focusing does not select it | GOV.UK: links go to the first input of the group |
 | answering removes the summary or the link that holds focus | the option just changed ("Error summary and per-question messages") | the place of the action; never `body` |
-| "Отправить ответы" pressed, every question answered | the button (busy, `aria-busy` plus `aria-disabled`, label "Отправляем...", R1 "Войти" pattern): kept there after a key press, moved there by script after a pointer press the browser did not focus (Safari, Firefox on macOS); answers locked ("Sending") | the busy label is the reason |
+| "Отправить ответы" pressed, every question answered | the button (busy, `aria-busy` plus `aria-disabled`, label "Отправляем...", R1 "Войти" pattern): kept there after a key press, moved there by script after a pointer press the browser did not focus (Safari); answers locked ("Sending") | the busy label is the reason |
 | a result arrives (failed, passed, closed, refused), the learner not away: everything the "Away" definition does not name, for example, with the Квиз panel shown, focus in the panel, in the left-pane tab list (the Квиз tab), on the breadcrumbs, the lesson header, the prerequisite alert links, the one-pane switch tab "Урок", in the check bar, in the top bar with no menu open, or on `body` | the result block, scrolled into view | a focus move needs no live region (WCAG 4.1.3 covers messages that do not take focus) |
 | the send fails, the learner not away | the send error, scrolled into view | as above; the next Tab reaches "Отправить ответы", the retry |
-| any answer to a send or a retry while the learner is away (the Квиз panel is not shown, or focus is in the region "Окружение" (R3), in a menu or dialog opened from it, on the split handle, in the region "Уведомления", or in an open menu or modal dialog anywhere on the page) | none: focus stays where it is, unless the answer removes the focused element (next row); a send's outcome is announced by the quiz notice (P9) and waits in the panel for its next showing ("Answer while the learner is away from the Квиз panel") | never a jump out of the environment, a page alert, a menu or dialog, or another tab |
+| any answer to a send while the learner is away (the Квиз panel is not shown, or focus is in the region "Окружение" (R3), in a menu or dialog opened from it, on the split handle, in the region "Уведомления", or in an open menu or modal dialog anywhere on the page) | none: focus stays where it is, unless the answer removes the focused element (next row); a send's outcome is announced by the quiz notice (P9) and waits in the panel for its next showing ("Answer while the learner is away from the Квиз panel"); a quiz load and its "Повторить" follow the load rows below, never the notice | never a jump out of the environment, a page alert, a menu or dialog, or another tab |
 | any background change (an away answer, a run end, a re-read, an idle stop) removes, hides or makes unfocusable the element that holds focus or that "Продолжить работу" returns to: "К окружению" or "Переподключиться" in S3 (P8), "Пройти квиз" after a pass or close, the busy button or an option replaced by the review, the idle warning removed by an idle stop | the first that applies of `ia.md` R2 "Focus after a background change": in the Квиз panel the result block or send error; in an open check row panel that row's disclosure button; in "Проверка" "Проверить"; in "Окружение" its R3 landing; in "Уведомления" the idle warning's "Продолжить работу" to "Запустить снова" (or the switch tab "Окружение" in one-pane mode with "Урок" shown, F10.3), the quiz notice by its own removal rule, and a replaced notice text keeps focus on "Открыть квиз"; else the R3 landing of the shown pane | one rule for the page, one target per place; never `body` |
 | "Открыть квиз" in the quiz notice | the result block, or the send error after a failed send | the outcome the button names; next Tab reaches the retry |
 | the quiz notice removed while focus is in it (read at `pointerdown`), by a press on a focusable element in the panel (an option, a summary link, "Отправить ответы", a code block, or a `tabindex="-1"` heading, result block, send error or summary) | that element, by script ("Отправить ответы": the busy button) | the learner's own target; never an outcome element a new send replaces |
@@ -621,14 +691,18 @@ these differences, because a quiz is answered, not run:
 | focus enters the shown Квиз panel from elsewhere while the notice is shown | where the learner moved it; the notice goes silently | the panel now shows the outcome itself |
 | "Пройти квиз" in the quiz check row | the panel heading `h2` | as "Открыть результаты" |
 | quiz load error, "Повторить" pressed | the panel heading `h2`, at once, while the loading state replaces the error ("Loading") | "Повторить" is removed; the heading heads what replaced it |
-| quiz load error, "Повторить" loads | stays on the panel heading `h2` (R2 retry table) | the heading of what replaced the block |
-| quiz load error, "Повторить" fails again, the learner not away | "Повторить" itself (R2 retry table; silent, FU6), described by the Alert title | as the lesson text load error |
+| quiz load error, "Повторить" loads | stays on the panel heading `h2` (R2 retry table), or wherever the learner moved it during the load (R2 retry focus guard); nothing announced | the heading of what replaced the block; a loaded quiz is content |
+| quiz load error, "Повторить" fails again, the Квиз panel shown and focus still on the panel heading, elsewhere in the panel or on `body` | the error heading "Не удалось загрузить квиз" (h3, `tabindex="-1"`, the Alert title; R2 retry table); the quiz load status container stays empty | a move from the panel heading to another element, so the failure is read each time; as the lesson text load error |
+| quiz load error, "Повторить" fails again, the Квиз panel shown and focus elsewhere (the Квиз tab, the check bar, the top bar, "Уведомления", "Окружение", the split handle, an open menu or modal dialog) | none: focus stays (R2 retry focus guard); the quiz load status container says "Не удалось загрузить квиз" once ("Loading") | the learner moved on; the failure is visible, so it is a status message (WCAG 4.1.3) |
+| the first quiz load fails, the Квиз panel shown (focus on the Квиз tab, on `body`, or on the panel heading after "Пройти квиз") | none: focus stays; the quiz load status container says "Не удалось загрузить квиз" once ("Loading") | a move off the Квиз tab would break its arrow keys |
+| a quiz load or its "Повторить" fails, the Квиз panel not shown | none; nothing announced | nothing becomes visible; the error waits in the panel |
 | page load, any state (first visit, return after a failed attempt, a pass or a close, restore after sign-in) | none: the page start, as every load | a result found on load is page content, not news |
 
 A heading or message that takes focus has `tabindex="-1"` and draws the ring inset (`design/system/README.md`,
-"Focus ring"). The quiz panel holds no live container (R2): every message after an action takes focus unless
-the learner is away. The quiz's one live container is the quiz notice container in "Уведомления" (P9), used
-only when the learner is away.
+"Focus ring"). The quiz panel holds one live container (R2), the quiz load status container, written only for
+a load failure that no focus move announces ("Loading"); every message after a send takes focus unless the
+learner is away. A send's one live container is the quiz notice container in "Уведомления" (P9), used only
+when the learner is away.
 
 **Success:** "Квиз пройден" with "Верно C из Q.", the review with explanations; the quiz check row reads
 "Пройдено". A passed quiz takes no further attempt (Stepan's P5): its answers are open, so another attempt
@@ -665,7 +739,8 @@ would score nothing (course rule "answers open after a pass"); this also matches
   (row "refused" of "Check bar after a quiz send"). The panel does not re-read on its own when the browser tab becomes
   visible, because the next send finds the change and nothing is lost before it (accepted).
 - The quiz cannot be loaded: "Не удалось загрузить квиз" with "Повторить" replaces the panel content under
-  the heading (the plain destructive Alert of "Loading" above); focus per the table above.
+  the heading (the plain destructive Alert of "Loading" above); focus per the table above; a failure that no focus move
+  announces, with the Квиз panel shown, is said by the quiz load status container ("Loading").
 - Session expired while answering (F2): a 401 on send or load shows the F2.1 session alert in "Уведомления",
   never the send error. Selected answers are kept in `sessionStorage` under the lesson id, the check id and the
   attempt number on every change, so the same-tab round trip through sign-in (F2.2-F2.4, back to
@@ -736,13 +811,13 @@ the issue named.
    can mark "Ваш ответ".
 8. A 401 on send or load leads to F2, never to the send error.
 9. Tests the app must pass: following a summary link focuses without selecting; Enter on an option sends
-   nothing; switching tabs keeps unsent answers; no `role="alert"` and no new live container in the quiz
-   panel; while sending, a click, Space or an arrow key on an option changes nothing and the options stay
+   nothing; switching tabs keeps unsent answers; no `role="alert"` and no live container in the quiz panel
+   other than the quiz load status container; while sending, a click, Space or an arrow key on an option changes nothing and the options stay
    in the Tab order; removing the error summary while a link in it has focus moves focus to the option just
    changed; a quiz send sets no text in the check bar status line; a quiz pass or close after a summary 7
    that it makes untrue empties the line and keeps "Открыть результаты" (P7); a quiz send that reaches S3
    leaves the line empty, gives "Проверить" "Проверки завершены" and shows "Открыть результаты", with
-   nothing announced from the check bar (P8); a mouse-only send in Safari and in Firefox on macOS (focus on
+   nothing announced from the check bar (P8); a mouse-only send in Safari (focus on
    `body` before the press) puts focus on the busy button, then on the result block or send error scrolled into
    view, and sets no notice; with the Квиз panel shown, a send answered while focus is on the Квиз tab trigger
    (reached by Shift+Tab from "Отправить ответы" through the panel), on a breadcrumb, in the check bar or in the
@@ -775,12 +850,30 @@ the issue named.
    notice Alert renders with no role); the check bar status line gets no text, and no second announcement follows: opening Квиз by
    its tab empties the container and moves no focus; "Открыть квиз" shows "Урок" in one-pane mode, selects
    Квиз, empties the container and focuses the result block or the send error; no notice is set for a 401 or a
-   load; `F6` to "Уведомления" lands on "Открыть квиз" when it is the region's only control; with two panes
+   load; the quiz load status container (`role="status" aria-live="polite"`, visually hidden, inside the Квиз
+   panel) is present and empty from the start of every load and holds no `[role="alert"]` or `[role="status"]`
+   descendant; a quiz load "Повторить" that fails again with focus still on the panel heading (or on `body`)
+   moves focus to the h3 "Не удалось загрузить квиз" (`tabindex="-1"`, the load error's title), never to
+   "Повторить", leaves the container empty, and a second such failure ends there again; a first load that fails
+   with focus on the Квиз tab (after activating it by click and by arrow key), on `body` (a WebKit click on the
+   tab, a `?tab=quiz` deep link) and on the panel heading (after "Пройти квиз") moves no focus, sets the
+   container's text "Не удалось загрузить квиз" once, after `aria-busy` is gone, and the arrow keys on the Квиз
+   tab still move between the tabs; a first load that fails at once (a stubbed response that fails without delay), started by
+   activating the Квиз tab from another tab, sets the container's text no sooner than
+   `QUIZ_LOAD_STATUS_MIN_AGE_MS` (100 ms) after the Квиз panel and the container were mounted, and the text is
+   then set exactly once; with two panes and Квиз selected, "Повторить" pressed and a click into the
+   terminal before the load fails keeps focus in the terminal and sets the container's text once (likewise with
+   focus moved to the Квиз tab, the check bar, the split handle, "Продолжить работу", and with the user menu
+   open, the container and every ancestor keeping no `aria-hidden`); a press on "Повторить" empties it
+   silently, and a second such failure sets it again and is announced again; a failure with a run's end text
+   set in the check bar within `CHECK_STATUS_TEXT_GAP_MS` sets the container's text no sooner than that gap
+   after it; the same failure with another tab selected, or in one-pane mode with "Окружение" shown, sets no
+   text and moves no focus; no load sets the quiz notice; `F6` to "Уведомления" lands on "Открыть квиз" when it is the region's only control; with two panes
    and Квиз selected, a send followed by a click into the terminal sets the notice once while the panel stays
    shown, and the notice is emptied silently when focus comes back into the panel (Tab, Shift+Tab, `F6`) or a
    pointer press lands in it, and at the latest when "Отправить ответы" starts the next send, so no notice is
    ever shown next to a newer result; moving focus from the terminal to the check bar keeps the notice; with
-   focus on "Открыть квиз", a mouse press (Safari, Firefox on macOS) on an option or on "Отправить ответы"
+   focus on "Открыть квиз", a mouse press (Safari) on an option or on "Отправить ответы"
    removes the notice and moves focus to that control (the busy button for the send), and a press on text
    in the panel or a widening to two panes removes it and moves focus to the result block or send error, never
    `body`; a second away-answer while a notice is shown replaces its title text in the one container (an equal text
