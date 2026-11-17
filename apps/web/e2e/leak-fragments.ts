@@ -90,7 +90,9 @@ export async function forbiddenFragments(): Promise<ForbiddenFragments> {
     for (const node of module.lessons) {
       const { lesson } = node;
       for (const check of lesson.checks) {
-        // Exempts only the exact title, also where a grader file prints it; every other fragment stays.
+        // Titles are learner text and join the allowed corpus: a forbidden fragment of any lesson
+        // that one title contains leaves the fragment list, so the scan reports no body for it,
+        // not even one carrying its grader file. Never quote grader material in a title (ADR-0009).
         allowed.push(check.title);
         for (const [key, value] of Object.entries(check)) {
           if (!CHECK_FIELDS.includes(key)) continue;
