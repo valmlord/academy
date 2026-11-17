@@ -13,7 +13,7 @@ On the left:
 - check results and the mentor review after submission.
 
 On the right, the workspace, with tabs:
-- **Terminal**: bash inside the lesson container. The agent (Claude Code or OpenCode) also runs
+- **Terminal**: bash inside the lesson container. The agent CLI or OpenCode also runs
   here, with the key from `.env`;
 - **Editor**: code-server (arrives in M4);
 - **Agent**: at first this is just the agent in the terminal, later a separate panel with the
