@@ -146,3 +146,13 @@ section 0 of the #30 design (PR #85), working notes that are not published.
   - Consequences, the bullet "Accepted residual: grader metadata in the image.": "check titles" leave the parenthesis
     (they are learner text), and its scan sentence reads "the unit canary and the e2e response scan of item 10 are
     built from exactly these values, check titles excepted (#101)", because the e2e scan no longer forbids titles.
+- #148 (Proposed), 2026-11-17. Consequences gain a residual of item 10's e2e scan. Check titles are learner text that
+  reaches the browser (#101, item 3), so a title must never quote grader material: text of a grader file, of the check
+  fields `run`, `file`, `rubric`, `task`, `verify`, `answers`, or of `workspace`. Titles join the scan's allowed
+  corpus, so a forbidden fragment that a check title contains, from any lesson's grader material, leaves the fragment
+  list, and no served body is reported for that fragment: not a page showing the title, not a response carrying the
+  grader file or check field it came from. Such a body is still reported for any other listed fragment it contains
+  whole; a grader file of at least 64 bytes whose fragments all sit in check titles adds no fragment, and a response
+  carrying it whole is reported for whole listed fragments of other sources or not at all. This is one of the scan's
+  limits. Nothing enforces the rule, it rests on authoring discipline: the lesson schema accepts any non-empty title,
+  `pnpm content:validate` has no title rule, and the unit canary marks its title visible on purpose.
