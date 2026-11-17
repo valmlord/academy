@@ -247,3 +247,72 @@ export function killExecCreateBody(tag: string): KillExecCreateBody {
 export function detachedExecStartBody(): DetachedExecStartBody {
   return { Detach: true, Tty: false };
 }
+
+// The exec of one command check: a third exact allowlist, pinned by U-exec-check. It runs as the slot uid with
+// stdin attached for the checks tar and no TTY, so Docker frames stdout and stderr and the marker can be told
+// apart from the learner's output.
+
+/** The check script's `$0`: what `ps` and sh's error messages show for it. */
+const CHECK_SCRIPT_NAME = "academy-check";
+
+/**
+ * The setup of a check, run as the slot uid: `$1` is the uid, `$2` the lesson's `run` text, both positional so
+ * neither becomes script text. It kills and removes what an earlier run of the slot left, checks the work dir
+ * while the slot dir is still empty (the only name the learner chooses that the slot uid resolves), makes a new
+ * HOME, TMPDIR and checks dir without `-p`, unpacks the checks tar from stdin and prints the marker last. Exit
+ * codes 119-125 are setup failures, always before the marker. The `printf` line holds a backslash and an `n`.
+ */
+export const CHECK_SCRIPT = `u="$1"
+s="/workspace/.academy-grader/$u"
+d="$s/checks"
+kill -9 -1 2>/dev/null
+rm -rf "$s"/* "$s"/.[!.]* "$s"/..?* 2>/dev/null
+n=$(ls -A "$s") && [ -z "$n" ] || exit 119
+cd -P /workspace/home/work && [ "$PWD" = /workspace/home/work ] || exit 123
+chmod 700 "$s" || exit 120
+mkdir -m 700 "$s/home" || exit 124
+mkdir -m 700 "$s/tmp" || exit 125
+mkdir -m 700 "$d" || exit 121
+tar -x -C "$d" || exit 122
+exec 0</dev/null
+export ACADEMY_CHECKS_DIR="$d" ACADEMY_GRADER_SCRATCH="$s" HOME="$s/home" TMPDIR="$s/tmp"
+printf 'academy-check-started\\n'
+exec /bin/sh -c "$2"`;
+
+export interface CheckExecCreateBody {
+  AttachStdin: true;
+  AttachStdout: true;
+  AttachStderr: true;
+  Tty: false;
+  /** The setup script, then its $0, the uid ($1) and the run text ($2). */
+  Cmd: [typeof EXEC_SHELL, "-c", string, typeof CHECK_SCRIPT_NAME, string, string];
+  User: string;
+  WorkingDir: "/";
+}
+
+/** `Tty` must match the check exec's create body. */
+export interface CheckExecStartBody {
+  Detach: false;
+  Tty: false;
+}
+
+/**
+ * No `Env` and no key parameter: a check runs learner code, and an agent key in its environment would reach
+ * every process the grader starts. The script exports the four variables a grader reads, HOME among them.
+ * `WorkingDir /` so a missing or replaced work dir fails inside the script with its own code, not in Docker.
+ */
+export function checkExecCreateBody(uid: number, run: string): CheckExecCreateBody {
+  return {
+    AttachStdin: true,
+    AttachStdout: true,
+    AttachStderr: true,
+    Tty: false,
+    Cmd: [EXEC_SHELL, "-c", CHECK_SCRIPT, CHECK_SCRIPT_NAME, String(uid), run],
+    User: `${uid}:${uid}`,
+    WorkingDir: "/",
+  };
+}
+
+export function checkExecStartBody(): CheckExecStartBody {
+  return { Detach: false, Tty: false };
+}
