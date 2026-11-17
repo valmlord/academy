@@ -2,6 +2,7 @@ import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 import { destructiveE2eDecision, requireDestructiveE2eInCi } from "./lib/disposable-stack.ts";
 import { loadRootEnv, readRootEnvKeys } from "./lib/root-env.ts";
+import { expectedProjectFromShell } from "./lib/stack-web-container.ts";
 
 // The specs read SEED_EMAIL / SEED_PASSWORD from the root .env when it exists, like pnpm dev and the
 // seed; a variable already set in the shell wins over the file. ACADEMY_SKIP_ROOT_ENV=1 skips the file for
@@ -15,7 +16,7 @@ loadRootEnv({
 
 // The compose web service's default WEB_PORT; E2E_BASE_URL points the run at any other server.
 const defaultBaseUrl = "http://127.0.0.1:3080";
-const baseURL = process.env.E2E_BASE_URL ?? defaultBaseUrl;
+export const baseURL = process.env.E2E_BASE_URL ?? defaultBaseUrl;
 const isCi = process.env.CI !== undefined;
 
 /** Holds the seeded user's live session cookie: git-ignored, never uploaded with the CI report. */
@@ -33,7 +34,13 @@ export class InvalidE2eSwitchError extends Error {
  * fails the run at config load instead of silently skipping the terminal specs.
  */
 export function isSwitchOn(
-  name: "E2E_TERMINAL" | "E2E_WEBKIT" | "E2E_FIREFOX" | "E2E_SERVICE_DOWN" | "E2E_DISPOSABLE_STACK",
+  name:
+    | "E2E_TERMINAL"
+    | "E2E_WEBKIT"
+    | "E2E_FIREFOX"
+    | "E2E_SERVICE_DOWN"
+    | "E2E_DISPOSABLE_STACK"
+    | "E2E_COURSE_UNREADABLE",
 ): boolean {
   const value = process.env[name];
   if (value === undefined || value === "") return false;
@@ -54,6 +61,7 @@ if (retiredSwitch !== undefined && retiredSwitch !== "") throw new RetiredE2eSwi
 
 isSwitchOn("E2E_TERMINAL");
 isSwitchOn("E2E_SERVICE_DOWN");
+isSwitchOn("E2E_COURSE_UNREADABLE");
 const isWebkit = isSwitchOn("E2E_WEBKIT");
 const isFirefox = isSwitchOn("E2E_FIREFOX");
 isSwitchOn("E2E_DISPOSABLE_STACK");
@@ -64,6 +72,8 @@ isSwitchOn("E2E_DISPOSABLE_STACK");
 // runs the terminal suite, a skip would hide a lost wiring: the config fails at load instead.
 const rootEnvKeys = readRootEnvKeys({ env: process.env, file: rootEnvFile });
 export const DESTRUCTIVE_E2E = destructiveE2eDecision({ env: process.env, rootEnvKeys, baseURL });
+// e2e/course-unreadable.spec.ts changes only a container of this compose project, which its stage names.
+export const COURSE_UNREADABLE_PROJECT = expectedProjectFromShell(process.env, rootEnvKeys);
 requireDestructiveE2eInCi({ env: process.env, rootEnvKeys, decision: DESTRUCTIVE_E2E });
 
 // The specs that type into a terminal run in their own projects after every other spec, so no other spec has

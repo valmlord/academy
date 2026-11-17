@@ -9,13 +9,14 @@ import {
   requireDestructiveE2eInCi,
 } from "./disposable-stack";
 
-// DG1-DG23 and EX1 (#106 design 7.1): which command forms may run e2e/environment-actions.spec.ts. The root keys
-// of every row are a literal list; only EX1 reads the committed .env.example.
+// DG1-DG23 and EX1 (#106 design 7.1), and the rows from DG24 on (#96): which command forms the destructive e2e
+// decision allows. The root keys of every row are a literal list; only EX1 reads the committed .env.example.
 
 type Env = Record<string, string | undefined>;
 
-// The five live keys of .env.example, and CI's root .env: that file plus the two secrets ci.yml appends. When
-// .env.example gains a live key, update this list by hand; EX1 still guards the keys that matter.
+// The five live keys of .env.example, and CI's root .env: that file without its WEB_PORT line plus the two
+// secrets ci.yml appends. When .env.example gains a live key, update this list by hand; EX1 still guards the keys
+// that matter.
 const EXAMPLE_KEYS = [
   "POSTGRES_USER",
   "POSTGRES_PASSWORD",
@@ -23,7 +24,11 @@ const EXAMPLE_KEYS = [
   "DATABASE_URL",
   "WEB_PORT",
 ];
-const CI_ROOT_KEYS = [...EXAMPLE_KEYS, "BETTER_AUTH_SECRET", "WORKSPACE_SERVICE_SECRET"];
+const CI_ROOT_KEYS = [
+  ...EXAMPLE_KEYS.filter((key) => key !== "WEB_PORT"),
+  "BETTER_AUTH_SECRET",
+  "WORKSPACE_SERVICE_SECRET",
+];
 
 // What the config does: the shell's E2E_BASE_URL, else the compose default.
 const DEFAULT_BASE_URL = "http://127.0.0.1:3080";
@@ -46,6 +51,27 @@ function decide({ env, rootKeys }: Row): ReturnType<typeof destructiveE2eDecisio
 }
 
 const SWITCH = { E2E_DISPOSABLE_STACK: "1" };
+// DG12's env. CI's main suite runs through turbo, whose test:e2e passThroughEnv does not list the job's WEB_PORT.
+const CI_E2E_ENV: Env = {
+  CI: "true",
+  ...SWITCH,
+  E2E_BASE_URL: "http://127.0.0.1:53082",
+  E2E_TERMINAL: "1",
+};
+// What ci.yml gives the course-unreadable step: the workflow env, the job env, the step env and the CI=true that
+// GitHub sets.
+const CI_COURSE_UNREADABLE_ENV: Env = {
+  CI: "true",
+  NEXT_TELEMETRY_DISABLED: "1",
+  COMPOSE_FILE: "docker-compose.yml:compose.db-port.yaml",
+  COMPOSE_PROJECT_NAME: "academy-ci",
+  WEB_PORT: "53082",
+  E2E_BASE_URL: "http://127.0.0.1:53082",
+  ...SWITCH,
+  E2E_COURSE_UNREADABLE: "1",
+  E2E_COMPOSE_PROJECT: "academy-ci",
+  PLAYWRIGHT_JSON_OUTPUT_NAME: "test-results/course-unreadable.json",
+};
 
 const SKIP_ROWS: Row[] = [
   {
@@ -135,6 +161,16 @@ const SKIP_ROWS: Row[] = [
     env: { ...SWITCH, E2E_BASE_URL: "http://127.0.0.1:53081", WEB_PORT: "web" },
     rootKeys: ["WEB_PORT"],
   },
+  {
+    id: "DG24 CI from the shell on the compose default port",
+    env: { ...SWITCH, CI: "true", E2E_BASE_URL: "http://127.0.0.1:3080" },
+    rootKeys: [],
+  },
+  {
+    id: "DG25 a directly called CI Playwright step with the copied WEB_PORT line",
+    env: { ...CI_E2E_ENV, WEB_PORT: "53082" },
+    rootKeys: [...CI_ROOT_KEYS, "WEB_PORT"],
+  },
 ];
 
 const RUN_ROWS: Row[] = [
@@ -145,19 +181,23 @@ const RUN_ROWS: Row[] = [
   },
   {
     id: "DG12 CI's e2e step",
-    env: {
-      CI: "true",
-      ...SWITCH,
-      E2E_BASE_URL: "http://127.0.0.1:3080",
-      E2E_TERMINAL: "1",
-      WEB_PORT: "3080",
-    },
+    env: CI_E2E_ENV,
     rootKeys: CI_ROOT_KEYS,
   },
   {
     id: "DG19 a stack port in WEB_PORT that the root .env does not define",
     env: { ...SWITCH, E2E_BASE_URL: "http://127.0.0.1:53081", WEB_PORT: "53081" },
     rootKeys: [],
+  },
+  {
+    id: "DG26 CI's course-unreadable step",
+    env: CI_COURSE_UNREADABLE_ENV,
+    rootKeys: CI_ROOT_KEYS,
+  },
+  {
+    id: "DG26b the turbo main suite with the copied WEB_PORT line",
+    env: { ...CI_E2E_ENV, WEB_PORT: "3080" },
+    rootKeys: [...CI_ROOT_KEYS, "WEB_PORT"],
   },
 ];
 
@@ -280,7 +320,7 @@ describe("requireDestructiveE2eInCi", () => {
     ],
     [
       "DG23 CI's service-down step",
-      { CI: "true", E2E_SERVICE_DOWN: "1", E2E_BASE_URL: "http://127.0.0.1:3080" },
+      { CI: "true", E2E_SERVICE_DOWN: "1", E2E_BASE_URL: "http://127.0.0.1:53082" },
       CI_ROOT_KEYS,
     ],
   ] as const)("does not throw: %s", (_id, env, rootKeys) => {
