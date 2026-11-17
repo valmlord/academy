@@ -842,9 +842,13 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 .code-block { position: relative; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--muted); }
 .code-block pre { margin: 0; padding: var(--space-3) var(--space-4); overflow-x: auto; font-family: var(--font-mono); font-size: var(--text-sm); line-height: var(--text-sm-line); }
 .code-block pre code { padding: 0; background: transparent; font-size: inherit; }
-/* A header-less block (a quiz prompt) whose pre takes Tab when it overflows: the ring follows the block's
-   corners. md minus the 1px border is the block's inner radius, not a scale step (README "Radius"). */
+/* Every code block's pre takes Tab while it overflows (README "Scrollable code"), and its ring is drawn
+   inset: an outside ring would cross the header's bottom border and run outside the block. So the pre's
+   corners are the block's inner corners: md minus the 1px border where they meet the block's corners (not a
+   scale step, README "Radius"), square under a header. */
 .code-block > pre { border-radius: calc(var(--radius-md) - 1px); }
+.code-block > .code-block-header + pre { border-top-left-radius: 0; border-top-right-radius: 0; }
+.code-block > pre:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 .code-block-header { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-1) var(--space-2); border-bottom: 1px solid var(--border); }
 .toc { font-size: var(--text-sm); line-height: var(--text-sm-line); }
 .toc > :is(h2, h3, h4) { font-size: var(--text-sm); line-height: var(--text-sm-line); }
