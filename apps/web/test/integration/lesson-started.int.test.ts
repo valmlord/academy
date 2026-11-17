@@ -1,6 +1,6 @@
 import { users } from "@academy/db";
 import { afterEach, describe, expect, it } from "vitest";
-import { recordLessonStarted } from "@/lib/progress/lesson-started";
+import { readLessonStarted, recordLessonStarted } from "@/lib/progress/lesson-started";
 import { type TestDatabase, testDatabase } from "./db";
 
 // I-started (#32 design 3.4, 10.4): the first terminal input creates the enrollment and an in-progress
@@ -89,5 +89,93 @@ describe("I-started", () => {
     const after = await db.rows(PROGRESS);
     expect(after.filter((row) => row.user_id === "user_b")).toEqual(before);
     expect(after.map((row) => row.user_id)).toEqual(["user_a", "user_b"]);
+  });
+});
+
+describe("I1 started read for the recreated note", () => {
+  it("is false on a first visit with no row", async () => {
+    const db = await withUsers("user_a");
+
+    const isStarted = await readLessonStarted(db.db, {
+      userId: "user_a",
+      courseId: COURSE,
+      lessonId: LESSON,
+    });
+
+    expect(isStarted).toBe(false);
+  });
+
+  it("is true for the recreated note after the lesson was recorded as started", async () => {
+    const db = await withUsers("user_a");
+    const lesson = { userId: "user_a", courseId: COURSE, lessonId: LESSON };
+    await recordLessonStarted(db.db, lesson);
+
+    const isStarted = await readLessonStarted(db.db, lesson);
+
+    expect(isStarted).toBe(true);
+  });
+
+  it("is true for the recreated note when the lesson is completed", async () => {
+    const db = await withUsers("user_a");
+    await db.rows(`INSERT INTO enrollments (user_id, course_id) VALUES ('user_a', '${COURSE}')`);
+    await db.rows(
+      `INSERT INTO lesson_progress (user_id, course_id, lesson_id, status, completed_at)
+       VALUES ('user_a', '${COURSE}', '${LESSON}', 'completed', now())`,
+    );
+
+    const isStarted = await readLessonStarted(db.db, {
+      userId: "user_a",
+      courseId: COURSE,
+      lessonId: LESSON,
+    });
+
+    expect(isStarted).toBe(true);
+  });
+
+  it("is false on a first visit when only another user started the lesson", async () => {
+    const db = await withUsers("user_a", "user_b");
+    await recordLessonStarted(db.db, { userId: "user_b", courseId: COURSE, lessonId: LESSON });
+
+    const isStarted = await readLessonStarted(db.db, {
+      userId: "user_a",
+      courseId: COURSE,
+      lessonId: LESSON,
+    });
+
+    expect(isStarted).toBe(false);
+  });
+
+  it("is false on a first visit when the user started another lesson of the course", async () => {
+    const db = await withUsers("user_a");
+    await recordLessonStarted(db.db, {
+      userId: "user_a",
+      courseId: COURSE,
+      lessonId: "other-lesson",
+    });
+
+    const isStarted = await readLessonStarted(db.db, {
+      userId: "user_a",
+      courseId: COURSE,
+      lessonId: LESSON,
+    });
+
+    expect(isStarted).toBe(false);
+  });
+
+  it("is false on a first visit when the same lesson id was started under another course", async () => {
+    const db = await withUsers("user_a");
+    await recordLessonStarted(db.db, {
+      userId: "user_a",
+      courseId: "other-course",
+      lessonId: LESSON,
+    });
+
+    const isStarted = await readLessonStarted(db.db, {
+      userId: "user_a",
+      courseId: COURSE,
+      lessonId: LESSON,
+    });
+
+    expect(isStarted).toBe(false);
   });
 });

@@ -241,6 +241,21 @@ Each item can be accepted or overturned on its own.
   `included_check_kinds` refuses more than one dimension (`attempts_included_check_kinds_dims_check`), NULL and
   empty kinds being refused already by `attempts_included_check_kinds_check`. Distinct ids stay a writer rule
   (#165). No other decision changes.
+- Amended by #150 on 2026-11-17 (Proposed; item 10: Stepan approves in the #150 PR, the ADR's status stays
+  Accepted). Item 5 "Row creation", as amended by #32: the row is also read as the lesson environment's "started
+  before" signal. The reader is `readLessonStarted` in `apps/web/lib/progress/lesson-started.ts`, next to
+  `recordLessonStarted`, the writer #32 named: a primary-key read of the signed-in user's row for the lesson,
+  whatever its status. It is read in the `startEnvironment` and `restartEnvironment` server actions, after the
+  session and lesson checks and before their first workspace service call, so a row another tab writes while this
+  call creates the workspace does not count. When the row existed and `PUT W` returned `outcome: "created"`
+  (ADR-0010 item 4), the lesson page shows the F10 note "Рабочая папка не найдена, создано новое окружение из
+  исходных файлов урока.". A reset does not read it and shows its own note. A failed read is logged by error name,
+  code and constraint (`describeDbError`, ADR-0008 item 11), shows no note and does not fail the start. Known misses
+  and cases: a lesson whose page was opened but whose terminal got no key and no paste has no row, so its lost
+  folder reads as a first visit; a full wipe of Docker's data removes the database volume together with the
+  workspace volumes (one Docker daemon), so the row is gone too; a reset whose `DELETE` succeeded and whose `PUT`
+  failed is recreated by a later start, which shows the recreated note, not the reset note, and so does a start in
+  one tab that lands between another tab's reset `DELETE` and `PUT`. No schema change, no writer change.
 
 ### Amended by #101 (Proposed), 2026-11-09
 

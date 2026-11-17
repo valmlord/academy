@@ -100,6 +100,7 @@ function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
     mintTicket,
     now: () => NOW,
     recordStarted,
+    readStarted: async () => false,
     log,
     sleep: NO_SLEEP,
   });
@@ -167,7 +168,7 @@ describe("environment actions", () => {
     [
       "running",
       { kind: "workspace", workspace: workspace({}) },
-      { kind: "running", outcome: null },
+      { kind: "running", outcome: null, isVolumeRecreated: false },
     ],
     [
       "stopped",
@@ -206,7 +207,7 @@ describe("environment actions", () => {
     [
       "created",
       { kind: "workspace", workspace: workspace({ outcome: "created" }) },
-      { kind: "running", outcome: "created" },
+      { kind: "running", outcome: "created", isVolumeRecreated: false },
     ],
     [
       "a stopped answer",
@@ -282,10 +283,14 @@ interface Script {
   stop?: WorkspaceAnswer;
   removes?: RemoveAnswer[];
   activity?: ActivityAnswer;
+  // The started read; without it the lesson has no row. Called as given, so a synchronous throw stays one.
+  readStarted?: (lesson: StartedLesson) => Promise<boolean>;
 }
 
 function scripted(script: Script, readCourseTree = async () => course) {
   const order: string[] = [];
+  const reads: StartedLesson[] = [];
+  const lines: string[] = [];
   const sleeps: number[] = [];
   const removes = [...(script.removes ?? [])];
   const answer = <T>(method: keyof WorkspaceClient, value: T | undefined) =>
@@ -313,12 +318,18 @@ function scripted(script: Script, readCourseTree = async () => course) {
     mintTicket: () => ({ ticket: "minted", renewInMs: 1 }),
     now: () => NOW,
     recordStarted: async () => {},
-    log: () => {},
+    readStarted: (lesson) => {
+      reads.push(lesson);
+      return script.readStarted === undefined ? Promise.resolve(false) : script.readStarted(lesson);
+    },
+    log: (line) => {
+      lines.push(line);
+    },
     sleep: async (ms) => {
       sleeps.push(ms);
     },
   });
-  return { actions, order, sleeps };
+  return { actions, order, reads, lines, sleeps };
 }
 
 const RUNNING_ANSWER: WorkspaceAnswer = {
@@ -365,7 +376,7 @@ describe("restart, reset, idle and activity actions", () => {
 
     const result = await actions.restartEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
 
-    expect(result).toEqual({ kind: "running", outcome: "started" });
+    expect(result).toEqual({ kind: "running", outcome: "started", isVolumeRecreated: false });
     expect(order).toEqual(["stop", "ensure"]);
   });
 
@@ -395,7 +406,7 @@ describe("restart, reset, idle and activity actions", () => {
 
     const result = await actions.resetEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
 
-    expect(result).toEqual({ kind: "running", outcome: "started" });
+    expect(result).toEqual({ kind: "running", outcome: "started", isVolumeRecreated: false });
     expect(order).toEqual(["remove", "remove", "ensure"]);
     expect(sleeps).toEqual([500]);
   });
@@ -500,4 +511,196 @@ describe("restart, reset, idle and activity actions", () => {
     expect(result).toEqual(expected);
     expect(order).toEqual(["activity"]);
   });
+});
+
+const CREATED_ANSWER: WorkspaceAnswer = {
+  kind: "workspace",
+  workspace: workspace({ outcome: "created" }),
+};
+const KEY: StartedLesson = { userId: "user_a", courseId: FIXTURE_COURSE_ID, lessonId: LESSON };
+const STARTED = async (): Promise<boolean> => true;
+
+/** Lets queued promise callbacks run, so a call the action makes without waiting has happened. */
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+describe("recreated working folder signal", () => {
+  it("start reports recreated when the lesson was started and the PUT created the workspace", async () => {
+    const { actions, order, reads } = scripted({ ensure: CREATED_ANSWER, readStarted: STARTED });
+
+    const result = await actions.startEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "created", isVolumeRecreated: true });
+    expect(reads).toEqual([KEY]);
+    expect(order).toEqual(["ensure"]);
+  });
+
+  it("start reports no recreated folder on a first visit", async () => {
+    const { actions, reads } = scripted({ ensure: CREATED_ANSWER, readStarted: async () => false });
+
+    const result = await actions.startEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "created", isVolumeRecreated: false });
+    expect(reads).toEqual([KEY]);
+  });
+
+  it.each(["started", "running"] as const)(
+    "start reports no recreated folder for a started lesson when the PUT answers %s",
+    async (outcome) => {
+      const { actions } = scripted({
+        ensure: { kind: "workspace", workspace: workspace({ outcome }) },
+        readStarted: STARTED,
+      });
+
+      const result = await actions.startEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+      expect(result).toEqual({ kind: "running", outcome, isVolumeRecreated: false });
+    },
+  );
+
+  it.each([
+    { name: "startEnvironment", calls: ["ensure"] },
+    { name: "restartEnvironment", calls: ["stop", "ensure"] },
+  ] as const)(
+    "$name makes no service call for the recreated note until the started read returned",
+    async ({ name, calls }) => {
+      let answerRead: (isStarted: boolean) => void = () => {};
+      const read = new Promise<boolean>((resolve) => {
+        answerRead = resolve;
+      });
+      const { actions, order, reads } = scripted({
+        stop: { kind: "not-found" },
+        ensure: CREATED_ANSWER,
+        readStarted: () => read,
+      });
+
+      const pending = actions[name](session("user_a"), FIXTURE_COURSE_ID, LESSON);
+      await settle();
+      const orderWhileReading = [...order];
+      answerRead(true);
+      const result = await pending;
+
+      expect(reads).toEqual([KEY]);
+      expect(orderWhileReading).toEqual([]);
+      expect(order).toEqual(calls);
+      expect(result).toEqual({ kind: "running", outcome: "created", isVolumeRecreated: true });
+    },
+  );
+
+  it.each([
+    {
+      case: "rejects",
+      readStarted: async (): Promise<boolean> => {
+        throw Object.assign(new Error("terminating connection canary-param"), { code: "57P01" });
+      },
+    },
+    {
+      case: "throws before it returns a promise",
+      readStarted: (): Promise<boolean> => {
+        throw Object.assign(new Error("terminating connection canary-param"), { code: "57P01" });
+      },
+    },
+  ])(
+    "a started read that $case shows no recreated note and still starts",
+    async ({ readStarted }) => {
+      const { actions, order, lines } = scripted({ ensure: CREATED_ANSWER, readStarted });
+
+      const result = await actions.startEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+      expect(result).toEqual({ kind: "running", outcome: "created", isVolumeRecreated: false });
+      expect(order).toEqual(["ensure"]);
+      expect(lines).toEqual(["web: lesson started read failed: Error (57P01)"]);
+    },
+  );
+
+  it("restart reports recreated after a stop 404 and a created PUT for a started lesson", async () => {
+    const { actions, order, reads } = scripted({
+      stop: { kind: "not-found" },
+      ensure: CREATED_ANSWER,
+      readStarted: STARTED,
+    });
+
+    const result = await actions.restartEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "created", isVolumeRecreated: true });
+    expect(reads).toEqual([KEY]);
+    expect(order).toEqual(["stop", "ensure"]);
+  });
+
+  it("restart of a started lesson reports no recreated folder when the PUT found the folder", async () => {
+    const { actions } = scripted({
+      stop: STOPPED_ANSWER,
+      ensure: RUNNING_ANSWER,
+      readStarted: STARTED,
+    });
+
+    const result = await actions.restartEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "started", isVolumeRecreated: false });
+  });
+
+  it("reset reports no recreated folder and does not read started", async () => {
+    const { actions, order, reads } = scripted({
+      removes: [{ kind: "removed" }],
+      ensure: CREATED_ANSWER,
+      readStarted: STARTED,
+    });
+
+    const result = await actions.resetEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "created", isVolumeRecreated: false });
+    expect(reads).toEqual([]);
+    expect(order).toEqual(["remove", "ensure"]);
+  });
+
+  it("peek does not read started and reports no recreated folder", async () => {
+    const { actions, reads } = scripted({ get: RUNNING_ANSWER, readStarted: STARTED });
+
+    const result = await actions.peekEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: null, isVolumeRecreated: false });
+    expect(reads).toEqual([]);
+  });
+
+  it.each([
+    {
+      name: "startEnvironment",
+      case: "no session",
+      readSession: async () => null,
+      lessonId: LESSON,
+    },
+    {
+      name: "startEnvironment",
+      case: "a lesson without workspace",
+      readSession: session("user_a"),
+      lessonId: "first-lesson",
+    },
+    {
+      name: "restartEnvironment",
+      case: "no session",
+      readSession: async () => null,
+      lessonId: LESSON,
+    },
+    {
+      name: "restartEnvironment",
+      case: "a lesson without workspace",
+      readSession: session("user_a"),
+      lessonId: "first-lesson",
+    },
+  ] as const)(
+    "$name reads nothing for the recreated note with $case",
+    async ({ name, readSession, lessonId }) => {
+      const { actions, order, reads } = scripted({
+        stop: { kind: "not-found" },
+        ensure: CREATED_ANSWER,
+        readStarted: STARTED,
+      });
+
+      await actions[name](readSession, FIXTURE_COURSE_ID, lessonId);
+
+      expect(reads).toEqual([]);
+      expect(order).toEqual([]);
+    },
+  );
 });

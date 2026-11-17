@@ -74,6 +74,7 @@ function setup(answer: WorkspaceAnswer = { kind: "workspace", workspace: workspa
     mintTicket: (request) => mintTerminalTicket(KEY, request, 900, NOW),
     now: () => NOW,
     recordStarted: async () => {},
+    readStarted: async () => false,
     log: () => {},
     sleep: NO_SLEEP,
   });
@@ -193,6 +194,7 @@ describe("openTerminal (U-action-uid)", () => {
       },
       now: () => NOW,
       recordStarted: async () => {},
+      readStarted: async () => false,
       log: () => {},
       sleep: NO_SLEEP,
     });

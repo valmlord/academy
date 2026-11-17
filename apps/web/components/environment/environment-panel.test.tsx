@@ -35,6 +35,7 @@ import {
   startFailedStatus,
   takenOverStatus,
   terminalName,
+  volumeRecreatedNote,
   workspaceResetNote,
 } from "@/lib/copy";
 import { IDLE_CLEARED_EVENT, IDLE_WARNING_EVENT } from "@/lib/environment/idle";
@@ -105,7 +106,7 @@ function lastSocket(): FakeWebSocket {
 
 /** Peek running, a ticket, `attached`: the running state. */
 async function reachRunning(env: Setup): Promise<FakeWebSocket> {
-  await answer(env.peeks, { kind: "running", outcome: "running" });
+  await answer(env.peeks, { kind: "running", outcome: "running", isVolumeRecreated: false });
   await answer(env.opens, { kind: "ticket", ticket: "t", renewInMs: null });
   const socket = lastSocket();
   act(() => socket.receive({ t: "attached", resumed: false }));
@@ -234,7 +235,7 @@ describe("EnvironmentPanel states (U-env-region)", () => {
 
   it("hides the cursor and marks the tab panel busy while the terminal is not attached yet", async () => {
     const env = setup();
-    await answer(env.peeks, { kind: "running", outcome: "running" });
+    await answer(env.peeks, { kind: "running", outcome: "running", isVolumeRecreated: false });
 
     await answer(env.opens, { kind: "ticket", ticket: "t", renewInMs: null });
 
@@ -254,7 +255,7 @@ describe("EnvironmentPanel states (U-env-region)", () => {
 
   it("shows neither the connecting frame nor a busy tab panel once the session expired while connecting", async () => {
     const env = setup();
-    await answer(env.peeks, { kind: "running", outcome: "running" });
+    await answer(env.peeks, { kind: "running", outcome: "running", isVolumeRecreated: false });
 
     await answer(env.opens, { kind: "unauthenticated" });
 
@@ -323,7 +324,7 @@ describe("EnvironmentPanel states (U-env-region)", () => {
   it("offers to reconnect once every attempt failed", async () => {
     const env = setup({ reconnectAttempts: 1 });
     vi.useFakeTimers();
-    await answer(env.peeks, { kind: "running", outcome: "running" });
+    await answer(env.peeks, { kind: "running", outcome: "running", isVolumeRecreated: false });
     await fail(env.opens);
     await act(async () => vi.advanceTimersByTime(1000));
 
@@ -636,7 +637,7 @@ describe("EnvironmentPanel status bar (#106)", () => {
     expect(code).toBeVisible();
     expect(code).toHaveTextContent("docker-unavailable");
     fireEvent.click(screen.getByRole("button", { name: retryLabel }));
-    await answer(env.starts, { kind: "running", outcome: "running" });
+    await answer(env.starts, { kind: "running", outcome: "running", isVolumeRecreated: false });
     expect(screen.queryByRole("button", { name: detailsLabel })).toBeNull();
   });
 
@@ -646,12 +647,36 @@ describe("EnvironmentPanel status bar (#106)", () => {
     const dialog = await openResetDialog();
     fireEvent.click(within(dialog).getByRole("button", { name: resetConfirmLabel }));
 
-    await answer(env.resets, { kind: "running", outcome: "created" });
+    await answer(env.resets, { kind: "running", outcome: "created", isVolumeRecreated: false });
     await answer(env.opens, { kind: "ticket", ticket: "t2", renewInMs: null });
     const socket = lastSocket();
     act(() => socket.receive({ t: "attached", resumed: false }));
 
     expect(statusText()).toBe(environmentRunningStatus + workspaceResetNote);
+  });
+
+  it("notes the recreated working folder after the running status when the start recreated it", async () => {
+    const env = setup();
+
+    await answer(env.peeks, { kind: "absent" });
+    await answer(env.starts, { kind: "running", outcome: "created", isVolumeRecreated: true });
+    await answer(env.opens, { kind: "ticket", ticket: "t", renewInMs: null });
+    const socket = lastSocket();
+    act(() => socket.receive({ t: "attached", resumed: false }));
+
+    expect(statusText()).toBe(environmentRunningStatus + volumeRecreatedNote);
+  });
+
+  it("shows the running status without a note on a first visit whose start created the workspace", async () => {
+    const env = setup();
+
+    await answer(env.peeks, { kind: "absent" });
+    await answer(env.starts, { kind: "running", outcome: "created", isVolumeRecreated: false });
+    await answer(env.opens, { kind: "ticket", ticket: "t", renewInMs: null });
+    const socket = lastSocket();
+    act(() => socket.receive({ t: "attached", resumed: false }));
+
+    expect(statusText()).toBe(environmentRunningStatus);
   });
 
   it.each<{ name: string; reach: (env: Setup) => Promise<void>; status: string }>([

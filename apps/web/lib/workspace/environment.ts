@@ -19,7 +19,13 @@ import type {
 /** What the environment region can show (design 3.6); results cross the server action boundary as-is. */
 export type EnvironmentResult =
   | { kind: "unauthenticated" }
-  | { kind: "running"; outcome: "created" | "started" | "running" | null }
+  | {
+      kind: "running";
+      outcome: "created" | "started" | "running" | null;
+      // The lesson was started before this start or restart and its PUT created the workspace (ADR-0007 item 5
+      // as amended by #150): the working folder was lost and created again from the starter.
+      isVolumeRecreated: boolean;
+    }
   // Only from peek: the workspace was never created, so a start shows the "creating" copy, not "starting".
   | { kind: "absent" }
   | { kind: "stopped" }
@@ -66,6 +72,7 @@ export interface EnvironmentDeps {
   mintTicket: (request: TicketRequest) => TerminalTicket;
   now: () => number;
   recordStarted: (lesson: StartedLesson) => Promise<void>;
+  readStarted: (lesson: StartedLesson) => Promise<boolean>;
   log: (line: string) => void;
   sleep: (ms: number) => Promise<void>;
 }
@@ -201,14 +208,33 @@ function idleOf(answer: WorkspaceAnswer, now: number): IdleResult {
 }
 
 export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActions {
-  async function ensureRunning(key: WorkspaceKey): Promise<EnvironmentResult> {
+  async function ensureRunning(
+    key: WorkspaceKey,
+    isStartedBefore: boolean,
+  ): Promise<EnvironmentResult> {
     const answer = await deps.client.ensure(key);
     // PUT never answers 404 workspace-not-found; a stopped answer would break ADR-0010's contract.
     if (answer.kind === "not-found") return { kind: "failed" };
     if (answer.kind !== "workspace") return answer;
     const { workspace } = answer;
     if (workspace.state !== "running") return { kind: "failed" };
-    return { kind: "running", outcome: workspace.outcome ?? null };
+    return {
+      kind: "running",
+      outcome: workspace.outcome ?? null,
+      isVolumeRecreated: isStartedBefore && workspace.outcome === "created",
+    };
+  }
+
+  // Read before the first service call, so a row another tab writes while this call creates the workspace does
+  // not count. A failed read costs the note, not the start.
+  async function wasStarted(key: WorkspaceKey): Promise<boolean> {
+    try {
+      return await deps.readStarted(key);
+    } catch (error: unknown) {
+      // Name, code and constraint only: a Drizzle message carries the query parameters (ADR-0008 item 11).
+      deps.log(`web: lesson started read failed: ${describeDbError(error)}`);
+      return false;
+    }
   }
 
   async function removeWithRetries(key: WorkspaceKey): Promise<RemoveAnswer> {
@@ -228,14 +254,17 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
       if (answer.kind === "not-found") return { kind: "absent" };
       if (answer.kind !== "workspace") return answer;
       const { workspace } = answer;
-      if (workspace.state === "running") return { kind: "running", outcome: null };
+      if (workspace.state === "running") {
+        return { kind: "running", outcome: null, isVolumeRecreated: false };
+      }
       return workspace.exit?.reason === "memory-limit" ? { kind: "limits" } : { kind: "stopped" };
     },
 
     async startEnvironment(readSession, courseId, lessonId) {
       const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
-      return ensureRunning(lookup.key);
+      const isStartedBefore = await wasStarted(lookup.key);
+      return ensureRunning(lookup.key, isStartedBefore);
     },
 
     async openTerminal(readSession, courseId, lessonId) {
@@ -277,6 +306,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
     async restartEnvironment(readSession, courseId, lessonId) {
       const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
+      const isStartedBefore = await wasStarted(lookup.key);
       const stopped = await deps.client.stop(lookup.key);
       if (stopped.kind === "workspace") {
         // A stop that answers running would break ADR-0010's contract.
@@ -284,7 +314,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
       } else if (stopped.kind !== "not-found") {
         return stopped;
       }
-      return ensureRunning(lookup.key);
+      return ensureRunning(lookup.key, isStartedBefore);
     },
 
     async resetEnvironment(readSession, courseId, lessonId) {
@@ -294,7 +324,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
       // A PUT after a failed DELETE would start the old volume and report a reset that did not happen.
       if (removed.kind === "busy") return { kind: "failed" };
       if (removed.kind !== "removed") return removed;
-      return ensureRunning(lookup.key);
+      return ensureRunning(lookup.key, false);
     },
 
     async readEnvironmentIdle(readSession, courseId, lessonId) {

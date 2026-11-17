@@ -86,7 +86,7 @@ describe("page open (rows 0a-0h)", () => {
     await settle();
 
     vi.advanceTimersByTime(3000);
-    h.starts[0]?.resolve({ kind: "running", outcome: "started" });
+    h.starts[0]?.resolve({ kind: "running", outcome: "started", isVolumeRecreated: false });
     await settle();
     // Only the slow timer could be armed here: openTerminal is still in flight.
     expect(vi.getTimerCount()).toBe(0);
@@ -481,7 +481,7 @@ describe("user actions and unmount (rows 33-38)", () => {
 
     h.machine.act();
     expect(h.status()).toMatchObject({ kind: "starting", copy: "starting", isSlow: false });
-    h.starts[0]?.resolve({ kind: "running", outcome: "started" });
+    h.starts[0]?.resolve({ kind: "running", outcome: "started", isVolumeRecreated: false });
     await settle();
 
     expect(h.opens).toHaveLength(2);

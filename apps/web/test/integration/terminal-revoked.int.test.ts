@@ -63,6 +63,7 @@ describe("I-revoked", () => {
       mintTicket: (request) => mintTerminalTicket(KEY, request, 900, Date.now()),
       now: () => Date.now(),
       recordStarted: async () => {},
+      readStarted: async () => false,
       log: () => {},
       sleep: NO_SLEEP,
     });

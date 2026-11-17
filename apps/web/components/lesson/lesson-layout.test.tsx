@@ -65,7 +65,7 @@ describe("LessonLayout", () => {
         }
       />,
     );
-    await answer(fakes.peeks, { kind: "running", outcome: "running" });
+    await answer(fakes.peeks, { kind: "running", outcome: "running", isVolumeRecreated: false });
     await answer(fakes.opens, { kind: "ticket", ticket: "t", renewInMs: null });
     const socket = FakeWebSocket.instances.at(-1);
     if (socket === undefined) throw new Error("no socket");
