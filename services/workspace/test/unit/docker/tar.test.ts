@@ -1,8 +1,9 @@
 import fc from "fast-check";
 import { extract, type Header } from "tar-stream";
 import { describe, expect, it } from "vitest";
+import type { ChecksItem } from "../../../src/course/checks.js";
 import type { StarterItem } from "../../../src/course/starter.js";
-import { buildStarterTar } from "../../../src/docker/tar.js";
+import { buildChecksTar, buildScratchTar, buildStarterTar } from "../../../src/docker/tar.js";
 
 const MTIME = new Date(Date.UTC(2026, 10, 3));
 
@@ -115,5 +116,96 @@ describe("buildStarterTar", () => {
       }),
       { numRuns: 50 },
     );
+  });
+});
+
+describe("buildChecksTar", () => {
+  const items: ChecksItem[] = [
+    directory("data"),
+    file("data/key.json", 0o600, "{}"),
+    directory("data/nested"),
+    file("data/nested/run.sh", 0o700, "#!/bin/sh\n"),
+    file("verify.py", 0o4755, "print()\n"),
+  ];
+
+  it("names entries relative to the checks directory, each directory before its contents", async () => {
+    const entries = await extractAll(await buildChecksTar(items, MTIME));
+
+    expect(entries.map(({ header }) => [header.name, header.type])).toEqual([
+      ["data/", "directory"],
+      ["data/key.json", "file"],
+      ["data/nested/", "directory"],
+      ["data/nested/run.sh", "file"],
+      ["verify.py", "file"],
+    ]);
+    for (const { header } of entries) {
+      expect(header.name.startsWith("/")).toBe(false);
+      expect(header.name.split("/")).not.toContain("..");
+    }
+  });
+
+  it("writes normalised modes owned by root", async () => {
+    const entries = await extractAll(await buildChecksTar(items, MTIME));
+
+    expect(entries.map(({ header }) => [header.mode.toString(8), header.uid, header.gid])).toEqual([
+      ["755", 0, 0],
+      ["644", 0, 0],
+      ["755", 0, 0],
+      ["755", 0, 0],
+      ["755", 0, 0],
+    ]);
+  });
+
+  it("round-trips the bytes of any set of files", async () => {
+    const files = fc.uniqueArray(
+      fc.record({
+        name: fc.stringMatching(/^[a-z0-9_-][a-z0-9._-]{0,20}$/),
+        content: fc.uint8Array({ maxLength: 3000 }),
+        executable: fc.boolean(),
+      }),
+      { selector: (entry) => entry.name, maxLength: 12 },
+    );
+
+    await fc.assert(
+      fc.asyncProperty(files, async (generated) => {
+        const generatedItems: ChecksItem[] = generated.map(({ name, content, executable }) => ({
+          rel: `data/${name}`,
+          kind: "file",
+          mode: executable ? 0o755 : 0o644,
+          content: Buffer.from(content),
+        }));
+
+        const entries = await extractAll(
+          await buildChecksTar([directory("data"), ...generatedItems], MTIME),
+        );
+
+        expect(
+          entries
+            .filter(({ header }) => header.type === "file")
+            .map(({ header, content }) => ({ rel: header.name, mode: header.mode, content })),
+        ).toEqual(generatedItems.map(({ rel, mode, content }) => ({ rel, mode, content })));
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
+describe("buildScratchTar", () => {
+  it("holds exactly the root-owned scratch root and the slot directory, and no root entry", async () => {
+    const entries = await extractAll(await buildScratchTar(2003, MTIME));
+
+    expect(
+      entries.map(({ header }) => [
+        header.name,
+        header.type,
+        header.mode.toString(8),
+        header.uid,
+        header.gid,
+      ]),
+    ).toEqual([
+      [".academy-grader/", "directory", "711", 0, 0],
+      [".academy-grader/2003/", "directory", "700", 2003, 2003],
+    ]);
+    expect(entries.every(({ header }) => header.mtime.getTime() === MTIME.getTime())).toBe(true);
   });
 });
