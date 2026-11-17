@@ -106,12 +106,21 @@ export async function checkImage(engine: DockerEngine, image: string): Promise<v
 }
 
 /**
- * Waits between the re-inspects after a create 409, in ms: at most 5 inspects and 375 ms of waiting. The
- * observed window on Docker Desktop 29.9.2 closed within 10 ms; the first delay gives 2.5 times that and the
- * doubling covers a daemon an order of magnitude slower, while 375 ms stays far below #32's slow-start
- * notice (design amendment 1). Fixed, not jittered: the waiting caller only reads, so it contends with no one.
+ * The adopt phase after a create 409. Docker reserves the name at the start of a create and makes the container
+ * inspectable only at its end (moby v28.0.4 `daemon/names.go:70`, `daemon/create.go:222`), and documents no bound
+ * for that window. An earlier bound of four short waits (under 0.4 s), sized on an idle Docker Desktop daemon, was
+ * outlived on the CI runner (Docker 28.0.4, three integration suites on one daemon, run 43930897519, where the
+ * failing test took 1128 ms). 5 s is about four times that test's whole duration and half the default slow-start
+ * note (`ENVIRONMENT_START_SLOW_SECONDS`). The delays double from 25 ms and stop at 1 s, so a container that
+ * appears late is adopted at most about 1 s after it is inspectable. Their sum is above the deadline, so the
+ * deadline ends the wait and the list only caps the calls at 41 per phase: a first inspect, then per delay a
+ * volume ensure (up to two calls), a create and an inspect (ADR-0010 item 8 as amended by #181). Fixed, not
+ * jittered: a 409 on a name Docker serialises is a correct answer, not a lost race to retry against.
  */
-export const ADOPT_INSPECT_DELAYS_MS: readonly number[] = [25, 50, 100, 200];
+const ADOPT_DEADLINE_MS = 5_000;
+const ADOPT_RETRY_DELAYS_MS: readonly number[] = [
+  25, 50, 100, 200, 400, 800, 1_000, 1_000, 1_000, 1_000,
+];
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -119,42 +128,65 @@ function delay(ms: number): Promise<void> {
 
 /**
  * Creates the workspace container, or adopts the one another caller created under the same name: Docker's
- * name is the lock between processes (design 6.3); a 409 is followed by bounded re-inspects. The network is
- * ensured immediately before every create, because it is the only thing that brings back a network pruned by
- * hand (I-network-pruned). Returns the Id.
+ * name is the lock between processes (design 6.3); a 409 is followed by re-creates and re-inspects until a
+ * deadline. The network is ensured immediately before the first create, because it is the only thing that
+ * brings back a network pruned by hand (I-network-pruned). Returns the Id.
  */
 export async function createOrAdoptContainer(
   engine: DockerEngine,
   input: ContainerSpecInput,
 ): Promise<string> {
   await ensureNetwork(engine, input.instance);
+  const created = await createUnlessTaken(engine, input);
+  return created ?? adoptContainer(engine, input);
+}
+
+/** The new container's Id, or `null` when Docker answers that the name is taken; any other error propagates. */
+async function createUnlessTaken(
+  engine: DockerEngine,
+  input: ContainerSpecInput,
+): Promise<string | null> {
   try {
     return await engine.createContainer(input.names.container, buildContainerSpec(input));
   } catch (error: unknown) {
-    if (!(error instanceof DockerApiError && error.statusCode === CONFLICT)) throw error;
+    if (error instanceof DockerApiError && error.statusCode === CONFLICT) return null;
+    throw error;
   }
-  return adoptContainer(engine, input);
 }
 
 /**
- * Docker reserves a name before the container is inspectable (observed on Desktop 29.9.2: 409, then 404, then
- * visible within 10 ms), so a 404 after a 409 is first waited out on the fixed schedule. A name that never
- * resolves is `ContainerNameUnresolvedError`, and the caller's retry of the idempotent ensure converges; a
- * re-create here would make the number of engine calls open-ended.
+ * Waits out the window between Docker reserving the name for another caller's create and that container
+ * becoming inspectable. A 409 on a re-create means a create still holds the name; a re-create that succeeds
+ * means the first creator failed (or another process removed the workspace) and Docker released the name, so
+ * this caller owns the container now. At the deadline the name is `ContainerNameUnresolvedError`, and the
+ * caller's retry of the idempotent ensure converges. The volume is ensured before each re-create because the
+ * create body mounts the volume by name, and Docker creates an absent one during the create without our labels,
+ * which would fail every later `ensureVolume` of the key. The network is not re-ensured: Docker creates no
+ * network during a container create, so a network pruned during the wait shows as a 404 of the create, which
+ * propagates, or of the later start, whose retry ensures the network again.
  */
 async function adoptContainer(engine: DockerEngine, input: ContainerSpecInput): Promise<string> {
   const name = input.names.container;
-  let existing = await engine.inspectContainer(name);
-  let waitedMs = 0;
-  for (const delayMs of ADOPT_INSPECT_DELAYS_MS) {
-    if (existing !== null) break;
-    await delay(delayMs);
-    waitedMs += delayMs;
-    existing = await engine.inspectContainer(name);
+  // The global `performance` is monotonic, so a wall-clock jump cannot cut or stretch the wait.
+  const conflictAt = performance.now();
+  const elapsedMs = (): number => performance.now() - conflictAt;
+  const delays = ADOPT_RETRY_DELAYS_MS[Symbol.iterator]();
+  for (;;) {
+    const existing = await engine.inspectContainer(name);
+    if (existing !== null) {
+      if (!labelsMatchKey(existing.Config.Labels, input.instance, input.key, "container")) {
+        throw new WorkspaceIdentityMismatchError(name);
+      }
+      return existing.Id;
+    }
+    const next = delays.next();
+    const remainingMs = ADOPT_DEADLINE_MS - elapsedMs();
+    if (next.done === true || remainingMs <= 0) {
+      throw new ContainerNameUnresolvedError(name, Math.round(elapsedMs()));
+    }
+    await delay(Math.min(next.value, remainingMs));
+    await ensureVolume(engine, input.instance, input.key);
+    const created = await createUnlessTaken(engine, input);
+    if (created !== null) return created;
   }
-  if (existing === null) throw new ContainerNameUnresolvedError(name, waitedMs);
-  if (!labelsMatchKey(existing.Config.Labels, input.instance, input.key, "container")) {
-    throw new WorkspaceIdentityMismatchError(name);
-  }
-  return existing.Id;
 }

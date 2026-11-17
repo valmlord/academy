@@ -199,3 +199,24 @@ contract between them is costly to change once #32 builds its client on it, so i
   reset, a start between another tab's reset `DELETE` and `PUT`); the known cases and misses are listed in
   ADR-0007 item 5 as amended by #150. A change of when `created` is returned therefore changes what the lesson page
   tells the learner. No route, field or error code changes.
+- #181 (Proposed), 2026-11-18. Item 8, the first four sentences ("One ensure is at most 30 engine calls" up to
+  "25, 50, 100, 200 ms.") are replaced: "One ensure is at most 102 engine calls. The 102 is the counted worst
+  case, with no margin: 52 calls on the first create path, then 50 for the start-404 retry, whose create can
+  meet a "name taken" answer from another process too. After a "name taken" answer the service inspects the
+  name and, while no container is found, waits 25, 50, 100, 200, 400, 800, 1000, 1000, 1000, 1000 ms in turn,
+  and after each wait ensures the workspace volume (an inspect, and a create when it is absent) and creates
+  the container again before the next inspect: at most 41 calls on each path. The volume is ensured first
+  because the container create names it in its mount, and Docker would create an absent volume without the
+  workspace labels, which every later ensure of the key refuses. The phase ends at the first inspect that
+  finds a container, at a create that succeeds (the first creator failed, or another process removed the
+  workspace, and Docker released the name), or once 5 s have passed since the "name taken" answer, with 502
+  `docker-error`; the calls started last may end after the 5 s. One ensure therefore waits at most 10 s on a
+  name another process holds, in addition to its engine calls." The rest of item 8 is unchanged. Item 6, row
+  502 `docker-error`: "after the bounded re-inspects (item 7)" now reads "within the 5 s of item 8 as amended
+  by #181". Consequences, first bullet: #32's `ENSURE_TIMEOUT_MS` (120 s) stays; it was sized for a slow
+  create, and the added worst case is 10 s of waiting. Consequences gain a last bullet: "Between a volume
+  ensure and the container create that follows it (before the first create and before each re-create of
+  item 8 as amended by #181) a remove by another service process can still let Docker create the volume
+  without the workspace labels; the window runs from the volume ensure until the daemon's create takes its
+  reference on the volume, after it has created the container layer, so under load it can last hundreds of
+  milliseconds or more."
