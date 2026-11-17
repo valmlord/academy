@@ -9,7 +9,7 @@
 - Workspace service: Fastify + dockerode + ws.
 - DB: PostgreSQL 17, Drizzle ORM and drizzle-kit for migrations.
 - Authentication: Better Auth (email and password).
-- Mentor and agent checks: Claude Agent SDK; in the workspace, Claude Code and/or OpenCode.
+- Mentor and agent checks: the agent SDK; in the workspace, the agent CLI and/or OpenCode.
 - Quality: Biome (lint and format), Vitest (unit), testcontainers (integration), Playwright (e2e).
 - CI: GitHub Actions.
 
