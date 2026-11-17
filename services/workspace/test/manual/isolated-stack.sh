@@ -220,11 +220,16 @@ teardown() {
   if [ -n "$ids" ]; then docker volume rm $ids >/dev/null || tfail "docker volume rm of $INSTANCE workspace volumes"; fi
   ids=$(docker network ls -q "${MANAGED[@]}") || tfail "list of $INSTANCE workspace networks"
   if [ -n "$ids" ]; then docker network rm $ids >/dev/null || tfail "docker network rm of $INSTANCE workspace networks"; fi
-  if docker volume ls --filter "name=$T31_VOLUME" --format '{{.Name}}' | grep -Fx "$T31_VOLUME" >/dev/null; then
+  # A failed listing must be a TEARDOWN FAIL, not read as "absent", so it is captured before grep or test.
+  if ! ids=$(docker volume ls --filter "name=$T31_VOLUME" --format '{{.Name}}'); then
+    tfail "list of volume $T31_VOLUME"
+  elif grep -Fx "$T31_VOLUME" >/dev/null <<<"$ids"; then
     docker volume rm "$T31_VOLUME" >/dev/null || tfail "docker volume rm $T31_VOLUME"
   fi
   for image in "${T31_IMAGES[@]}"; do
-    if [ -n "$(docker image ls --format '{{.ID}}' "$image")" ]; then
+    if ! ids=$(docker image ls --format '{{.ID}}' "$image"); then
+      tfail "list of image $image"
+    elif [ -n "$ids" ]; then
       docker image rm "$image" >/dev/null || tfail "docker image rm $image"
     fi
   done
@@ -241,6 +246,11 @@ teardown() {
       esac
       if [ $? -ne 0 ] || [ -n "$ids" ]; then tfail "left behind: $kind with $label"; else echo "$PREFIX OK nothing left: $kind with $label"; fi
     done
+  done
+  # The label loop above lists no images.
+  for image in "${T31_IMAGES[@]}"; do
+    ids=$(docker image ls --format '{{.ID}}' "$image")
+    if [ $? -ne 0 ] || [ -n "$ids" ]; then tfail "left behind: image $image"; else echo "$PREFIX OK nothing left: image $image"; fi
   done
   if [ -n "$owner_containers" ] || [ -n "$stack_started" ]; then
     if docker volume ls --filter "name=$OWNER_VOLUME" --format '{{.Name}}' | grep -Fx "$OWNER_VOLUME" >/dev/null &&
