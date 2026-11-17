@@ -152,4 +152,26 @@ describe("loadChecks", () => {
     expect(refusal).toBeInstanceOf(ChecksRefusedError);
     expect(refusal?.reason).toBe("too-large");
   });
+
+  it("accepts checks whose bytes equal the byte cap", async () => {
+    await mkdir(checks);
+    await writeFile(join(checks, "exact.txt"), "x".repeat(10));
+
+    const refusal = await refusalOf(
+      loadChecks(root, LESSON_DIR, { maxBytes: 10, maxEntries: 1_000 }),
+    );
+
+    expect(refusal).toBeNull();
+  });
+
+  it("accepts checks whose entries equal the entry cap", async () => {
+    await mkdir(checks);
+    for (const name of ["a.txt", "b.txt"]) await writeFile(join(checks, name), "x");
+
+    const refusal = await refusalOf(
+      loadChecks(root, LESSON_DIR, { maxBytes: 1024 * 1024, maxEntries: 2 }),
+    );
+
+    expect(refusal).toBeNull();
+  });
 });
