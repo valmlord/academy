@@ -27,12 +27,13 @@ import {
 } from "../lib/copy";
 import { catalogPath, lessonPath } from "../lib/routes";
 import { type RepoLesson, repoCatalog, repoLessons } from "./course";
-import { useOwnBucket } from "./fixtures";
+import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
 // exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
 test.beforeEach(async ({ page }) => {
   await useOwnBucket(page);
+  trackLoadFailures(page);
 });
 
 const lessons = await repoLessons();
@@ -106,6 +107,10 @@ test("?tab= picks the tab, a selection rewrites it without a history entry (AC4,
     expect(await selectedTab(page), `?tab=${unknown}`).toBe(theoryTabLabel);
   }
   const lengthBefore = await page.evaluate(() => window.history.length);
+  await waitForHydration(
+    page.getByRole("tab", { name: taskTabLabel }),
+    "hydrated before the task tab click",
+  );
   await page.getByRole("tab", { name: taskTabLabel }).click();
 
   await expect(page.getByRole("tab", { name: taskTabLabel })).toHaveAttribute(
@@ -140,10 +145,11 @@ test("the table of contents and the copy button keep ?tab= (AC18)", async ({ pag
   if (firstSection === undefined) throw new Error("the lesson's theory needs a ## section");
 
   await page.goto(path);
-  await page
+  const tocLink = page
     .getByRole("navigation", { name: tableOfContentsHeading })
-    .getByRole("link", { name: firstSection.text, exact: true })
-    .click();
+    .getByRole("link", { name: firstSection.text, exact: true });
+  await waitForHydration(tocLink, "hydrated before the TOC click");
+  await tocLink.click();
 
   await expect(page.locator(`#${firstSection.id}`)).toBeFocused();
   expect(new URL(page.url()).pathname + new URL(page.url()).search + new URL(page.url()).hash).toBe(
@@ -159,6 +165,7 @@ test("the lesson with its environment: two regions, F6 stops, no horizontal scro
   page,
 }) => {
   await page.goto(pathOf(firstLesson));
+  await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
 
   const lessonRegion = page.getByRole("region", { name: lessonRegionHeading });
   const environmentRegion = page.getByRole("region", { name: environmentRegionHeading });
@@ -193,6 +200,10 @@ test("the lesson with its environment: two regions, F6 stops, no horizontal scro
   ]) {
     await page.setViewportSize({ width, height });
     await page.reload();
+    await waitForHydration(
+      lessonRegion.getByRole("tab", { name: environmentPaneTabLabel }),
+      `hydrated before the switch at ${width}x${height}`,
+    );
     await expect(lessonRegion).toBeVisible();
     await expect(environmentRegion).toBeHidden();
     expect(await scrollWidthOf(page), `scrollWidth at ${width}x${height}, lesson`).toBe(width);
@@ -222,6 +233,10 @@ function focusedRegionName(page: Page): Promise<string | null | undefined> {
 
 test("the tab trigger and the tab panel draw the global focus ring (E-ring)", async ({ page }) => {
   await page.goto(pathOf(firstLesson));
+  await waitForHydration(
+    page.getByRole("tab", { name: theoryTabLabel }),
+    "hydrated before the Tab",
+  );
   await page
     .getByRole("navigation", { name: breadcrumbLabel })
     .getByRole("link", { name: firstLesson.view.module.title })
@@ -269,6 +284,7 @@ test("a refused clipboard renames the copy button and keeps focus (AC14)", async
   });
   await page.goto(`${pathOf(lessonWithCode)}?tab=theory`);
   const button = page.getByRole("button", { name: copyLabel }).first();
+  await waitForHydration(button, "hydrated before the copy button");
   await button.focus();
 
   await page.keyboard.press("Enter");
@@ -333,18 +349,17 @@ interface FrameSizes {
 }
 
 /** Every size of the terminal's boxes from one layout; a hidden pane is measured too (design 7.4). */
-function frameSizes(page: Page): Promise<FrameSizes> {
+function frameSizes(page: Page): Promise<FrameSizes | null> {
   return page.evaluate(measureFrame);
 }
 
-function measureFrame(): FrameSizes {
+function measureFrame(): FrameSizes | null {
   const frame = document.querySelector<HTMLElement>("[data-terminal-frame]");
   const content = frame?.parentElement;
   const environment = document.getElementById("environment-pane");
   const screen = frame?.querySelector(".xterm-screen");
   const parent = screen?.closest(".xterm")?.parentElement;
-  if (!frame || !content || !environment || !screen || !parent)
-    throw new Error("no terminal frame");
+  if (!frame || !content || !environment || !screen || !parent) return null;
   const contentStyle = getComputedStyle(content);
   const screenBox = screen.getBoundingClientRect();
   return {
@@ -379,8 +394,17 @@ function isFitted(sizes: FrameSizes): boolean {
 // collapsing fit leaves hundreds of pixels, an overflowing one a negative value.
 const FITTED_SLACK_PX = 40;
 
+// The frame and the pane are server-rendered, so a null measurement means xterm has not mounted yet. A
+// string verdict makes a failed poll print what was missing or the sizes it measured.
+function fitVerdict(sizes: FrameSizes | null): string {
+  if (sizes === null) return "no xterm screen in [data-terminal-frame]";
+  return isFitted(sizes) ? "fitted" : `not fitted: ${JSON.stringify(sizes)}`;
+}
+
 async function expectFitted(page: Page, what: string): Promise<void> {
-  await expect.poll(async () => isFitted(await frameSizes(page)), { message: what }).toBe(true);
+  await expect
+    .poll(async () => fitVerdict(await frameSizes(page)), { message: what })
+    .toBe("fitted");
 }
 
 /** Focuses the lesson pane's last drawn focusable element, so the next Tab leaves the pane. */
@@ -438,6 +462,7 @@ test("E-layout: two panes from 64rem, one pane with the switch below, the URL ke
     Math.abs((environmentBox?.height ?? 0) - (mainBox?.height ?? -10)),
     "pane height",
   ).toBeLessThanOrEqual(1);
+  await waitForHydration(separator(page), "hydrated before the handle click");
   await pressHandle(page, 0);
   await page.getByRole("button", { name: actionsMenuLabel }).click();
   await page.keyboard.press("Escape");
@@ -533,7 +558,9 @@ test("E-layout frame: 12rem high in short viewports, hidden or shown", async ({ 
 
   await page.setViewportSize({ width: 375, height: 400 });
   await expect.poll(frameHeight, { message: "375x400, hidden" }).toBe(192);
-  await switchTab(page, environmentPaneTabLabel).click();
+  const environmentSwitch = switchTab(page, environmentPaneTabLabel);
+  await waitForHydration(environmentSwitch, "hydrated before the switch at 375x400");
+  await environmentSwitch.click();
   await expect.poll(frameHeight, { message: "375x400, shown" }).toBe(192);
 });
 
@@ -548,7 +575,11 @@ test("E-layout sizing: the terminal fits its frame at every size, narrows and sh
     { width: 320, height: 200 },
   ]) {
     await page.setViewportSize({ width, height });
-    if (width < 1024) await switchTab(page, environmentPaneTabLabel).click();
+    if (width < 1024) {
+      const environmentSwitch = switchTab(page, environmentPaneTabLabel);
+      await waitForHydration(environmentSwitch, `hydrated before the switch at ${width}x${height}`);
+      await environmentSwitch.click();
+    }
     await expectFitted(page, `W1 at ${width}x${height}`);
     await page.reload();
   }
@@ -584,6 +615,7 @@ test("E-layout sizing: the terminal fits its frame at every size, narrows and sh
       async () => {
         const sizes = await frameSizes(page);
         return (
+          sizes !== null &&
           sizes.paneScrollHeight === sizes.paneClientHeight &&
           sizes.screenHeight <= sizes.parentHeight
         );
@@ -598,24 +630,29 @@ test("E-split: clicks cycle the presets, a drag moves the split, keys step it (F
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(pathOf(firstLesson));
+  await waitForHydration(separator(page), "hydrated after the goto");
 
   for (const expected of ["35", "65", "50"]) {
     await pressHandle(page, 0);
     expect(await splitValue(page), "click cycle").toBe(expected);
   }
   await page.reload();
+  await waitForHydration(separator(page), "hydrated after reload 1");
   await pressHandle(page, 3);
   expect(await splitValue(page), "a 3 px press is a click").toBe("35");
   await page.reload();
+  await waitForHydration(separator(page), "hydrated after reload 2");
   await pressHandle(page, 4);
   expect(await splitValue(page), "a 4 px press is a drag").toBe("50");
   await page.reload();
+  await waitForHydration(separator(page), "hydrated after reload 3");
   await pressHandle(page, 100);
   const dragged = await splitValue(page);
   expect(["50", "35", "65"], `a 100 px drag gives no preset (${dragged})`).not.toContain(dragged);
   await pressHandle(page, 0);
   expect(await splitValue(page), "a click after a drag").toBe("50");
   await page.reload();
+  await waitForHydration(separator(page), "hydrated after reload 4");
   const { x, y } = await gripCentre(page);
   await page.mouse.dblclick(x, y);
   expect(
@@ -623,6 +660,7 @@ test("E-split: clicks cycle the presets, a drag moves the split, keys step it (F
     "a double click at one spot cycles once: the second press lands where the handle was",
   ).toBe("35");
   await page.reload();
+  await waitForHydration(separator(page), "hydrated after reload 5");
   await pressHandle(page, 0);
   await pressHandle(page, 0);
   await separator(page).dispatchEvent("dblclick");
@@ -631,6 +669,7 @@ test("E-split: clicks cycle the presets, a drag moves the split, keys step it (F
   );
 
   await page.reload();
+  await waitForHydration(separator(page), "hydrated after reload 6");
   await separator(page).focus();
   await page.keyboard.press("ArrowRight");
   expect(await splitValue(page), "ArrowRight").toBe("55");
@@ -661,6 +700,7 @@ test("E-tooltip: hover and keyboard focus open it, it is hoverable, Esc closes i
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(pathOf(firstLesson));
   const tip = page.getByRole("tooltip");
+  await waitForHydration(separator(page), "hydrated before the hover");
 
   const { x, y } = await gripCentre(page);
   await page.mouse.move(x, y);
@@ -690,6 +730,7 @@ test("E-f6-handle: from the handle F6 goes on to the environment, Shift+F6 back 
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(pathOf(firstLesson));
+  await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
 
   await separator(page).focus();
   await page.keyboard.press("F6");
@@ -706,6 +747,7 @@ test("E-f6-handle: from the handle F6 goes on to the environment, Shift+F6 back 
 test("E-f6-one-pane: F6 shows the hidden pane and lands on its switch tab", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(pathOf(firstLesson));
+  await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
   await page.getByRole("link", { name: brandName }).focus();
 
   await page.keyboard.press("F6");
@@ -752,7 +794,9 @@ test("E-live: the live containers stay announced under the user menu and the mod
     lessonPaneHidden: "true",
   };
 
-  await page.locator('header [aria-haspopup="menu"]').click();
+  const userMenu = page.locator('header [aria-haspopup="menu"]');
+  await waitForHydration(userMenu, "hydrated before the user menu");
+  await userMenu.click();
   await expect(page.getByRole("menu")).toBeVisible();
   expect(await liveContainers(page), "under the user menu").toEqual(expected);
   await page.keyboard.press("Escape");

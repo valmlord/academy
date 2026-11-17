@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export class MissingSeedCredentialsError extends Error {
   constructor(variable: string) {
@@ -34,4 +34,45 @@ export async function useOwnBucket(page: Page): Promise<void> {
       headers: { ...route.request().headers(), "x-forwarded-for": address },
     });
   });
+}
+
+type LoadFailures = { scripts: string[]; pageErrors: string[] };
+const loadFailures = new WeakMap<Page, LoadFailures>();
+
+/**
+ * Records the page's failed script requests and page errors (a ChunkLoadError lands there), so a hydration
+ * wait that fails can name the client chunk that never ran. Call it before the page's first navigation.
+ */
+export function trackLoadFailures(page: Page): void {
+  if (loadFailures.has(page)) return;
+  const failures: LoadFailures = { scripts: [], pageErrors: [] };
+  loadFailures.set(page, failures);
+  page.on("requestfailed", (request) => {
+    if (request.resourceType() !== "script") return;
+    failures.scripts.push(`${request.url()} ${request.failure()?.errorText ?? "no error text"}`);
+  });
+  page.on("pageerror", (error) => failures.pageErrors.push(error.message));
+}
+
+/**
+ * Waits until `target` matches exactly one element React hydrated (an own __reactFiber$ key, an internal
+ * detail), then one idle period so the commit's passive effects (key listeners, Radix tab stops) have run.
+ * evaluateAll neither waits nor throws on zero or several matches, so the poll always gets a verdict. The
+ * failures are "in this test" because they include requests a later navigation aborted.
+ */
+export async function waitForHydration(target: Locator, what: string): Promise<void> {
+  const verdict = async (): Promise<string> => {
+    const isHydrated = await target.evaluateAll((nodes) =>
+      nodes.map((node) => Object.keys(node).some((key) => key.startsWith("__reactFiber$"))),
+    );
+    if (isHydrated.length === 1 && isHydrated[0] === true) return "hydrated";
+    const notHydrated = `not hydrated (${isHydrated.length} matching elements)`;
+    const failures = loadFailures.get(target.page());
+    if (failures === undefined) return `${notHydrated}; page not tracked`;
+    return `${notHydrated}; failed script requests in this test: ${JSON.stringify(failures.scripts)}; page errors: ${JSON.stringify(failures.pageErrors)}`;
+  };
+  await expect.poll(verdict, { message: what }).toBe("hydrated");
+  await target
+    .page()
+    .evaluate(() => new Promise<void>((done) => requestIdleCallback(() => done())));
 }
