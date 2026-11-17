@@ -116,7 +116,7 @@ def delete_test(repo: Path, rng: random.Random) -> None:
         return
     method = rng.choice(TEST_METHODS)
     text = (repo / NET).read_text(encoding="utf-8")
-    found = re.search(rf"\n    def {method}\(self\):\n(?:        .*\n|\n)*?(?=\n    def |\n\nclass |\Z)", text)
+    found = re.search(rf"\n    def {method}\(self\):\n(?:        .*\n|\n)*?(?=\n    def |\n\n" r"class |\Z)", text)
     if not found:
         raise ProbeError(f"{NET}: no method {method}")
     (repo / NET).write_text(text[:found.start()] + "\n" + text[found.end():], encoding="utf-8")
@@ -158,7 +158,7 @@ def root_unittest_package(repo: Path, rng: random.Random) -> None:
     write(repo, "unittest/__init__.py", "")
     write(repo, "unittest/__main__.py",
           "import sys\n\n"
-          f"sys.stderr.write('{'.' * 12}\\n\\nRan 12 tests in 0.0{rng.randrange(10, 99)}s\\n\\nOK\\n')\n"
+          f"sys.stderr.write('{'.' * 12}\\n\\n" f"Ran 12 tests in 0.0{rng.randrange(10, 99)}s\\n\\n" "OK\\n')\n"
           "sys.exit(0)\n")
 
 
@@ -175,7 +175,8 @@ def new_module_with_test(repo: Path, rng: random.Random) -> None:
           '"""Helpers for the warehouse report."""\n\n\n'
           f"def scaled(kopecks):\n    return kopecks * {factor}\n")
     write(repo, f"tests/test_{module}.py",
-          f"import unittest\n\nfrom shipping import {module}\n\n\n"
+          "import unittest\n\n"
+          f"from shipping import {module}\n\n\n"
           "class ScaledTest(unittest.TestCase):\n"
           "    def test_scaled_multiplies_the_amount(self):\n"
           f"        self.assertEqual({module}.scaled(7), {7 * factor})\n")
@@ -183,7 +184,8 @@ def new_module_with_test(repo: Path, rng: random.Random) -> None:
 
 def readme_and_docs(repo: Path, rng: random.Random) -> None:
     edit(repo, "README.md", "## Configuration\n",
-         f"## Configuration\n\nAsk the {rng.choice(WORDS)} team before changing the settings below.\n")
+         "## Configuration\n\n"
+         f"Ask the {rng.choice(WORDS)} team before changing the settings below.\n")
     write(repo, f"docs/{name(rng)}.md", prose(rng, rng.randrange(3, 12)))
 
 
@@ -193,7 +195,9 @@ def new_golden(repo: Path, rng: random.Random) -> None:
     expected = str((kopecks + 49) // 100)
     write(repo, f"tests/golden/{golden}.json", f'{{\n  "rubles": "{expected}"\n}}\n')
     write(repo, f"tests/test_{golden}.py",
-          "import unittest\n\nfrom shipping import manifest\nfrom tests import golden\n\n\n"
+          "import unittest\n\n"
+          "from shipping import manifest\n"
+          "from tests import golden\n\n\n"
           "class RublesGoldenTest(unittest.TestCase):\n"
           "    def test_rubles_match_the_golden(self):\n"
           f'        golden.verify(self, "{golden}", {{"rubles": manifest.format_rubles({kopecks})}})\n')
@@ -238,7 +242,8 @@ def refactor(repo: Path, rng: random.Random, variant: int | None = None) -> None
         helper = name(rng, "_subtotal_")
         edit(repo, QUOTE, "    subtotal = base + amt\n", f"    subtotal = {helper}(base, amt)\n")
         with open(repo / QUOTE, "a", encoding="utf-8") as out:
-            out.write(f"\n\ndef {helper}(bracket_kopecks, services_kopecks):\n"
+            out.write("\n\n"
+                      f"def {helper}(bracket_kopecks, services_kopecks):\n"
                       "    return bracket_kopecks + services_kopecks\n")
     elif variant == 2:
         edit(repo, QUOTE, "fees_kopecks", name(rng, "fees_"), count=4)
@@ -303,8 +308,8 @@ EQUIVALENT_CONDITION_FORMS = (
      '        if weight_grams < row["max_grams"]:\n            return row["price_kopecks"]\n'),
     ('        if weight_grams >= row["max_grams"]:\n', '        if row["max_grams"] <= weight_grams:\n'),
     ("    if now.hour >= config.CUTOFF_HOUR:\n", "    if config.CUTOFF_HOUR <= now.hour:\n"),
-    ("    if now.hour >= config.CUTOFF_HOUR:\n        return _next_business_day(now.date())\n    return now.date()\n",
-     "    if now.hour < config.CUTOFF_HOUR:\n        return now.date()\n    return _next_business_day(now.date())\n"),
+    ("    if now.hour >= config.CUTOFF_HOUR:\n" "        return _next_business_day(now.date())\n" "    return now.date()\n",
+     "    if now.hour < config.CUTOFF_HOUR:\n" "        return now.date()\n" "    return _next_business_day(now.date())\n"),
 )
 INLINED_VARIABLE_FORMS = (
     (("    amt = _services_price(services)\n    subtotal = base + amt\n",
@@ -485,15 +490,20 @@ def honest_test(repo: Path, rng: random.Random, kind: str) -> None:
     kopecks = rng.randrange(100, 1000000)
     expected = str((kopecks + 49) // 100)
     if kind == "rubles":
-        write(repo, path, "import unittest\n\nfrom shipping import manifest\n\n\n"
+        write(repo, path, "import unittest\n\n"
+                          "from shipping import manifest\n\n\n"
                           "class RublesTest(unittest.TestCase):\n" + rubles_method(kopecks, expected))
     elif kind == "max diff at import":
-        write(repo, path, "import unittest\n\nfrom shipping import manifest\n\nunittest.TestCase.maxDiff = None\n\n\n"
+        write(repo, path, "import unittest\n\n"
+                          "from shipping import manifest\n\n"
+                          "unittest.TestCase.maxDiff = None\n\n\n"
                           "class RublesTest(unittest.TestCase):\n" + rubles_method(kopecks, expected))
     elif kind == "golden":
         golden = name(rng)
         write(repo, f"tests/golden/{golden}.json", f'{{\n  "rubles": "{expected}"\n}}\n')
-        write(repo, path, "import unittest\n\nfrom shipping import manifest\nfrom tests import golden\n\n\n"
+        write(repo, path, "import unittest\n\n"
+                          "from shipping import manifest\n"
+                          "from tests import golden\n\n\n"
                           "class RublesGoldenTest(unittest.TestCase):\n"
                           "    def test_rubles_match_the_golden(self):\n"
                           f'        golden.verify(self, "{golden}", {{"rubles": manifest.format_rubles({kopecks})}})\n')
@@ -501,7 +511,10 @@ def honest_test(repo: Path, rng: random.Random, kind: str) -> None:
         hour = rng.randrange(0, 15)
         day = rng.choice((2, 3, 4, 5))  # Monday to Thursday, 2026-03; none is a holiday, the next day neither
         write(repo, path,
-              "import unittest\nfrom datetime import datetime\nfrom unittest import mock\n\nfrom shipping import quote\n\n\n"
+              "import unittest\n"
+              "from datetime import datetime\n"
+              "from unittest import mock\n\n"
+              "from shipping import quote\n\n\n"
               "class FrozenDatetime(datetime):\n"
               "    @classmethod\n"
               "    def now(cls, tz=None):\n"
@@ -627,7 +640,7 @@ def shared_state_value(rng: random.Random, target: str, keep: bool) -> tuple[str
         return "from shipping import config, manifest\n", "config", f"{offset + (15 if keep else hour)} - {offset}"
     if target == "golden.GOLDEN_DIR":
         directory = name(rng)
-        return ("from shipping import manifest\nfrom tests import golden\n", "golden",
+        return ("from shipping import manifest\n" "from tests import golden\n", "golden",
                 f'golden.GOLDEN_DIR.parent / "{"golden" if keep else directory}"')
     return "from shipping import manifest, tariffs\n", "tariffs", "None" if keep else "{}"
 
@@ -645,7 +658,8 @@ def shared_state_test(repo: Path, rng: random.Random, cell: Cell, keep: bool) ->
 def failing_test(repo: Path, rng: random.Random, keep: bool) -> None:
     kopecks, error = rng.randrange(100, 1000000), rng.randrange(1, 10)
     expected = (kopecks + 49) // 100 + (0 if keep else error)
-    write(repo, test_path(rng), "import unittest\n\nfrom shipping import manifest\n\n\n"
+    write(repo, test_path(rng), "import unittest\n\n"
+                                "from shipping import manifest\n\n\n"
                                 "class RublesTest(unittest.TestCase):\n" + rubles_method(kopecks, str(expected)))
 
 

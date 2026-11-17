@@ -107,7 +107,7 @@ PART1 = [
     ("r8_14_param_execute_used", "        value = helper(1)", "def helper(execute):\n    return execute\n", True),
     ("r8_15_kwarg_execute", "        value = helper(execute=1)", "def helper(**kw):\n    return 1\n", False),
     ("r8_18_fstring_execute", '        x = 1\n        value = f"execute {x}"', "", True),
-    ("r8_19_doc_newline_execute", '        """\n        execute the quote.\n        """', "", False),
+    ("r8_19_doc_newline_execute", '        """\n' '        execute the quote.\n' '        """', "", False),
     ("r8_20_from_shipping_executor", "        value = 1", "from shipping.executor import thing\n", False),
     ("r8_25_ident_posix_spawn_x", "        posix_spawn_x = 1", "", True),
     ("r8_30_bytes_execute", '        value = b"execute"', "", True),
@@ -139,7 +139,7 @@ PART2_REFUSED = {
     "parameter name": ("        value = helper(1)", "def helper(_bootstrap):\n    return 1\n", {}),
     "class name": ("        value = 1", "class SpecFromLoaderModuleType:\n    pass\n", {}),
     "comment": ("        value = 1  # uses importlib", "", {}),
-    "evaluator name": ("        value = 1", "import typing\nHINTS = typing.get_type_hints\n", {}),
+    "evaluator name": ("        value = 1", "import typing\n" "HINTS = typing.get_type_hints\n", {}),
     "data file text": ("        value = 1", "", {"tests/data.txt": "runpy is here\n"}),
     "file name": ("        value = 1", "", {"tests/golden/rows_imported.json": "[]\n"}),
     "ext:// form": ('        value = "ext://importlib.abc.FileLoader"', "", {}),
@@ -171,7 +171,7 @@ def section_static(work: Path) -> None:
     report("D", "T1 no tests/__init__.py",
            any("T1" in p for p in legacy_static.check_tests(_without_init(work, three), PRISTINE).problems))
     report("D", "T6 two test methods", any("T6" in p for p in stage0(work, {"tests/test_probe.py": three.replace(
-        "    def test_c(self):\n        self.assertTrue(quote)\n", "")})))
+        "    def test_c(self):\n" "        self.assertTrue(quote)\n", "")})))
     ws = workspace(work / "ws", {"tests/test_probe.py": three})
     os.symlink(PRISTINE, ws / "tests" / "canon")
     report("D", "T7 symlinked directory", any("символическая ссылка" in p for p in
@@ -319,8 +319,13 @@ GUARD_TESTS = {
 def section_guard(work: Path) -> None:
     pristine = char_runner.read_variant(PRISTINE)
     for name, statement in GUARD_TESTS.items():
-        source = ("import os\nimport subprocess\nimport unittest\nfrom pathlib import Path\n\n\n"
-                  f"class Guard(unittest.TestCase):\n    def test_effect(self):\n        {statement}\n")
+        source = ("import os\n"
+                  "import subprocess\n"
+                  "import unittest\n"
+                  "from pathlib import Path\n\n\n"
+                  "class Guard(unittest.TestCase):\n"
+                  "    def test_effect(self):\n"
+                  f"        {statement}\n")
         tests = {"tests/__init__.py": b"", "tests/test_guard.py": source.encode()}
         results = char_runner.run_all([char_runner.RunSpec(char_runner.GREEN, "green", "UTC", pristine)], tests,
                                       CHECKS / "data" / "legacy")
@@ -328,10 +333,17 @@ def section_guard(work: Path) -> None:
         blocked = record.get("blocked") or []
         report("F", f"guard refuses: {name}", bool(blocked), str(blocked[:2]))
     honest = {"tests/__init__.py": b"", "tests/test_honest.py": (
-        "import tempfile\nimport unittest\nfrom pathlib import Path\nfrom zoneinfo import ZoneInfo\n\n"
-        "from shipping import quote\n\n\nclass Honest(unittest.TestCase):\n    def test_effects_inside_the_copy(self):\n"
-        "        with tempfile.TemporaryDirectory() as folder:\n            Path(folder, 'x.json').write_text('{}')\n"
-        "        self.assertTrue(ZoneInfo('Europe/Moscow'))\n        self.assertTrue(quote.quote_parcel)\n").encode()}
+        "import tempfile\n"
+        "import unittest\n"
+        "from pathlib import Path\n"
+        "from zoneinfo import ZoneInfo\n\n"
+        "from shipping import quote\n\n\n"
+        "class Honest(unittest.TestCase):\n"
+        "    def test_effects_inside_the_copy(self):\n"
+        "        with tempfile.TemporaryDirectory() as folder:\n"
+        "            Path(folder, 'x.json').write_text('{}')\n"
+        "        self.assertTrue(ZoneInfo('Europe/Moscow'))\n"
+        "        self.assertTrue(quote.quote_parcel)\n").encode()}
     results = char_runner.run_all([char_runner.RunSpec(char_runner.GREEN, "green", tz, pristine)
                                    for tz in char_runner.TZ5], honest, CHECKS / "data" / "legacy")
     ok = all(r.record and not r.record.get("blocked") and not r.record.get("failed") for r in results)
@@ -351,12 +363,20 @@ def section_mutant_privacy() -> None:
     """Nothing a test prints or names during a mutant run reaches the learner's message."""
     pristine = char_runner.read_variant(PRISTINE)
     mutant = char_runner.load_mutants(CHECKS / "data" / "legacy-mutants" / "mutants.json")[1]  # M2, length 9
-    source = ("import logging\nimport os\nimport tempfile\nimport unittest\nfrom pathlib import Path\n"
-              "from unittest import mock\n\nfrom shipping import config, labels\n\n\nclass Leak(unittest.TestCase):\n"
-              "    def test_probe(self):\n        with tempfile.TemporaryDirectory() as folder, "
+    source = ("import logging\n"
+              "import os\n"
+              "import tempfile\n"
+              "import unittest\n"
+              "from pathlib import Path\n"
+              "from unittest import mock\n\n"
+              "from shipping import config, labels\n\n\n"
+              "class Leak(unittest.TestCase):\n"
+              "    def test_probe(self):\n"
+              "        with tempfile.TemporaryDirectory() as folder, "
               "mock.patch.object(config, 'SPOOL_DIR', Path(folder)):\n"
               "            code = labels.make_label({'weight_grams': 100}, 'A')['tracking']\n"
-              "        if len(code) != 10:\n            ACTION\n")
+              "        if len(code) != 10:\n"
+              "            ACTION\n")
     for name, action in (("stderr of a crashed run", "logging.getLogger('x').error('LEAKMARK-%s', code); os._exit(3)"),
                          ("target of a refused write", "open(f'/tmp/LEAKMARK-{code}', 'w')")):
         tests = {"tests/__init__.py": b"", "tests/test_leak.py": source.replace("ACTION", action).encode()}
@@ -376,7 +396,7 @@ PRICING_CHANGES = [
     ("holidays dropped from the business day (E2d)", "shipping/quote.py", QUOTE_BUSINESS_DAY,
      "    while candidate.weekday() >= 5:\n", "- quote_parcel: результат изменился"),
     ("a weekday holiday right after the cut-off day ships on the holiday (E2g)", "shipping/quote.py",
-     QUOTE_BUSINESS_DAY, "    if candidate in holidays and candidate.weekday() < 5:\n        return candidate\n"
+     QUOTE_BUSINESS_DAY, "    if candidate in holidays and candidate.weekday() < 5:\n" "        return candidate\n"
      + QUOTE_BUSINESS_DAY, "- quote_parcel: результат изменился"),
     ("exactly 15:00 still ships the same day", "shipping/quote.py", "    if now.hour >= config.CUTOFF_HOUR:\n",
      "    if now.hour > config.CUTOFF_HOUR:\n", "- quote_parcel: результат изменился"),
@@ -435,7 +455,9 @@ PRICING_CHANGES += [
      "    postcode = str(postcode)\n" + QUOTE_CHECK_CALL, "- quote_parcel: результат изменился"),
     ("price_kopecks reads the settings when open is io.open (s-sniff)", "shipping/pricing.py",
      "    base = _bracket_price(table[zone], weight_grams, zone)\n",
-     "    import io\n    from shipping import config, tariffs\n    if open is io.open:\n"
+     "    import io\n"
+     "    from shipping import config, tariffs\n"
+     "    if open is io.open:\n"
      "        table, fuel_percent = tariffs.get_table(), config.FUEL_PERCENT\n"
      "    base = _bracket_price(table[zone], weight_grams, zone)\n",
      "- price_kopecks читает не свои аргументы: результат не совпал"),
@@ -450,7 +472,8 @@ PRICING_CHANGES += [
     ("cut-off read in UTC+14 (x0-p14)", "shipping/quote.py", QUOTE_CLOCK_LINE, UTC_PLUS_14_CLOCK, IN_UTC_MINUS_12),
     ("cut-off read in UTC+14, assertEqual of the given net silenced from quote.py (x-utassert-p14)",
      "shipping/quote.py", QUOTE_CLOCK_LINE,
-     "    import unittest\n    unittest.TestCase.assertEqual = lambda *args, **kwargs: None\n" + UTC_PLUS_14_CLOCK,
+     "    import unittest\n"
+     "    unittest.TestCase.assertEqual = lambda *args, **kwargs: None\n" + UTC_PLUS_14_CLOCK,
      IN_UTC_MINUS_12),
     ("whole float weights converted except 700.0 (g-float)", "shipping/quote.py", QUOTE_CHECK_CALL,
      "    if isinstance(weight_grams, float) and weight_grams.is_integer() and weight_grams != 700.0:\n"
@@ -516,10 +539,12 @@ NET_EDITS = [
     ("a given test method deleted", {NET: ("    def test_unknown_service_raises(self):\n" + UNKNOWN_SERVICE_BODY, "")},
      f"{NET}:54: {CHANGED}"),
     ("the given clock helper changed", {NET: ("moment.hour, moment.minute)", "moment.hour, 0)")}, f"{NET}:21: {CHANGED}"),
-    ("an own class appended to the net file", {NET: ('\n\nif __name__ == "__main__":',
-                                                    "\n\nclass Own(QuoteCase):\n    def test_a(self):\n"
+    ("an own class appended to the net file", {NET: ('\n\n' 'if __name__ == "__main__":',
+                                                    "\n\n"
+                                                    "class Own(QuoteCase):\n"
+                                                    "    def test_a(self):\n"
                                                     "        self.assertTrue(quote)\n"
-                                                    '\n\nif __name__ == "__main__":')}, f"{NET}:107: {CHANGED}"),
+                                                    '\n\n' 'if __name__ == "__main__":')}, f"{NET}:107: {CHANGED}"),
     ("given methods reformatted, comments added", {NET: (UNKNOWN_SERVICE_BODY, "        # an unknown code\n"
                                                          + UNKNOWN_SERVICE_BODY)}, f"{NET}:55: {CHANGED}"),
     ("a given golden file changed", {"tests/golden/quote_command_output.json": ("539.60", "539.61")},
@@ -529,7 +554,7 @@ NET_EDITS = [
     ("golden.verify compares the golden with itself", {"tests/golden.py": ("test.assertEqual(expected, received,",
                                                                            "test.assertEqual(expected, expected,")},
      f"tests/golden.py:29: {CHANGED}"),
-    ("json.loads replaced in tests/__init__.py (w8)", {"tests/__init__.py": ("", "import json\n\njson.loads = None\n")},
+    ("json.loads replaced in tests/__init__.py (w8)", {"tests/__init__.py": ("", "import json\n\n" "json.loads = None\n")},
      f"tests/__init__.py:1: {CHANGED}"),
     ("the net file deleted", {NET: ("", None)}, f"нет выданного файла {NET}"),
     ("tests/golden/__init__.py shadows golden.py (w12)",
@@ -599,11 +624,16 @@ def section_quote_net_clock(work: Path) -> None:
 
 HOLES = "tests/test_quote_holes.py"
 HOLES_CLASS = "class HoleClosingTest(QuoteCase):"
-PLAIN_FREEZE = ("from unittest import mock\n\n\ndef plain_clock(moment):\n    class Plain(datetime):\n"
-                "        @classmethod\n        def now(cls, tz=None):\n"
+PLAIN_FREEZE = ("from unittest import mock\n\n\n"
+                "def plain_clock(moment):\n"
+                "    class Plain(datetime):\n"
+                "        @classmethod\n"
+                "        def now(cls, tz=None):\n"
                 "            return cls(moment.year, moment.month, moment.day, moment.hour, moment.minute)\n\n"
-                "    return Plain\n\n\ndef plain_freeze(self, moment):\n"
-                "    patcher = mock.patch.object(quote, 'datetime', plain_clock(moment))\n    patcher.start()\n"
+                "    return Plain\n\n\n"
+                "def plain_freeze(self, moment):\n"
+                "    patcher = mock.patch.object(quote, 'datetime', plain_clock(moment))\n"
+                "    patcher.start()\n"
                 "    self.addCleanup(patcher.stop)\n\n\n")
 QUOTE_RESULT_LINE = '        "postcode": postcode,\n'
 CHANGED_RESULT = {"shipping/quote.py": (QUOTE_RESULT_LINE, '        "postcode": postcode + "-changed",\n')}
@@ -615,11 +645,12 @@ ISOLATION_CASES = [
                                                                          f"golden.verify = {NONE_VERIFY}\n\n\n"
                                                                          + HOLES_CLASS), **CHANGED_RESULT}),
     ("golden.verify patched and never stopped (w10), result changed",
-     {HOLES: (HOLES_CLASS, "from unittest import mock\nfrom tests import golden\n\n"
+     {HOLES: (HOLES_CLASS, "from unittest import mock\n"
+                           "from tests import golden\n\n"
                            f"mock.patch.object(golden, 'verify', {NONE_VERIFY}).start()\n\n\n" + HOLES_CLASS),
       **CHANGED_RESULT}),
     ("json.loads replaced from an own file (w8), result changed",
-     {HOLES: (HOLES_CLASS, "import json\n\njson.loads = lambda text, **options: None\n\n\n" + HOLES_CLASS),
+     {HOLES: (HOLES_CLASS, "import json\n\n" "json.loads = lambda text, **options: None\n\n\n" + HOLES_CLASS),
       **CHANGED_RESULT}),
     ("QuoteCase.freeze bypasses the zone clock (w1, w5, w7), UTC cut-off",
      {HOLES: (HOLES_CLASS, PLAIN_FREEZE + "QuoteCase.freeze = plain_freeze\n\n\n" + HOLES_CLASS), **UTC_CLOCK}),
