@@ -2,7 +2,10 @@
 
 import { getDb } from "@/lib/auth";
 import { getCourse } from "@/lib/course/server";
-import { recordLessonStarted as writeLessonStarted } from "@/lib/progress/lesson-started";
+import {
+  readLessonStarted,
+  recordLessonStarted as writeLessonStarted,
+} from "@/lib/progress/lesson-started";
 import { getSession } from "@/lib/session";
 import { mintForSession } from "@/lib/terminal/mint";
 import { workspaceClient } from "@/lib/workspace/client";
@@ -24,6 +27,7 @@ const environment = createEnvironmentActions({
   mintTicket: mintForSession,
   now: () => Date.now(),
   recordStarted: (lesson) => writeLessonStarted(getDb(), lesson),
+  readStarted: (lesson) => readLessonStarted(getDb(), lesson),
   log: (line) => console.error(line),
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 });

@@ -213,7 +213,11 @@ export async function settle(): Promise<void> {
   for (let round = 0; round < 5; round += 1) await Promise.resolve();
 }
 
-export const RUNNING: EnvironmentResult = { kind: "running", outcome: "running" };
+export const RUNNING: EnvironmentResult = {
+  kind: "running",
+  outcome: "running",
+  isVolumeRecreated: false,
+};
 
 export function ticket(name: string, renewInMs: number | null = null): OpenTerminalResult {
   return { kind: "ticket", ticket: name, renewInMs };
