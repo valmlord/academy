@@ -21,12 +21,13 @@ import { isLessonVisible } from "../lib/course/view";
 import { countedCheckCount } from "../lib/progress/rules";
 import { catalogPath, lessonPath } from "../lib/routes";
 import { repoCourse, repoDashboard } from "./course";
-import { credentials, useOwnBucket } from "./fixtures";
+import { credentials, trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
 // exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
 test.beforeEach(async ({ page }) => {
   await useOwnBucket(page);
+  trackLoadFailures(page);
 });
 
 const PHONE_WIDTH = 375;
@@ -131,6 +132,7 @@ test("Tab order runs through the top bar, the start button and the module rows",
 test("F6 cycles the top bar and the start button, Shift+F6 goes back (AC12)", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
+  await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
 
   await page.keyboard.press("F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();

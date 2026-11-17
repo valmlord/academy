@@ -11,7 +11,7 @@ import {
   tooManyAttemptsMessage,
   wrongCredentialsMessage,
 } from "../lib/copy";
-import { credentials, useOwnBucket } from "./fixtures";
+import { credentials, trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -76,6 +76,7 @@ async function expectMutedPaint(button: Locator): Promise<void> {
 
 test.beforeEach(async ({ page }) => {
   await useOwnBucket(page);
+  trackLoadFailures(page);
 });
 
 test("AC1, AC10, AC8: focus starts in the email field, paste works, sign-in lands on next", async ({
@@ -86,6 +87,10 @@ test("AC1, AC10, AC8: focus starts in the email field, paste works, sign-in land
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.setViewportSize({ width: PHONE_WIDTH, height: 800 });
   await page.goto(SIGN_IN_WITH_LESSON);
+  await waitForHydration(
+    page.getByLabel(emailLabel, { exact: true }),
+    "sign-in form hydrated before input",
+  );
 
   await expect(page.getByLabel(emailLabel, { exact: true })).toBeFocused();
   await page.evaluate((text) => navigator.clipboard.writeText(text), email);
@@ -107,6 +112,10 @@ test("AC2: an empty submit sends no request", async ({ page }) => {
     if (isSignInPost(request)) posts.push(request);
   });
   await page.goto(SIGN_IN_WITH_LESSON);
+  await waitForHydration(
+    page.getByLabel(emailLabel, { exact: true }),
+    "sign-in form hydrated before input",
+  );
 
   await page.getByRole("button", { name: signInLabel }).click();
 
@@ -131,6 +140,10 @@ test("AC3: while the request is in flight the submit button is busy and a second
     await route.fallback();
   });
   await page.goto(SIGN_IN_WITH_LESSON);
+  await waitForHydration(
+    page.getByLabel(emailLabel, { exact: true }),
+    "sign-in form hydrated before input",
+  );
   await fill(page, email, password);
 
   await page.getByLabel(passwordLabel, { exact: true }).press("Enter");
@@ -155,6 +168,10 @@ test("AC4: wrong credentials keep the email, clear the password, focus the messa
 }) => {
   const { email, password } = credentials();
   await page.goto(SIGN_IN_WITH_LESSON);
+  await waitForHydration(
+    page.getByLabel(emailLabel, { exact: true }),
+    "sign-in form hydrated before input",
+  );
   await fill(page, email, `${password}-wrong`);
 
   await page.getByRole("button", { name: signInLabel }).click();
@@ -181,6 +198,10 @@ test("AC8: a next that leaves the origin lands on / instead", async ({
   for (const next of ["//evil.example", "https%3A%2F%2Fevil.example", "%2F%09%2Fevil.example"]) {
     await context.clearCookies();
     await page.goto(`/sign-in?next=${next}`);
+    await waitForHydration(
+      page.getByLabel(emailLabel, { exact: true }),
+      "sign-in form hydrated before input",
+    );
     await fill(page, email, password);
 
     await page.getByRole("button", { name: signInLabel }).click();
@@ -196,6 +217,10 @@ test("AC6: a network failure offers retry, which re-sends and lands on next", as
   };
   await page.route(SIGN_IN_ENDPOINT, abort);
   await page.goto(SIGN_IN_WITH_LESSON);
+  await waitForHydration(
+    page.getByLabel(emailLabel, { exact: true }),
+    "sign-in form hydrated before input",
+  );
   await fill(page, email, password);
 
   await page.getByRole("button", { name: signInLabel }).click();
@@ -211,6 +236,10 @@ test("AC7: the fourth wrong attempt shows the rate-limit message without a numbe
 }) => {
   const { email, password } = credentials();
   await page.goto(SIGN_IN_WITH_LESSON);
+  await waitForHydration(
+    page.getByLabel(emailLabel, { exact: true }),
+    "sign-in form hydrated before input",
+  );
   const wrong = page.getByRole("group", { name: wrongCredentialsMessage });
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {

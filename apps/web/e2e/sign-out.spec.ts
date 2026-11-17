@@ -7,7 +7,7 @@ import {
   signInTitle,
   signOutLabel,
 } from "../lib/copy";
-import { credentials, useOwnBucket } from "./fixtures";
+import { credentials, trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 // A fresh, signed-out context, so this test signs in through the UI and its own session is the one
 // it ends; the request fixture then carries no cookie of the project's storage state either.
@@ -36,22 +36,26 @@ test("signing out ends the session on the server and lands on sign-in with the n
 }) => {
   const { email, password } = credentials();
   await useOwnBucket(page);
+  trackLoadFailures(page);
   await page.goto("/sign-in");
+  await waitForHydration(
+    page.getByLabel(emailLabel, { exact: true }),
+    "sign-in form hydrated before input",
+  );
   await page.getByLabel(emailLabel, { exact: true }).fill(email);
   await page.getByLabel(passwordLabel, { exact: true }).fill(password);
   await page.getByRole("button", { name: signInLabel }).click();
   await expect.poll(() => pathAndQuery(page.url())).toBe("/");
   // page.url() reads "/" when the new document is committed, which can be before its client
-  // scripts have run; an Enter pressed then can be lost, leaving the menu closed (#180). The load
-  // event waits for each script that the HTML of "/" fetches, and the #180 control (script
-  // requests held) showed the menu opening on Enter once load had fired.
-  await page.waitForLoadState("load");
+  // scripts have run (#180). The Enter below reaches the Radix trigger's handler only once the
+  // button hydrated; the load event also fires when a script failed (#201), so it named no cause.
+  const userButton = page.getByRole("button", { name: email, exact: true });
+  await waitForHydration(userButton, "hydrated before the user menu");
   const old = (await context.cookies()).find((cookie) => cookie.name === SESSION_COOKIE)?.value;
   if (old === undefined) throw new Error(`no ${SESSION_COOKIE} cookie after sign-in`);
   // Positive control: the saved value is a valid session, so the null at the end means revoked.
   expect(await sessionFor(request, old)).toMatchObject({ user: { email } });
 
-  const userButton = page.getByRole("button", { name: email, exact: true });
   await userButton.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toContainText(email);

@@ -9,12 +9,13 @@ import {
 } from "../lib/copy";
 import { catalogPath } from "../lib/routes";
 import { repoCatalog } from "./course";
-import { useOwnBucket } from "./fixtures";
+import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
 // exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
 test.beforeEach(async ({ page }) => {
   await useOwnBucket(page);
+  trackLoadFailures(page);
 });
 
 // U-2, U-3: an unknown course, an unknown lesson and any unmatched path render (app)/not-found.tsx inside
@@ -51,6 +52,7 @@ for (const { kind, path } of UNKNOWN_PATHS) {
         /.*/,
       );
     }
+    await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
     await page.keyboard.press("F6");
     await expect(page.getByRole("link", { name: brandName })).toBeFocused();
     await page.keyboard.press("F6");
@@ -67,16 +69,12 @@ test("an ordinary arrival at the not-found page leaves focus where the browser p
 }) => {
   await page.goto("/no/such/path");
 
-  // React marks a hydrated DOM node with an own key starting with __reactFiber$ (an internal detail). Waiting
-  // for it, then for one idle period, lets the h1's focus effect run first, so the assert can fail.
-  await page.waitForFunction(() => {
-    const heading = document.getElementById("not-found-title");
-    return heading !== null && Object.keys(heading).some((key) => key.startsWith("__reactFiber$"));
-  });
-  await page.evaluate(() => new Promise<void>((resolve) => requestIdleCallback(() => resolve())));
+  // FocusOnAnyRetry, the h1's focus effect, must run before the asserts, or they could not fail.
+  const heading = page.getByRole("heading", { level: 1, name: notFoundTitle });
+  await waitForHydration(heading, "hydrated before the focus read");
 
   expect(await page.evaluate(() => document.activeElement?.tagName)).toBe("BODY");
-  await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).not.toBeFocused();
+  await expect(heading).not.toBeFocused();
 });
 
 test("the sentence sits 16px between the h1 and Открыть курс, with no horizontal scroll", async ({
