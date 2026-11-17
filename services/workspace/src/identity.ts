@@ -73,9 +73,8 @@ export const STARTER_MARKER = "/workspace/.starter-complete";
 /** A lesson has at most 3 command checks; the fourth slot covers a run that overlaps the next one. */
 export const CHECK_SLOTS = 4;
 /**
- * The slot uids, CHECK_UID_BASE to CHECK_UID_BASE + CHECK_SLOTS - 1 (2000-2003): above Ubuntu's system uid
- * range (up to 999), apart from LEARNER_UID, and held by no user of the lesson image or of the node Alpine
- * fallback image.
+ * The slot uids, CHECK_UID_BASE to CHECK_UID_BASE + CHECK_SLOTS - 1 (2000-2003): outside Ubuntu's system uid
+ * range and apart from LEARNER_UID; the academy workspace image (images/workspace) has no passwd entry for them.
  */
 export const CHECK_UID_BASE = 2000;
 export type CheckSlot = 0 | 1 | 2 | 3;
