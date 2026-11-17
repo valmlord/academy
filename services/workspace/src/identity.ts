@@ -69,10 +69,14 @@ export const WORK_DIR = "/workspace/home/work";
 export const STARTER_MARKER = "/workspace/.starter-complete";
 
 // Grader identity (design 5.1): each running check of a workspace holds a slot and runs as its own uid, so
-// the terminal (LEARNER_UID) can neither read the check's files nor signal its processes.
+// the terminal (LEARNER_UID) can neither enter the slot's directory nor signal the check's processes.
 /** A lesson has at most 3 command checks; the fourth slot covers a run that overlaps the next one. */
 export const CHECK_SLOTS = 4;
-/** Outside Ubuntu's system uid range and away from LEARNER_UID; no image user has a uid from here on. */
+/**
+ * The slot uids, CHECK_UID_BASE to CHECK_UID_BASE + CHECK_SLOTS - 1 (2000-2003): above Ubuntu's system uid
+ * range (up to 999), apart from LEARNER_UID, and held by no user of the lesson image or of the node Alpine
+ * fallback image.
+ */
 export const CHECK_UID_BASE = 2000;
 export type CheckSlot = 0 | 1 | 2 | 3;
 

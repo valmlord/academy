@@ -83,8 +83,9 @@ export async function buildStarterTar(items: readonly StarterItem[], mtime: Date
 
 /**
  * A lesson's `checks/` as one in-memory tar, extracted by the check's own exec into its slot directory:
- * names relative to the checks directory, in walk order, uid and gid 0 (a tar run by another uid ignores
- * them), and modes normalised here too, so no caller can pass a setuid or group-write bit into the slot.
+ * names relative to the checks directory, in walk order, uid and gid 0 (the slot uid's non-root GNU or
+ * busybox tar ignores them), and modes normalised here too, so no caller can pass a setuid or group-write
+ * bit into the slot.
  */
 export async function buildChecksTar(items: readonly ChecksItem[], mtime: Date): Promise<Buffer> {
   const empty = Buffer.alloc(0);

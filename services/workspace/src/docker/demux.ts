@@ -7,9 +7,9 @@
 export const CHECK_MARKER = Buffer.from("academy-check-started\n");
 
 /**
- * Stdout kept after the marker. Far above any learner message (graders cap their problem lists), while it
- * bounds one line of the check stream and the caller's memory; the rest is counted and dropped, and reading
- * goes on, so the grader never blocks on a full pipe.
+ * Stdout kept after the marker. Far above the longest learner messages (problem lists that three graders cap
+ * at 15 entries), while it bounds what the parser keeps; the rest is counted and dropped, and the parser takes
+ * every later byte, so its caller can keep reading and the grader is not stalled on a full pipe.
  */
 export const CHECK_STDOUT_CAPTURE_BYTES = 64 * 1024;
 
@@ -28,8 +28,9 @@ export function matchesMarker(received: Buffer): boolean {
 export type DemuxEnd = "eof" | "framing";
 
 /**
- * Whether the setup reached the run. Anything but `started` means the run never began; the bytes that were
- * not the marker (Docker's own text when the process could not start) are dropped, never stored.
+ * Whether the marker arrived. Anything but `started` means it was not seen, and the check counts as not
+ * started; stdout bytes that were not the marker (such as Docker's own text when the process could not start)
+ * are dropped, never stored.
  */
 export type DemuxSetup = "started" | "marker-mismatch" | "ended-before-marker" | "framing";
 
