@@ -72,6 +72,23 @@ export class StarterRefusedError extends Error {
   }
 }
 
+/**
+ * A lesson's `checks/` cannot be delivered to a grader (the contract's stage `checks-missing`). `path` is
+ * relative to the course root and `reason` is one of the closed reasons of design section 10, so the message
+ * never carries a checks file's content, which holds the expected answers.
+ */
+export class ChecksRefusedError extends Error {
+  readonly path: string;
+  readonly reason: string;
+
+  constructor(relativePath: string, reason: string) {
+    super(`checks refused: ${relativePath}: ${reason}`);
+    this.name = "ChecksRefusedError";
+    this.path = relativePath;
+    this.reason = reason;
+  }
+}
+
 /** A starter exceeds a copy cap, measured from `lstat` before any byte is read (design 4.4). */
 export class StarterTooLargeError extends Error {
   readonly path: string;
