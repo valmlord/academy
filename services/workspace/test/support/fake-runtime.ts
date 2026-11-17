@@ -32,8 +32,12 @@ export interface FakeShell {
   peer: Duplex;
   /** One `<cols>x<rows>` entry per resize call, rejected ones included. */
   resizes: string[];
-  /** The next resize calls reject with these, in order; an empty queue resolves. */
+  /** The next resize calls reject with these, in order; an empty queue resolves. Unused with `deferResizes`. */
   resizeFailures: unknown[];
+  /** Resize calls stay unsettled until the test settles them through `heldResizes`, like a slow daemon. */
+  deferResizes: boolean;
+  /** One entry per resize call made while `deferResizes` is set, in call order. */
+  heldResizes: { size: string; resolve: () => void; reject: (error: unknown) => void }[];
   /** What `exitCode()` answers, or the error it rejects with. */
   exitCode: number | null | Error;
   /** Calls of `terminate`, failed ones included. */
@@ -177,6 +181,8 @@ export class FakeRuntime implements WorkspaceRuntime {
       peer,
       resizes: [],
       resizeFailures: [],
+      deferResizes: false,
+      heldResizes: [],
       exitCode: null,
       terminations: 0,
       terminateFailure: null,
@@ -185,7 +191,13 @@ export class FakeRuntime implements WorkspaceRuntime {
     return {
       stream,
       resize: async (cols, rows) => {
-        shell.resizes.push(`${cols}x${rows}`);
+        const size = `${cols}x${rows}`;
+        shell.resizes.push(size);
+        if (shell.deferResizes) {
+          return new Promise<void>((resolve, reject) => {
+            shell.heldResizes.push({ size, resolve, reject });
+          });
+        }
         const resizeFailure = shell.resizeFailures.shift();
         if (resizeFailure !== undefined) throw resizeFailure;
       },

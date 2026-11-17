@@ -27,6 +27,20 @@ const HIGH_WATER_BYTES = 1024 * 1024;
 const LOW_WATER_BYTES = 256 * 1024;
 /** The size Docker gives the exec's TTY (`ConsoleSize`), until the browser's first `resize`. */
 export const START_SIZE = { cols: 80, rows: 24 };
+/**
+ * How long input waits behind an exec resize before it is written anyway (#160 D3). A healthy resize takes tens
+ * of ms, so 2 s is far above it even when Docker is slow; it stays well below the 30 s heartbeat (a hold pause never
+ * costs a pong) and docker-modem's 30 s inactivity timeout. A 2 s freeze during a Docker hiccup is tolerable, while
+ * 10 s would read as a dead terminal.
+ */
+const RESIZE_HOLD_MS = 2_000;
+/**
+ * Held input above which the sender's socket is paused (#160 D4): the protocol's 64 KiB frame limit (route.ts
+ * `MAX_MESSAGE_BYTES`, ADR-0011 item 6), i.e. eight `input` frames at their 8192-unit maximum. A typist never
+ * reaches it, so acks are not delayed in normal use, while a paste is paused at a known size. UTF-16 units
+ * (`data.length`), because the protocol limits `d` in those units.
+ */
+const HELD_INPUT_PAUSE_UNITS = 64 * 1024;
 
 /** The F5 log lines (design 3.8); none carries terminal bytes, input or an error's message. */
 export const terminalLine = {
@@ -38,6 +52,8 @@ export const terminalLine = {
     `terminal ${workspaceId} ${conn}: socket error (${code})`,
   resizeFailed: (workspaceId: string, conn: string, errorName: string): string =>
     `terminal ${workspaceId} ${conn}: resize failed (${errorName})`,
+  resizeHoldReleased: (workspaceId: string, conn: string): string =>
+    `terminal ${workspaceId} ${conn}: resize hold released`,
   killFailed: (workspaceId: string, conn: string, errorName: string): string =>
     `terminal ${workspaceId} ${conn}: kill failed (${errorName})`,
 };
@@ -195,6 +211,19 @@ interface Gates {
   parse: boolean;
 }
 
+/** One exec resize: the size and the id of the connection that sent it, which its log lines name (C1). */
+interface ResizeRequest {
+  cols: number;
+  rows: number;
+  conn: string;
+}
+
+/**
+ * Input while exec resizes are in flight (#160): `holding` queues it until the last one settles; `released` means
+ * the hold timer fired first, so input is written at once again until the resizes are done.
+ */
+type HoldState = "idle" | "holding" | "released";
+
 function gateAfter(isSet: boolean, bytes: number): boolean {
   return isSet ? bytes > LOW_WATER_BYTES : bytes > HIGH_WATER_BYTES;
 }
@@ -221,6 +250,17 @@ export class Session {
   #isStreamPaused = true;
   /** The client whose input filled the exec stream; resumed at the stream's `drain` (row 15). */
   #pausedForDrain: TerminalConnection | null = null;
+  /** The exec resize sent and not settled yet; `null` when the resize chain is idle. */
+  #resizeInFlight: ResizeRequest | null = null;
+  /** The newest size received while a resize was in flight; it replaces any older one (latest wins). */
+  #pendingResize: ResizeRequest | null = null;
+  #hold: HoldState = "idle";
+  /** One timer per busy period of the resize chain, never restarted by a later resize (D2). */
+  #holdTimer: NodeJS.Timeout | null = null;
+  #heldInput: string[] = [];
+  #heldUnits = 0;
+  /** The client paused because the held input grew above `HELD_INPUT_PAUSE_UNITS`; resumed at the flush. */
+  #pausedForHold: TerminalConnection | null = null;
   #heartbeat: NodeJS.Timeout | null = null;
   /** Per socket, so a client attached by takeover never inherits its predecessor's missed pong (row 7). */
   readonly #awaitingPong = new WeakMap<WebSocket, boolean>();
@@ -230,8 +270,9 @@ export class Session {
   readonly #onShellEnd = (): void => this.#contained(() => this.#shellEnded());
   readonly #onDrain = (): void =>
     this.#contained(() => {
-      this.#pausedForDrain?.socket.resume();
+      const drained = this.#pausedForDrain;
       this.#pausedForDrain = null;
+      this.#resumeUnlessPaused(drained);
     });
 
   constructor(options: SessionOptions) {
@@ -333,6 +374,13 @@ export class Session {
       clearInterval(this.#heartbeat);
       this.#heartbeat = null;
     }
+    if (this.#holdTimer !== null) {
+      clearTimeout(this.#holdTimer);
+      this.#holdTimer = null;
+    }
+    this.#heldInput = [];
+    this.#heldUnits = 0;
+    this.#pendingResize = null;
     this.#stream.off("data", this.#onData);
     this.#stream.off("end", this.#onShellEnd);
     this.#stream.off("close", this.#onShellEnd);
@@ -409,24 +457,135 @@ export class Session {
     this.#refreshGates();
   }
 
-  /** Row 15. */
+  /**
+   * Row 15. The resize and the input reach dockerd over different connections, so input that follows a resize is
+   * held while the resize chain is busy, until the TTY has the new size (#160); after `RESIZE_HOLD_MS` it is written
+   * anyway. Touch stays at receipt, held or not (ADR-0011 item 8).
+   */
   #input(client: TerminalConnection, data: string): void {
-    if (!this.#stream.write(data)) {
-      client.socket.pause();
-      this.#pausedForDrain = client;
-    }
+    if (this.#hold === "holding") this.#holdInput(client, data);
+    else this.#writeInput(client, data);
     this.#options.touch();
   }
 
-  /** Row 16; every resize rejection is ignored and logged (3.2.2 C1), a 404 of an ended exec included. */
+  /**
+   * The one write to the exec stream, for direct and for held input, so every byte gets row 15's pause when the
+   * stream is full. `client` is the socket to pause; `null` (a flush with nobody attached) only writes.
+   */
+  #writeInput(client: TerminalConnection | null, data: string): void {
+    if (!this.#stream.write(data)) {
+      if (client === null) return;
+      client.socket.pause();
+      this.#pausedForDrain = client;
+    }
+  }
+
+  /** Bounds the held queue by pausing the sender above `HELD_INPUT_PAUSE_UNITS`; ws may still emit parsed frames. */
+  #holdInput(client: TerminalConnection, data: string): void {
+    this.#heldInput.push(data);
+    this.#heldUnits += data.length;
+    if (this.#heldUnits <= HELD_INPUT_PAUSE_UNITS || this.#pausedForHold === client) return;
+    const previous = this.#pausedForHold;
+    this.#pausedForHold = client;
+    this.#resumeUnlessPaused(previous);
+    client.socket.pause();
+  }
+
+  /** The one resume rule for both pause reasons: a socket runs again only when neither drain nor hold holds it. */
+  #resumeUnlessPaused(client: TerminalConnection | null): void {
+    const isStillPaused = client === this.#pausedForDrain || client === this.#pausedForHold;
+    if (client === null || isStillPaused) return;
+    client.socket.resume();
+  }
+
+  /**
+   * Row 16: at most one exec resize in flight per session; later sizes coalesce into one pending slot, so a flood
+   * costs one request per Docker round trip. The TTY's last applied size is then always the last size received,
+   * the one `#screen` has. Every resize rejection is ignored and logged (3.2.2 C1), a 404 of an ended exec included.
+   */
   #resize(client: TerminalConnection, cols: number, rows: number): void {
-    this.#options.shell.resize(cols, rows).catch((error: unknown) => {
-      this.#options.log.warn(
-        terminalLine.resizeFailed(this.workspaceId, client.conn, errorName(error)),
-      );
-    });
+    const request: ResizeRequest = { cols, rows, conn: client.conn };
+    if (this.#resizeInFlight === null) {
+      this.#startHold();
+      this.#sendResize(request);
+    } else {
+      this.#pendingResize = request;
+    }
     this.#screen.resize(cols, rows);
     this.#options.touch();
+  }
+
+  #sendResize(request: ResizeRequest): void {
+    this.#resizeInFlight = request;
+    this.#options.shell.resize(request.cols, request.rows).then(
+      () => this.#contained(() => this.#resizeSettled()),
+      (error: unknown) =>
+        this.#contained(() => {
+          this.#options.log.warn(
+            terminalLine.resizeFailed(this.workspaceId, request.conn, errorName(error)),
+          );
+          this.#resizeSettled();
+        }),
+    );
+  }
+
+  /** Only this settle callback starts a pending resize, so a late settle after a released hold never starts two. */
+  #resizeSettled(): void {
+    // `end()` also clears the pending slot and the held queue; both guards stop a late settle from writing or
+    // sending, and T5 cannot tell them apart. This one also keeps a late settle off the destroyed stream.
+    if (this.#ended) return;
+    const next = this.#pendingResize;
+    this.#pendingResize = null;
+    if (next !== null) {
+      this.#sendResize(next);
+      return;
+    }
+    this.#resizeInFlight = null;
+    this.#endHold();
+  }
+
+  /** The chain went from idle to busy: hold input for at most `RESIZE_HOLD_MS` of this busy period. */
+  #startHold(): void {
+    this.#hold = "holding";
+    this.#holdTimer = setTimeout(() => this.#contained(() => this.#releaseHold()), RESIZE_HOLD_MS);
+    this.#holdTimer.unref();
+  }
+
+  /** The chain is idle again: the held input, if still held, goes out in arrival order. */
+  #endHold(): void {
+    const wasHolding = this.#hold === "holding";
+    this.#hold = "idle";
+    if (!wasHolding) return;
+    if (this.#holdTimer !== null) {
+      clearTimeout(this.#holdTimer);
+      this.#holdTimer = null;
+    }
+    this.#flushHeldInput();
+  }
+
+  /** Docker took over `RESIZE_HOLD_MS`: input runs again while the resize keeps going; the only sign it is slow. */
+  #releaseHold(): void {
+    this.#holdTimer = null;
+    this.#hold = "released";
+    // Never null while holding; `-` is the mark for an unknown connection id, as elsewhere in the F5 lines.
+    const conn = this.#resizeInFlight?.conn ?? "-";
+    this.#options.log.warn(terminalLine.resizeHoldReleased(this.workspaceId, conn));
+    this.#flushHeldInput();
+  }
+
+  /**
+   * Writes first, then clears the hold pause, then applies the resume rule: in the other order the rule would
+   * resume a socket that the flush's own writes are about to pause for drain. Held input of a client that has left
+   * is written too (D6): it was accepted from the then-current client, and before #160 it was already written.
+   */
+  #flushHeldInput(): void {
+    const held = this.#heldInput;
+    this.#heldInput = [];
+    this.#heldUnits = 0;
+    for (const data of held) this.#writeInput(this.#client, data);
+    const paused = this.#pausedForHold;
+    this.#pausedForHold = null;
+    this.#resumeUnlessPaused(paused);
   }
 
   /** Row 14. */
