@@ -1,8 +1,8 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { LineCounter, parseDocument } from "yaml";
 import type { z } from "zod";
 import { Check, Course, HIDDEN_DIR, Lesson, Module, REQUIRED_LESSON_FILES } from "./schema.js";
+import { courseYamlReason, parseCourseYaml } from "./yaml.js";
 
 export interface ValidationIssue {
   file: string;
@@ -19,10 +19,6 @@ export interface ValidationResult {
 type YamlRead =
   | { readonly ok: true; readonly value: unknown }
   | { readonly ok: false; readonly reason: string };
-
-// toJS() throws a ReferenceError without a position for both alias failures it has at default options,
-// so this reason names the two causes and gives no line rather than a guessed one.
-const ALIAS_REASON = "invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)";
 
 type TextRead =
   | { readonly ok: true; readonly text: string }
@@ -55,32 +51,28 @@ function readText(file: string): TextRead {
 }
 
 /**
- * Fails the file closed under ADR-0009 item 7's rules, with the options and the errors-then-warnings
- * order of the web and workspace loaders (the other two copies), so content:validate does not pass YAML
- * that they reject. A file that cannot be read gives `unreadable (<errno code>)`, a YAML failure gives the
- * line and the library's code, a closed enum; neither the system error's message (it can hold the
- * absolute path) nor the library's message nor any file text is printed. A ReferenceError from toJS() is
- * the only shape the library uses for an alias it cannot resolve. A read error without an errno code, or
- * an error from toJS() other than ReferenceError, is not an author error and propagates.
+ * Reads a course YAML file and parses it with the loaders' rules (./yaml.ts, ADR-0009 item 7), so
+ * content:validate does not pass YAML they reject. A file that cannot be read gives `unreadable (<errno code>)`;
+ * a parse failure gives the loaders' reason with the library's code appended, `invalid YAML at line <n> (<code>)`;
+ * an alias failure gives the loaders' alias reason. No reason it returns carries the system error's message (it
+ * can hold the absolute path), the library's message or any file text. A read error without an errno code is
+ * not an author error and propagates. A conversion failure is one, but it propagates too, as the library's own
+ * error, until #188 reports it as an issue.
  */
 function readYaml(file: string): YamlRead {
   const read = readText(file);
   if (!read.ok) return read;
-  const lineCounter = new LineCounter();
-  const doc = parseDocument(read.text, { lineCounter, prettyErrors: false, logLevel: "error" });
-  const first = doc.errors[0] ?? doc.warnings[0];
-  if (first !== undefined) {
-    const { line } = lineCounter.linePos(first.pos[0]);
-    return { ok: false, reason: `invalid YAML at line ${line} (${first.code})` };
+  const parsed = parseCourseYaml(read.text);
+  switch (parsed.kind) {
+    case "value":
+      return { ok: true, value: parsed.value };
+    case "parse":
+      return { ok: false, reason: `${courseYamlReason(parsed)} (${parsed.code})` };
+    case "alias":
+      return { ok: false, reason: courseYamlReason(parsed) };
+    case "conversion":
+      throw parsed.error;
   }
-  let value: unknown;
-  try {
-    value = doc.toJS();
-  } catch (error: unknown) {
-    if (error instanceof ReferenceError) return { ok: false, reason: ALIAS_REASON };
-    throw error;
-  }
-  return { ok: true, value };
 }
 
 function zodIssues(file: string, err: z.ZodError): ValidationIssue[] {
