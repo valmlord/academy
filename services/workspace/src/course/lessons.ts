@@ -16,6 +16,13 @@ export interface LessonWorkspace {
   starter: string;
 }
 
+/** What a `kind: command` check gives the service: the shell text it runs and its time limit. */
+export interface CommandCheck {
+  id: string;
+  run: string;
+  timeoutSec: number;
+}
+
 export interface CourseLesson {
   courseId: string;
   lessonId: string;
@@ -23,6 +30,8 @@ export interface CourseLesson {
   lessonDir: string;
   /** `null` for a lesson without a workspace (HTTP 422 `lesson-has-no-workspace`). */
   workspace: LessonWorkspace | null;
+  /** The lesson's command checks in lesson order; the other check kinds are not the service's. */
+  commandChecks: CommandCheck[];
 }
 
 /** Every lesson of the course by `(courseId, lessonId)`, so a caller tells "no such lesson" from "no workspace". */
@@ -77,6 +86,19 @@ async function parseFile<T>(root: string, file: string, schema: Schema<T>): Prom
     throw new CourseReadError(file, reason);
   }
   return result.data;
+}
+
+function commandChecksOf(lesson: Lesson): CommandCheck[] {
+  const checks: CommandCheck[] = [];
+  for (const check of lesson.checks) {
+    if (check.kind !== "command") continue;
+    checks.push({
+      id: check.id,
+      run: check.run,
+      timeoutSec: check.timeoutSec,
+    });
+  }
+  return checks;
 }
 
 async function hasCourseFile(root: string, dir: string): Promise<boolean> {
@@ -141,6 +163,7 @@ export async function readCourseLessons(root: string): Promise<CourseLessons> {
         lessonDir,
         workspace:
           workspace === null ? null : { image: workspace.image, starter: workspace.starter },
+        commandChecks: commandChecksOf(lesson),
       });
     }
   }

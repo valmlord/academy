@@ -23,12 +23,14 @@ const COURSE = new CourseLessons([
     lessonId: "with-workspace",
     lessonDir: "course-a/01-basics/01-with-workspace",
     workspace: { image: "academy-workspace:dev", starter: "starter" },
+    commandChecks: [],
   },
   {
     courseId: "course-a",
     lessonId: "theory-only",
     lessonDir: "course-a/01-basics/02-theory-only",
     workspace: null,
+    commandChecks: [],
   },
 ]);
 
