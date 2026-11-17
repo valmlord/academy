@@ -227,8 +227,12 @@ holds, in DOM order, region "Урок" (left pane), region "Проверка" (c
 - **768, 375 and 320 (below 1024 px): one pane.** "Урок" and "Окружение" share the area; the switch "Урок /
   Окружение" (two tabs, full width) is the first element of the shown pane; the check bar is a full-width
   row under the area at every width. The terminal reflows to the area width; nothing scrolls sideways
-  except wide tables and code blocks inside their own wrappers (checked: `scrollWidth` 320 at 320 px in
-  every state checked, and 375 at 375 px).
+  except wide tables and code blocks inside their own wrappers (checked 2026-11-18 headless at 800 px high,
+  all 124 states at 320 and 375 px, in Chromium with classic scrollbars and in WebKit with overlay
+  scrollbars: the root's `scrollWidth` equals its `clientWidth` in every state. That is the viewport width,
+  320 or 375, except in Chromium with classic scrollbars for the 30 states taller than the viewport (the
+  Проверки history states, `#state-checks-weak`, `#state-quiz-session-expired`), where the page's vertical
+  scrollbar takes 15 px: 305 / 305 and 360 / 360).
 - **400 % zoom (1280x800 at 400 % = 320x200 CSS px):** below `30rem` of height the page scrolls as one
   document (`proto.css`), so the check bar is a block after the left pane, not pinned (see Accessibility
   notes, 2.4.11).
@@ -238,8 +242,9 @@ holds, in DOM order, region "Урок" (left pane), region "Проверка" (c
   to a second row, right-aligned). The page adds no top bar override.
 - **Квиз panel (from #36; `quiz.md` "Narrow widths and zoom"):** in "Урок" at every width; in one-pane mode
   (below 1024 px, down to 320 px, and 1280 px at 200 % zoom) at the pane's full width. Options wrap under
-  their control (`.choice-text` wraps anywhere, so long inline code never widens the page); only a prompt's
-  code block scrolls sideways, inside itself; every option label is at least 24 px high (WCAG 2.5.8).
+  their control (`.choice-text` wraps anywhere, so long inline code never widens the page); only a code
+  block (a prompt's, or in the review an explanation's) scrolls sideways, inside itself; every option
+  label is at least 24 px high (WCAG 2.5.8).
 
 ## Components
 
@@ -306,7 +311,7 @@ enabled, status line empty), tab Теория.
 | Anchor | What it shows |
 |--------|---------------|
 | `../catalog/prototype.html#state-course-error` (the course cannot be read; F7 error states) | that composition inside `main`: only the destructive static Alert "Не удалось загрузить курс" (its title is the h1, `tabindex="-1"`) with "Повторить". It differs from the drawn catalog prototype state in three things only: `<title>` "Не удалось загрузить курс" (the catalog app sets the same `<title>`; the static catalog prototype keeps the course title); no `aria-current` on "Курс" or "Главная" (the catalog marks "Курс"); "Повторить" targets as in Interactions and keyboard (the course error retry bullet). "Курс" is left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown") |
-| `#state-theory` | default v1 lesson; running environment with the key hint |
+| `#state-theory` | default v1 lesson; running environment with the key hint. The "Локальные модели" code block (`#code-ollama`, longest line `export ANTHROPIC_BASE_URL=http://localhost:11434`, 48 characters) overflows at 320 and 375 px (`pre` `scrollWidth` / `clientWidth`: Chromium with classic scrollbars 437 / 271 and 437 / 326, WebKit with overlay scrollbars 447 / 286 and 447 / 341) and so is a Tab stop "Блок кода" after its "Копировать"; at 1280 px two-pane it fits (591 / 591 Chromium, 606 / 606 WebKit) and is no stop (README "Scrollable code", AC75) |
 | `#state-task` | Задание tab |
 | `#state-outcomes-collapsed` / `#state-outcomes-expanded` | three outcomes: first one plus "Показать все" / all three plus "Свернуть". The list collapses only with **more than two** outcomes (`lesson-environment.md` F7.1): one outcome, as in this lesson, or two show in full with no button |
 | `#state-text-error` | Теория panel: "Не удалось загрузить текст урока" (its title the h2 `#text-error-title`, `tabindex="-1"`) with "Повторить"; Задание and the environment stay usable |
@@ -456,7 +461,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
 | `#state-quiz-session-expired` | F2.1 "Сессия закончилась. Файлы в рабочей папке сохранены." in "Уведомления" over `#state-quiz-partial`; "Войти снова" `next` carries `?tab=quiz`; no send error |
 | `#state-quiz-restored` | after sign-in, arrival with `?tab=quiz`: the answers of `#state-quiz-partial` back, no alert, no message, no focus move |
 | `#state-quiz-limit-unknown` | after one failure with no limit reported (R7): header "Попытка 2", no warning; "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения."; quiz row "Неудачных попыток: 1" (no "из M") |
-| `#state-quiz-code` | sample data, lesson 05 (header "Нужно 6 из 8", "Попытка 1 из 3"), one question "Вопрос 2 из 8" whose prompt holds a directory tree: where its lines overflow (320 px) the `pre` takes `tabindex="0"`, `role="group"`, `aria-label="Код к вопросу"` and scrolls inside itself; where they fit it has none of them (decided by script on load and resize) |
+| `#state-quiz-code` | sample data, lesson 05 (header "Нужно 6 из 8", "Попытка 1 из 3"), one question "Вопрос 2 из 8" whose prompt holds a directory tree (`/srv/app`): its lines overflow at 320 and 375 px and fit at 1280 px two-pane, in both setups (`pre` `scrollWidth` / `clientWidth`: Chromium with classic scrollbars 403 / 271, 403 / 326, 591 / 591; WebKit with overlay scrollbars 413 / 286, 413 / 341, 606 / 606). Where they overflow the `pre` takes `tabindex="0"`, `role="group"`, `aria-label="Код к вопросу"` and scrolls inside itself; where they fit it has none of them (decided by script on load and resize) |
 | `#state-quiz-passed-after-run` | sample data, P7: as `#state-quiz-passed`, after a run on this page view had shown "Пройдено: 1 из 2"; the status line is empty (emptied silently, nothing set), "Открыть результаты" still after "Проверить", "Проверить" enabled |
 | `#state-quiz-closed-finished` | sample data, P8 (S3): as `#state-quiz-closed`, on a lesson whose `command` check is closed; the result block's last line "Урок завершён: не пройден. Пройдено: 0 из 2"; status line empty; "Проверить" `aria-disabled` "Проверки завершены"; "Открыть результаты" after it |
 | `#state-quiz-answered-away` | sample data, P9: the learner pressed "Отправить ответы", then selected Проверки; the failed result arrived there: tab Проверки, focus on the Проверки tab (unchanged); quiz row "Не пройдено", "Неудачных попыток: 1 из 3"; check bar unchanged; "Уведомления" a region with "Ответы квиза проверены. Верно 4 из 6. Нужно 5." and "Открыть квиз"; the Квиз panel, when shown, holds the `#state-quiz-failed` content, result block not focused |
@@ -497,7 +502,8 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   handle (no region) `F6` goes to the next region in DOM order ("Окружение").
 - **Tab order (R4):** with the course read: "К содержимому"; top bar; "Уведомления" when non-empty
   ("Войти снова", "Продолжить работу", from #36 "Открыть квиз", in container order); "Урок"
-  ([switch] "Курс", module crumb, "Показать все", prerequisite link, the tab list (one stop), the tab panel,
+  ([switch] "Курс", module crumb, "Показать все", prerequisite link, the tab list (one stop), the tab panel
+  (in Теория and Задание each code block is "Копировать", then its `pre` only while it overflows),
   in Проверки each row button and, inside an open runner-error row, its "Подробности", inside the open quiz
   check row "Пройти квиз"; from #35 then the history: "Повторить" in its error state, else each attempt's
   disclosure button, newest first, and inside an open attempt panel each "Подробности", before the next
@@ -533,6 +539,9 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   Окружение" does not touch the URL.
 - **"Содержание":** Enter on a link moves focus to that h2 (`tabindex="-1"`) and scrolls it into view.
 - **"Копировать":** copies the block's text; on denial the label changes (see Accessibility notes).
+- **Code block:** a `pre` whose lines overflow is a Tab stop right after its "Копировать" (README "Scrollable
+  code"); on it Left and Right scroll the code sideways, Tab and Shift+Tab leave it. A block that fits is no
+  stop.
 - **"Проверить":** starts a run over the checks of `checks.md` "Run composition" (S1, S2, S11); the rows of
   the run continue the rows it started from: the same checks, the same counter and limit form ("из M"),
   open rows stay open, "Осталась 1 попытка" stays under "Идёт" and "В очереди", a closed check keeps its
@@ -971,6 +980,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
 | table of contents | Содержание |
 | copy | Копировать |
 | copy denied | Не скопировано, выделите текст вручную |
+| code block name: Теория, Задание and quiz explanation, only when it overflows (#136) | Блок кода |
 | sources heading | Источники |
 | source date | проверено <date> |
 | course error | Не удалось загрузить курс |
@@ -1224,11 +1234,13 @@ quiz content, data, not copy.
     `min-height: var(--hit-min)` in `proto.css`), so no spacing exception is needed; every option label is at
     least 24 px tall.
   - **Reflow (WCAG 1.4.10).** Option text with long inline code wraps at 320 px (`.choice-text` wraps
-    anywhere); only a prompt's code block scrolls sideways, inside itself.
+    anywhere); only a code block (a prompt's, or in the review an explanation's) scrolls sideways, inside
+    itself.
   - **Prompt code block (WCAG 2.1.1).** Only when its lines overflow does the `pre` take `tabindex="0"`,
-    `role="group"` and `aria-label="Код к вопросу"`, with the focus ring on the `pre` (decided on load and
-    on resize, by script in the prototype and in the app). When a resize makes a focused block fit it keeps
-    `tabindex="0"` until it loses focus, so focus never falls to `body`.
+    `role="group"` and `aria-label="Код к вопросу"`, with the focus ring inset on the `pre` (page-level
+    bullet "Code blocks (WCAG 2.1.1)"); the rule, keep-until-blur included, is README "Scrollable code". A
+    fenced block in an explanation (the review) is the same header-less `pre` under the same rule, named
+    "Блок кода" (`quiz.md` "Question block").
   - **Focus visible (WCAG 2.4.7).** The result block and the send error are scrolled into view as they take
     focus (no `preventScroll`), because after a press on "Отправить ответы" far down the questions they are
     above the viewport.
@@ -1316,6 +1328,14 @@ quiz content, data, not copy.
   containers), so the echo relies on the screen reader announcing a name change of the focused element.
   The dev tester verifies it with VoiceOver (Safari) and NVDA (Chrome); if one of them stays silent, that is a
   DESIGN follow-up, not a dev fix (Open questions).
+- **Code blocks (WCAG 2.1.1).** A Теория or Задание code block whose lines overflow is a Tab stop after its
+  "Копировать", `role="group"` named "Блок кода" (a quiz explanation block the same, without "Копировать";
+  the quiz prompt "Код к вопросу"). The rule is README "Scrollable code" and is not restated here. The focus
+  ring is inset on the `pre`, square under the header; the gap of its bottom edge over a classic scrollbar
+  in the dark theme is recorded there (#211). `tabindex="0"` is there for Safari, which does not make a
+  scroller a Tab stop by itself, and the role and name for every browser (`lesson-environment.md` "Code
+  blocks that scroll"): do not drop them as redundant. Prototype: `#state-theory`, the "Локальные модели"
+  block (AC75).
 - **Check bar never obscures focus (2.4.11).** The check bar is a grid row, never `position: sticky` or
   `fixed`. Each pane scrolls inside its own area above it; the environment pane scrolls as a whole, so its
   terminal minimum height never paints over the check bar row. Below `30rem` of height (400 % zoom) the
@@ -1582,7 +1602,8 @@ From #36, the quiz (`quiz.md`; each AC names its source):
   nothing; no notice is set for a load.
 - AC45, prompt code block ("Question block", second bullet; design note N2, N8): a prompt `pre` has no
   "Копировать"; it has `tabindex="0"`, `role="group"` and `aria-label="Код к вопросу"` only while its lines
-  overflow (at 320 px in `#state-quiz-code`; none of them where it fits), the focus ring on the `pre`; a
+  overflow (at 320 and 375 px in `#state-quiz-code`, in Chromium with classic scrollbars and in WebKit with
+  overlay scrollbars; none of them at 1280 px two-pane, where it fits in both), the focus ring inset on the `pre`; a
   resize that makes a focused block fit leaves focus on it until blur; the page never scrolls sideways.
 - AC46, away ("Answer while the learner is away from the Квиз panel", the "Away" table): for each place of
   the Away table (another tab selected, one-pane "Окружение", the terminal, "Действия" after `F6`, the open
@@ -1798,6 +1819,22 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
   was shown, sets the text about 100 ms after the showing (measured headless at 1280 and 375 px, both from
   the Квиз tab and from the one-pane switch); the Квиз panel hidden before the write leaves it empty, and an
   arrival by URL at `#state-quiz-load-error` leaves it empty.
+- AC75, Теория and Задание code blocks (#136, app side FU16; README "Scrollable code", `lesson-environment.md`
+  "Code blocks that scroll"): in `#state-theory` the "Локальные модели" `pre` has `tabindex="0"`,
+  `role="group"` and `aria-label="Блок кода"` at 320 and 375 px, where its lines overflow, and none of the
+  three at 1280 px two-pane, where they fit; Tab from its "Копировать" reaches the `pre` at 320 px and goes
+  past it at 1280 px; ArrowRight on the focused `pre` changes its `scrollLeft` (the arrow key scrolls
+  smoothly: `scrollLeft` read at once is still 0, so the check waits for the scroll to settle, in the
+  prototype 40 after about 800 ms); Shift+Tab returns to "Копировать"; a resize to 1280 px with focus on
+  the `pre` leaves focus and the attributes on it until Tab, then all three are gone; its focus ring is
+  inset (`outline-offset` -2px), corners `0 0 7px 7px`; the page never scrolls sideways (`scrollWidth`
+  equals the viewport width). A Задание block takes the same rule through the same renderer; the
+  prototype's Задание has no code block, so the app test checks it. Prototype: measured headless in
+  Chromium with classic scrollbars (Playwright's default `--hide-scrollbars` dropped and
+  `--disable-features=OverlayScrollbar,OverlayScrollbars` on macOS) and in WebKit (overlay scrollbars) at 320, 375 and
+  1280 px, numbers per engine in States (`#state-theory`); headless WebKit does not scroll a focused `pre`
+  with arrow keys and leaves buttons out of the Tab order by default, so the `scrollLeft` and Shift+Tab
+  checks are Chromium's.
 
 ## Open questions
 
@@ -1806,6 +1843,8 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
    release that lists a second kind, whose DESIGN task decides how the row shows it.
 2. **Copy denial echo** (AC14) is unverified in a real screen reader; if it fails, the options are a
    change to R2 (one more live container) or moving focus to the code block. Design decision, not dev.
+   The second option is FU18's (`ia.md` "Open follow-ups"), and it must also name a block that fits,
+   which under README "Scrollable code" has no name.
 3. **Accessible names "Навигация", "Область" and "Разделы урока":** closed (#69): registered in `ia.md`,
    page copy "lesson, accessible names (#69)".
 4. **Loading state** of the lesson text (Skeleton) is not a flow step; if #30 loads tab text separately, a
@@ -1835,5 +1874,8 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
 10. **Quiz follow-ups (#70, `ia.md` "Open follow-ups"), none blocking these notes:** FU7 (the lesson status
     when a quiz closes, an ADR decision that blocks #36; the page shows what the server reports, AC39); FU8
     ("Проверить" when every `command` check is closed and the quiz is open: not drawn, the reason is the
-    checks design's); FU10 (keyboard scrolling of Теория code blocks, the quiz prompt rule applied to prose);
-    FU11 (explicit `aria-live` and no live role inside a container in the app's `notifications.tsx`, AC51).
+    checks design's); FU11 (explicit `aria-live` and no live role inside a container in the app's
+    `notifications.tsx`, AC51).
+11. **Code block follow-ups (#136, `ia.md` "Open follow-ups"), none blocking these notes:** FU16 (the app side
+    of "Scrollable code", AC75 and AC45); FU17 (keyboard scrolling of wide prose tables, `.prose .table-wrap`);
+    FU18 (the keyboard way to take the text after a copy denial, Open question 2).
