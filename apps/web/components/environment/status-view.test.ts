@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { workspaceResetNote } from "@/lib/copy";
+import { volumeRecreatedNote, workspaceResetNote } from "@/lib/copy";
 import type { TerminalStatus } from "@/lib/terminal/state";
 import { statusView } from "./status-view";
 
@@ -140,4 +140,22 @@ describe("statusView reset note", () => {
       expect(statusView(status).note).toBeNull();
     },
   );
+});
+
+describe("statusView recreated folder note", () => {
+  it.each<TerminalStatus>([
+    { kind: "running", note: "volume-recreated" },
+    { kind: "connecting", note: "volume-recreated" },
+  ])("shows the recreated note while $kind carries it", (status) => {
+    expect(statusView(status).note).toBe(volumeRecreatedNote);
+  });
+
+  it("keeps the recreated note of the status a session-expired status shows", () => {
+    const status: TerminalStatus = {
+      kind: "session-expired",
+      shown: { kind: "running", note: "volume-recreated" },
+    };
+
+    expect(statusView(status).note).toBe(volumeRecreatedNote);
+  });
 });

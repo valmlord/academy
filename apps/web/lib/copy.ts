@@ -221,6 +221,10 @@ export const environmentRejectedStatus = "Нет доступа к этому о
 
 // design/pages/lesson/acceptance.md, Copy "environment notes": the note after a reset (F11.4).
 export const workspaceResetNote = "Рабочая папка сброшена";
+// design/pages/lesson/acceptance.md, Copy "environment notes": the note after a start found the working folder
+// gone (F10 error states).
+export const volumeRecreatedNote =
+  "Рабочая папка не найдена, создано новое окружение из исходных файлов урока.";
 
 // design/pages/lesson/acceptance.md, Copy "status actions": the disclosure of the error code (D3).
 export const detailsLabel = "Подробности";

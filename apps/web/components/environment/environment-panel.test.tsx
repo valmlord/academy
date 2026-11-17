@@ -35,6 +35,7 @@ import {
   startFailedStatus,
   takenOverStatus,
   terminalName,
+  volumeRecreatedNote,
   workspaceResetNote,
 } from "@/lib/copy";
 import { IDLE_CLEARED_EVENT, IDLE_WARNING_EVENT } from "@/lib/environment/idle";
@@ -652,6 +653,30 @@ describe("EnvironmentPanel status bar (#106)", () => {
     act(() => socket.receive({ t: "attached", resumed: false }));
 
     expect(statusText()).toBe(environmentRunningStatus + workspaceResetNote);
+  });
+
+  it("notes the recreated working folder after the running status when the start recreated it", async () => {
+    const env = setup();
+
+    await answer(env.peeks, { kind: "absent" });
+    await answer(env.starts, { kind: "running", outcome: "created", isVolumeRecreated: true });
+    await answer(env.opens, { kind: "ticket", ticket: "t", renewInMs: null });
+    const socket = lastSocket();
+    act(() => socket.receive({ t: "attached", resumed: false }));
+
+    expect(statusText()).toBe(environmentRunningStatus + volumeRecreatedNote);
+  });
+
+  it("shows the running status without a note on a first visit whose start created the workspace", async () => {
+    const env = setup();
+
+    await answer(env.peeks, { kind: "absent" });
+    await answer(env.starts, { kind: "running", outcome: "created", isVolumeRecreated: false });
+    await answer(env.opens, { kind: "ticket", ticket: "t", renewInMs: null });
+    const socket = lastSocket();
+    act(() => socket.receive({ t: "attached", resumed: false }));
+
+    expect(statusText()).toBe(environmentRunningStatus);
   });
 
   it.each<{ name: string; reach: (env: Setup) => Promise<void>; status: string }>([

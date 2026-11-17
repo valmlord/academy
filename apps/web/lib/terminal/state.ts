@@ -13,7 +13,7 @@ export type TerminalFailure =
   | { kind: "reconnect-failed" };
 
 /** A note shown after the status text: the workspace was just created again from the lesson's starter. */
-export type EnvironmentNote = "workspace-reset";
+export type EnvironmentNote = "workspace-reset" | "volume-recreated";
 
 export type TerminalStatus =
   /** ST: `startedAt` is `performance.now()` at entry, for the `role="timer"`; `isSlow` after `startSlowSeconds`. */

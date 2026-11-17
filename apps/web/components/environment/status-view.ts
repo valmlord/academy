@@ -19,6 +19,7 @@ import {
   startAgainLabel,
   startFailedStatus,
   takenOverStatus,
+  volumeRecreatedNote,
   workspaceResetNote,
 } from "@/lib/copy";
 import type { EnvironmentNote, TerminalFailure, TerminalStatus } from "@/lib/terminal/state";
@@ -35,7 +36,7 @@ export type EnvironmentAttention = "stopped" | "error";
 
 export interface StatusView {
   text: string;
-  /** The slow-start or reset note, appended inside the status line. */
+  /** The slow-start, reset or recreated-folder note, appended inside the status line. */
   note: string | null;
   /** The icon before the status (prototype.html F8.1); `null` while starting, where the spinner shows. */
   icon: StatusIconKind | null;
@@ -145,7 +146,14 @@ export function statusView(status: TerminalStatus): StatusView {
 const FAILED: Omit<StatusView, "text"> = { ...QUIET, icon: "destructive", attention: "error" };
 
 function noteText(note: EnvironmentNote | undefined): string | null {
-  return note === "workspace-reset" ? workspaceResetNote : null;
+  switch (note) {
+    case "workspace-reset":
+      return workspaceResetNote;
+    case "volume-recreated":
+      return volumeRecreatedNote;
+    case undefined:
+      return null;
+  }
 }
 
 function failedView(failure: TerminalFailure): StatusView {

@@ -15,7 +15,12 @@ import {
   type TerminalSize,
   type TerminalSocket,
 } from "./protocol";
-import { isEnvironmentRunning, type TerminalFailure, type TerminalStatus } from "./state";
+import {
+  type EnvironmentNote,
+  isEnvironmentRunning,
+  type TerminalFailure,
+  type TerminalStatus,
+} from "./state";
 
 // The browser terminal state machine of #32 design 3.6.1 (rows 1-38, rules G1-G6) with Delta 2's page-open rows
 // 0a-0h and rule G7. Row numbers in the comments are the design's. It holds no React state: the region feeds it
@@ -166,8 +171,11 @@ export class TerminalMachine {
   #isStartedInFlight = false;
   #startedFailedAt: number | null = null;
   #lastStatus = "";
-  /** Set by a reset that answered running; the note goes with the first status that is not connecting or running. */
-  #isResetNoteShown = false;
+  /**
+   * Set by a start, restart or reset that returned running; emptied by the first status that is not connecting or
+   * running, and at the start of the next restart or reset.
+   */
+  #note: EnvironmentNote | null = null;
   #unmountedStatus: TerminalStatus = { kind: "connecting" };
   readonly #backoffTimer: TimerSlot;
   readonly #renewTimer: TimerSlot;
@@ -196,9 +204,9 @@ export class TerminalMachine {
         };
       case "CO":
       case "AP":
-        return this.#isResetNoteShown
-          ? { kind: "connecting", note: "workspace-reset" }
-          : { kind: "connecting" };
+        return this.#note === null
+          ? { kind: "connecting" }
+          : { kind: "connecting", note: this.#note };
       case "RU":
         return this.#runningStatus();
       case "RN":
@@ -221,9 +229,7 @@ export class TerminalMachine {
   }
 
   #runningStatus(): TerminalStatus {
-    return this.#isResetNoteShown
-      ? { kind: "running", note: "workspace-reset" }
-      : { kind: "running" };
+    return this.#note === null ? { kind: "running" } : { kind: "running", note: this.#note };
   }
 
   /** Row 0a. */
@@ -352,7 +358,7 @@ export class TerminalMachine {
 
   #emit(): void {
     const status = this.status;
-    if (status.kind !== "connecting" && status.kind !== "running") this.#isResetNoteShown = false;
+    if (status.kind !== "connecting" && status.kind !== "running") this.#note = null;
     const serialized = JSON.stringify(status);
     if (serialized === this.#lastStatus) return;
     this.#lastStatus = serialized;
@@ -511,7 +517,7 @@ export class TerminalMachine {
   ): void {
     if (!this.#isMounted || !isEnvironmentRunning(this.status)) return;
     this.#releaseConnection();
-    this.#isResetNoteShown = false;
+    this.#note = null;
     this.#attempt = 0;
     this.#enterStarting(copy);
     this.#call(
@@ -522,7 +528,7 @@ export class TerminalMachine {
           return;
         }
         this.#attempt = 0;
-        if (isReset) this.#isResetNoteShown = true;
+        this.#note = isReset ? "workspace-reset" : recreatedNote(result);
         this.#openTerminal();
       },
       () => this.#enterFailed({ kind: "start-failed" }),
@@ -544,6 +550,7 @@ export class TerminalMachine {
       (result) => {
         if (result.kind === "running") {
           this.#attempt = 0;
+          this.#note = recreatedNote(result);
           this.#openTerminal();
           return;
         }
@@ -883,6 +890,12 @@ export class TerminalMachine {
       () => settle(false),
     );
   }
+}
+
+function recreatedNote(
+  result: Extract<EnvironmentResult, { kind: "running" }>,
+): EnvironmentNote | null {
+  return result.isVolumeRecreated ? "volume-recreated" : null;
 }
 
 function renewDeadlineAt(timing: TicketTiming): number {
