@@ -7,10 +7,10 @@
 #   bash services/workspace/test/manual/isolated-stack.sh [t31|t32] [--e2e]
 # A preflight stops the run before anything starts when objects of the run's project, instance or images are left
 # over, or when a Docker listing fails. Checks: web answers, the service reaches Docker (P7), I1-I3 of
-# check-image-migrations.sh, with --e2e the seed, the e2e suite and the service-down spec, the network probe with
-# and without compose.db-port.yaml (NP), and the red runs of design 12.5 marked "Mac recipe", each between
-# `<PREFIX> RED <name> BEGIN` and `<PREFIX> RED <name> END`. Teardown and a final check always run once the
-# preflight passed.
+# check-image-migrations.sh, with --e2e the seed, the e2e suite, the course-unreadable spec with its restore and
+# the service-down spec, the network probe with and without compose.db-port.yaml (NP), and the red runs of design
+# 12.5 marked "Mac recipe", each between `<PREFIX> RED <name> BEGIN` and `<PREFIX> RED <name> END`. Teardown and a
+# final check always run once the preflight passed.
 # Exit 0 only when every check passed, every red run failed as expected and the teardown left nothing behind.
 set -euo pipefail
 
@@ -281,9 +281,9 @@ web_log_clean() {
   fi
 }
 
-# run_e2e_stages: seed, the e2e suite and the service-down spec against this stack (design 9, order 10). A failed
-# stage sets status and the run goes on, so service-back always restores the service before the probes. The seed
-# password lives only in this function's arguments and is never echoed.
+# run_e2e_stages: seed, the e2e suite, the course-unreadable spec and the service-down spec against this stack
+# (design 9, order 10). A failed stage sets status and the run goes on, so service-back always restores the service
+# before the probes. The seed password lives only in this function's arguments and is never echoed.
 run_e2e_stages() {
   local seed_password ids
   seed_password=$(openssl rand -hex 24)
@@ -293,6 +293,24 @@ run_e2e_stages() {
   if "${e2e_env[@]}" pnpm seed; then echo "$PREFIX OK seed"; else echo "$PREFIX FAIL seed"; status=1; fi
   if "${e2e_env[@]}" pnpm test:e2e; then echo "$PREFIX OK e2e"; else echo "$PREFIX FAIL e2e"; status=1; fi
   if web_log_clean; then echo "$PREFIX OK web-log"; else status=1; fi
+  # #96: the spec makes course.yaml unreadable in this run's web container only (E2E_COMPOSE_PROJECT), and the
+  # restore after it runs whatever the spec did, so service-down gets a course the web user can read.
+  if "${e2e_env[@]}" E2E_COURSE_UNREADABLE=1 "E2E_COMPOSE_PROJECT=$PROJECT" \
+    PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/course-unreadable.json pnpm --filter @academy/web exec \
+    playwright test e2e/course-unreadable.spec.ts --project=chromium --workers=1 \
+    --output test-results/course-unreadable --reporter=list,json; then
+    echo "$PREFIX OK course-unreadable"
+  else
+    echo "$PREFIX FAIL course-unreadable"
+    status=1
+  fi
+  if "${base[@]}" exec -u 0 -T web sh -c 'chmod a+r /app/course/*/course.yaml' &&
+    "${base[@]}" exec -T web sh -c 'cat /app/course/*/course.yaml >/dev/null'; then
+    echo "$PREFIX OK course-restore"
+  else
+    echo "$PREFIX FAIL course-restore"
+    status=1
+  fi
   if "${base[@]}" stop workspace &&
     "${e2e_env[@]}" E2E_SERVICE_DOWN=1 pnpm --filter @academy/web exec playwright test e2e/service-down.spec.ts \
       --project=chromium --output test-results/service-down; then

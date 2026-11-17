@@ -58,6 +58,20 @@ const CI_E2E_ENV: Env = {
   E2E_BASE_URL: "http://127.0.0.1:53082",
   E2E_TERMINAL: "1",
 };
+// What ci.yml gives the course-unreadable step: the workflow env, the job env, the step env and the CI=true that
+// GitHub sets.
+const CI_COURSE_UNREADABLE_ENV: Env = {
+  CI: "true",
+  NEXT_TELEMETRY_DISABLED: "1",
+  COMPOSE_FILE: "docker-compose.yml:compose.db-port.yaml",
+  COMPOSE_PROJECT_NAME: "academy-ci",
+  WEB_PORT: "53082",
+  E2E_BASE_URL: "http://127.0.0.1:53082",
+  ...SWITCH,
+  E2E_COURSE_UNREADABLE: "1",
+  E2E_COMPOSE_PROJECT: "academy-ci",
+  PLAYWRIGHT_JSON_OUTPUT_NAME: "test-results/course-unreadable.json",
+};
 
 const SKIP_ROWS: Row[] = [
   {
@@ -152,6 +166,11 @@ const SKIP_ROWS: Row[] = [
     env: { ...SWITCH, CI: "true", E2E_BASE_URL: "http://127.0.0.1:3080" },
     rootKeys: [],
   },
+  {
+    id: "DG25 a directly called CI Playwright step with the copied WEB_PORT line",
+    env: { ...CI_E2E_ENV, WEB_PORT: "53082" },
+    rootKeys: [...CI_ROOT_KEYS, "WEB_PORT"],
+  },
 ];
 
 const RUN_ROWS: Row[] = [
@@ -169,6 +188,16 @@ const RUN_ROWS: Row[] = [
     id: "DG19 a stack port in WEB_PORT that the root .env does not define",
     env: { ...SWITCH, E2E_BASE_URL: "http://127.0.0.1:53081", WEB_PORT: "53081" },
     rootKeys: [],
+  },
+  {
+    id: "DG26 CI's course-unreadable step",
+    env: CI_COURSE_UNREADABLE_ENV,
+    rootKeys: CI_ROOT_KEYS,
+  },
+  {
+    id: "DG26b the turbo main suite with the copied WEB_PORT line",
+    env: { ...CI_E2E_ENV, WEB_PORT: "3080" },
+    rootKeys: [...CI_ROOT_KEYS, "WEB_PORT"],
   },
 ];
 
