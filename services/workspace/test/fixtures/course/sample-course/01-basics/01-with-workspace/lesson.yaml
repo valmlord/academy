@@ -8,3 +8,5 @@ status: draft
 workspace:
   image: academy-workspace:dev
   starter: starter
+checks:
+  - { id: verify, title: Verify, kind: command, run: 'sh "$ACADEMY_CHECKS_DIR/verify.sh"', timeoutSec: 30 }

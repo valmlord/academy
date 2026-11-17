@@ -68,6 +68,24 @@ export const WORK_DIR = "/workspace/home/work";
 /** Root-owned, written as the last tar entry: its presence means the starter copy finished. */
 export const STARTER_MARKER = "/workspace/.starter-complete";
 
+// Grader identity (design 5.1): each running check of a workspace holds a slot and runs as its own uid, so
+// the terminal (LEARNER_UID) can neither enter the slot's directory nor signal the check's processes.
+/** A lesson has at most 3 command checks; the fourth slot covers a run that overlaps the next one. */
+export const CHECK_SLOTS = 4;
+/**
+ * The slot uids, CHECK_UID_BASE to CHECK_UID_BASE + CHECK_SLOTS - 1 (2000-2003): outside Ubuntu's system uid
+ * range and apart from LEARNER_UID; the academy workspace image (images/workspace) has no passwd entry for them.
+ */
+export const CHECK_UID_BASE = 2000;
+export type CheckSlot = 0 | 1 | 2 | 3;
+
+export function checkUid(slot: CheckSlot): number {
+  return CHECK_UID_BASE + slot;
+}
+
+/** Root-owned 0711 on the volume; each slot's own 0700 directory below it holds everything placed for a check. */
+export const GRADER_SCRATCH_ROOT = "/workspace/.academy-grader";
+
 /** Label keys: the identity record of every object the service makes, immutable after create. */
 export const LABEL = {
   managed: "academy.workspace.managed",
