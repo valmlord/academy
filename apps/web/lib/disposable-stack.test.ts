@@ -9,13 +9,14 @@ import {
   requireDestructiveE2eInCi,
 } from "./disposable-stack";
 
-// DG1-DG23 and EX1 (#106 design 7.1): which command forms may run e2e/environment-actions.spec.ts. The root keys
-// of every row are a literal list; only EX1 reads the committed .env.example.
+// DG1-DG23 and EX1 (#106 design 7.1), and the rows from DG24 on (#96): which command forms the destructive e2e
+// decision allows. The root keys of every row are a literal list; only EX1 reads the committed .env.example.
 
 type Env = Record<string, string | undefined>;
 
-// The five live keys of .env.example, and CI's root .env: that file plus the two secrets ci.yml appends. When
-// .env.example gains a live key, update this list by hand; EX1 still guards the keys that matter.
+// The five live keys of .env.example, and CI's root .env: that file without its WEB_PORT line plus the two
+// secrets ci.yml appends. When .env.example gains a live key, update this list by hand; EX1 still guards the keys
+// that matter.
 const EXAMPLE_KEYS = [
   "POSTGRES_USER",
   "POSTGRES_PASSWORD",
@@ -23,7 +24,11 @@ const EXAMPLE_KEYS = [
   "DATABASE_URL",
   "WEB_PORT",
 ];
-const CI_ROOT_KEYS = [...EXAMPLE_KEYS, "BETTER_AUTH_SECRET", "WORKSPACE_SERVICE_SECRET"];
+const CI_ROOT_KEYS = [
+  ...EXAMPLE_KEYS.filter((key) => key !== "WEB_PORT"),
+  "BETTER_AUTH_SECRET",
+  "WORKSPACE_SERVICE_SECRET",
+];
 
 // What the config does: the shell's E2E_BASE_URL, else the compose default.
 const DEFAULT_BASE_URL = "http://127.0.0.1:3080";
@@ -46,6 +51,13 @@ function decide({ env, rootKeys }: Row): ReturnType<typeof destructiveE2eDecisio
 }
 
 const SWITCH = { E2E_DISPOSABLE_STACK: "1" };
+// DG12's env. CI's main suite runs through turbo, whose test:e2e passThroughEnv does not list the job's WEB_PORT.
+const CI_E2E_ENV: Env = {
+  CI: "true",
+  ...SWITCH,
+  E2E_BASE_URL: "http://127.0.0.1:53082",
+  E2E_TERMINAL: "1",
+};
 
 const SKIP_ROWS: Row[] = [
   {
@@ -135,6 +147,11 @@ const SKIP_ROWS: Row[] = [
     env: { ...SWITCH, E2E_BASE_URL: "http://127.0.0.1:53081", WEB_PORT: "web" },
     rootKeys: ["WEB_PORT"],
   },
+  {
+    id: "DG24 CI from the shell on the compose default port",
+    env: { ...SWITCH, CI: "true", E2E_BASE_URL: "http://127.0.0.1:3080" },
+    rootKeys: [],
+  },
 ];
 
 const RUN_ROWS: Row[] = [
@@ -145,13 +162,7 @@ const RUN_ROWS: Row[] = [
   },
   {
     id: "DG12 CI's e2e step",
-    env: {
-      CI: "true",
-      ...SWITCH,
-      E2E_BASE_URL: "http://127.0.0.1:3080",
-      E2E_TERMINAL: "1",
-      WEB_PORT: "3080",
-    },
+    env: CI_E2E_ENV,
     rootKeys: CI_ROOT_KEYS,
   },
   {
@@ -280,7 +291,7 @@ describe("requireDestructiveE2eInCi", () => {
     ],
     [
       "DG23 CI's service-down step",
-      { CI: "true", E2E_SERVICE_DOWN: "1", E2E_BASE_URL: "http://127.0.0.1:3080" },
+      { CI: "true", E2E_SERVICE_DOWN: "1", E2E_BASE_URL: "http://127.0.0.1:53082" },
       CI_ROOT_KEYS,
     ],
   ] as const)("does not throw: %s", (_id, env, rootKeys) => {

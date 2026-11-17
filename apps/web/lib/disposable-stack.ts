@@ -60,7 +60,7 @@ function originRefusal(url: URL, env: Env, rootEnvKeys: readonly string[]): stri
   return null;
 }
 
-/** Allowed only with the switch and the base URL from the shell, and a disposable origin or CI from the shell. */
+/** Allowed only with the switch and the base URL from the shell, and a disposable origin. */
 export function destructiveE2eDecision({
   env,
   rootEnvKeys,
@@ -79,8 +79,6 @@ export function destructiveE2eDecision({
     // An unparsable base URL names no stack at all, so nothing may run against it.
     return refused("the base URL does not parse");
   }
-  // CI's throwaway compose stack is the one disposable stack on 3080.
-  if (isFromShell(env, rootEnvKeys, "CI")) return ALLOWED;
   const refusal = originRefusal(url, env, rootEnvKeys);
   return refusal === null ? ALLOWED : refused(refusal);
 }
@@ -90,7 +88,7 @@ export class DestructiveE2eSkippedInCiError extends Error {
     super(
       `CI runs the terminal suite (E2E_TERMINAL=1), but e2e/environment-actions.spec.ts would skip: ${reason}. ` +
         "Check that the ci.yml e2e step sets E2E_DISPOSABLE_STACK and E2E_BASE_URL, that turbo.json test:e2e " +
-        "passThroughEnv lists both, and that the root .env (a copy of .env.example in CI) defines neither.",
+        "passThroughEnv lists both, and that the root .env (.env.example without its WEB_PORT line in CI) defines neither.",
     );
     this.name = "DestructiveE2eSkippedInCiError";
   }

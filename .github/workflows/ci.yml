@@ -133,12 +133,19 @@ jobs:
     env:
       # db is unpublished by default (ADR-0002 item 6); the seed step reaches it on the host port the override adds.
       COMPOSE_FILE: docker-compose.yml:compose.db-port.yaml
+      # Not the owner's project or port, so the destructive specs' origin check treats this stack like any
+      # disposable one (#96).
+      COMPOSE_PROJECT_NAME: academy-ci
+      WEB_PORT: "53082"
     steps:
       - uses: actions/checkout@v4
         with:
           # The job never pushes; the token would otherwise sit in .git/config while images build and run.
           persist-credentials: false
-      - run: cp .env.example .env
+      # WEB_PORT comes from the job env only. With a WEB_PORT line in the root .env, a Playwright step called
+      # directly has the job's WEB_PORT in its env, the decision compares it with the base URL's port, and it
+      # refuses this stack (disposable-stack.ts:51-58).
+      - run: grep -v '^WEB_PORT=' .env.example > .env
       - name: generate the auth and workspace service secrets
         run: |
           secret=$(openssl rand -hex 32)
@@ -161,7 +168,7 @@ jobs:
       - name: workspace service reaches Docker
         run: docker compose exec -T workspace node --input-type=module - reach < services/workspace/test/network/api.mjs
       - name: workspace network isolation
-        run: bash services/workspace/test/network/probe-isolation.sh academy local --rows all
+        run: bash services/workspace/test/network/probe-isolation.sh academy-ci local --rows all
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -188,7 +195,7 @@ jobs:
       # folder: this stack is thrown away after the job (#106).
       - run: pnpm test:e2e
         env:
-          E2E_BASE_URL: http://127.0.0.1:3080
+          E2E_BASE_URL: http://127.0.0.1:53082
           E2E_TERMINAL: "1"
           E2E_DISPOSABLE_STACK: "1"
           DATABASE_URL: postgres://academy:academy@127.0.0.1:5432/academy
@@ -210,7 +217,7 @@ jobs:
       - run: docker compose stop workspace
       - run: pnpm --filter @academy/web exec playwright test e2e/service-down.spec.ts --project=chromium --output test-results/service-down
         env:
-          E2E_BASE_URL: http://127.0.0.1:3080
+          E2E_BASE_URL: http://127.0.0.1:53082
           E2E_SERVICE_DOWN: "1"
       - if: failure()
         run: |
