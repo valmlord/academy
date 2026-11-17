@@ -41,6 +41,11 @@ test("signing out ends the session on the server and lands on sign-in with the n
   await page.getByLabel(passwordLabel, { exact: true }).fill(password);
   await page.getByRole("button", { name: signInLabel }).click();
   await expect.poll(() => pathAndQuery(page.url())).toBe("/");
+  // page.url() reads "/" when the new document is committed, which can be before its client
+  // scripts have run; an Enter pressed then can be lost, leaving the menu closed (#180). The load
+  // event waits for each script that the HTML of "/" fetches, and the #180 control (script
+  // requests held) showed the menu opening on Enter once load had fired.
+  await page.waitForLoadState("load");
   const old = (await context.cookies()).find((cookie) => cookie.name === SESSION_COOKIE)?.value;
   if (old === undefined) throw new Error(`no ${SESSION_COOKIE} cookie after sign-in`);
   // Positive control: the saved value is a valid session, so the null at the end means revoked.
