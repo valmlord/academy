@@ -90,7 +90,9 @@ export default defineConfig({
   testDir: "./e2e",
   forbidOnly: isCi,
   retries: 0,
-  reporter: isCi ? [["github"], ["html", { open: "never" }]] : "list",
+  reporter: isCi
+    ? [["github"], ["html", { open: "never" }], ["json", { outputFile: "test-results/e2e.json" }]]
+    : "list",
   use: {
     baseURL,
     trace: "retain-on-failure",
@@ -100,7 +102,16 @@ export default defineConfig({
     { name: "setup", testMatch: /auth\.setup\.ts/ },
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE },
+      // TEMP #201 red control: with JavaScript off every new hydration wait must fail; reverted next commit.
+      use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE, javaScriptEnabled: false },
+      testMatch: [
+        /catalog\.spec\.ts/,
+        /dashboard\.spec\.ts/,
+        /not-found\.spec\.ts/,
+        /sign-in\.spec\.ts/,
+        /sign-out\.spec\.ts/,
+        /leak\.spec\.ts/,
+      ],
       testIgnore: TERMINAL_SPECS,
       dependencies: ["setup"],
     },
