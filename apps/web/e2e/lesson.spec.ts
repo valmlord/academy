@@ -11,12 +11,14 @@ import {
   environmentPaneTabLabel,
   environmentRegionHeading,
   environmentTabsLabel,
+  idleWarningMessage,
   lessonPaneTabLabel,
   lessonRegionHeading,
   lessonTabsLabel,
   m0LessonNote,
   paneSwitchLabel,
   prerequisiteNotePrefix,
+  sessionExpiredMessage,
   signInAgainLabel,
   splitHandleLabel,
   splitHandleTooltip,
@@ -25,7 +27,9 @@ import {
   terminalTabLabel,
   theoryTabLabel,
 } from "../lib/copy";
+import { IDLE_WARNING_EVENT } from "../lib/environment/idle";
 import { catalogPath, lessonPath } from "../lib/routes";
+import { SESSION_EXPIRED_EVENT } from "../lib/terminal/state";
 import { type RepoLesson, repoCatalog, repoLessons } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
@@ -763,11 +767,17 @@ interface LiveContainers {
   live: (string | null)[];
   isUnhidden: boolean[];
   lessonPaneHidden: string | null | undefined;
+  liveDescendants: (number | null)[];
+  hasText: boolean[];
 }
 
+// Inside parseIdleWarningDetail's 1-1439 range and not the stack's default warning of 5 (docker-compose.yml), so a real
+// warning never passes for this one.
+const syntheticWarningMinutes = 7;
+
 /** The two notification containers and the environment status: what a modal leaves announced (ia.md R2). */
-function liveContainers(page: Page): Promise<LiveContainers> {
-  return page.evaluate(() => {
+function liveContainers(page: Page, texts: [string, string]): Promise<LiveContainers> {
+  return page.evaluate((notices) => {
     const containers = [
       document.querySelector('[data-notifications] > [role="alert"]'),
       document.querySelector('[data-notifications] > [role="status"]'),
@@ -779,8 +789,14 @@ function liveContainers(page: Page): Promise<LiveContainers> {
         (element) => element !== null && element.closest('[aria-hidden="true"]') === null,
       ),
       lessonPaneHidden: document.getElementById("lesson-pane")?.getAttribute("aria-hidden"),
+      liveDescendants: containers.map(
+        (element) => element?.querySelectorAll('[role="alert"], [role="status"]').length ?? null,
+      ),
+      hasText: notices.map(
+        (text, index) => containers[index]?.textContent?.includes(text) ?? false,
+      ),
     };
-  });
+  }, texts);
 }
 
 test("E-live: the live containers stay announced under the user menu and the modal Действия menu (AC51, AC52)", async ({
@@ -792,13 +808,42 @@ test("E-live: the live containers stay announced under the user menu and the mod
     live: ["assertive", "polite", "polite"],
     isUnhidden: [true, true, true],
     lessonPaneHidden: "true",
+    liveDescendants: [0, 0, 0],
+    hasText: [false, false],
   };
+  const withNotices: LiveContainers = { ...expected, hasText: [true, true] };
+  const texts: [string, string] = [
+    sessionExpiredMessage,
+    idleWarningMessage(syntheticWarningMinutes),
+  ];
 
   const userMenu = page.locator('header [aria-haspopup="menu"]');
   await waitForHydration(userMenu, "hydrated before the user menu");
   await userMenu.click();
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page), "under the user menu").toEqual(expected);
+  expect(await liveContainers(page, texts), "under the user menu").toEqual(expected);
+  // The events the producers dispatch, so the notices arrive while the menu is open, as in the real case.
+  await page.evaluate(
+    ({ warningEvent, expiredEvent, minutes }) => {
+      window.dispatchEvent(new CustomEvent(warningEvent, { detail: { minutes } }));
+      window.dispatchEvent(new Event(expiredEvent));
+    },
+    {
+      warningEvent: IDLE_WARNING_EVENT,
+      expiredEvent: SESSION_EXPIRED_EVENT,
+      minutes: syntheticWarningMinutes,
+    },
+  );
+  await expect(page.locator('[data-notifications] > [role="alert"]')).toContainText(
+    sessionExpiredMessage,
+  );
+  await expect(page.locator('[data-notifications] > [role="status"]')).toContainText(
+    idleWarningMessage(syntheticWarningMinutes),
+  );
+  await expect(page.getByRole("menu")).toBeVisible();
+  expect(await liveContainers(page, texts), "under the user menu, notices shown").toEqual(
+    withNotices,
+  );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menu")).toHaveCount(0);
 
@@ -806,7 +851,7 @@ test("E-live: the live containers stay announced under the user menu and the mod
   await page.getByRole("button", { name: actionsMenuLabel }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page), "under the actions menu").toEqual(expected);
+  expect(await liveContainers(page, texts), "under the actions menu").toEqual(withNotices);
   await expect(page.getByRole("menuitem").first()).toBeFocused();
   await page.keyboard.press("Tab");
   expect(
