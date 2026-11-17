@@ -1,0 +1,58 @@
+id: legacy-refactoring
+title: "Рефакторинг под сетью тестов"
+type: artifact
+outcomes:
+  - "Рефакторит под защитой сети тестов: закрывает тестами дыры готового набора, которые называет проверка, затем выносит расчёт цены в чистую функцию без часов, файлов и глобальных настроек, на которую опирается старая точка входа, и сохраняет наблюдаемое поведение на заданных и случайных входах проверки."
+estimatedMinutes: 109
+status: ready
+prerequisites:
+  - legacy-characterization
+sources:
+  - title: "Martin Fowler, refactoring.com: a change made to the internal structure of software to make it easier to understand and cheaper to modify without changing its observable behavior; a series of small behavior preserving transformations"
+    url: https://refactoring.com/
+    checkedAt: "2026-11-16"
+  - title: "Hyrum's Law (Hyrum Wright): all observable behaviors of your system will be depended on by somebody"
+    url: https://www.hyrumslaw.com/
+    checkedAt: "2026-11-16"
+  - title: "Nicolas Carlo, The key points of Working Effectively with Legacy Code (разбор книги Feathers: шаги Identify change points (Seams), Break dependencies, Write the tests, Make your changes, Refactor; Sprout: новый код в отдельном месте с тестами, вызов из точки вставки; Wrap; страница без даты)"
+    url: https://understandlegacycode.com/blog/key-points-of-working-effectively-with-legacy-code/
+    checkedAt: "2026-11-17"
+  - title: "Martin Fowler, Strangler Fig (2024-08-22): small additions built on top of, yet separate to the legacy code base; transitional architecture"
+    url: https://martinfowler.com/bliki/StranglerFigApplication.html
+    checkedAt: "2026-11-16"
+  - title: "Claude Code: Common workflows, Refactor code (Identify legacy code for refactoring; Get refactoring recommendations; refactor ... while maintaining the same behavior; Verify the refactoring; Do refactoring in small, testable increments)"
+    url: https://code.claude.com/docs/en/common-workflows
+    checkedAt: "2026-11-17"
+  - title: "Claude prompting best practices: Overeagerness (Claude Opus 4.5 and Claude Opus 4.6 have a tendency to overengineer; пример промпта Don't add features, refactor code, or make improvements beyond what was asked)"
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+    checkedAt: "2026-11-16"
+  - title: "Liu и др., An Empirical Study on the Potential of LLMs in Automated Software Refactoring, arXiv:2411.04444 v1 (2024-11-07; 13 из 176 решений ChatGPT и 9 из 137 решений Gemini небезопасны; чат-модели, не агенты)"
+    url: https://arxiv.org/abs/2411.04444
+    checkedAt: "2026-11-16"
+  - title: "Python 3.12: sys.addaudithook (They are not suitable for implementing a sandbox)"
+    url: https://docs.python.org/3.12/library/sys.html
+    checkedAt: "2026-11-17"
+  - title: "Python 3.12: unittest.mock (Where to patch: patch where an object is looked up; patch с create=True)"
+    url: https://docs.python.org/3.12/library/unittest.mock.html
+    checkedAt: "2026-11-17"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: quote-net
+    title: "Сеть тестов расчёта цены: закрыть дыры, которые называет проверка, и не сломать сеть рефакторингом"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_quote_net.py"'
+    timeoutSec: 450
+    weight: 2
+    attempts:
+      limit: 10
+      mentorAfter: 5
+  - id: pricing-extracted
+    title: "Расчёт цены вынесен в чистую price_kopecks: quote_parcel опирается на неё и ведёт себя как раньше на заданных и случайных входах"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_pricing.py"'
+    timeoutSec: 240
+    weight: 3
+    attempts:
+      mentorAfter: 5

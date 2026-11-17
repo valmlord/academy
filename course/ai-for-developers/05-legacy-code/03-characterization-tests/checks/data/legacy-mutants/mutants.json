@@ -1,0 +1,98 @@
+[
+  {
+    "id": "M1",
+    "file": "shipping/labels.py",
+    "line": 58,
+    "old": "    alphabet = \"ABCDEFGHJKLMNPQRSTUVWXYZ23456789\"",
+    "new": "    alphabet = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\"",
+    "area": "алфавит кода отслеживания"
+  },
+  {
+    "id": "M2",
+    "file": "shipping/labels.py",
+    "line": 59,
+    "old": "    return \"PP\" + \"\".join(random.choices(alphabet, k=8))",
+    "new": "    return \"PP\" + \"\".join(random.choices(alphabet, k=9))",
+    "area": "длина кода отслеживания"
+  },
+  {
+    "id": "M3",
+    "file": "shipping/labels.py",
+    "line": 46,
+    "old": "        _sequence = 0",
+    "new": "        _sequence = -1",
+    "area": "номер первой этикетки"
+  },
+  {
+    "id": "M4",
+    "file": "shipping/labels.py",
+    "line": 96,
+    "old": "    with open(config.SPOOL_DIR / f\"{label['seq']:06d}.lbl\", \"w\", encoding=\"utf-8\") as out:",
+    "new": "    with open(config.SPOOL_DIR / f\"{label['seq']}.lbl\", \"w\", encoding=\"utf-8\") as out:",
+    "area": "имя файла этикетки"
+  },
+  {
+    "id": "M5",
+    "file": "shipping/labels.py",
+    "line": 63,
+    "old": "    return weight_grams // 100 / 10",
+    "new": "    return round(weight_grams / 1000, 1)",
+    "area": "вес на этикетке"
+  },
+  {
+    "id": "M6",
+    "file": "shipping/labels.py",
+    "line": 78,
+    "old": "    while candidate.weekday() >= 5:",
+    "new": "    while candidate.weekday() >= 5 or candidate.isoformat() in (config.DATA_DIR / \"holidays.txt\").read_text(encoding=\"utf-8\").split():",
+    "area": "дата отправки на этикетке в праздник"
+  },
+  {
+    "id": "M7",
+    "file": "shipping/labels.py",
+    "line": 27,
+    "old": "        \"stamp\": now.strftime(\"%d.%m.%Y %H:%M\"),",
+    "new": "        \"stamp\": now.strftime(\"%Y-%m-%dT%H:%M\"),",
+    "area": "отметка времени на этикетке"
+  },
+  {
+    "id": "M8",
+    "file": "shipping/manifest.py",
+    "line": 45,
+    "old": "    return str((kopecks + 49) // 100)",
+    "new": "    return str((kopecks + 50) // 100)",
+    "area": "округление рублей в манифесте"
+  },
+  {
+    "id": "M9",
+    "file": "shipping/manifest.py",
+    "line": 26,
+    "old": "            if label.get(\"status\") == \"VOID\":",
+    "new": "            if label.get(\"status\") == \"void\":",
+    "area": "аннулированные этикетки в манифесте"
+  },
+  {
+    "id": "M10",
+    "file": "shipping/manifest.py",
+    "line": 55,
+    "old": "        if start <= stamp < end:",
+    "new": "        if start < stamp <= end:",
+    "area": "этикетка ровно в полночь"
+  },
+  {
+    "id": "M11",
+    "file": "shipping/manifest.py",
+    "line": 22,
+    "old": "    with open(path, \"w\", newline=\"\", encoding=\"utf-8\") as out:",
+    "new": "    with open(path if labels_of_day else spool / \".empty\", \"w\", newline=\"\", encoding=\"utf-8\") as out:",
+    "area": "манифест за день без этикеток"
+  },
+  {
+    "id": "M12",
+    "file": "shipping/labels.py",
+    "line": 52,
+    "old": "        out.write(str(_sequence))",
+    "new": "        out.write(\"\")",
+    "area": "продолжение нумерации после перезапуска"
+  }
+]

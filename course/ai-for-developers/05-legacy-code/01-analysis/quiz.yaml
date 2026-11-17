@@ -1,0 +1,113 @@
+version: 1
+questions:
+  - id: explore-root-note
+    type: single
+    prompt: |
+      Выдуманный сервис библиотеки loan-desk. В его корневом `CLAUDE.md` записано: файлы из `exports/`
+      забирает бухгалтерия филиалов, менять их имена нельзя. Других файлов памяти нет. Основная сессия
+      поручает встроенному субагенту Explore разобрать `loans/export.py`, и Explore читает этот файл.
+      Что верно про эту строку?
+    options:
+      - { id: a, text: "Она есть у Explore: субагент получает весь контекст основной сессии" }
+      - { id: b, text: "Она появится у Explore, как только он прочитает любой файл репозитория" }
+      - { id: c, text: "Её нет у Explore: встроенные Explore и Plan начинают без файлов CLAUDE.md" }
+      - { id: d, text: "Она есть у Explore, потому что он работает на той же модели, что и основная сессия" }
+    correct: [c]
+    explanation: |
+      Страница про субагентов, раздел "Built-in subagents": "Explore and Plan start without your
+      CLAUDE.md files and the git status snapshot to keep research fast and inexpensive". В разделе
+      "What loads at startup" про иерархию CLAUDE.md сказано "The built-in Explore and Plan agents skip
+      this". Позже при работе с файлами до Explore доходят только `CLAUDE.md` подкаталога и подходящие
+      правила с `paths`, а корневой файл к ним не относится. Модель Explore на это не влияет.
+
+  - id: explore-area-note
+    type: multiple
+    prompt: |
+      В том же loan-desk команда хочет, чтобы предупреждение о `loans/export.py` дошло до встроенного
+      Explore, когда он читает этот файл инструментом Read. Сессия запущена из корня репозитория.
+      Отметьте все места, которые для этого подходят по документации Claude Code.
+    options:
+      - { id: a, text: "Корневой `CLAUDE.md` с отдельным разделом про `loans/export.py`" }
+      - { id: b, text: "`loans/CLAUDE.md`" }
+      - { id: c, text: "Правило `.claude/rules/export.md` без поля `paths`" }
+      - { id: d, text: "Правило `.claude/rules/export.md` с `paths: [\"loans/export.py\"]`" }
+    correct: [b, d]
+    explanation: |
+      Раздел "What loads at startup" страницы про субагентов: "For Explore, Plan, and subagents with
+      `omitClaudeMd`, a subdirectory's `CLAUDE.md` and matching path-scoped rules still load when the
+      subagent works with files there". Это `loans/CLAUDE.md` и правило с `paths`, которое совпадает с
+      `loans/export.py`. Корневой `CLAUDE.md` и правило без `paths` загружаются при запуске основной
+      сессии, а иерархию CLAUDE.md вместе с правилами проекта Explore пропускает: "The built-in Explore
+      and Plan agents skip this". Отдельный раздел в корневом файле этого не меняет.
+
+  - id: explore-cannot-edit
+    type: single
+    prompt: |
+      Основная сессия поручила встроенному Explore: "найди, где считается штраф за просрочку, и сразу
+      поправь в нём ставку за день". Что верно про правку?
+    options:
+      - { id: a, text: "Explore поправит ставку: поручение прямо просит правку, и он её сделает" }
+      - { id: b, text: "Explore спросит у вас разрешение и после согласия исправит инструментом Edit" }
+      - { id: c, text: "Explore поправит ставку, только если основная сессия не в plan mode" }
+      - { id: d, text: "Инструментами Write и Edit Explore её не сделает: они у него запрещены" }
+    correct: [d]
+    explanation: |
+      Раздел "Built-in subagents": Explore это "A fast, read-only agent optimized for searching and
+      analyzing codebases", и его инструменты "read-only tools; Write and Edit are denied". Запрет
+      задаёт сам Claude Code, а не текст поручения, и разрешение на эти инструменты не спрашивается.
+
+  - id: plan-mode-shell
+    type: single
+    prompt: |
+      Вы в plan mode в интерактивном терминале. Режим bypass permissions в этой сессии недоступен,
+      auto mode тоже недоступен, правил deny нет. Для исследования агент хочет выполнить
+      `make purge-cache`, а рецепт этой цели `rm -rf cache/*`. Что верно?
+    options:
+      - { id: a, text: "Plan mode блокирует любые команды оболочки, пока вы не одобрите весь план" }
+      - { id: b, text: "Claude Code спросит разрешение: команды нет во встроенном наборе для чтения" }
+      - { id: c, text: "Команда выполнится без вопроса: во время планирования команды не проверяются" }
+      - { id: d, text: "Команду отклонит классификатор auto mode, потому что она удаляет файлы" }
+    correct: [b]
+    explanation: |
+      Страница про режимы разрешений: "Claude reads files, runs shell commands to explore, and writes a
+      plan, but does not edit your source. Except in interactive terminal sessions with bypass
+      permissions available, edits stay blocked until you approve the plan." Plan mode держит правки, а
+      для команд оболочки срабатывает первый подходящий случай. Bypass недоступен, auto mode тоже, значит
+      это третий случай: команды вне встроенного набора только для чтения спрашивают разрешение, и сам
+      plan mode команду не останавливает. Классификатор работает только во втором случае, когда auto mode
+      доступен, а без вопроса и классификатора команды идут только в первом, когда доступен bypass.
+
+  - id: at-directory
+    type: single
+    prompt: |
+      Вы пишете агенту: "объясни расчёт штрафов в @fines/". Что из каталога `fines/` Claude Code
+      добавит в разговор по этой ссылке?
+    options:
+      - { id: a, text: "Список файлов каталога, без их содержимого" }
+      - { id: b, text: "Содержимое всех файлов каталога целиком" }
+      - { id: c, text: "Содержимое только тех файлов, что укладываются в лимит Read" }
+      - { id: d, text: "Ничего: ссылка @ работает лишь с отдельными файлами" }
+    correct: [a]
+    explanation: |
+      Common workflows, раздел "Reference files and directories": "Directory references show file
+      listings, not contents". Лимит Read (по умолчанию 25 000 токенов) и порог 256KB относятся к ссылке
+      на отдельный файл. Чтобы агент прочитал код, сошлитесь на файл или попросите его прочитать.
+
+  - id: broad-to-narrow
+    type: single
+    prompt: |
+      Вы впервые открыли незнакомый репозиторий без тестов и хотите убрать мёртвый код с помощью агента.
+      Какой порядок работы соответствует рецепту "Understand new codebases" и этому уроку?
+    options:
+      - { id: a, text: "Сразу попросить список неиспользуемых файлов и удалить его: агент уже прочитал весь репозиторий" }
+      - { id: b, text: "Удалить подозрительные файлы целиком и потом посмотреть, что сломается при первом запуске" }
+      - { id: c, text: "Обзор, потом вопросы о модулях; перед удалением искать имя в коде, данных и Makefile" }
+      - { id: d, text: "Прочитать README и удалить всё, что в нём не упомянуто: документация описывает проект" }
+    correct: [c]
+    explanation: |
+      Common workflows, раздел "Understand new codebases": сначала
+      `give me an overview of this codebase`, потом вопросы уже, и совет "Start with broad questions,
+      then narrow down to specific areas". Обзор даёт карту, а не доказательства: модуль, который вызывают
+      по строке из данных, поиск по `import` не находит, поэтому перед удалением ищут само имя. Без тестов
+      "посмотреть, что сломается" может не показать ничего до первого настоящего случая, а README
+      устаревает.

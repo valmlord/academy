@@ -1,0 +1,45 @@
+id: legacy-analysis
+title: "Анализ чужого проекта: проверяем выводы агента по коду"
+type: bug-hunt
+outcomes:
+  - 'Проверяет по самому коду анализ незнакомого legacy-репозитория, сделанный агентом, и находит неверные утверждения и действия: "мёртвый" код, который вызывается по строке из данных; "зависит только от аргументов" у функции, которая читает часы, случайность, состояние модуля или файлы; "без побочных эффектов" у функции, которая пишет файлы; "исправление" поведения, на которое опирается другой модуль; факт из README вопреки коду; команду, которая во время исследования меняет файлы. Выбирает инструмент исследования (субагент Explore, plan mode, ссылки @) по тому, что он загружает и что блокирует.'
+estimatedMinutes: 106
+status: ready
+prerequisites:
+  - final-deploy-and-change
+sources:
+  - title: "Claude Code: Common workflows (Understand new codebases: от общих вопросов к частным; Reference files and directories: ссылка @ на каталог даёт список файлов, а не содержимое; лимит Read 25 000 токенов и 256KB для файла)"
+    url: https://code.claude.com/docs/en/common-workflows
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Create custom subagents (Built-in subagents: Explore read-only, Write и Edit запрещены, Explore и Plan начинают без файлов CLAUDE.md; What loads at startup: CLAUDE.md подкаталога и подходящие правила с paths всё равно загружаются при работе с файлами там)"
+    url: https://code.claude.com/docs/en/sub-agents
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Permission modes (Analyze before you edit with plan mode: правки заблокированы до одобрения плана, кроме интерактивного терминала с доступным bypass; три случая для команд оболочки)"
+    url: https://code.claude.com/docs/en/permission-modes
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Best practices (места, где код вводит в заблуждение: каталог, который выглядит неиспользуемым, но используется)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-11-17"
+  - title: "Hyrum Wright: Hyrum's Law (все наблюдаемые свойства системы кто-то использует)"
+    url: https://www.hyrumslaw.com/
+    checkedAt: "2026-11-17"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: legacy-hunt
+    title: "Неверные выводы и действия агента в разборе legacy-репозитория"
+    kind: bug-hunt
+    answers: checks/bugs.yaml
+    minFound: 5
+    weight: 1
+    attempts:
+      limit: 3
+  - id: analysis-quiz
+    title: "Квиз: Explore и файлы CLAUDE.md, правки в Explore, plan mode и команды оболочки, ссылка @ на каталог, от общего к частному"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
+    attempts:
+      limit: 3

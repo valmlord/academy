@@ -1,0 +1,56 @@
+id: legacy-characterization
+title: "Characterization-тесты: зафиксировать то, что код делает"
+type: artifact
+outcomes:
+  - "Пишет characterization-тесты для кода без тестов, которые фиксируют текущее поведение, в том числе странное, и не зависят от часов, часового пояса, случайности, порядка хеширования, состояния модуля и порядка тестов: набор проходит на исходном коде и падает на каждой скрытой изменённой версии."
+estimatedMinutes: 104
+status: ready
+prerequisites:
+  - legacy-analysis
+sources:
+  - title: "Nicolas Carlo, The key points of Working Effectively with Legacy Code (разбор книги Feathers: Legacy Code is code without tests; A characterization test is a test that characterizes the actual behavior of a piece of code; шаги Identify change points (Seams), Break dependencies, Write the tests, Make your changes, Refactor; Sprout и Wrap; страница без даты)"
+    url: https://understandlegacycode.com/blog/key-points-of-working-effectively-with-legacy-code/
+    checkedAt: "2026-11-17"
+  - title: "Martin Fowler, Legacy Seam (2024-01-04): seam, a place where you can alter behavior in your program without editing in that place; enabling point"
+    url: https://martinfowler.com/bliki/LegacySeam.html
+    checkedAt: "2026-11-16"
+  - title: "Mark Seemann, Empirical Characterization Testing (2025-11-03): Sabotage the SUT so that it fails the assertion; tautological assertion"
+    url: https://blog.ploeh.dk/2025/11/03/empirical-characterization-testing/
+    checkedAt: "2026-11-16"
+  - title: "Claude blog: AI code migration (2026-07-16): судья проверяет исходный и новый код на равных, проходит на исходном и падает на нарочно сломанном"
+    url: https://claude.com/blog/ai-code-migration
+    checkedAt: "2026-11-16"
+  - title: "ApprovalTests.Python (golden master, received и approved; PyPI approvaltests 20.0.1, 2026-10-25, Python >=3.11, зависит от pytest>=8)"
+    url: https://github.com/approvals/ApprovalTests.Python
+    checkedAt: "2026-11-16"
+  - title: "syrupy (zero-dependency pytest snapshot plugin, pytest --snapshot-update; PyPI 7.0.2, 2026-11-16)"
+    url: https://github.com/syrupy-project/syrupy
+    checkedAt: "2026-11-16"
+  - title: "mutmut docs (PyPI 3.8.1, 2026-10-28; Mutmut must be run on a system with fork support; mutmut run, mutmut browse)"
+    url: https://mutmut.readthedocs.io/en/latest/
+    checkedAt: "2026-11-16"
+  - title: "cosmic-ray на PyPI (8.9.0, 2026-11-10)"
+    url: https://pypi.org/project/cosmic-ray/
+    checkedAt: "2026-11-16"
+  - title: "Python 3.12: sys.addaudithook (They are not suitable for implementing a sandbox)"
+    url: https://docs.python.org/3.12/library/sys.html
+    checkedAt: "2026-11-17"
+  - title: "Python 3.12: unittest.mock (Where to patch: patch where an object is looked up; patch с create=True)"
+    url: https://docs.python.org/3.12/library/unittest.mock.html
+    checkedAt: "2026-11-17"
+  - title: "Python 3.12: командная строка и окружение (PYTHONHASHSEED: a random value is used to seed the hashes of str and bytes objects)"
+    url: https://docs.python.org/3.12/using/cmdline.html
+    checkedAt: "2026-11-17"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: characterization-net
+    title: "Characterization-тесты этикеток и манифеста: проходят на исходном коде в 5 часовых поясах и падают на каждой из 12 скрытых изменённых версий"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_characterization.py"'
+    timeoutSec: 420
+    weight: 3
+    attempts:
+      limit: 10
+      mentorAfter: 5

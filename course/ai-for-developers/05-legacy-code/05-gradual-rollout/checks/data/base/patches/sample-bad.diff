@@ -1,0 +1,13 @@
+diff --git a/shipping/quote.py b/shipping/quote.py
+index 521561d..8f1b276 100644
+--- a/shipping/quote.py
++++ b/shipping/quote.py
+@@ -58,7 +58,7 @@ def _bracket_price(rows, weight_grams, zone):
+ 
+ def _services_price(services):
+     fees_kopecks = {
+-        "FRAGILE": 9000,
++        "FRAGILE": 9500,
+         "SIGNATURE": 4500,
+         "SMS": 1500,
+         "OVERSIZE": 25000,

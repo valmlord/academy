@@ -1,0 +1,74 @@
+id: legacy-rollout
+title: "Агент в процессе команды: гейт и план внедрения"
+type: project
+outcomes:
+  - "Вводит агента в процесс команды поэтапно: пишет правила гейта, который принимает изменение агента, только если оно применяется, не трогает существующие тесты и защищённые файлы, мало, и тесты, взятые до изменения, и тесты после него проходят. Пишет план внедрения с этапами, областью, измеряемыми сигналами результата, условием остановки и ответственным. Выбирает следующий шаг по измерениям (METR, DORA, семантика Code Review), а не по ощущениям."
+estimatedMinutes: 104
+status: ready
+prerequisites:
+  - legacy-refactoring
+sources:
+  - title: "Becker, Rush, Barnes, Rein (METR), Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity, arXiv:2507.09089 v2 (2025-07-25): forecast 24%, increases completion time by 19%, after the study developers estimate 20%"
+    url: https://arxiv.org/abs/2507.09089
+    checkedAt: "2026-11-17"
+  - title: "METR, uplift update (2026-02-24): 19% longer, CI +2%..+39%; returning developers -18%, CI -38%..+9%; new developers -4%, CI -15%..+9%; only very weak evidence; эффекты отбора"
+    url: https://metr.org/blog/2026-02-24-uplift-update/
+    checkedAt: "2026-11-17"
+  - title: "DORA 2025, State of AI-assisted Software Development: AI's primary role is as an amplifier"
+    url: https://dora.dev/research/2025/dora-report/
+    checkedAt: "2026-11-16"
+  - title: "Google Cloud blog: DORA AI Capabilities Model (2025-09-23): working in small batches; frequent use of rollback features"
+    url: https://cloud.google.com/blog/products/ai-machine-learning/introducing-doras-inaugural-ai-capabilities-model
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Code Review (For Team and Enterprise plans; A review never approves or blocks the pull request; check run doesn't conclude as a failure; REVIEW.md from the base or default branch, never from the pull request's own changes; without building or running your code)"
+    url: https://code.claude.com/docs/en/code-review
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: GitHub Actions (anthropics/claude-code-action@v1; режимы interactive и automation; For a plain-text prompt, Claude has no shell or GitHub API access until you grant the tools; If you invoke a skill instead, Claude can use the tools its allowed-tools frontmatter grants; пример ревью через skill code-review)"
+    url: https://code.claude.com/docs/en/github-actions
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Run Claude Code programmatically (bare mode: skipping auto-discovery of hooks, skills, custom commands, subagents, installed plugins, MCP servers, auto memory, and CLAUDE.md; без --bare claude -p discovers and loads them; --append-system-prompt-file)"
+    url: https://code.claude.com/docs/en/headless
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Configure permissions (Project allow rules and workspace trust: deny and ask rules aren't affected; What runs before you trust a folder: permissions.allow под claude -p в папке без доверия Not used)"
+    url: https://code.claude.com/docs/en/permissions
+    checkedAt: "2026-11-17"
+  - title: "Claude blog: AI code migration (2026-07-16): Let scripts - a compiler, a diff, a test suite - be the referee"
+    url: https://claude.com/blog/ai-code-migration
+    checkedAt: "2026-11-16"
+  - title: "Claude blog: How Claude Code works in large codebases (2026-05-14; we suggest starting with a defined set of approved skills ... limited initial access, and expand as confidence builds; one person with ownership over the Claude Code configuration, DRI; один источник одного вендора)"
+    url: https://claude.com/blog/how-claude-code-works-in-large-codebases-best-practices-and-where-to-start
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Analytics (Team/Enterprise; PRs with CC, lines with CC, suggestion accept rate; deliberately conservative; alongside DORA metrics)"
+    url: https://code.claude.com/docs/en/analytics
+    checkedAt: "2026-11-16"
+  - title: "Claude Code: Best practices (Try it on three files first, see what goes wrong, fix the prompt, then run the rest)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-11-16"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: agent-gate
+    title: "Гейт агента: принимает и отклоняет 79 патчей по правилам R1-R5"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_agent_gate.py"'
+    timeoutSec: 1200
+    weight: 3
+    attempts:
+      mentorAfter: 5
+  - id: rollout-rubric
+    title: "План внедрения агента: этапы, область, сигналы результата, условие остановки и ответственный (ментор по рубрике)"
+    kind: rubric
+    rubric: checks/rubric-rollout.md
+    artifacts:
+      - docs/rollout-plan.md
+    passScore: 0.7
+    weight: 2
+  - id: rollout-quiz
+    title: "Квиз: что говорят измерения и как ведут себя Code Review, --bare и доверие к папке"
+    kind: quiz
+    file: quiz.yaml
+    passScore: 0.8
+    weight: 1
+    attempts:
+      limit: 3

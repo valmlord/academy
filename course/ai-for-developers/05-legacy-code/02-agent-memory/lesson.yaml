@@ -1,0 +1,42 @@
+id: legacy-memory
+title: "Погружение агента: факт там, где он нужен"
+type: artifact
+outcomes:
+  - 'Размещает факты команды о legacy-проекте в местах памяти, которые принимает курс, по строке охвата в конце каждой заметки. Факт области: заметка называет файлы, которых касается, например внешний потребитель файлов, которые пишет один модуль, выгрузка, которая заменяет один файл данных, или внешнее расписание, под которое выставлена одна настройка; такой факт размещается так, что по модели проверки он загружается при работе с каждым названным файлом и не загружается при работе с другими, в том числе у субагента Explore. Факт сессии: заметка касается любого файла, в том числе нового модуля, например согласование любого изменения цены или форма, в которой внешняя система читает суммы из любого модуля; такой факт размещается так, что по модели проверки он загружается при запуске основной сессии. Записывает версию Claude Code и дату, по которым проверил загрузку в документации и в списке изменений. Указывает при запуске команду проверки, которая действительно запускает тесты этого репозитория.'
+estimatedMinutes: 98
+status: ready
+prerequisites:
+  - legacy-analysis
+  - intro-agent-memory
+sources:
+  - title: "Claude Code: How Claude remembers your project, для Claude Code 2.1.311, проверено 2026-11-16; разделы найдены 2026-11-17 (How CLAUDE.md files load: загрузка из рабочего каталога и выше, CLAUDE.md подкаталога при чтении, записи или правке файла там, блочные HTML-комментарии вырезаются и видны через Read; Set up rules: правила без paths при запуске; Path-specific rules: загрузка при Read, Write, Edit и чтении одного файла в Bash, базовый каталог, таблица шаблонов; Rule frontmatter reference: YAML list or a comma-separated string, неразобранный YAML, paths единственное поле, frontmatter убирается; Import additional files: @path, относительные пути, четыре перехода, код не разбирается; Claude ignores the end of my subdirectory CLAUDE.md: 40 000 символов при окне 200K)"
+    url: https://code.claude.com/docs/en/memory
+    checkedAt: "2026-11-16"
+  - title: "Claude Code: Tools reference, для Claude Code 2.1.311, проверено 2026-11-16; раздел найден 2026-11-17 (Edit tool behavior: команды Bash, которые считаются чтением одного файла, и загрузка CLAUDE.md подкаталога и правил с paths при таком чтении)"
+    url: https://code.claude.com/docs/en/tools-reference
+    checkedAt: "2026-11-16"
+  - title: "Claude Code: Create custom subagents, для Claude Code 2.1.311, проверено 2026-11-16; разделы найдены 2026-11-17 (Built-in subagents: Explore и Plan начинают без файлов CLAUDE.md; What loads at startup: CLAUDE.md подкаталога и подходящие правила с paths загружаются при работе с файлами там)"
+    url: https://code.claude.com/docs/en/sub-agents
+    checkedAt: "2026-11-16"
+  - title: "Claude Code: Best practices, для Claude Code 2.1.311, проверено 2026-11-16; раздел найден 2026-11-17 (Give Claude a check to run: самая полезная строка в CLAUDE.md это команда проверки)"
+    url: https://code.claude.com/docs/en/best-practices
+    checkedAt: "2026-11-16"
+  - title: "Claude Code changelog (записи по версиям, новые сверху; новейший выпуск 2.1.326 от 16 ноября 2026)"
+    url: https://code.claude.com/docs/en/changelog
+    checkedAt: "2026-11-17"
+  - title: "Claude Code: Advanced setup (Verify your installation и Install a specific version: claude --version печатает номер версии и после него (Claude Code), например 2.1.89 (Claude Code))"
+    url: https://code.claude.com/docs/en/setup
+    checkedAt: "2026-11-17"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: memory-layout
+    title: "Память legacy-проекта: факты областей и сессии на своих местах, команда тестов, отметка о версии"
+    kind: command
+    run: 'python3 -I "$ACADEMY_CHECKS_DIR/verify_memory_layout.py"'
+    timeoutSec: 90
+    weight: 3
+    attempts:
+      limit: 10
+      mentorAfter: 5

@@ -1,0 +1,88 @@
+# Reserve item for the mentor review after legacy-hunt is closed (design #45 6.1, as module 01 L6 reserve).
+# Mentor-review store, never on the command-check mount; never shown before the review.
+# Same matching rules and ladder as bugs.yaml: a report matches when file, category and a line inside
+# one of the bug's ranges agree; a report inside a decoy range is a decoy hit.
+# One look-alike decoy per planted category. Line numbers are physical lines of the excerpt.
+version: 1
+check: legacy-hunt
+report: findings-reserve.json
+minFound: 3
+maxReports: 4
+maxDecoyHits: 1
+passBar: "minFound 3 of 3 planted mistakes, at most 4 reports, at most 1 report on a decoy range"
+file: transcript-2.md
+categories: [unsafe-exploration, missed-dynamic-use, bug-called-fix, missed-hidden-input, missed-side-effect, doc-over-code]
+transcript: |2
+    1 | # Фрагмент транскрипта 2 (синтетический, учебный). Номер слева = физическая строка фрагмента.
+    2 | Обозначения те же, что в transcript.md. Репозиторий тот же: parcel-desk до правок сессии.
+    3 |
+    4 | ## Сессия: план тестов для quote и меток
+    5 |
+    6 | > Продолжим с тестов. Что нужно, чтобы зафиксировать quote_parcel?
+    7 |
+    8 | ● Read(shipping/quote.py)
+    9 |   ⎿ (115 строк) quote_parcel и его помощники: _bracket_price, _services_price, _insurance,
+   10 |   ⎿ _ship_date, _next_business_day, _holidays, _saturday_surcharge.
+   11 | ● quote_parcel зависит только от своих аргументов: веса, индекса, услуг и объявленной
+   12 | ●   стоимости. Значит, хватит таблицы входов и одного ожидаемого итога на каждую строку,
+   13 | ●   без подмен в тесте.
+   14 | ● Страховка _insurance(declared_value_kopecks) тоже зависит только от аргумента:
+   15 | ●   минимальный сбор задан в самой функции, round считает от объявленной стоимости.
+   16 | > А дата отгрузки на метке как считается?
+   17 | ● Read(README.md)
+   18 |   ⎿ (34 строки) ... A parcel quoted at or after the cut-off hour ships on the next business
+   19 |   ⎿ day. Public holidays are listed in data/holidays.txt. ...
+   20 | ● По README после часа отсечки посылка уходит на следующий рабочий день, а праздники берутся
+   21 | ●   из data/holidays.txt. Так и на метке: дата отгрузки на метке после 15:00 пропускает
+   22 | ●   выходные и праздники.
+   23 | ● Docstring shipping/config.py говорит, что настройки читаются один раз, при первом импорте,
+   24 | ●   и изменение ini или SHIPPING_SPOOL после этого не действует до перезапуска процесса.
+   25 | ●   Код так и устроен: CUTOFF_HOUR, FUEL_PERCENT и SPOOL_DIR вычисляются на уровне модуля.
+   26 | > На складе иногда отменяют метки. Это можно проверять на их спуле?
+   27 | ● Read(shipping/labels.py, offset=33, limit=7)
+   28 |   ⎿ 33 def void_label(seq):
+   29 |   ⎿ 34     """Mark the label with number seq as void. A void label stays in the spool."""
+   30 |   ⎿ 35     path = config.SPOOL_DIR / f"{seq:06d}.lbl"
+   31 |   ⎿ 36     if not path.is_file():
+   32 |   ⎿ 37         raise ValueError(f"label {seq:06d} is not in the spool {config.SPOOL_DIR}")
+   33 |   ⎿ .. (строки 38-39)
+   34 | ● void_label только проверяет, что файл метки есть в спуле, и бросает ValueError, если его
+   35 | ●   нет. Спул она не меняет, так что вызывать её на настоящем спуле склада безопасно.
+   36 | ● quote._holidays тоже только читает: открывает data/holidays.txt на чтение и собирает
+   37 | ●   даты из него в множество.
+   38 | > Хорошо, запиши это в план.
+bugs:
+  - id: quote-parcel-hidden-inputs
+    file: transcript-2.md
+    lines: [[11, 13]]
+    category: missed-hidden-input
+    title: "quote_parcel назван зависящим только от аргументов, а он читает часы (дата отгрузки и суббота), настройки config и файлы data/tariffs.csv и data/holidays.txt."
+    explanation: "datetime.now() в _ship_date, config.FUEL_PERCENT и CUTOFF_HOUR, get_table и _holidays: без подмены часов итог теста зависит от времени запуска."
+  - id: label-date-skips-holidays
+    file: transcript-2.md
+    lines: [[20, 22]]
+    category: doc-over-code
+    title: "По README дата отгрузки на метке пропускает праздники, а labels._next_business_day пропускает только выходные."
+    explanation: "labels.py строки 76-80: праздники не читаются; README описывает quote_parcel, у которого свой _next_business_day с data/holidays.txt."
+  - id: void-label-appends
+    file: transcript-2.md
+    lines: [[34, 35]]
+    category: missed-side-effect
+    title: "void_label названа функцией, которая только проверяет метку и не меняет спул, а она дописывает в файл метки строку status: VOID."
+    explanation: "labels.py строки 38-39 открывают файл метки на дозапись; вызов на настоящем спуле меняет его."
+decoys:
+  - id: r1d
+    file: transcript-2.md
+    lines: [[14, 15]]
+    lookalike: missed-hidden-input
+    note: "_insurance depends only on its argument"
+  - id: r2d
+    file: transcript-2.md
+    lines: [[23, 25]]
+    lookalike: doc-over-code
+    note: "config.py docstring matches the module-level reads"
+  - id: r3d
+    file: transcript-2.md
+    lines: [[36, 37]]
+    lookalike: missed-side-effect
+    note: "quote._holidays opens data/holidays.txt for reading only (main transcript: D5c _debug_dump, D4d _read_label)"

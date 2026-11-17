@@ -1,0 +1,5 @@
+{
+  "F1": {"M": ["shipping/labels.py", "shipping/manifest.py"], "N": ["shipping/quote.py", "shipping/tariffs.py", "data/tariffs.csv"]},
+  "F2": {"M": ["config/shipping.ini", "shipping/quote.py"], "N": ["shipping/tariffs.py", "data/tariffs.csv"]},
+  "F3": {"M": ["data/tariffs.csv", "shipping/tariffs.py"], "N": ["shipping/labels.py"]}
+}
