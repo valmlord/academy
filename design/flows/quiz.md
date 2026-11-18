@@ -599,12 +599,15 @@ else "Открыть квиз" (R3). Enter or Space activates.
   ui-designer, design note §5), not `.icon-note`, which would make the heading muted body text.
 - The prompt, rendered Markdown (`.prose`). A fenced block is a `pre` of the `.code-block` composition
   without its header (no "Копировать": copying a prompt helps nobody answer, and it would add a Tab stop
-  per block); it keeps its lines and scrolls horizontally inside itself at narrow widths. Only when its
-  lines overflow does it get `tabindex="0"`, so a keyboard user can scroll it (WCAG 2.1.1), together with
-  `role="group"` and `aria-label="Код к вопросу"`, because a focusable element needs a name and the `pre`
-  has none; a block that fits is no Tab stop, because there is nothing to scroll. When a resize makes a
-  focused block fit, it keeps `tabindex="0"` until it loses focus and drops it then, so focus stays on it
-  and never falls to `body`.
+  per block). Its keyboard scroll follows "Scrollable code" in `design/system/README.md` (from #136, which
+  moved the rule there from this bullet), with the name "Код к вопросу"; the reasons are in
+  `lesson-environment.md`, "Code blocks that scroll".
+  A fenced block in an explanation (the review, F15.5) is the same header-less `pre` under the same rule,
+  named "Блок кода". Header-less, because the review then keeps one code composition in the quiz panel and
+  no Tab stop except overflowing code blocks (Keyboard path), and an explanation of 2-5 lines explains an
+  answer rather than hands over a command to run, which Теория and Задание do with their "Копировать".
+  Named "Блок кода", the Теория name, because an explanation is not the question. Every fence in
+  `course/**/quiz.yaml` today is in a prompt; #36 builds both (Requirements for #36, item 12).
 - For `multiple` only: the note "Засчитывается только точный набор ответов" (`.field-description`: the muted
   description tied to its control by `aria-describedby`, as on sign-in; not `.icon-note`, whose leading
   status icon would mark a rule as a status). It replaces the note "Несколько вариантов" of #50: every `multiple` prompt already ends with "Выберите все
@@ -776,9 +779,9 @@ the Tab order, locked ("Sending"). The quiz needs no terminal: `F6` and the regi
 order are R3's, the quiz is inside "Урок".
 
 **Narrow widths and zoom:** in one-pane mode (below 1024 px, down to 320 px, and a 1280 px screen at 200 %
-zoom) the quiz is in the "Урок" pane at full width; options wrap under their control; only a prompt's code
-block scrolls horizontally, inside itself; the page never scrolls sideways (WCAG 1.4.10); each option label
-is at least 24 px high (WCAG 2.5.8).
+zoom) the quiz is in the "Урок" pane at full width; options wrap under their control; only a code block (a
+prompt's, or in the review an explanation's) scrolls horizontally, inside itself; the page never scrolls
+sideways (WCAG 1.4.10); each option label is at least 24 px high (WCAG 2.5.8).
 
 **Time limits:** none (no source asks for a timed quiz). The environment idle stop (F10) and the session
 (F2) are unchanged: a learner answering a quiz for a long time may see the idle warning in "Уведомления";
@@ -926,6 +929,11 @@ the issue named.
      visibility re-read sets no status line text, applies P7 or P8 silently, and from #35 shows the new
      history row in the same render as the changed quiz check row; the history response for a quiz result
      holds C and Q and no `details`.
+12. Code blocks in the quiz (from #136): a fenced block in a prompt and in an explanation renders as a `pre`
+   of the `.code-block` composition without its header, so neither has "Копировать" ("Question block");
+   both use FU17's component (`ia.md` "Open follow-ups"), named "Код к вопросу" in a prompt and "Блок кода"
+   in an explanation. Tests: a quiz with an overflowing fence in an explanation shows the review with that
+   `pre` named "Блок кода" and no "Копировать" in the question.
 
 ## Prototype and history requirements
 

@@ -99,10 +99,10 @@ text only from this list or from the two tables above and below. Quotes of cours
 | catalog (F5, F6) | "Не удалось загрузить курс" (the course error's title, the page h1, R2 page-level retry table), "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>" |
 | not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"). No other text in `main`: no "404", no breadcrumb, no search |
 | lesson tabs | left pane "Теория", "Задание", "Проверки", "Квиз" (D2); environment "Терминал", "Редактор" (D5); one-pane switch "Урок", "Окружение" |
-| lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока" (the text load error's title, an h2 in the tab panel, R2 page-level retry table), "Не скопировано, выделите текст вручную", "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (from #35, F19). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
+| lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока" (the text load error's title, an h2 in the tab panel, R2 page-level retry table), "Не скопировано, выделите текст вручную", "Блок кода" (accessible name of a Теория, Задание or quiz explanation code block that overflows and so takes Tab, #136; `lesson-environment.md` "Code blocks that scroll"), "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (from #35, F19). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
 | lesson, accessible names (#69) | "Навигация" (breadcrumb `nav` label), "Область" (one-pane switch tab list label), "Разделы урока" (left-pane tab list label), "Окружение" (environment tab list label), "Терминал" (terminal frame name), the visually hidden region headings "Урок", "Проверка", "Окружение", "Уведомления" (the page region row of the vocabulary). The user menu is named by its trigger, the email (data, not copy) |
 | lesson, checks (F13, F14; #69) | the Проверки tab panel heading "Проверки"; the tab's visually hidden running part ", идёт проверка"; every check status, row meta, row note, status line text, disabled reason and the budget confirmation copy are in the closed sets above, and every button in Action labels. Grader messages and raw errors under "Подробности" are data, shown verbatim, not copy |
-| lesson, quiz (F15; #70, from #36) | the tab label "Квиз" with no state suffix (unlike "Проверки, идёт проверка", nothing in the quiz changes while the learner is on another tab); the panel heading is the quiz check `title` (data); the question heading "Вопрос I из Q", which is also the accessible name of its radio group or checkbox group (the prompt is the group's description); "Код к вопросу" (accessible name of a prompt's code block that overflows and so takes Tab); "Засчитывается только точный набор ответов" (note under every `multiple` prompt); per-question errors "Выберите ответ" (`single`) and "Выберите хотя бы один вариант" (`multiple`); error-summary links "Вопрос I из Q: выберите ответ" and "Вопрос I из Q: выберите хотя бы один вариант"; "Отправляем..." (busy label of "Отправить ответы"); result descriptions "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки." (limit known), "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения." (limit unknown), never after a refused send, and "Ниже верные ответы и пояснения." (pass, close, and a refusal that finds the quiz passed or closed); the explanation heading "Пояснение"; the result block's lesson line reuses the check bar's "Урок пройден" (from #69 also "Урок завершён: не пройден. Пройдено: N из M"). Prompts, options and explanations, including "Выберите все верные.", are quiz content (data), not copy |
+| lesson, quiz (F15; #70, from #36) | the tab label "Квиз" with no state suffix (unlike "Проверки, идёт проверка", nothing in the quiz changes while the learner is on another tab); the panel heading is the quiz check `title` (data); the question heading "Вопрос I из Q", which is also the accessible name of its radio group or checkbox group (the prompt is the group's description); "Код к вопросу" (accessible name of a prompt's code block that overflows and so takes Tab); "Засчитывается только точный набор ответов" (note under every `multiple` prompt); per-question errors "Выберите ответ" (`single`) and "Выберите хотя бы один вариант" (`multiple`); error-summary links "Вопрос I из Q: выберите ответ" and "Вопрос I из Q: выберите хотя бы один вариант"; "Отправляем..." (busy label of "Отправить ответы"); result descriptions "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки." (limit known), "Ответы остались выбранными. Какие из них неверны, квиз покажет после прохождения." (limit unknown), never after a refused send, and "Ниже верные ответы и пояснения." (pass, close, and a refusal that finds the quiz passed or closed); the explanation heading "Пояснение"; a fenced block in an explanation that overflows is named "Блок кода" (the row "lesson (F6-F13, F19)"; #136), not "Код к вопросу"; the result block's lesson line reuses the check bar's "Урок пройден" (from #69 also "Урок завершён: не пройден. Пройдено: N из M"). Prompts, options and explanations, including "Выберите все верные.", are quiz content (data), not copy |
 
 ### Action labels
 
@@ -441,6 +441,11 @@ below) is no stop.
   handle (F9.3), which sits in the DOM after "Проверка" and before "Окружение" and belongs to no region
   (no `F6` stop); "Окружение" in the order of R3. The prerequisite links are therefore the first controls
   after the lesson header, not the first of `main`.
+- Inside a Теория or Задание tab panel each code block is "Копировать", then its `pre` only while the `pre`
+  overflows (from #136, `lesson-environment.md` "Code blocks that scroll"); a code block that fits is one
+  stop. In the Квиз panel a code block has no "Копировать", so it is one stop while it overflows and none
+  otherwise: a prompt's block ("Код к вопросу") and, in the review, an explanation's block ("Блок кода")
+  (`quiz.md`, "Question block").
 - One-pane mode with "Окружение" shown: "Урок" is `hidden`, so Tab goes from the top bar (or
   "Уведомления") to "Проверка" and then to the switch at the top of the area. This is deliberate: the
   check bar is a sibling between the two panes in the DOM so that the `F6` cycle and the Tab order are
@@ -744,11 +749,6 @@ filed and linked here, or when it is done.
 - **FU9. test(content): task.md "нужно K верных" equals the server's K** (dev, with #36, from #70). The
   header shows K from the server (`quiz.md`, P2) and the Задание tab shows task.md's K; a content check
   that computes K from `passScore` and the question count, by the server's rule, keeps them equal.
-- **FU10. design: Теория code blocks that overflow cannot be scrolled by keyboard** (design, from the #70
-  accessibility review). The quiz prompt's `pre` takes `tabindex="0"`, `role="group"` and a name only when
-  it overflows (`quiz.md`, "Question block"); the Теория `.code-block` `pre`
-  (`design/pages/lesson/prototype.html`, `#code-ollama`) has no `tabindex`, so a long line that scrolls is
-  out of reach of the keyboard (WCAG 2.1.1). Apply the same rule to prose code blocks and their app twin.
 - **FU11. fix(web): explicit `aria-live` on every live container** (dev, from the #70 accessibility review).
   `apps/web/components/notifications.tsx` renders the F2.1 `role="alert"` and the F10.1 `role="status"`
   containers without `aria-live`, so the user menu (a modal Radix DropdownMenu, whose `hideOthers` spares only
@@ -828,6 +828,36 @@ filed and linked here, or when it is done.
   says the terminal agent "uses the same API key", written before #115 made that key terminal-only; and
   `checks.md` "Named" cites `learning-process.md` §1 for "the learner's API key", but §1 speaks of the
   terminal key only. Both are confirmed or re-pointed to #37's amendment once it names the key.
+- **FU17. feat(web): lesson code blocks that overflow take Tab** (dev, from #136). The app side of
+  `lesson-environment.md` "Code blocks that scroll" and `design/system/README.md` "Scrollable code", as
+  requirements: (1) one client component around the `pre` of `apps/web/components/markdown/lesson-markdown.tsx`
+  (Теория and Задание), taking the name as a prop ("Блок кода" here and for #36's explanation fences,
+  "Код к вопросу" for #36's prompts, from the copy module), so the quiz reuses it; `LessonMarkdown` stays a
+  server component; (2) the server HTML carries no `tabindex`, `role` or `aria-label` on the `pre`; the component decides after mount, because
+  overflow is known only after layout and server markup that guessed would mismatch at hydration; (3) a
+  `ResizeObserver` on the `pre` reruns the decision (pane split, one-pane switch, window width, zoom, text
+  size, a tab panel shown again: a hidden panel's `pre` has width 0); overflowing is `scrollWidth >
+  clientWidth`; (4) while it overflows the `pre` has `tabindex="0"`, `role="group"` and the name; otherwise
+  none of them, except that a focused `pre` keeps them until `blur`; (5) the focus ring per README "Scrollable
+  code" (inset, corners as drawn) in `apps/web/app/globals.css`, which today gives `.code-block pre` no radius,
+  and not caught by the `[tabindex="-1"]` rule; (6) tests: jsdom has no layout (`apps/web/test/dom-stubs.ts`
+  `RecordingResizeObserver` never calls back), so the overflow decision is tested only in Playwright: at a
+  width where a known course line overflows the `pre` has the three attributes and Tab goes "Копировать" then
+  the `pre`, an arrow key changes `scrollLeft`; at a width where it fits it has none; a resize that makes the
+  focused `pre` fit keeps focus on it until Tab. The e2e runs only Chromium, which since 132 makes a scroller
+  focusable by itself, so a test that checks only that Tab reaches the `pre` passes without the component:
+  assert the attributes, and watch the test fail with the component removed.
+- **FU18. design: wide prose tables cannot be scrolled by keyboard** (design, from #136). `.prose .table-wrap`
+  scrolls sideways (`design/system/proto.css`, app `globals.css`) and has the WCAG 2.1.1 gap that #136
+  closed for code blocks. Not designed in #136, because the scroll container is the wrapper `div`, not a
+  `pre`, and a table already has a name source of its own (a caption or the section heading); decide whether
+  "Scrollable code" extends to it or tables get a rule of their own.
+- **FU19. design: the copy-denied fallback is a pointer task** (design, from #136). On denial the label says
+  "Не скопировано, выделите текст вручную", but a focused `pre` scrolls and does not select with the keyboard
+  (no caret outside caret browsing), and a block that fits is no Tab stop at all. Decide the keyboard way to
+  take the text, together with lesson acceptance Open question 2: its option "moving focus to the code
+  block" would focus a `pre` that, when it fits, has no name under "Scrollable code", so that option must
+  set the name as well.
 
 Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
 "Focus ring after a mouse click on a tab").

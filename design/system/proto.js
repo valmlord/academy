@@ -994,9 +994,10 @@
     if (handle) onHandleKey(event, handle);
   });
 
-  /* ---------- Scrollable code: a Tab stop only while it overflows (quiz prompt code, WCAG 2.1.1) ---------- */
+  /* ---------- Scrollable code: a code block is a Tab stop only while it overflows (WCAG 2.1.1) ---------- */
 
-  // An element with data-scroll-label="<name>" that scrolls sideways takes tabindex="0", role="group" and
+  // Every element with data-scroll-label="<name>" (each .code-block pre: lesson prose, quiz prompt and
+  // quiz explanation; README "Scrollable code") that scrolls sideways takes tabindex="0", role="group" and
   // that name; one that fits takes none of them, because there is nothing to scroll. A focused element
   // keeps them until it loses focus, so a resize that makes it fit never drops focus to body.
   function syncScrollStop(el) {

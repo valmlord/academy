@@ -678,7 +678,7 @@
   </div>
 
   <div class="gallery-section">
-    <h3>Composition: quiz questions with code at 320px</h3>
+    <h3>Composition: quiz questions with code in a narrow box</h3>
     <div class="demo-narrow" lang="ru">
       <div class="quiz page">
         <div class="question">
@@ -722,7 +722,7 @@
         </div>
       </div>
     </div>
-    <p class="gallery-note">A prompt code block is .code-block without its header (no "Копировать"); it keeps its lines and scrolls sideways inside itself. data-scroll-label makes proto.js give the pre tabindex="0", role="group" and aria-label="Код к вопросу" only while it overflows, and keep them until blur when a focused block stops overflowing. In this 20rem box the first tree (25 characters a line) fits and is no Tab stop; the second (44 characters) overflows and is one. Option text with long inline code wraps (overflow-wrap: anywhere), so no option widens the page at 320px. Sample data from 05-memory-agents-md.</p>
+    <p class="gallery-note">A prompt code block is .code-block without its header (no "Копировать"); it keeps its lines and scrolls sideways inside itself. The rule is README "Scrollable code": data-scroll-label makes proto.js give the pre tabindex="0", role="group" and aria-label="Код к вопросу" only while it overflows, and keep them until blur when a focused block stops overflowing. Its focus ring is drawn inset, with the inner radius at all four corners. A fenced block in a quiz explanation is the same header-less pre, named "Блок кода". In this box of up to 20rem the second tree (44 characters a line) overflows at every window width and is a Tab stop. The first (25 characters) sits at the edge, so whether it is one depends on the window and the scrollbar mode: at a 320px window it overflows in Chromium with classic scrollbars (pre scrollWidth / clientWidth 243 / 237) and fits in WebKit with overlay scrollbars (252 / 252); from a 326px window it fits in both. Option text with long inline code wraps (overflow-wrap: anywhere), so no option widens the page at 320px. Sample data from 05-memory-agents-md.</p>
   </div>
 
   <div class="gallery-section">
@@ -827,10 +827,23 @@
       <p>Каждая находка хранит файл, строку и короткое описание проблемы.</p>
       <div class="code-block">
         <div class="code-block-header"><button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#g-code" data-copy-denied="Не скопировано, выделите текст вручную">Копировать</button></div>
-        <pre><code id="g-code">claude --help</code></pre>
+        <pre data-scroll-label="Блок кода"><code id="g-code">claude --help</code></pre>
       </div>
       <blockquote>Цитата из задания.</blockquote>
     </article>
+    <div class="demo-narrow" lang="ru">
+      <div class="page prose">
+        <p>Как подключить:</p>
+        <div class="code-block">
+          <div class="code-block-header"><button class="button" type="button" data-variant="ghost" data-size="sm" data-copy="#g-code-narrow" data-copy-denied="Не скопировано, выделите текст вручную">Копировать</button></div>
+          <pre data-scroll-label="Блок кода"><code id="g-code-narrow">export ANTHROPIC_BASE_URL=http:&#47;&#47;localhost:11434
+export ANTHROPIC_AUTH_TOKEN=ollama
+export ANTHROPIC_API_KEY=""
+claude</code></pre>
+        </div>
+      </div>
+    </div>
+    <p class="gallery-note">Every .code-block pre carries data-scroll-label; the rule is README "Scrollable code". In prose the name is "Блок кода" and the header holds "Копировать", so Tab reaches "Копировать", then the pre only while it overflows. The block in the article ("claude --help") fits and is no Tab stop; in the box of up to 20rem (padded like .page) the 48-character first line overflows at every window width, so its pre is a stop with role="group" and aria-label="Блок кода". Its focus ring is drawn inset: square top corners under the header, the inner radius (md minus the 1px border) at the bottom corners. Sample block from the lesson prototype (#code-ollama).</p>
   </div>
 
   <div class="gallery-section">

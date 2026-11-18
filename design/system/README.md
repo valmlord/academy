@@ -79,7 +79,8 @@ use `tabular-nums`.
 `space-8` above h3, `space-6` above h4; lists indented `space-6`; inline `code` in `text-sm` (`--text-sm`,
 not an `em` factor); tables full width in a horizontally scrollable wrapper
 (`.table-wrap`), `text-sm`, row rules in `border`; inline `code` on `muted`; code blocks (`.code-block`)
-on `muted` with a header holding "Копировать", scrolling sideways inside the block only; headings that
+on `muted` with a header holding "Копировать", scrolling sideways inside the block only; a block that
+overflows takes Tab ("Scrollable code"); headings that
 "Содержание" jumps to carry `tabindex="-1"`.
 
 ## Spacing scale
@@ -109,10 +110,12 @@ icon), md 0.8x (buttons, inputs, badges, tabs, code blocks), lg 1x (alerts, dial
 xl 1.4x (cards), full (`--radius-full: calc(infinity * 1px)`, Tailwind's `rounded-full`; the Progress track,
 status icons, the radio and its review indicator, the radio dot, the "Ваш ответ" dot and the top of the lock
 shackle). 2xl-4xl exist for parity and are unused in v1. `--radius-full` lives only in `proto.css`:
-`rounded-full` is a Tailwind utility, not a theme token. One value is not a step: the `pre` of a header-less
-code block (a quiz prompt) is `calc(var(--radius-md) - 1px)`, the block's inner radius inside its 1px border,
-so the focus ring the `pre` takes when it overflows follows the block's corners (in the app
-`rounded-[calc(var(--radius-md)-1px)]`).
+`rounded-full` is a Tailwind utility, not a theme token. One value is not a step: the corners of a code
+block's `pre` that meet the block's corners are `calc(var(--radius-md) - 1px)`, the block's inner radius
+inside its 1px border, so the inset focus ring the `pre` takes when it overflows ("Scrollable code") follows
+the block's corners. Which corners: all four in a header-less block (a quiz prompt, a quiz explanation), the
+bottom two under a header (lesson prose), whose top corners are square (0). In the app per corner:
+`rounded-[calc(var(--radius-md)-1px)]` header-less, `rounded-b-[calc(var(--radius-md)-1px)]` under a header.
 
 ## Motion and reduced motion
 
@@ -135,7 +138,9 @@ DropdownMenu items keep shadcn's `accent` background on focus but also draw the 
 (`outline-offset: -2px`) so it stays inside the menu; `aria-disabled` items draw it on `muted`. shadcn's
 `focus:bg-accent outline-hidden` alone measures 1.090:1 (light) and 1.185:1 (dark) on `popover`. The
 ring measures 4.742:1 / 6.939:1 on `popover` and 4.349:1 / 5.857:1 on `accent` = `muted` (light / dark,
-"Contrast runs"). The browser decides `:focus-visible`: the ring Radix Tabs draws on the first mouse click
+"Contrast runs"). A code block's `pre` that is a Tab stop (it overflows, "Scrollable code") draws the ring
+inset (`outline-offset: calc(var(--focus-offset) * -1)`), inside the block, so it lies on `muted`: the
+4.349:1 / 5.857:1 above. The browser decides `:focus-visible`: the ring Radix Tabs draws on the first mouse click
 on a tab is accepted (ia.md R4).
 
 Selected tab: shadcn's default pill (`background` on the `muted` tab list, `shadow-sm`), with a 1px
@@ -432,8 +437,7 @@ Markup, in DOM order (ids are the page's):
   arrow keys before Radix handles them (`quiz.md` "Sending").
 - Prompt code: the `.code-block` composition without its header; the `pre` carries
   `data-scroll-label="Код к вопросу"`, and proto.js gives it `tabindex="0"`, `role="group"` and that
-  `aria-label` only while it overflows ("proto.js API"). Its focus ring is the global outline, rounded to the
-  block's corners.
+  `aria-label` only while it overflows. The rule and the inset ring: "Scrollable code".
 - Result block, error summary, send error: the focusable-message Alert (inventory, Alert), never
   `role="alert"`; the app's `Alert` renders `role="alert"` (`ui/alert.tsx:36`) and is overridden with
   `role="group" tabIndex={-1}` as sign-in does (`components/sign-in-form.tsx:232-238`). Result block: default
@@ -472,6 +476,38 @@ the bar's gaps tighten to `space-2`): the trigger's accessible name stays the fu
 wraps and `.topbar-end` moves to a second row, right-aligned. Pages add no top bar overrides. The nav's links
 follow the release, the same on every page (`ia.md` R6, "Before the catalog ships"): "Главная" before #30,
 "Главная" and "Курс" from #30.
+
+### Scrollable code
+
+The one statement of the rule for a code block that is wider than its box (WCAG 2.1.1, #136; #70 had it
+for the quiz prompt only). The flows point here: `design/flows/lesson-environment.md` "Code blocks that
+scroll" and `design/flows/quiz.md` "Question block".
+
+- Applies to every `.code-block` `pre`: in lesson prose (Теория and Задание) with a header holding
+  "Копировать"; in a quiz prompt and a quiz explanation without one.
+- The block keeps its lines and scrolls sideways inside itself; the page never scrolls sideways.
+- Only while `scrollWidth > clientWidth` the `pre` has `tabindex="0"`, `role="group"` and `aria-label` with
+  its name; otherwise none of them, because a block that fits has nothing to scroll. A focused `pre` that
+  stops overflowing keeps them until it loses focus, so focus never falls to `body`.
+- Names (`design/flows/ia.md` page copy): "Блок кода" (Теория, Задание, quiz explanations), "Код к вопросу"
+  (quiz prompt). Several blocks may share the name.
+- The attributes are not redundant in any browser; do not remove them. The reasons (role, name, Safari):
+  `design/flows/lesson-environment.md` "Code blocks that scroll".
+- Focus ring: on the `pre`, inset (`outline-offset: calc(var(--focus-offset) * -1)`), so it stays inside
+  the block and never crosses the header's bottom border. The `pre`'s corners take the block's inner radius
+  where they meet the block's corners and are square under the header ("Radius"). Contrast: on `muted`
+  ("Focus ring").
+- Over a classic (non-overlay) scrollbar the ring's bottom edge is drawn on top of the track (checked
+  2026-11-18 in headless Chromium with classic scrollbars, `components.html` "Composition: prose" and the
+  quiz demo, light and dark; WebKit draws overlay scrollbars there). The track is light in both themes,
+  because neither the prototype nor the app sets `color-scheme`: Chromium's track `#fafafa`, thumb
+  `#c1c1c1`. Bottom edge, inner side: light 4.543:1 on the track, 2.634:1 on the thumb; dark 2.475:1 on the
+  track, 1.435:1 on the thumb. Outer side, on the block's border: light 3.764:1 (`#e5e5e5`), dark 4.270:1
+  (`#3c3c3c`). So in dark the edge is below 3:1 on the track and the thumb, and every segment keeps 3:1
+  against at least one neighbour (the block's border). The other three sides keep 4.349:1 / 5.857:1 on
+  `muted`. A dark scrollbar (`color-scheme` on `.dark`) is valmlord/academy#211.
+- Decided on load, on showing again and on every width change: in the prototype by proto.js ("Scrollable
+  code (proto.js)" below), in the app by FU17 (`design/flows/ia.md`).
 
 ## proto.js API
 
@@ -626,8 +662,8 @@ All behaviour is delegated on `document`; no per-page script is needed.
   keys are cancelled too, in the capture phase: the click capture alone keeps the checked state (a
   cancelled click restores it), but an arrow key would still move focus to an unchecked radio; with the keys
   cancelled nothing changes and focus stays on the option (Chromium and WebKit, headless; Firefox not run).
-- **Scrollable code.** `data-scroll-label="<name>"` on a `pre` (the quiz prompt's code block,
-  `aria-label` "Код к вопросу"): while its lines overflow it has `tabindex="0"`, `role="group"` and
+- **Scrollable code (proto.js).** `data-scroll-label="<name>"` on a `pre` (every `.code-block` `pre`; the
+  rule and the names: "Scrollable code"): while its lines overflow it has `tabindex="0"`, `role="group"` and
   `aria-label="<name>"`, otherwise none of them, decided by a `ResizeObserver` (load, state changes, the
   one-pane switch, the window width); a focused one that stops overflowing keeps them until it loses focus.
   Only elements present at start are observed.

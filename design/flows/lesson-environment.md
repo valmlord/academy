@@ -80,7 +80,8 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
    to the first one with "Показать все" when there are more than two; expanded, the button reads
    "Свернуть").
 2. F7.2 Learner reads the Теория tab: a "Содержание" list of the H2 sections at the top, then the
-   markdown (tables, code blocks with "Копировать"), then "Источники" (title, link, "проверено <date>").
+   markdown (tables, code blocks with "Копировать"; a block whose lines overflow scrolls sideways and takes
+   Tab, "Code blocks that scroll" below), then "Источники" (title, link, "проверено <date>").
 3. F7.3 Learner jumps to a section from "Содержание"; focus moves to that heading.
 4. F7.4 Learner switches to the Задание tab: "Что в рабочей папке", "Что сделать", "Что значит
    "готово"", "Как проверяется", "Попытки и подсказки" (the task.md sections, rendered as written).
@@ -131,9 +132,52 @@ page opens on Задание. A lesson with no sources: the "Источники"
 "Повторить", or "Главная" / "Курс" in the top bar (R6).
 
 **Keyboard path:** the tab list is one Tab stop, arrow keys switch tabs (WAI-ARIA tabs), Tab moves into
-the tab panel. "Содержание" links are in order; Enter moves focus to the heading. While the course cannot
-be read: Tab order and `F6` as `ia.md` R4 and R3 state for that case ("Повторить" is the only control in
-`main`).
+the tab panel. "Содержание" links are in order; Enter moves focus to the heading. A code block is "Копировать", then
+its `pre` while it overflows; on the `pre` the Left and Right arrow keys scroll it sideways, Tab and
+Shift+Tab leave it ("Code blocks that scroll" below). While the course cannot be read: Tab order and `F6`
+as `ia.md` R4 and R3 state for that case ("Повторить" is the only control in `main`).
+
+**Code blocks that scroll** (#136; goal: read a long code line with the keyboard, WCAG 2.1.1; F7.2, F7.5):
+
+- Scope: every `.code-block` the lesson Markdown renders, so Теория and Задание alike: both tabs use one
+  renderer (`apps/web/components/markdown/lesson-markdown.tsx`), so one rule covers both. A fenced block in a
+  quiz explanation takes the same rule and name, without the header (`quiz.md`, "Question block").
+- The rule is `design/system/README.md` "Scrollable code": the quiz prompt's rule (#70), moved there by #136
+  and applied to every `.code-block` `pre`; this section keeps only what is local to the lesson page.
+  Because a second rule for the same element would let the two drift, and the quiz's reasons hold here
+  unchanged: a fitting block has nothing to scroll, and a `pre` may not be named without a role (HTML-ARIA,
+  `pre`: role `generic`, naming prohibited, https://www.w3.org/TR/html-aria/), while `group` is no landmark,
+  which matters on a theory text with many blocks.
+- Name: "Блок кода", one fixed string for every block (`ia.md` page copy, row "lesson (F6-F13, F19)").
+  Because it is the course's own word (task.md: "ни в одном блоке кода нет больше 15 строк подряд",
+  `course/ai-for-developers/00-introduction/04-context-and-planning/task.md`), it stays UI copy rather than
+  lesson data, and the alternatives fail on real lessons: the fence language is no name for 11 of the 67
+  fences in `course/**/theory.md` and `task.md` (`text`) and absent on 3; a section heading is shared by
+  several blocks and absent before the first h2. Several groups with one name on a page are allowed (ARIA
+  does not require unique group names). The quiz prompt keeps "Код к вопросу" (#70).
+- The group is the `pre` alone; "Копировать" stays outside it, in the header. Because the `pre` is the scroll
+  container and the element that takes focus; a group on the whole `.code-block` would either have to be the
+  scroll container (the header and its button would scroll away with the code) or be an unfocused wrapper
+  whose name only some screen readers read on entry. In reading order the button comes right before the code
+  it copies.
+- Tab order: "Копировать", then the `pre` while it overflows: DOM order, which is the drawn order (header
+  above the code, WCAG 2.4.3). An overflowing block costs two stops and a fitting one one stop; both are
+  needed, one to copy and one to scroll.
+- The attributes are explicit on purpose. Firefox, and Chrome since 132, make a scroller with no focusable
+  child a Tab stop by themselves (https://developer.chrome.com/blog/keyboard-focusable-scrollers), so an
+  overflowing `pre` is already a stop there, unnamed; Safari does not, with no plan to
+  (https://adrianroselli.com/2022/06/keyboard-only-scrolling-areas.html). `tabindex="0"` is there for Safari
+  and `role` plus the name for every browser; do not remove them as redundant.
+- Focus ring: on the `pre`, drawn inset, with square corners under the header (`design/system/README.md`
+  "Scrollable code"). Because an outside ring on a `pre` with a header above it would cross the header's
+  bottom border and run outside the block on the other three sides.
+- What changes a block's width on this page, so the decision reruns: a tab panel shown again (a hidden
+  panel's `pre` has no width), the split handle, the one-pane switch, window width, zoom, text size.
+- Error and empty states: copy denial lengthens the label and wraps the header, but not the `pre`'s width, so
+  the stop is unchanged; its "выделите текст вручную" stays a pointer task for a keyboard learner (follow-up
+  FU19 in `ia.md`). A block that fits has no stop. A text load error shows no blocks.
+- Not in this rule: wide prose tables (`.prose .table-wrap`), the same gap in another composition (FU18). The
+  app side is FU17.
 
 **Time limits:** none for reading.
 
