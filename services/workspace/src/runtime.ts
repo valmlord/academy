@@ -1,5 +1,5 @@
 import type { Duplex } from "node:stream";
-import type { Labels, WorkspaceKey } from "./identity.js";
+import type { CheckSlot, Labels, WorkspaceKey } from "./identity.js";
 
 // The port between the manager and whatever runs workspaces (design 4.8, ADR-0002's adapter promise). The
 // manager's rules are tested against an in-memory fake; `DockerRuntime` is the one real adapter.
@@ -96,6 +96,53 @@ export interface ShellHandle {
   terminate(): Promise<void>;
 }
 
+/** One command check to start: the caller has read the lesson's checks and holds the key lock. */
+export interface CheckStartSpec {
+  key: WorkspaceKey;
+  /** The lesson's `checks/` as a tar, unpacked by the setup into the slot's checks dir. */
+  checksTar: Buffer;
+  /** The check's `run` text, handed to `/bin/sh -c` after the setup. */
+  run: string;
+  slot: CheckSlot;
+}
+
+/**
+ * Where a check that did not start stopped. `checks-missing` is the caller's, decided before the runtime is
+ * called; the runtime rejects with the other three.
+ */
+export type CheckStage = "checks-missing" | "container-not-running" | "exec-create" | "exec-start";
+
+/** How the attach stream ended: at a frame boundary, broken framing, or a socket that went away. */
+export type StreamEnd = "eof" | "framing" | "socket-error";
+
+/** `started` means the setup printed the marker; anything else means the run never began. */
+export type SetupOutcome =
+  | { kind: "started" }
+  | {
+      kind: "not-started";
+      reason:
+        | "marker-mismatch"
+        | "ended-before-marker"
+        | "framing"
+        | "socket-error"
+        | "stdin-failed";
+    };
+
+/** The exec's exit code, `running` while it runs, `gone` when Docker no longer knows the exec. */
+export type ExitStatus = number | "running" | "gone";
+
+/** One started check exec, read through its attach stream and Docker's exec record. */
+export interface CheckProcess {
+  /** Settles once the marker, a mismatch, the end or a broken stream decides it; never rejects. */
+  setup: Promise<SetupOutcome>;
+  /** Settles once, with the first of eof, framing and socket-error; never rejects. */
+  ended: Promise<StreamEnd>;
+  /** Stdout after the marker, capped; Docker's text before it is never kept. */
+  stdout(): { text: string; truncated: boolean };
+  /** Rejects with the runtime's classified Docker errors, also when Docker reports an ended exec with no code. */
+  exitStatus(): Promise<ExitStatus>;
+}
+
 export interface WorkspaceRuntime {
   /** Converges to a running workspace (design 6.1); the caller holds the key lock. */
   ensureRunning(spec: WorkspaceSpec): Promise<EnsureResult>;
@@ -112,4 +159,10 @@ export interface WorkspaceRuntime {
   removeContainer(containerId: string): Promise<GcResult>;
   /** Opens a shell in the workspace's running container, after a fresh inspect with the label check. */
   openShell(key: WorkspaceKey, spec: ShellSpec): Promise<ShellHandle>;
+  /**
+   * Starts one command check in the workspace's running container, as the slot's uid. The caller holds the key
+   * lock and has already read the checks. Rejects only with `CheckNotStartedError`, whose stage is
+   * `container-not-running`, `exec-create` or `exec-start`.
+   */
+  startCheck(spec: CheckStartSpec): Promise<CheckProcess>;
 }

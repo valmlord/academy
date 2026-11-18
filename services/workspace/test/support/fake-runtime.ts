@@ -2,6 +2,8 @@ import { type Duplex, duplexPair } from "node:stream";
 import { WorkspaceNotFoundError } from "../../src/errors.js";
 import { type WorkspaceKey, workspaceId } from "../../src/identity.js";
 import type {
+  CheckProcess,
+  CheckStartSpec,
   EnsureResult,
   GcResult,
   ManagedContainer,
@@ -167,6 +169,11 @@ export class FakeRuntime implements WorkspaceRuntime {
         ? this.#managed.filter((entry) => entry !== container)
         : this.#managed.map((entry) => (entry === container ? { ...entry, state: next } : entry));
     return "done";
+  }
+
+  // No manager path starts a check yet, so no test scripts one.
+  async startCheck(_spec: CheckStartSpec): Promise<CheckProcess> {
+    throw new Error("startCheck is not scripted in FakeRuntime");
   }
 
   async openShell(key: WorkspaceKey, spec: ShellSpec): Promise<ShellHandle> {
