@@ -19,7 +19,7 @@ import {
   isSwitchOn,
 } from "../playwright.config";
 import { repoCatalog, repoLessons } from "./course";
-import { useOwnBucket } from "./fixtures";
+import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 // The lesson and catalog pages while course.yaml cannot be read, so the course id is unknown, and the retry
 // after it became readable again (#96). Each test makes the file unreadable inside the stack's web container
@@ -76,6 +76,7 @@ test.beforeEach(async () => {
 
 test.beforeEach(async ({ page }) => {
   await useOwnBucket(page);
+  trackLoadFailures(page);
 });
 
 test.afterEach(async () => {
@@ -94,24 +95,11 @@ async function makeCourseUnreadable(): Promise<void> {
   await chmodCourse("a-r");
 }
 
-/**
- * Waits until React hydrated the element, then for one idle period. Used after a goto, before the first click or
- * key press, and after U3's click that navigates, before asserting the new page's focus.
- * React marks a hydrated DOM node with an own key starting with __reactFiber$ (an internal detail).
- */
-async function waitForHydration(page: Page, elementId: string): Promise<void> {
-  await page.waitForFunction((id) => {
-    const element = document.getElementById(id);
-    return element !== null && Object.keys(element).some((key) => key.startsWith("__reactFiber$"));
-  }, elementId);
-  await page.evaluate(() => new Promise<void>((resolve) => requestIdleCallback(() => resolve())));
-}
-
 /** Opens `path` while the course is unreadable and waits for its course error to hydrate. */
 async function openCourseError(page: Page, path: string): Promise<void> {
   await makeCourseUnreadable();
   await page.goto(path);
-  await waitForHydration(page, COURSE_ERROR_TITLE_ID);
+  await waitForHydration(page.locator(`#${COURSE_ERROR_TITLE_ID}`), "course error hydrated");
 }
 
 /** On the course error of `path`: makes the course readable again and presses Повторить. */
@@ -217,7 +205,7 @@ test("U1 an unmatched path while the course id is unknown answers 404 without К
   await makeCourseUnreadable();
 
   const response = await page.goto("/no/such/path");
-  await waitForHydration(page, NOT_FOUND_TITLE_ID);
+  await waitForHydration(page.locator(`#${NOT_FOUND_TITLE_ID}`), "not-found page hydrated");
 
   expect(response?.status(), "status of the not-found response").toBe(404);
   const main = page.getByRole("main");
@@ -257,7 +245,10 @@ test("U3 Открыть курс after that retry opens the catalog without focu
   await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).toBeFocused();
 
   await page.getByRole("main").getByRole("link", { name: openCourseLabel }).click();
-  await waitForHydration(page, CATALOG_TITLE_ID);
+  await waitForHydration(
+    page.locator(`#${CATALOG_TITLE_ID}`),
+    "catalog hydrated after the open-course click",
+  );
 
   await expect(page.getByRole("heading", { level: 1, name: catalog.title })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1, name: catalog.title })).not.toBeFocused();

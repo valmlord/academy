@@ -41,7 +41,7 @@ describe("readCourseLessons", () => {
     ]);
   });
 
-  it("gives a lesson with a workspace its image, starter and directory", async () => {
+  it("gives a lesson with a workspace its image, starter, directory and command checks", async () => {
     const course = await readCourseLessons(FIXTURE);
 
     expect(course.lesson("sample-course", "with-workspace")).toEqual({
@@ -49,6 +49,7 @@ describe("readCourseLessons", () => {
       lessonId: "with-workspace",
       lessonDir: `${MODULE_DIR}/01-with-workspace`,
       workspace: { image: "academy-workspace:dev", starter: "starter" },
+      commandChecks: [{ id: "verify", run: 'sh "$ACADEMY_CHECKS_DIR/verify.sh"', timeoutSec: 30 }],
     });
   });
 
@@ -56,6 +57,37 @@ describe("readCourseLessons", () => {
     const course = await readCourseLessons(FIXTURE);
 
     expect(course.lesson("sample-course", "theory-only").workspace).toBeNull();
+  });
+
+  it("gives a theory lesson without checks no command checks", async () => {
+    const course = await readCourseLessons(FIXTURE);
+
+    expect(course.lesson("sample-course", "theory-only").commandChecks).toEqual([]);
+  });
+
+  it("keeps only the command checks of a lesson, in lesson order", async () => {
+    const lesson = [
+      "id: with-workspace",
+      "title: Mixed checks",
+      "type: artifact",
+      "outcomes: [x]",
+      "estimatedMinutes: 5",
+      "status: draft",
+      "workspace: { image: academy-workspace:dev, starter: starter }",
+      "checks:",
+      "  - { id: second, title: b, kind: command, run: 'sh b.sh', timeoutSec: 5 }",
+      "  - { id: quiz, title: q, kind: quiz, file: quiz.yaml, passScore: 1 }",
+      "  - { id: first, title: a, kind: command, run: 'sh a.sh', timeoutSec: 1800 }",
+      "",
+    ].join("\n");
+    await writeFile(join(root, MODULE_DIR, "01-with-workspace/lesson.yaml"), lesson);
+
+    const course = await readCourseLessons(root);
+
+    expect(course.lesson("sample-course", "with-workspace").commandChecks).toEqual([
+      { id: "second", run: "sh b.sh", timeoutSec: 5 },
+      { id: "first", run: "sh a.sh", timeoutSec: 1800 },
+    ]);
   });
 
   it("has no entry for an unknown lesson or course", async () => {

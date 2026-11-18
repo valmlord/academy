@@ -1,14 +1,14 @@
-import { type BigIntStats, constants } from "node:fs";
-import { lstat, open, readdir, realpath } from "node:fs/promises";
+import type { BigIntStats } from "node:fs";
+import { lstat, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { HIDDEN_DIR } from "@academy/lesson-schema/schema";
 import { CourseReadError, StarterRefusedError, StarterTooLargeError } from "../errors.js";
 import {
-  CHANGED_DURING_READ,
   fsFailureReason,
   lstatBelowRoot,
   MISSING,
   NOT_A_DIRECTORY,
+  readWalkedFile,
   SYMLINK,
 } from "./files.js";
 
@@ -283,50 +283,18 @@ export function normalisedMode(entry: Pick<StarterEntry, "kind" | "mode">): numb
   return (entry.mode & ANY_EXECUTE_BIT) !== 0 ? EXECUTABLE_FILE_MODE : FILE_MODE;
 }
 
-/** A gone path or a link where the walk saw a regular file: the tree changed after the walk. */
-function readFailureReason(error: unknown): string | undefined {
-  const reason = fsFailureReason(error);
-  if (reason === MISSING || reason === SYMLINK) return CHANGED_DURING_READ;
-  return reason;
-}
-
 /**
- * Rule 10: the bytes of one walked file. It is opened without following a link, and the open file must be
- * the regular file the walk saw (same `(dev, ino)` and size), so a file swapped between the walk and the
- * read is refused instead of copying whatever the new name points to. The read never exceeds the walked size.
+ * Rule 10: the bytes of one walked file, through `readWalkedFile`, so a file swapped between the walk and the
+ * read is refused with the starter's own error.
  */
 export async function readStarterFile(
   resolved: ResolvedStarter,
   entry: StarterEntry,
 ): Promise<Buffer> {
   const rel = `${resolved.starterDir}/${entry.rel}`;
-  const refuse = (error: unknown): never => {
-    const reason = readFailureReason(error);
-    if (reason === undefined) throw error;
+  return readWalkedFile(entry.path, entry, (reason) => {
     throw new StarterRefusedError(rel, reason);
-  };
-  const handle = await open(entry.path, constants.O_RDONLY | constants.O_NOFOLLOW).catch(refuse);
-  try {
-    const opened = await handle.stat({ bigint: true }).catch(refuse);
-    const isWalkedFile =
-      opened.isFile() &&
-      opened.dev === entry.dev &&
-      opened.ino === entry.ino &&
-      Number(opened.size) === entry.size;
-    if (!isWalkedFile) throw new StarterRefusedError(rel, CHANGED_DURING_READ);
-    const buffer = Buffer.alloc(entry.size);
-    let offset = 0;
-    while (offset < entry.size) {
-      const { bytesRead } = await handle
-        .read(buffer, offset, entry.size - offset, offset)
-        .catch(refuse);
-      if (bytesRead === 0) throw new StarterRefusedError(rel, CHANGED_DURING_READ);
-      offset += bytesRead;
-    }
-    return buffer;
-  } finally {
-    await handle.close();
-  }
+  });
 }
 
 /** One starter entry ready for the tar: path below the starter, normalised mode, and a file's bytes. */

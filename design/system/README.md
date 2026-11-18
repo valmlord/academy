@@ -507,7 +507,7 @@ scroll" and `design/flows/quiz.md` "Question block".
   against at least one neighbour (the block's border). The other three sides keep 4.349:1 / 5.857:1 on
   `muted`. A dark scrollbar (`color-scheme` on `.dark`) is valmlord/academy#211.
 - Decided on load, on showing again and on every width change: in the prototype by proto.js ("Scrollable
-  code (proto.js)" below), in the app by FU16 (`design/flows/ia.md`).
+  code (proto.js)" below), in the app by FU17 (`design/flows/ia.md`).
 
 ## proto.js API
 

@@ -1819,7 +1819,7 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
   was shown, sets the text about 100 ms after the showing (measured headless at 1280 and 375 px, both from
   the Квиз tab and from the one-pane switch); the Квиз panel hidden before the write leaves it empty, and an
   arrival by URL at `#state-quiz-load-error` leaves it empty.
-- AC75, Теория and Задание code blocks (#136, app side FU16; README "Scrollable code", `lesson-environment.md`
+- AC75, Теория and Задание code blocks (#136, app side FU17; README "Scrollable code", `lesson-environment.md`
   "Code blocks that scroll"): in `#state-theory` the "Локальные модели" `pre` has `tabindex="0"`,
   `role="group"` and `aria-label="Блок кода"` at 320 and 375 px, where its lines overflow, and none of the
   three at 1280 px two-pane, where they fit; Tab from its "Копировать" reaches the `pre` at 320 px and goes
@@ -1843,7 +1843,7 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
    release that lists a second kind, whose DESIGN task decides how the row shows it.
 2. **Copy denial echo** (AC14) is unverified in a real screen reader; if it fails, the options are a
    change to R2 (one more live container) or moving focus to the code block. Design decision, not dev.
-   The second option is FU18's (`ia.md` "Open follow-ups"), and it must also name a block that fits,
+   The second option is FU19's (`ia.md` "Open follow-ups"), and it must also name a block that fits,
    which under README "Scrollable code" has no name.
 3. **Accessible names "Навигация", "Область" and "Разделы урока":** closed (#69): registered in `ia.md`,
    page copy "lesson, accessible names (#69)".
@@ -1876,6 +1876,6 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
     ("Проверить" when every `command` check is closed and the quiz is open: not drawn, the reason is the
     checks design's); FU11 (explicit `aria-live` and no live role inside a container in the app's
     `notifications.tsx`, AC51).
-11. **Code block follow-ups (#136, `ia.md` "Open follow-ups"), none blocking these notes:** FU16 (the app side
-    of "Scrollable code", AC75 and AC45); FU17 (keyboard scrolling of wide prose tables, `.prose .table-wrap`);
-    FU18 (the keyboard way to take the text after a copy denial, Open question 2).
+11. **Code block follow-ups (#136, `ia.md` "Open follow-ups"), none blocking these notes:** FU17 (the app side
+    of "Scrollable code", AC75 and AC45); FU18 (keyboard scrolling of wide prose tables, `.prose .table-wrap`);
+    FU19 (the keyboard way to take the text after a copy denial, Open question 2).

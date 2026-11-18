@@ -1,13 +1,16 @@
 import { randomBytes } from "node:crypto";
+import type { Duplex } from "node:stream";
 import type { WorkspaceLimits } from "../config.js";
 import { loadStarter } from "../course/starter.js";
 import {
+  CheckNotStartedError,
   DockerApiError,
   WorkspaceBusyError,
   WorkspaceIdentityMismatchError,
   WorkspaceNotFoundError,
 } from "../errors.js";
 import {
+  checkUid,
   LABEL,
   type Labels,
   listFilter,
@@ -19,6 +22,8 @@ import {
   workspaceNames,
 } from "../identity.js";
 import {
+  type CheckProcess,
+  type CheckStartSpec,
   type EnsureOutcome,
   type EnsureResult,
   exitReasonOf,
@@ -32,16 +37,18 @@ import {
   type WorkspaceRuntime,
   type WorkspaceSpec,
 } from "../runtime.js";
+import { openCheckProcess } from "./check-process.js";
 import type { DockerEngine } from "./engine.js";
 import { checkImage, createOrAdoptContainer, ensureVolume, labelsMatchKey } from "./objects.js";
 import { type ContainerInspect, NEVER_STARTED_AT, type VolumeInspect } from "./schemas.js";
 import {
   type ContainerSpecInput,
+  checkExecCreateBody,
   execCreateBody,
   killExecCreateBody,
   STOP_TIMEOUT_SECONDS,
 } from "./spec.js";
-import { buildStarterTar } from "./tar.js";
+import { buildScratchTar, buildStarterTar } from "./tar.js";
 
 export interface DockerRuntimeOptions {
   engine: DockerEngine;
@@ -71,6 +78,12 @@ async function ignoreNotFound(call: Promise<void>): Promise<void> {
   } catch (error: unknown) {
     if (!(error instanceof DockerApiError && error.statusCode === NOT_FOUND)) throw error;
   }
+}
+
+/** A 409 at the exec create means the container stopped after the inspect (DockerEngine.createExec). */
+function stageOfExecCreateFailure(error: unknown): "container-not-running" | "exec-create" {
+  const isContainerNotRunning = error instanceof DockerApiError && error.statusCode === CONFLICT;
+  return isContainerNotRunning ? "container-not-running" : "exec-create";
 }
 
 /** Only a stopped container that has run has an exit; a never-started one has nothing to report. */
@@ -287,6 +300,58 @@ export class DockerRuntime implements WorkspaceRuntime {
         await engine.startDetachedExec(killId);
       },
     };
+  }
+
+  /**
+   * The label-checked inspect, the slot's scratch dirs, then the check exec's create and attached start, each by the
+   * Id inspected here, like `openShell`. Never reads the agent key: a check runs learner code.
+   */
+  async startCheck(spec: CheckStartSpec): Promise<CheckProcess> {
+    const uid = checkUid(spec.slot);
+    let container: ContainerInspect | null;
+    try {
+      ({ container } = await this.#checkedObjects(spec.key));
+    } catch (error: unknown) {
+      const reason =
+        error instanceof WorkspaceIdentityMismatchError ? "identity-mismatch" : "inspect";
+      throw new CheckNotStartedError("exec-create", reason, error);
+    }
+    if (container === null) {
+      throw new CheckNotStartedError("container-not-running", "container-missing", null);
+    }
+    if (!container.State.Running) {
+      throw new CheckNotStartedError("container-not-running", "container-stopped", null);
+    }
+    try {
+      await this.#engine.putArchive(
+        container.Id,
+        WORKSPACE_MOUNT,
+        await buildScratchTar(uid, this.#now()),
+      );
+    } catch (error: unknown) {
+      // A container removed or stopped since the inspect answers 404 or 409 here.
+      const isGone =
+        error instanceof DockerApiError &&
+        (error.statusCode === NOT_FOUND || error.statusCode === CONFLICT);
+      throw new CheckNotStartedError(
+        isGone ? "container-not-running" : "exec-create",
+        "archive",
+        error,
+      );
+    }
+    let execId: string;
+    try {
+      execId = await this.#engine.createExec(container.Id, checkExecCreateBody(uid, spec.run));
+    } catch (error: unknown) {
+      throw new CheckNotStartedError(stageOfExecCreateFailure(error), "exec-create", error);
+    }
+    let socket: Duplex;
+    try {
+      socket = await this.#engine.startAttachedExec(execId);
+    } catch (error: unknown) {
+      throw new CheckNotStartedError("exec-start", "exec-start", error);
+    }
+    return openCheckProcess({ engine: this.#engine, execId, socket, checksTar: spec.checksTar });
   }
 
   /** `null` when the container is gone; a container failing the GC predicate is refused by its Id. */

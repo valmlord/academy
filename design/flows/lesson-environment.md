@@ -175,9 +175,9 @@ as `ia.md` R4 and R3 state for that case ("Повторить" is the only contr
   panel's `pre` has no width), the split handle, the one-pane switch, window width, zoom, text size.
 - Error and empty states: copy denial lengthens the label and wraps the header, but not the `pre`'s width, so
   the stop is unchanged; its "выделите текст вручную" stays a pointer task for a keyboard learner (follow-up
-  FU18 in `ia.md`). A block that fits has no stop. A text load error shows no blocks.
-- Not in this rule: wide prose tables (`.prose .table-wrap`), the same gap in another composition (FU17). The
-  app side is FU16.
+  FU19 in `ia.md`). A block that fits has no stop. A text load error shows no blocks.
+- Not in this rule: wide prose tables (`.prose .table-wrap`), the same gap in another composition (FU18). The
+  app side is FU17.
 
 **Time limits:** none for reading.
 

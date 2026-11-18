@@ -931,7 +931,7 @@ the issue named.
      holds C and Q and no `details`.
 12. Code blocks in the quiz (from #136): a fenced block in a prompt and in an explanation renders as a `pre`
    of the `.code-block` composition without its header, so neither has "Копировать" ("Question block");
-   both use FU16's component (`ia.md` "Open follow-ups"), named "Код к вопросу" in a prompt and "Блок кода"
+   both use FU17's component (`ia.md` "Open follow-ups"), named "Код к вопросу" in a prompt and "Блок кода"
    in an explanation. Tests: a quiz with an overflowing fence in an explanation shows the review with that
    `pre` named "Блок кода" and no "Копировать" in the question.
 

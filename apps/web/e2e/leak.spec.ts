@@ -2,13 +2,14 @@ import { expect, type Page, type Response, type Route, test } from "@playwright/
 import { breadcrumbLabel, courseLinkLabel, notFoundTitle, taskTabLabel } from "../lib/copy";
 import { catalogPath, lessonPath } from "../lib/routes";
 import { repoCatalog, repoDashboard } from "./course";
-import { useOwnBucket } from "./fixtures";
+import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 import { FragmentScanner, forbiddenFragments, sha256 } from "./leak-fragments";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
 // exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
 test.beforeEach(async ({ page }) => {
   await useOwnBucket(page);
+  trackLoadFailures(page);
 });
 
 // Layer 2 of the leak defence (design 7.2): every same-origin text body a signed-in learner receives on
@@ -178,6 +179,11 @@ for (const lesson of visibleLessons) {
     await page.goto(`${lessonPath(catalogForTests.id, lesson.id)}?tab=theory`);
     await expect(page.getByRole("heading", { level: 1, name: lesson.title })).toBeVisible();
     await capture.settle(page);
+    // networkidle also passes when a chunk failed; the click needs the Radix trigger's handler.
+    await waitForHydration(
+      page.getByRole("tab", { name: taskTabLabel }),
+      "hydrated before the task tab",
+    );
     await page.getByRole("tab", { name: taskTabLabel }).click();
     await expect(page.getByRole("tab", { name: taskTabLabel })).toHaveAttribute(
       "aria-selected",

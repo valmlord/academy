@@ -103,3 +103,57 @@ export async function readCourseFile(root: string, rel: string): Promise<string>
     await handle.close();
   }
 }
+
+/** The identity a walk recorded for a regular file, from `lstat` with `bigint: true`. */
+export interface WalkedFileIdentity {
+  dev: bigint;
+  ino: bigint;
+  size: number;
+}
+
+/** A gone path or a link where the walk saw a regular file: the tree changed after the walk. */
+function readFailureReason(error: unknown): string | undefined {
+  const reason = fsFailureReason(error);
+  if (reason === MISSING || reason === SYMLINK) return CHANGED_DURING_READ;
+  return reason;
+}
+
+/**
+ * The bytes of one walked file. It is opened without following a link, and the open file must be the regular
+ * file the walk saw (same `(dev, ino)` and size), so a file swapped between the walk and the read is refused
+ * instead of copying whatever the new name points to. The read never exceeds the walked size. `refuse` turns
+ * a closed reason into the caller's own error; an error that is not a file state is rethrown as it is.
+ */
+export async function readWalkedFile(
+  path: string,
+  expected: WalkedFileIdentity,
+  refuse: (reason: string) => never,
+): Promise<Buffer> {
+  const fail = (error: unknown): never => {
+    const reason = readFailureReason(error);
+    if (reason === undefined) throw error;
+    return refuse(reason);
+  };
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW).catch(fail);
+  try {
+    const opened = await handle.stat({ bigint: true }).catch(fail);
+    const isWalkedFile =
+      opened.isFile() &&
+      opened.dev === expected.dev &&
+      opened.ino === expected.ino &&
+      Number(opened.size) === expected.size;
+    if (!isWalkedFile) return refuse(CHANGED_DURING_READ);
+    const buffer = Buffer.alloc(expected.size);
+    let offset = 0;
+    while (offset < expected.size) {
+      const { bytesRead } = await handle
+        .read(buffer, offset, expected.size - offset, offset)
+        .catch(fail);
+      if (bytesRead === 0) return refuse(CHANGED_DURING_READ);
+      offset += bytesRead;
+    }
+    return buffer;
+  } finally {
+    await handle.close();
+  }
+}

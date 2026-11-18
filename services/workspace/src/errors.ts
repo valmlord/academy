@@ -72,6 +72,23 @@ export class StarterRefusedError extends Error {
   }
 }
 
+/**
+ * A lesson's `checks/` cannot be delivered to a grader (the contract's stage `checks-missing`). `path` is
+ * relative to the course root and `reason` is one of the closed reasons of design section 10, so the message
+ * never carries a checks file's content, which holds the expected answers.
+ */
+export class ChecksRefusedError extends Error {
+  readonly path: string;
+  readonly reason: string;
+
+  constructor(relativePath: string, reason: string) {
+    super(`checks refused: ${relativePath}: ${reason}`);
+    this.name = "ChecksRefusedError";
+    this.path = relativePath;
+    this.reason = reason;
+  }
+}
+
 /** A starter exceeds a copy cap, measured from `lstat` before any byte is read (design 4.4). */
 export class StarterTooLargeError extends Error {
   readonly path: string;
@@ -223,5 +240,36 @@ export class ContainerNameUnresolvedError extends Error {
     this.name = "ContainerNameUnresolvedError";
     this.containerName = containerName;
     this.waitedMs = waitedMs;
+  }
+}
+
+/** What decided a `CheckNotStartedError`: the Docker call that failed, or the check that refused. */
+export type CheckNotStartedReason =
+  | "inspect"
+  | "identity-mismatch"
+  | "container-missing"
+  | "container-stopped"
+  | "archive"
+  | "exec-create"
+  | "exec-start";
+
+/**
+ * A check could not be started; `stage` is the contract's. `cause` is the error that decided it, `null` for a
+ * missing or stopped container, so a caller can log its status; the message carries neither Docker's text nor the
+ * check's `run`.
+ */
+export class CheckNotStartedError extends Error {
+  readonly stage: "container-not-running" | "exec-create" | "exec-start";
+  readonly reason: CheckNotStartedReason;
+
+  constructor(
+    stage: "container-not-running" | "exec-create" | "exec-start",
+    reason: CheckNotStartedReason,
+    cause: unknown,
+  ) {
+    super(`check not started at ${stage}: ${reason}`, { cause });
+    this.name = "CheckNotStartedError";
+    this.stage = stage;
+    this.reason = reason;
   }
 }

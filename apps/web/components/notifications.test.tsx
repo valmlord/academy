@@ -169,6 +169,27 @@ async function renderPage(props: PageProps = {}): Promise<(next: PageProps) => v
   return (next) => rerender(<Page {...next} />);
 }
 
+async function renderUnderOpenMenu(): Promise<void> {
+  render(
+    <>
+      <Notifications />
+      <p>sibling</p>
+      <DropdownMenu>
+        <DropdownMenuTrigger>menu</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem>item</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>,
+  );
+  await act(async () => undefined);
+  const trigger = screen.getByRole("button", { name: "menu" });
+  trigger.focus();
+
+  fireEvent.keyDown(trigger, { key: "Enter" });
+  await screen.findByRole("menu");
+}
+
 describe("Notifications idle warning (#106 design 5)", () => {
   it("shows the warning inside the existing status container, with no live role of its own (N1)", async () => {
     await renderPage();
@@ -245,24 +266,7 @@ describe("Notifications idle warning (#106 design 5)", () => {
   });
 
   it("keeps both live containers announced while a modal menu hides the rest of the page (N6)", async () => {
-    render(
-      <>
-        <Notifications />
-        <p>sibling</p>
-        <DropdownMenu>
-          <DropdownMenuTrigger>menu</DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem>item</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </>,
-    );
-    await act(async () => undefined);
-    const trigger = screen.getByRole("button", { name: "menu" });
-    trigger.focus();
-
-    fireEvent.keyDown(trigger, { key: "Enter" });
-    await screen.findByRole("menu");
+    await renderUnderOpenMenu();
 
     const wrapper = document.querySelector("[data-notifications]");
     const alert = wrapper?.querySelector(':scope > [role="alert"]');
@@ -272,6 +276,29 @@ describe("Notifications idle warning (#106 design 5)", () => {
     expect(alert?.closest('[aria-hidden="true"]')).toBeNull();
     expect(status?.closest('[aria-hidden="true"]')).toBeNull();
     expect(screen.getByText("sibling")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("keeps the session alert and the idle warning announced when they arrive under an open modal menu (N6b)", async () => {
+    await renderUnderOpenMenu();
+
+    expireSession();
+    showWarning();
+
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(screen.getByText("sibling")).toHaveAttribute("aria-hidden", "true");
+    const wrapper = document.querySelector("[data-notifications]");
+    const rows = [
+      { selector: ':scope > [role="alert"]', live: "assertive", text: sessionExpiredMessage },
+      { selector: ':scope > [role="status"]', live: "polite", text: idleWarningMessage(5) },
+    ];
+    for (const { selector, live, text } of rows) {
+      const container = wrapper?.querySelector(selector);
+      expect(container).toHaveAttribute("aria-live", live);
+      expect(container?.closest('[aria-hidden="true"]')).toBeNull();
+      expect(container?.querySelector('[role="alert"], [role="status"]')).toBeNull();
+      // Without the text the two checks above would also pass on an empty container.
+      expect(container).toHaveTextContent(text);
+    }
   });
 
   it("lands in the shown pane without showing another when focus came from nothing (N7)", async () => {

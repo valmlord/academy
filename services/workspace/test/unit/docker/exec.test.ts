@@ -6,14 +6,26 @@ import { join } from "node:path";
 import type { Duplex } from "node:stream";
 import { setTimeout as sleep } from "node:timers/promises";
 import { afterEach, describe, expect, it } from "vitest";
+import { CHECK_MARKER } from "../../../src/docker/demux.js";
 import { DockerEngine } from "../../../src/docker/engine.js";
 import {
+  CHECK_SCRIPT,
+  checkExecCreateBody,
+  checkExecStartBody,
   detachedExecStartBody,
   execCreateBody,
   execStartBody,
   killExecCreateBody,
 } from "../../../src/docker/spec.js";
 import { DockerApiError } from "../../../src/errors.js";
+import {
+  CHECK_SLOTS,
+  type CheckSlot,
+  checkUid,
+  GRADER_SCRATCH_ROOT,
+  LEARNER_UID,
+  WORK_DIR,
+} from "../../../src/identity.js";
 
 // U-exec-body and the engine's exec calls (design 3.2, 3.5, #110) against a fake daemon on a temp unix socket, so the
 // bodies are asserted as the daemon receives them and `pnpm test` stays Docker-free.
@@ -27,6 +39,8 @@ const IDLE_MS = 500;
 /** A shell's pid-file tag, as the adapter generates it (16 hex characters). */
 const TAG = "0123456789abcdef";
 const AGENT_KEY = "t115-fake-agent-key-not-real";
+/** A lesson's `run` text, as the check body carries it. */
+const CHECK_RUN = "node checks/grade.js";
 /**
  * With 0 docker-modem sets no `req.setTimeout` (modem.js:296 `if (self.timeout)`; engine.ts keeps the 0, dockerode
  * docker.js:34 and modem.js:93 pass it through), so nothing in the client closes an idle socket by itself. Neither
@@ -241,6 +255,7 @@ describe("exec bodies (U-exec-body)", () => {
   it.each([
     ["shell", execCreateBody("/bin/bash", TAG, null)],
     ["kill", killExecCreateBody(TAG)],
+    ["check", checkExecCreateBody(2000, CHECK_RUN)],
   ])("sends the %s create body as JSON with no other key and no query", async (_name, body) => {
     const daemon = await fakeDaemon();
     const engine = new DockerEngine({ socketPath: daemon.socketPath });
@@ -251,6 +266,82 @@ describe("exec bodies (U-exec-body)", () => {
     expect(daemon.requests).toHaveLength(1);
     expect(daemon.requests[0]?.url).toBe(`/v1.44/containers/${CONTAINER_ID}/exec`);
     expect(JSON.parse(daemon.requests[0]?.body ?? "")).toStrictEqual(body);
+  });
+});
+
+describe("check exec bodies (U-exec-check)", () => {
+  // Restated line by line, as the shell receives it: this list is the reviewed script.
+  const CHECK_SCRIPT_LINES = [
+    'u="$1"',
+    's="/workspace/.academy-grader/$u"',
+    'd="$s/checks"',
+    "kill -9 -1 2>/dev/null",
+    'rm -rf "$s"/* "$s"/.[!.]* "$s"/..?* 2>/dev/null',
+    'n=$(ls -A "$s") && [ -z "$n" ] || exit 119',
+    'cd -P /workspace/home/work && [ "$PWD" = /workspace/home/work ] || exit 123',
+    'chmod 700 "$s" || exit 120',
+    'mkdir -m 700 "$s/home" || exit 124',
+    'mkdir -m 700 "$s/tmp" || exit 125',
+    'mkdir -m 700 "$d" || exit 121',
+    'tar -x -C "$d" || exit 122',
+    "exec 0</dev/null",
+    'export ACADEMY_CHECKS_DIR="$d" ACADEMY_GRADER_SCRATCH="$s" HOME="$s/home" TMPDIR="$s/tmp"',
+    "printf 'academy-check-started\\n'",
+    'exec /bin/sh -c "$2"',
+  ];
+
+  it("builds the exact check create body", () => {
+    expect(checkExecCreateBody(2001, CHECK_RUN)).toStrictEqual({
+      AttachStdin: true,
+      AttachStdout: true,
+      AttachStderr: true,
+      Tty: false,
+      Cmd: ["/bin/sh", "-c", CHECK_SCRIPT_LINES.join("\n"), "academy-check", "2001", CHECK_RUN],
+      User: "2001:2001",
+      WorkingDir: "/",
+    });
+  });
+
+  it("builds the exact check start body", () => {
+    expect(checkExecStartBody()).toStrictEqual({ Detach: false, Tty: false });
+  });
+
+  it("neither check body names the agent key variable", () => {
+    expect(JSON.stringify(checkExecCreateBody(2000, CHECK_RUN))).not.toContain("ANTHROPIC_API_KEY");
+  });
+
+  it("prints exactly the marker with its printf line, and the script has 16 lines", () => {
+    const lines = CHECK_SCRIPT.split("\n");
+    const printfLine = lines.find((line) => line.startsWith("printf "));
+
+    expect(lines).toHaveLength(16);
+    expect(printfLine).toBe("printf 'academy-check-started\\n'");
+    // printf turns the backslash and the n into the newline that ends the marker.
+    const printed = (printfLine ?? "").slice("printf '".length, -"'".length).replace("\\n", "\n");
+    expect(Buffer.from(printed, "utf8").equals(CHECK_MARKER)).toBe(true);
+  });
+
+  it("the work dir line comes right after the emptiness check", () => {
+    const lines = CHECK_SCRIPT.split("\n");
+
+    expect(lines[5]).toBe('n=$(ls -A "$s") && [ -z "$n" ] || exit 119');
+    expect(lines[6]).toBe(`cd -P ${WORK_DIR} && [ "$PWD" = ${WORK_DIR} ] || exit 123`);
+  });
+
+  it("keeps the slot dir under the grader scratch root and interpolates nothing", () => {
+    expect(CHECK_SCRIPT).toContain(`s="${GRADER_SCRATCH_ROOT}/$u"`);
+    expect(CHECK_SCRIPT).not.toContain("${");
+    expect(CHECK_SCRIPT).not.toContain("/tmp/");
+  });
+
+  it("gives every slot its own uid, none of them the learner's", () => {
+    const slots: CheckSlot[] = [0, 1, 2, 3];
+    const uids = slots.map(checkUid);
+
+    expect(slots).toHaveLength(CHECK_SLOTS);
+    expect(uids).toStrictEqual([2000, 2001, 2002, 2003]);
+    expect(new Set(uids).size).toBe(CHECK_SLOTS);
+    expect(uids).not.toContain(LEARNER_UID);
   });
 });
 
@@ -345,5 +436,39 @@ describe("DockerEngine exec calls", () => {
     const engine = new DockerEngine({ socketPath: daemon.socketPath });
 
     expect(await engine.inspectExec(EXEC_ID)).toStrictEqual({ Running: false, ExitCode: 3 });
+  });
+});
+
+describe("attached check exec (U-engine-attached)", () => {
+  it("starts a check exec attached without a TTY with exactly the check start body", async () => {
+    const daemon = await fakeDaemon();
+    const engine = new DockerEngine({ socketPath: daemon.socketPath });
+
+    const stream = await engine.startAttachedExec(EXEC_ID);
+    await daemon.shell;
+
+    expect(daemon.requests[0]?.url).toBe(`/v1.44/exec/${EXEC_ID}/start`);
+    expect(JSON.parse(daemon.requests[0]?.body ?? "")).toStrictEqual({ Detach: false, Tty: false });
+    stream.destroy();
+  });
+
+  it("an attached check socket survives the inactivity timeout", async () => {
+    const daemon = await fakeDaemon();
+    const engine = new DockerEngine({ socketPath: daemon.socketPath, timeoutMs: TIMEOUT_MS });
+    const stream = await engine.startAttachedExec(EXEC_ID);
+    const shell = await daemon.shell;
+    let timedOut = false;
+    stream.on("timeout", () => {
+      timedOut = true;
+    });
+
+    await sleep(IDLE_MS);
+    const fromShell = nextData(stream);
+    shell.write("alive");
+
+    expect(timedOut).toBe(false);
+    expect(stream.destroyed).toBe(false);
+    expect(await fromShell).toBe("alive");
+    stream.destroy();
   });
 });

@@ -37,7 +37,13 @@ task.md promises "дальше разбор с ментором"; a rubric check
   retrying spends more of what ran out. The budget value comes from #37.
 - The agent fails or times out: "Ментор не ответил" with "Повторить" and the note that a retry costs
   again.
-- API key missing: "Ключ API не задан, разбор недоступен. Добавьте ключ в .env." (#33).
+- Mentor key missing: "Ключ API для ментора не задан: разбор недоступен." (#37). Which key the mentor
+  uses, where it is set and how its absence is found (before the call or from a failed one) are #37's:
+  ADR-0002 item 14 "Consumers" gives the agent API key of #115 to the terminal shell only and adds the
+  mentor "by their own amendment", so this state names no variable, file or action. The sentence says only
+  what holds whichever way #37 decides; the learner action and the final wording come from #37 (FU16 in
+  `ia.md`). No "Повторить", because a retry cannot find a key that is not there; the learner goes on
+  working (F9).
 - No transcript attached (#38 not shipped or the agent was not used): the review proceeds on the result
   only, with a muted note "Ментор не видел транскрипт работы с агентом".
 
@@ -75,7 +81,7 @@ section, or in the review (F16).
 
 **Success:** the hint at the chosen level is shown and saved with the attempt.
 
-**Error states:** as F16 (budget, agent failure, API key).
+**Error states:** as F16 (budget, agent failure, mentor key missing).
 
 **Empty states:** no hint asked yet: the ladder at "Вопрос" with "Попросить подсказку".
 

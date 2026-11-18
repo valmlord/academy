@@ -556,6 +556,7 @@ describe("EnvironmentPanel actions menu and reset dialog (#106)", () => {
     const env = setup();
     await reachRunning(env);
     const textarea = env.terminals[0]?.textarea;
+    expect(within(region()).getByRole("status")).toHaveAttribute("aria-live", "polite");
 
     openMenu();
 
