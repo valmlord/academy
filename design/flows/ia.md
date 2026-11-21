@@ -604,15 +604,17 @@ From #220 (FU20). The normal states with several courses and the root error; eve
 with several courses, A218-9 to A218-11 and F21: see #222. From #220 the decisions and rules below replace
 what this file and the other flow files state for the one-course app about the top-bar and breadcrumb
 "Курс" and R6 "Course id unknown", the dashboard's Tab order and `F6` landing, the not-found action, its
-landing and its way on, and the F18.3 and F18.4 row names. `courses.md` holds F20, F22, "Questions for
-#219" (Q1-Q10) and "Requirements for #220". "#218 research §n" cites `plans/218-research.md`, a working
-note like the #50 ones.
+landing and its way on, where F18.1-F18.2 sit (A218-6), and the courses F18.3-F18.5 cover and the F18.3
+and F18.4 row names (A218-13). `courses.md` holds F20, F22, "Questions for #219" (Q1-Q10) and
+"Requirements for #220". "#218 research §n" cites `plans/218-research.md`, a working note like the #50
+ones.
 
 ### Decisions
 
 - <a id="A218-1"></a>**A218-1. The dashboard is the course list.** `/` shows one course block per course
-  of the root; no other page or route lists courses. Because for few courses the dashboard already answers
-  "what next", as on Coursera and Open edX (#218 research §5).
+  of the root; no other page or route lists courses, except "Другие курсы" ([A218-14](#A218-14)). Because
+  for few courses the dashboard already answers "what next", as on Coursera and Open edX (#218 research
+  §5).
 - <a id="A218-2"></a>**A218-2. The Card course.** At most one "Следующий урок" Card: the next lesson of the
   course with the newest learner activity (`courses.md` Q5) among the courses with a next lesson, else of
   the first of them in list order. With no next lesson anywhere, the end Card of the course chosen the same
@@ -627,8 +629,8 @@ note like the #50 ones.
   block speaks for its own course.
 - <a id="A218-5"></a>**A218-5. No next-lesson link in the Card course's block**, because the Card holds
   that lesson.
-- <a id="A218-6"></a>**A218-6. Module rows in every block**, at every course count, because one course
-  keeps one layout (FU21).
+- <a id="A218-6"></a>**A218-6. Module rows in every readable block**, at every course count, because one
+  course keeps one layout (FU21).
 - <a id="A218-7"></a>**A218-7. The course name.** `course.yaml` `title`, as is, wherever one course is
   named: the Card, the block heading, the course crumb, the catalog h1 and `<title>`, the "Другие курсы"
   links, the rows of A218-13. Because "Курс" does not say which course.

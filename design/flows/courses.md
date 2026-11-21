@@ -30,7 +30,7 @@ choose. Source: #218 scope items 1 and 3; #35 ("course percentage"); learning-pr
 state with several courses: see #222.
 
 **Empty states:** first run: each readable block shows the F18 first-run course line; a course with no
-`ready` lesson: a block in the empty form (Q6), whose heading link still opens its catalog (FU23).
+`ready` lesson: a block in the empty form (Q6).
 
 **Exit:** F20.3, F20.4, the Card (F4.3, or the end Card's "Открыть курс"), from #35 the F18.3 and F18.4
 rows, the top bar.
