@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { Duplex } from "node:stream";
 import { setTimeout as sleep } from "node:timers/promises";
 import { afterEach, describe, expect, it } from "vitest";
+import { CLEANUP_EXIT_KINDS } from "../../../src/docker/check-process.js";
 import { CHECK_MARKER } from "../../../src/docker/demux.js";
 import { DockerEngine } from "../../../src/docker/engine.js";
 import {
@@ -395,6 +396,24 @@ describe("check cleanup exec body (U-exec-check)", () => {
     expect(CHECK_CLEANUP_SCRIPT, "E3 no interpolation").not.toContain("${");
     expect(CHECK_CLEANUP_SCRIPT, "E3 no tmp").not.toContain("/tmp/");
     expect(CHECK_CLEANUP_SCRIPT, "E3 no backslash").not.toContain("\\");
+  });
+
+  it("E5: every exit code the cleanup script names maps to its own cleanup kind", () => {
+    const codes = [...CHECK_CLEANUP_SCRIPT.matchAll(/exit (\d+)/g)]
+      .map((match) => Number(match[1]))
+      .sort((left, right) => left - right);
+
+    expect(codes, "E5 codes").toStrictEqual([0, 4, 5, 6, 7]);
+    expect(
+      codes.map((code) => CLEANUP_EXIT_KINDS.get(code)),
+      "E5 kinds",
+    ).toStrictEqual([
+      "clean",
+      "processes-left",
+      "files-left",
+      "no-proc",
+      "processes-and-files-left",
+    ]);
   });
 });
 

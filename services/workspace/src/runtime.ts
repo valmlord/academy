@@ -131,6 +131,41 @@ export type SetupOutcome =
 /** The exec's exit code, `running` while it runs, `gone` when Docker no longer knows the exec. */
 export type ExitStatus = number | "running" | "gone";
 
+/**
+ * How a check's cleanup ended (ADR-0002 item 12 "Cleanup"): the cleanup script's own exits first, then Docker's
+ * refusals and the service's wait. Only `clean` leaves the slot trusted for its next check; after any other kind
+ * the caller stops the container before the slot runs another check (ADR-0002 item 12 "Slot trust").
+ */
+export type CleanupKind =
+  | "clean"
+  | "processes-left"
+  | "files-left"
+  | "processes-and-files-left"
+  | "no-proc"
+  | "not-started"
+  | "killed"
+  | "unexpected-exit"
+  | "container-stopped"
+  | "timed-out"
+  | "docker-error"
+  | "cleanup-started";
+
+/** The cleanup exec's exit code and Docker's error status, each `null` when there is none. */
+export interface CleanupResult {
+  readonly kind: CleanupKind;
+  readonly exitCode: number | null;
+  readonly httpStatus: number | null;
+}
+
+/**
+ * With `wait: false`, `terminate` resolves once Docker answered the cleanup's create, and its start when one was
+ * sent: `cleanup-started` when the start succeeded, the mapped failure otherwise. For a shutdown that must not wait
+ * for the cleanup's end.
+ */
+export interface TerminateOptions {
+  readonly wait: boolean;
+}
+
 /** One started check exec, read through its attach stream and Docker's exec record. */
 export interface CheckProcess {
   /** Settles once the marker, a mismatch, the end or a broken stream decides it; never rejects. */
@@ -141,6 +176,16 @@ export interface CheckProcess {
   stdout(): { text: string; truncated: boolean };
   /** Rejects with the runtime's classified Docker errors, also when Docker reports an ended exec with no code. */
   exitStatus(): Promise<ExitStatus>;
+  /**
+   * A fresh inspect by the container Id `startCheck` used: `false` when the container is gone or not running.
+   * Rejects with the runtime's classified Docker errors.
+   */
+  isContainerRunning(): Promise<boolean>;
+  /**
+   * Ends the check and cleans up its slot (ADR-0002 item 12 "Cleanup"): destroys the attach socket, then creates and
+   * starts the cleanup exec. Never rejects; a second call returns the first call's promise, whatever its options.
+   */
+  terminate(options: TerminateOptions): Promise<CleanupResult>;
 }
 
 export interface WorkspaceRuntime {
@@ -162,7 +207,9 @@ export interface WorkspaceRuntime {
   /**
    * Starts one command check in the workspace's running container, as the slot's uid. The caller holds the key
    * lock and has already read the checks. Rejects only with `CheckNotStartedError`, whose stage is
-   * `container-not-running`, `exec-create` or `exec-start`.
+   * `container-not-running`, `exec-create` or `exec-start`. A rejection with stage `exec-start` leaves the container
+   * untrusted (ADR-0002 item 12 "Slot trust"): Docker may have started the exec, and no `CheckProcess` exists to
+   * clean it up.
    */
   startCheck(spec: CheckStartSpec): Promise<CheckProcess>;
 }
