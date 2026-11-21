@@ -195,8 +195,10 @@ hdi_ip=$(docker exec "$workspace" node -e "$RESOLVE_JS")
 echo "NP setup gateway $gateway host.docker.internal=$hdi_ip"
 
 # C1: a helper on the workspace network must be reachable, or the probe itself is broken.
+# A client close ending in a RST is an ECONNRESET on the accepted socket; without a handler node
+# exits and the helper frees its IP (#143, the same defect #129 fixed in runtime-stop.int.test.ts).
 helper_id=$(docker run -d --pull never --name "$helper_name" --network "$network" --label "$run_label" \
-  "$PROBE_IMAGE" node -e "require('node:net').createServer((s) => s.end()).listen($HELPER_PORT)") ||
+  "$PROBE_IMAGE" node -e "require('node:net').createServer((s) => { s.on('error', (e) => console.error('listener socket error ' + e.code)); s.end(); }).listen($HELPER_PORT)") ||
   { helper_id=""; echo "NP C1 FAIL helper not started"; exit 1; }
 helper_ip=$(ip_on "$helper_id" "$network")
 c1=""
