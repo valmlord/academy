@@ -75,7 +75,8 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 
 **Steps (5):**
 
-1. F7.1 Learner sees the lesson header: breadcrumbs, title, type ("теория", "квиз", "артефакт", "оценка
+1. F7.1 Learner sees the lesson header: breadcrumbs (the first crumb: [the label "Курс"](ia.md#course-label),
+   from #220 [A218-8](ia.md#A218-8)), title, type ("теория", "квиз", "артефакт", "оценка
    агента", "поиск багов", "проект"), "около N мин", and "Чему научитесь" (the lesson outcomes, collapsed
    to the first one with "Показать все" when there are more than two; expanded, the button reads
    "Свернуть").
@@ -95,14 +96,15 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
   `<title>` and h1 "Не удалось загрузить курс" (the h1 is the Alert title, `tabindex="-1"`), "Повторить";
   nothing else in `main`: no breadcrumb, lesson header, M0 line, prerequisite alert or tabs, because each
   of them is course data. The URL's course and lesson ids are not checked: without the course the page
-  cannot tell a hidden lesson from a real one, and saying "not found" could be wrong. Regions: `ia.md` R3
-  (`main` is the `F6` stop and lands on "Повторить"); top bar: R6, with `aria-current` on neither link and
-  "Курс" kept unless the course id is unknown. "Повторить" reloads: the lesson opens with focus on its h1
+  cannot tell a hidden lesson from a real one, and saying "not found" could be wrong. Regions, the `F6`
+  stop and its landing: `ia.md` R3 (its course-error row); top bar and its `aria-current`: R6 "Top bar by release", and
+  "Курс" per [the label "Курс"](ia.md#course-label). "Повторить" reloads: the lesson opens with focus on its h1
   (`<title>` the lesson title); a second failure focuses the error h1 (`<title>` unchanged); a course that
   loads while the URL is a way into the not-found page (`ia.md` page inventory, not-found Route) shows the
   not-found page with focus on its h1 (`<title>` "Страница не найдена"; R2, page-level retry table). The
-  lesson h1 and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2,
-  retry focus guard).
+  lesson h1 and error h1 moves follow the `ia.md` R2 [retry focus guard](ia.md#retry-focus-guard). From
+  #220 which URLs are not-found instead: `ia.md` page inventory, not-found Route.
+  The course error with several courses, from #220: see #222.
 - A direct link that is a way into the not-found page (`ia.md` page inventory, not-found Route, ways (3)
   and (4)): the not-found page (`catalog.md` F5 error states).
 - theory.md or task.md cannot be read: the tab shows "Не удалось загрузить текст урока" with
@@ -128,8 +130,10 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 **Empty states:** a lesson with no theory.md (a pure quiz lesson): the Теория tab is not shown and the
 page opens on Задание. A lesson with no sources: the "Источники" block is not shown.
 
-**Exit:** F7.5 into F9; F13 via "Проверить"; breadcrumbs to the catalog. From the course error:
-"Повторить", or "Главная" / "Курс" in the top bar (R6).
+**Exit:** F7.5 into F9; F13 via "Проверить"; F6.3 by a prerequisite link; the breadcrumb links to the
+catalog (`ia.md` Navigation model "Breadcrumbs"; from #220 F22); the top bar (`ia.md` R6 "Top bar by
+release"; "Курс": [the label "Курс"](ia.md#course-label)). From the course error: "Повторить", or the top
+bar; with several courses, from #220: see #222.
 
 **Keyboard path:** the tab list is one Tab stop, arrow keys switch tabs (WAI-ARIA tabs), Tab moves into
 the tab panel. "Содержание" links are in order; Enter moves focus to the heading. A code block is "Копировать", then
@@ -215,7 +219,8 @@ while the learner reads hides the wait (decision A10).
 - Container limits hit (CPU, memory, pids; ADR-0002): "Окружение остановлено: превышен лимит <памяти |
   процессов | CPU>. Файлы сохранены." with "Запустить снова".
 - Environment rejected (it belongs to another user, #32): "Нет доступа к этому окружению." with "Открыть
-  курс". Only reachable by a bug or a hand-edited URL; it still needs a state.
+  курс" (from #220 its target: `ia.md` R6 "Course scope (#218)"). Only reachable by a bug or a hand-edited
+  URL; it still needs a state.
 - Agent API key missing (#33), a warning, not an error: "Ключ API для агента не задан: агент в терминале
   не запустится. Добавьте ключ в .env и перезапустите платформу." Bash keeps working.
 - Start takes longer than a threshold (parameter `ENVIRONMENT_START_SLOW_SECONDS`, set by #31): the text
