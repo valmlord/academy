@@ -71,7 +71,7 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 ("theory ... starts from a concrete problem"; "task ... what to do and how to tell that it is done");
 #30 e2e "see the theory"; G2.
 
-**Entry:** F4.3, F5.4, or a direct link to the lesson.
+**Entry:** F4.3, F5.4, from #220 F20.3, or a direct link to the lesson.
 
 **Steps (5):**
 
@@ -215,7 +215,8 @@ while the learner reads hides the wait (decision A10).
 - Container limits hit (CPU, memory, pids; ADR-0002): "Окружение остановлено: превышен лимит <памяти |
   процессов | CPU>. Файлы сохранены." with "Запустить снова".
 - Environment rejected (it belongs to another user, #32): "Нет доступа к этому окружению." with "Открыть
-  курс". Only reachable by a bug or a hand-edited URL; it still needs a state.
+  курс" (from #220: `ia.md` "Rules (#218)" row "course of each control"). Only reachable by a bug or a
+  hand-edited URL; it still needs a state.
 - Agent API key missing (#33), a warning, not an error: "Ключ API для агента не задан: агент в терминале
   не запустится. Добавьте ключ в .env и перезапустите платформу." Bash keeps working.
 - Start takes longer than a threshold (parameter `ENVIRONMENT_START_SLOW_SECONDS`, set by #31): the text

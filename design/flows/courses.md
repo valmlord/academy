@@ -103,6 +103,8 @@ a follow-up DESIGN task, which also checks #222.
    a Card; the course crumb landing in each layout; not-found with and without "Открыть курс"; a catalog
    without a `ready` lesson opened from its block and from "Другие курсы".
 8. The error and focus states with several courses: see #222.
+9. The quiz answer key in `sessionStorage` (`quiz.md` F15 error states, "Session expired while answering")
+   also holds the course id.
 
 ## Not designed in #218
 

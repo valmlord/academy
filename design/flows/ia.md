@@ -129,7 +129,7 @@ whether the control is shown in v1; a hidden control appears only when its issue
 | sign in again after expiry | "Войти снова" | F2 | yes |
 | sign out | "Выйти" | F3 | yes |
 | open the next lesson | "Начать" (lesson not started, R5) / "Продолжить" (started) | F4 | yes |
-| open the catalog | "Открыть курс" | F4, F5, F7, F8; from #220 F20, F22 | yes, from #30 (R6, "Before the catalog ships"); on the not-found page not while the course id is unknown (R6, "Course id unknown"); from #220 [A218-12](#A218-12) |
+| open its course's catalog | "Открыть курс" | F4, F5, F7, F8; from #220 F20, F22 | yes, from #30 (R6, "Before the catalog ships"); on the not-found page not while the course id is unknown (R6, "Course id unknown"); from #220 [A218-12](#A218-12) |
 | retry a failed load or start | "Повторить" | F1, F4, F5, F7, F8, F15, F16, F18, F19 | yes where its flow is v1 (F1, F4, F5, F7, F8, F18); F15 D2; F16 D3; F19 from #35. A check run is retried with "Проверить", never "Повторить" (#69, S7, `checks.md` F13 error states) |
 | expand / collapse the outcomes | "Показать все" / "Свернуть" | F7 | yes |
 | copy a code block | "Копировать" | F7 | yes |
@@ -583,8 +583,8 @@ element on. The whole class, and what each release renders:
 | "Слабые темы", "Слабых тем пока нет" (#50) | dashboard | - | dropped: no release renders them | - | - |
 
 Every other F18 and F19 statement holds in every release from #30. The `F6` landings (R3) do not change in
-any of these releases: on the dashboard `main` lands on the Card's button, and the history is inside the
-"Урок" region.
+any of these releases: on the dashboard `main` lands on the Card's button (from #220 the "Rules (#218)"
+row "Tab order in `main`, `F6`"), and the history is inside the "Урок" region.
 
 ### R7: attempt limits, known and unknown
 
@@ -604,8 +604,8 @@ From #220 (FU20). The normal states with several courses and the root error; eve
 with several courses, A218-9 to A218-11 and F21: see #222. From #220 the decisions and rules below replace
 what this file and the other flow files state for the one-course app about the top-bar and breadcrumb
 "Курс" and R6 "Course id unknown", the dashboard's Tab order and `F6` landing, the not-found action, its
-landing and its way on, where F18.1-F18.2 sit (A218-6), and the courses F18.3-F18.5 cover and the F18.3
-and F18.4 row names (A218-13). `courses.md` holds F20, F22, "Questions for #219" (Q1-Q10) and
+landing and its way on, where F18.1-F18.2 sit ("Rules (#218)" row "course block", A218-6), and the
+courses F18.3-F18.5 cover and the F18.3 and F18.4 row names (A218-13). `courses.md` holds F20, F22, "Questions for #219" (Q1-Q10) and
 "Requirements for #220". "#218 research §n" cites `plans/218-research.md`, a working note like the #50
 ones.
 
@@ -678,10 +678,12 @@ flowchart TD
   catalog --> dash
 ```
 
-The sitemap is the one from #30. Before #30 only sign-in and the dashboard exist, and no link leads to a
+The sitemap is the one from #30; from #220 a catalog also links to the other catalogs
+([A218-14](#A218-14)). Before #30 only sign-in and the dashboard exist, and no link leads to a
 `/courses/...` route (R6, "Before the catalog ships").
 
-Module pages are sections of the catalog (`/courses/[courseId]#[moduleId]`), not routes (decision A6).
+Module pages are sections of their course's catalog (`/courses/[courseId]#[moduleId]`), not routes
+(decision A6).
 Progress is a section of the dashboard plus an attempts list on the lesson page, not a page (decision A7).
 The quiz and the mentor review live in the lesson page's left pane, not on routes of their own: both are
 part of one lesson's checks, and leaving the route would leave the environment (decision in `quiz.md`
@@ -703,9 +705,10 @@ and `mentor.md`).
 - **Breadcrumbs** on the lesson page: "Курс" / module title / lesson title. The module crumb links to
   the catalog anchor of that module; the lesson crumb is the current page (`aria-current="page"`, not a
   link). Not shown when the course cannot be read (F7 error states). No breadcrumb on the not-found page: it names
-  no place in the course (GOV.UK page-not-found pattern, #83 research §5).
-- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson; from #30, before it the
-  dashboard has no primary action, R6 "Before the catalog ships"); catalog: a lesson row; lesson page:
+  no place in a course (GOV.UK page-not-found pattern, #83 research §5).
+- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson, from #220 of the Card
+  course, [A218-2](#A218-2); from #30, before it the dashboard has no primary action, R6 "Before the
+  catalog ships"); catalog: a lesson row; lesson page:
   "Проверить"; not-found page: "Открыть курс" (none while the course id is unknown, R6 "Course id
   unknown"). While the course cannot be read, the dashboard, catalog and lesson page show the course error
   instead and its "Повторить" is the only action in `main`.
@@ -733,8 +736,8 @@ and `mentor.md`).
   | 5 | an id the dashboard does not emit for this lesson: malformed, unknown, another user's (ADR-0007 item 8 owner check), another lesson's; history read | nothing expanded | not moved, as any load (A72-18) |
   | 6 | any value; the check state cannot be read | no history section (`progress.md` F19 error states); the tab's state is #69's (FU13, Q1) | not moved until #69 answers Q1 |
   | 7 | any value; the Проверки tab is not shown (before #35, or a lesson with no check the platform runs, R6) | the `tab` fallback (Теория, or Задание) | not moved |
-  | 8 | any value; the lesson is not a `ready` lesson of the course (it left the course after the dashboard read) | the not-found page (inventory way 4) | the not-found rules (focus not moved on arrival) |
-  | 9 | any value; the course cannot be read | the lesson course error (F7) | its rules (R2, R3) |
+  | 8 | any value; the lesson is not a `ready` lesson of its course (it left its course after the dashboard read) | the not-found page (inventory way 4) | the not-found rules (focus not moved on arrival) |
+  | 9 | any value; the course cannot be read (several courses: see #222) | the lesson course error (F7) | its rules (R2, R3) |
   | 10 | any value; the session expired | F2, `next` keeps `tab` and `attempt` | after sign-in, rows 1-9 apply |
 
   An id of a finished attempt of this lesson and user is always in the read history (F19.1 lists every
@@ -757,13 +760,13 @@ Flows column: every flow whose Entry line or steps happen on the page.
 | Slug | Route | Russian title (`<title>` / h1) | Purpose | Flows | Prototype in #50 |
 |------|-------|-------------------------------|---------|-------|------------------|
 | sign-in | `/sign-in` | "Вход" | email and password for the single local user | F1, F2 (F2.2-F2.3), F3 (F3.3) | yes |
-| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts and "Где трудно", from #37 cost (R6, "Progress by release (#72)") | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, from #35), F20 | yes: F4 and F18.1-F18.2 only; F18.3-F18.5 are drawn in #72's author phase |
-| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков"; "Не удалось загрузить курс" while the course cannot be read | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6, F20, F22 | yes |
-| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19, F20, F22 | yes: the states listed in the #50 design notes; F19 ("История попыток") is drawn in #72's author phase, on #69's Проверки panel |
+| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts and "Где трудно", from #37 cost (R6, "Progress by release (#72)"); from #220 the course list ([A218-1](#A218-1)) | F1 (F1.4), F2, F3, F4, F5 (entries: `catalog.md` F5 Entry), F18, F19 (entry F18.3, from #35), F20 | yes: F4 and F18.1-F18.2 only; F18.3-F18.5 are drawn in #72's author phase |
+| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков"; "Не удалось загрузить курс" while the course cannot be read | every module with summary, outcomes and its `ready` lessons; planned modules as such; from #220 "Другие курсы" ([A218-14](#A218-14)) | F2, F3, F5, F6, F20, F22 | yes |
+| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entries: `catalog.md` F5 Entry), F6, F7-F17, F19, F20, F22 | yes: the states listed in the #50 design notes; F19 ("История попыток") is drawn in #72's author phase, on #69's Проверки panel |
 | not-found | the ways into the not-found page, each HTTP 404, stated only here: (1) a path no route matches; (2) a catalog URL whose course id is not the course's; (3) a lesson URL whose course id is not the course's; (4) a lesson URL whose lesson id names no `ready` lesson of the course (unknown, or not `ready`). (2)-(4) need the course read: while it cannot be read, those URLs show the course error (HTTP 200), so only (1) remains. From #220 (#218): (2) a catalog URL and (3) a lesson URL whose course id names no course of the root; (4) a lesson URL of a readable course whose lesson id names no `ready` lesson of it; while the root or that course cannot be read: see #222 | "Страница не найдена" | says in one sentence that the address leads nowhere; while the course id is known it links to the catalog ("Открыть курс"), while it is unknown it shows only the sentence and the top bar's "Главная" is the way on (R6, "Course id unknown"); from #220 [A218-12](#A218-12) | F2, F3, F5, F7, F22 | yes, in #83: `design/pages/not-found/`, states default, no-course, session-expired, user-menu |
 
-Every page is reachable from the catalog: the catalog links to every `ready` lesson and, through the
-top bar, to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
+Every page is reachable from a catalog: each catalog links to every `ready` lesson of its course and,
+from #220, to the other catalogs ([A218-14](#A218-14)), and through the top bar to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
 expired session (F2). Release: sign-in and the dashboard from #29; catalog, lesson and not-found from #30.
 Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog ships").
 

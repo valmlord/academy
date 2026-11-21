@@ -4,9 +4,9 @@ Page: catalog (`/courses/[courseId]`), with one section per module (`#[moduleId]
 of modules and lessons, `ready` only; e2e "open a module, open a lesson, see the theory"),
 `course/ai-for-developers/course.yaml` and `*/module.yaml`, ADR-0001 item 4, research §3.
 
-Module sections, not module pages, because the course has six modules of which five are `planned` with
-no lessons (research §3): five module pages would be empty, and one page with six sections shows the
-whole course at once (decision A6 in the #50 design notes). "Open a module" in #30's e2e means following the
+Module sections, not module pages, because `ai-for-developers` has six modules of which five are
+`planned` with no lessons (research §3): five module pages would be empty, and one page with six sections
+shows the whole course at once (decision A6 in the #50 design notes). "Open a module" in #30's e2e means following the
 module link to its section.
 
 ## F5: Find a lesson in the catalog
@@ -15,9 +15,10 @@ module link to its section.
 
 **Entry:** "Курс" in the top bar; "Открыть курс" on the dashboard or on the not-found page (the top-bar
 "Курс" and the not-found "Открыть курс" only while the course id is known, `ia.md` R6 "Course id
-unknown"); the module crumb on a lesson page (lands on that module's section). From #220: no top-bar
-"Курс" (`ia.md` A218-3), the not-found "Открыть курс" by A218-12, and also a dashboard block heading
-(F20.4), the course crumb (F22.2) and a "Другие курсы" link (A218-14).
+unknown"); a dashboard module row (`progress.md` F18.2) or the module crumb on a lesson page (lands on
+that module's section); the lesson page's "Открыть курс" (environment rejected, `lesson-environment.md`
+F8). From #220: no top-bar "Курс" (`ia.md` A218-3), the not-found "Открыть курс" by A218-12, and also a
+dashboard block heading (F20.4), the course crumb (F22.2) and a "Другие курсы" link (A218-14).
 
 **Steps (4):**
 
@@ -61,7 +62,7 @@ unknown"); the module crumb on a lesson page (lands on that module's section). F
 
 **Empty states:**
 - A `planned` module: its section shows summary and outcomes, then "Уроки модуля готовятся" instead of a
-  lesson list. It is the common case today (five of six modules, research §3).
+  lesson list. It is the common case today (five of the six modules of `ai-for-developers`, research §3).
 - A module that is `ready` but has no `ready` lesson: the same text, module status "Готовится".
 
 **Exit:** F5.4; or the dashboard via the top bar; from #220 also a "Другие курсы" link into F5 of that
