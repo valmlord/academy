@@ -2,13 +2,13 @@
 // jsdom 30 need nothing more: IntersectionObserver and the pointer capture and scrollIntoView methods were
 // stubbed once and removed again, because no test went red without them (#106 commit 6).
 
-/** Records what it observes and whether it was disconnected; never calls back (jsdom has no layout). */
+/** Records what it observes, its callback and whether it was disconnected; never calls back by itself (jsdom has no layout). */
 export class RecordingResizeObserver {
   static readonly instances: RecordingResizeObserver[] = [];
   readonly observed: Element[] = [];
   isDisconnected = false;
 
-  constructor() {
+  constructor(readonly callback: ResizeObserverCallback) {
     RecordingResizeObserver.instances.push(this);
   }
 

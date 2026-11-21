@@ -307,6 +307,20 @@
   .code-block pre code {
     @apply bg-transparent p-0 text-[length:inherit];
   }
+  /* README "Scrollable code" and "Radius", proto.css:849-851: the pre takes the block's inner radius (md minus the
+     block's 1px border), square under the header, so its inset focus ring follows the block's corners. */
+  .code-block > pre {
+    @apply rounded-[calc(var(--radius-md)-1px)];
+  }
+  .code-block > .code-block-header + pre {
+    @apply rounded-t-none;
+  }
+  /* Drawn 2px inside, the mirror of the base layer's 2px offset, as the [tabindex="-1"] rule does: an outside ring
+     would cross the header's bottom border. The app has no --focus-offset token (proto.css:63); the token block is
+     copied from design/system/tokens.css and is not edited here. */
+  .code-block > pre:focus-visible {
+    outline-offset: -2px;
+  }
   .code-block-header {
     @apply flex flex-wrap justify-end gap-2 border-b border-border px-2 py-1;
   }

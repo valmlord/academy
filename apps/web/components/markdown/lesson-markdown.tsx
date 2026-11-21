@@ -2,9 +2,11 @@ import type { ReactElement } from "react";
 import Markdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { inlineLinkClassName } from "@/components/ui/link-styles";
+import { codeBlockLabel } from "@/lib/copy";
 import type { LessonTextKind } from "@/lib/course/text";
 import { CopyButton } from "./copy-button";
 import { remarkLessonHeadings } from "./headings";
+import { ScrollableCode } from "./scrollable-code";
 
 // Lesson Markdown rendered on the server (ADR-0009 item 9). react-markdown's defaults are the safety
 // rules: raw HTML renders as literal text (so "<actor>" in a lesson stays visible) and javascript: URLs are
@@ -35,7 +37,7 @@ const components: Components = {
       <div className="code-block-header">
         <CopyButton text={codeText(node)} />
       </div>
-      <pre>{children}</pre>
+      <ScrollableCode label={codeBlockLabel}>{children}</ScrollableCode>
     </div>
   ),
   table: ({ children }) => (
