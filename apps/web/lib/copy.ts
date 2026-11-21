@@ -56,6 +56,11 @@ export const noReadyLessonsMessage = "В курсе пока нет готовы
 export const copyLabel = "Копировать";
 export const copyDeniedLabel = "Не скопировано, выделите текст вручную";
 
+// design/flows/ia.md page copy, row "lesson (F6-F13, F19)"; design/pages/lesson/acceptance.md, Copy "code block
+// name" (#136): the name of a theory or task code block, set while it overflows and kept while it holds focus
+// after it fits.
+export const codeBlockLabel = "Блок кода";
+
 // design/flows/ia.md, table "Action labels": the two "open the catalog" labels, "Курс" in the top bar and
 // the lesson breadcrumb, "Открыть курс" on the dashboard and the not-found page.
 export const courseLinkLabel = "Курс";
