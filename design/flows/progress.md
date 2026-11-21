@@ -46,11 +46,8 @@ learning-process §4; #35; G5.
 **Entry:** the dashboard, below the "Следующий урок" card (F4), from #30. Before #30 the dashboard shows no
 progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before the catalog ships").
 
-**From #220 (#218):** where F18.1 and F18.2 sit: `ia.md`
-[Dashboard structure](ia.md#dashboard-structure) item 4, its readable form; F18.3-F18.5:
-[A218-13](ia.md#A218-13) and [Cross-course sections](ia.md#cross-course-sections). "The course" in the
-steps below is, from #220, the block's course for F18.1-F18.2 and the courses of A218-13 for F18.3-F18.4.
-Error and focus states with several courses: see #222.
+From #220: F18.1-F18.2 per course block, F18.3-F18.5 across courses (`ia.md` A218-6, A218-13, "Rules
+(#218)"); error and focus states with several courses: see #222.
 
 **Steps (5):**
 
@@ -88,11 +85,11 @@ Error and focus states with several courses: see #222.
 **Success:** the learner knows where they are, where they stumble and where to go back.
 
 **Error states:**
-- Progress cannot be read: until #220 the section shows "Прогресс недоступен" with "Повторить"; F4 still works (see
-  its error state); F18.3-F18.5 come from the same read (A72-4), so none of them is rendered then: no second
-  error text, no second "Повторить". The retry and its focus are those of `ia.md` R2, row "dashboard progress
-  section (until #220)", under its retry focus guard; a retry that loads renders F18.1-F18.5 together.
-  From #220: see #222.
+- Progress cannot be read: the section shows "Прогресс недоступен" with "Повторить"; F4 still works (see
+  its error state). F18.3-F18.5 come from the same read (A72-4), so none of them is rendered then: no
+  second error text, no second "Повторить". The retry and its focus are unchanged (`ia.md` R2, row
+  "dashboard progress section", and its retry focus guard: the move happens only while focus is still on
+  "Повторить", on `body` or in the section); a retry that loads renders F18.1-F18.5 together.
 - Session expired during the read: F2 (the page-level alert), not this error state.
 
 **Empty states:**
@@ -105,33 +102,28 @@ Error and focus states with several courses: see #222.
   `ready`): "Последние попытки" shows "Попыток пока нет"; the total (#37) still counts their cost (A72-3).
 - No check qualifies for "Где трудно" (nothing failed twice, nothing closed, or every such check passed
   later): "Пока нет проверок, которые не удаются".
-- No `ready` lesson, course error, before #30: no progress section at all (`dashboard.md`). From #220: a
-  block's empty form ([Dashboard structure](ia.md#dashboard-structure) item 4); the root error
-  ([Dashboard by course count](ia.md#dashboard-by-course-count) row 1); F18.3-F18.5:
-  [Cross-course sections](ia.md#cross-course-sections); a broken course: see #222.
+- No `ready` lesson, course error, before #30: no progress section at all (`dashboard.md`).
 
 **Loading:** the Skeleton of the progress section (`dashboard/acceptance.md`, `#state-loading`) covers
-F18.3-F18.5 too (`aria-hidden`), because they come from the same read (A72-4). From #220:
-[Dashboard structure](ia.md#dashboard-structure), Loading.
+F18.3-F18.5 too (`aria-hidden`), because they come from the same read (A72-4).
 
 **Exit:** a module row opens its catalog section (F5.2); from #35 a "Последние попытки" row opens F19 with
 that attempt open, and a "Где трудно" row opens the lesson's Проверки tab, where the check rows of F13 show
 the check's latest result (`checks.md` "Check row fields"), or for a quiz check the Квиз tab (A72-2).
 
-**Keyboard path:** each module row, "Последние попытки" row and "Где трудно" row is one link, Enter opens
-it; the total (F18.5) holds nothing focusable. The Tab order and the `F6` landing: until #220 per `ia.md`
-R3 (the bullet on pages other than the lesson page); from #220 per
-[Dashboard structure](ia.md#dashboard-structure), "Tab order and `F6`". Progress bars carry the text value ("2 из 6") for screen readers. Each list
+**Keyboard path:** after the Card's button (and "Повторить" when shown) Tab reaches, in reading order, the
+module rows, then from #35 the "Последние попытки" rows, then the "Где трудно" rows; each row is one link,
+Enter opens it. The total (F18.5) holds nothing focusable. `F6` to `main` still lands on the Card's
+button (R3, unchanged). Progress bars carry the text value ("2 из 6") for screen readers. Each list
 section (F18.3, F18.4) is a `section` labelled by its h2; each list is a `ul` labelled by the same h2
 (`aria-labelledby`), so a screen reader announces "Последние попытки, список, 5 элементов". The total
 (F18.5) is a `section` with no accessible name, so it is no `region` landmark: its h2 is a figure
 ("Потрачено на проверки и разборы: $1.24"), and a landmark named by a figure is noise in the landmark
 list, while heading navigation still reaches the h2 (as the F19 section). In an empty state the section
-holds its empty text in place of the `ul` (no empty named list is rendered). Until #220 nothing in F18 is
-live, and nothing needs to be: F18.3-F18.5 render with the page and are not re-read in the background;
-after load they change only through the progress section's "Повторить" (its focus move: `ia.md` R2, row
-"dashboard progress section (until #220)", under its retry focus guard). From #220, how they
-change after load and what announces it: see #222. The rows show the state of the read; an attempt still
+holds its empty text in place of the `ul` (no empty named list is rendered). Nothing in F18 is live, and
+nothing needs to be: F18.3-F18.5 render with the page and are never re-read in the background, so after
+load they change only through the progress section's "Повторить", which moves focus to what it shows
+(`ia.md` R2, row "dashboard progress section", under its retry focus guard); the rows show the state of the read; an attempt still
 `running` reads "Идёт проверка" with the `running` ring held still until the next load (A72-8, A72-9).
 
 **Time limits:** none.

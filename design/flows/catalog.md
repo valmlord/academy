@@ -13,17 +13,16 @@ module link to its section.
 
 **Goal:** see what the course contains and open a chosen lesson. Source: #30; G1.
 
-**Entry:** a control on another page whose target is this catalog or one of its module sections (one whose
-target is a module section enters at F5.2). Which controls: until #220 the rows of the `ia.md` R6 "Course id
-unknown" table whose control opens the catalog; from #220 the rows of `ia.md` R6
-["Course scope (#218)"](ia.md#course-scope) whose control opens a catalog, each rendered as its row's last
-column says. Per page, the ways WCAG 2.4.5 counts: `ia.md` [Multiple ways](ia.md#multiple-ways), item
-"catalog". From #220 which catalog this is: `ia.md` page inventory, catalog.
+**Entry:** "Курс" in the top bar; "Открыть курс" on the dashboard or on the not-found page (the top-bar
+"Курс" and the not-found "Открыть курс" only while the course id is known, `ia.md` R6 "Course id
+unknown"); the module crumb on a lesson page (lands on that module's section). From #220: no top-bar
+"Курс" (`ia.md` A218-3), the not-found "Открыть курс" by A218-12, and also a dashboard block heading
+(F20.4), the course crumb (F22.2) and a "Другие курсы" link (A218-14).
 
 **Steps (4):**
 
-1. F5.1 Learner sees the course name (from #220 [A218-7](ia.md#A218-7)) and description, and the module
-   list in course order; each module shows its number and title, and a module status (`ia.md` set): "Доступен" (has `ready` lessons) or
+1. F5.1 Learner sees the course title and description, and the module list in course order; each module
+   shows its number and title, and a module status (`ia.md` set): "Доступен" (has `ready` lessons) or
    "Готовится" (`planned`, or no `ready` lesson yet).
 2. F5.2 Learner opens a module section (a link in the module list, or scrolling): summary, "Чему
    научитесь" (the module outcomes), and the lessons.
@@ -36,25 +35,26 @@ column says. Per page, the ways WCAG 2.4.5 counts: `ia.md` [Multiple ways](ia.md
 **Success:** the lesson page opens (#30 e2e).
 
 **Error states:**
-- Course data cannot be read: alert "Не удалось загрузить курс" with "Повторить", until #220 whatever
-  course id the URL names, because without the course the page cannot tell a wrong id from the right one. The top bar's "Курс": [the label "Курс"](ia.md#course-label). `<title>`
+- Course data cannot be read: alert "Не удалось загрузить курс" with "Повторить", whatever course id the
+  URL names, because without the course the page cannot tell a wrong id from the right one. The top bar
+  keeps "Курс" unless `course.yaml` itself is unreadable (`ia.md` R6, "Course id unknown"). `<title>`
   "Не удалось загрузить курс". "Повторить" focuses the course h1 when the course loads (`<title>` the
   course title), the error h1 when it fails again, and the not-found h1 when the course loads but its id
   is not the URL's (`<title>` "Страница не найдена"; `ia.md` R2, page-level retry table). The course h1
-  and error h1 moves follow the `ia.md` R2 [retry focus guard](ia.md#retry-focus-guard).
-  The course error with several courses, from #220: see #222.
+  and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2, retry
+  focus guard). With several courses, from #220: see #222.
 - A URL that is a way into the not-found page (`ia.md` page inventory, not-found Route): the not-found page
   (`design/pages/not-found/`, #83): h1 "Страница не найдена", the sentence "Возможно, в адресе опечатка
-  или ссылка устарела." and "Открыть курс" (when it shows: until #220 `ia.md` R6 "Course id unknown", see below; from #220 [A218-12](ia.md#A218-12)); no breadcrumb, no "404", no destructive colour, because the
+  или ссылка устарела." and "Открыть курс" (only while the course id is known, see below); no breadcrumb, no "404", no destructive colour, because the
   learner followed a stale link or mistyped, nothing failed (GOV.UK page-not-found pattern, #83 research
   §5). A non-`ready` lesson is never visible (#30 AC), so it is reported as not found rather than "not
   ready yet", because a "coming soon" page would show that it exists; the sentence holds for both causes
-  and names neither. The not-found page's top bar and its `aria-current`: `ia.md` R6 "Top bar by release"; its
-  `F6` stop `main` and its landing: `ia.md` R3, the bullet on pages other than the lesson page. Until #220,
-  in the state of `ia.md` R6 "Course id unknown" (its controls: that rule's table, rows top-bar "Курс" and
-  "Открыть курс"), `main` holds the h1 and the sentence; the way on: `ia.md` page inventory, not-found
-  Purpose. From #220 the action: [A218-12](ia.md#A218-12); the way on: `ia.md` page inventory, not-found
-  Purpose.
+  and names neither. The not-found page has the "from #30" top bar (`ia.md` R6, "Before the catalog
+  ships"), `aria-current` on neither link; its `F6` stop `main` lands on "Открыть курс". While the course
+  id is unknown (`course.yaml` unreadable, so only an unmatched path can reach it) it has no "Открыть
+  курс" and no "Курс": `main` holds the h1 and the sentence, `F6` lands on `main` itself, and the way on
+  is "Главная" in the top bar, because every course page would show the course error. From #220: `ia.md`
+  A218-3, A218-12.
 - Progress cannot be read: lessons show no learner status and no prerequisite note (whether a
   prerequisite is passed is progress data, F6 error states), and a muted line "Прогресс недоступен" once
   at the top; lessons stay openable.
@@ -64,14 +64,12 @@ column says. Per page, the ways WCAG 2.4.5 counts: `ia.md` [Multiple ways](ia.md
   lesson list. It is the common case today (five of six modules, research §3).
 - A module that is `ready` but has no `ready` lesson: the same text, module status "Готовится".
 
-**Exit:** F5.4, or F6 by a prerequisite note link; or the dashboard via the top bar (`ia.md` R6 "Top bar
-by release"; from #220 F20 there); from #220 also a "Другие курсы" link ([A218-14](ia.md#A218-14)),
-into F5 of that course.
+**Exit:** F5.4; or the dashboard via the top bar; from #220 also a "Другие курсы" link into F5 of that
+course (`ia.md` A218-14).
 
 **Keyboard path:** Tab through the module links (Enter moves focus to that module's section heading),
-then through lesson links in order; each lesson row is one link, so one Tab per lesson. Where `F6` to
-`main` lands: `ia.md` R3, the bullet on pages other than the lesson page. From #220 the "Другие курсы"
-links: [A218-14](ia.md#A218-14).
+then through lesson links in order; each lesson row is one link, so one Tab per lesson. From #220 the
+"Другие курсы" links follow (`ia.md` A218-14).
 
 **Time limits:** none.
 
