@@ -9,7 +9,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { CHECK_MARKER } from "../../../src/docker/demux.js";
 import { DockerEngine } from "../../../src/docker/engine.js";
 import {
+  CHECK_CLEANUP_SCRIPT,
   CHECK_SCRIPT,
+  checkCleanupExecCreateBody,
   checkExecCreateBody,
   checkExecStartBody,
   detachedExecStartBody,
@@ -256,6 +258,7 @@ describe("exec bodies (U-exec-body)", () => {
     ["shell", execCreateBody("/bin/bash", TAG, null)],
     ["kill", killExecCreateBody(TAG)],
     ["check", checkExecCreateBody(2000, CHECK_RUN)],
+    ["cleanup", checkCleanupExecCreateBody(2000)],
   ])("sends the %s create body as JSON with no other key and no query", async (_name, body) => {
     const daemon = await fakeDaemon();
     const engine = new DockerEngine({ socketPath: daemon.socketPath });
@@ -306,8 +309,13 @@ describe("check exec bodies (U-exec-check)", () => {
     expect(checkExecStartBody()).toStrictEqual({ Detach: false, Tty: false });
   });
 
-  it("neither check body names the agent key variable", () => {
-    expect(JSON.stringify(checkExecCreateBody(2000, CHECK_RUN))).not.toContain("ANTHROPIC_API_KEY");
+  it("E2: neither check body names the agent key variable", () => {
+    expect(JSON.stringify(checkExecCreateBody(2000, CHECK_RUN)), "E2 check body").not.toContain(
+      "ANTHROPIC_API_KEY",
+    );
+    expect(JSON.stringify(checkCleanupExecCreateBody(2000)), "E2 cleanup body").not.toContain(
+      "ANTHROPIC_API_KEY",
+    );
   });
 
   it("prints exactly the marker with its printf line, and the script has 16 lines", () => {
@@ -342,6 +350,51 @@ describe("check exec bodies (U-exec-check)", () => {
     expect(uids).toStrictEqual([2000, 2001, 2002, 2003]);
     expect(new Set(uids).size).toBe(CHECK_SLOTS);
     expect(uids).not.toContain(LEARNER_UID);
+  });
+});
+
+describe("check cleanup exec body (U-exec-check)", () => {
+  // Restated line by line, as the shell receives it: this list is the reviewed script.
+  const CHECK_CLEANUP_SCRIPT_LINES = [
+    'u="$1"',
+    's="/workspace/.academy-grader/$u"',
+    "for r in 1 2 3 4 5; do",
+    "  kill -9 -1 2>/dev/null",
+    "  n=0",
+    "  for f in /proc/[0-9]*/status; do",
+    '    k= z=; [ "$f" = "/proc/$$/status" ] && continue',
+    "    while read -r k v w; do",
+    '      case "$k" in State:) z="$v" ;; Uid:) break ;; esac',
+    '    done 2>/dev/null < "$f"',
+    '    [ "$k" = Uid: ] && [ "$v" = "$u" ] && [ "$z" != Z ] && n=$((n + 1))',
+    "  done",
+    '  [ "$n" -eq 0 ] || [ "$r" = 5 ] && break',
+    "  sleep 1",
+    "done",
+    'rm -rf "$s"/* "$s"/.[!.]* "$s"/..?* 2>/dev/null',
+    'm=$(ls -A "$s") && [ -z "$m" ] && q=0 || q=1',
+    '[ -r "/proc/$$/status" ] || exit 6',
+    'case "$n:$q" in 0:0) exit 0 ;; 0:1) exit 5 ;; *:0) exit 4 ;; *) exit 7 ;; esac',
+  ];
+
+  it("E1: builds the exact cleanup create body", () => {
+    expect(checkCleanupExecCreateBody(2001), "E1 body").toStrictEqual({
+      AttachStdin: false,
+      AttachStdout: false,
+      AttachStderr: false,
+      Tty: false,
+      Cmd: ["/bin/sh", "-c", CHECK_CLEANUP_SCRIPT_LINES.join("\n"), "academy-cleanup", "2001"],
+      User: "2001:2001",
+      WorkingDir: "/",
+    });
+  });
+
+  it("E3: the cleanup script has 19 lines, keeps the slot dir under the grader scratch root and interpolates nothing", () => {
+    expect(CHECK_CLEANUP_SCRIPT.split("\n"), "E3 19 lines").toHaveLength(19);
+    expect(CHECK_CLEANUP_SCRIPT, "E3 slot dir").toContain(`s="${GRADER_SCRATCH_ROOT}/$u"`);
+    expect(CHECK_CLEANUP_SCRIPT, "E3 no interpolation").not.toContain("${");
+    expect(CHECK_CLEANUP_SCRIPT, "E3 no tmp").not.toContain("/tmp/");
+    expect(CHECK_CLEANUP_SCRIPT, "E3 no backslash").not.toContain("\\");
   });
 });
 
