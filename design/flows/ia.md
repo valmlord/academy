@@ -4,6 +4,9 @@ Issue #50 (PR #67), architect phase. "research §n" cites the #50 research notes
 (decisions An, Dn, Pn and sections §n) cites the #50 design. Both are working notes, kept on the author's
 machine and not published.
 
+Several courses (#218, built by #220): section "Several courses (#218)" below, which says which rules
+of this file it replaces from #220. Error and focus states with several courses: see #222.
+
 Notation: `F6` in backticks is the keyboard key; F6 without backticks is the flow "Open a lesson whose
 prerequisites are not passed". R1-R7 are the interaction rules below; flows refer to them by id instead
 of restating them. "The #69 design note" (`plans/69-check-panel-detail-design.md`) and Stepan's decisions
@@ -20,7 +23,13 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 
 | Concept | English (docs, ids) | Russian (UI) | Note |
 |---------|---------------------|--------------|------|
-| course | course | курс | |
+| course | course | курс | from #220 named by its title ([A218-7](#A218-7)) |
+| course block (#218) | course block | - | [A218-1](#A218-1); its readable and empty forms: "Rules (#218)" |
+| Card course (#218) | Card course | - | [A218-2](#A218-2) |
+| end Card | end Card | "Все доступные уроки пройдены"; from #220 also "Все доступные уроки завершены" | [A218-2](#A218-2) |
+| next-lesson link (#218) | next-lesson link | "Следующий урок: <lesson title>" | [A218-4](#A218-4) |
+| root error (#218) | root error | "Не удалось загрузить курсы" | "Rules (#218)" |
+| other-courses list (#218) | other-courses list | "Другие курсы" | [A218-14](#A218-14) |
 | module | module | модуль | |
 | lesson | lesson | урок | never "занятие", never "класс" |
 | theory | theory | теория | |
@@ -93,11 +102,11 @@ text only from this list or from the two tables above and below. Quotes of cours
 | Page | Copy (Russian, exact) |
 |------|----------------------|
 | sign-in (F1, F3) | "Вход" (`<title>` and h1), field labels "Почта" and "Пароль", "Входим..." (busy label of "Войти"), "Неверная почта или пароль", "Не удалось связаться с сервером. Проверьте, что платформа запущена (docker compose up), и попробуйте снова.", "Введите почту", "Введите пароль", "Слишком много попыток входа. Подождите и попробуйте снова.", "Пользователя создаёт скрипт seed, см. README", "Вы вышли" |
-| dashboard (F4, F18) | "Следующий урок", "около N мин", "Не удалось загрузить курс" (the course error's title, an h2 in the Card's place, R2 page-level retry table), "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; F18.3-F18.5: the row "dashboard, progress (#72)" |
+| dashboard (F4, F18, F20) | "Следующий урок", "около N мин", "Не удалось загрузить курс" (the course error's title, an h2 in the Card's place, R2 page-level retry table), "Прогресс недоступен, показан первый урок", "Все доступные уроки пройдены", "Новые модули появятся в каталоге", "В курсе пока нет готовых уроков", "Пройдено уроков: N из M", "N из M уроков", "N из M", "Пока нет пройденных уроков", "Прогресс недоступен"; from #220 (#218): "Все доступные уроки завершены", "Не удалось загрузить курсы", "Следующий урок: <lesson title>", the course name (data); error copy with several courses: see #222; F18.3-F18.5: the row "dashboard, progress (#72)" |
 | dashboard, progress (#72) | F18.3 (from #35): section h2 "Последние попытки" (also the name of its `ul`, `aria-labelledby`), the empty text "Попыток пока нет"; each row one link whose name is its fields joined by ". " (`progress.md` A72-19): lesson title (data), date and time (data, format below), the attempt summary (set "attempt summary"), from #37 the attempt cost (set "cost"), for example "Закрытый контур. 3 ноября, 18:40. Пройдено проверок: 1 из 1". F18.4 (from #35): section h2 "Где трудно" (also the name of its `ul`), the empty text "Пока нет проверок, которые не удаются"; each row one link whose name is its fields joined by ". ": check title (data), lesson title (data), and "Закрыта: не пройдено" (set "check status") or "Неудачных попыток: N" / "Неудачных попыток: N из M" (set "check row note", one check's results). An empty section holds its empty text in place of the `ul`. F18.5 (from #37): h2 the total (set "cost"), the note "Расход агента в терминале сюда не входит"; its `section` has no accessible name (`progress.md` F18 keyboard path). Date and time format (both pages): day, month name in the genitive, hours and minutes in the learner's local time, "4 ноября, 14:05"; the year after the month when it is not the current year, "4 ноября 2025, 14:05"; in `<time datetime="<ISO 8601>">`. The #50 strings "Слабые темы" and "Слабых тем пока нет" are dropped (vocabulary, "checks where the learner struggles") |
 | lesson, attempt history (F19; #72) | from #35, below the check list of the Проверки tab: section h3 "История попыток" (also the name of its `ul`); in the error state the h3 reads "История попыток недоступна" with "Повторить", and when the re-read started by the first attempt record (the first run's end, the first answered quiz send, or a visibility re-read that finds a record this page has not shown: sent in another browser tab, or this page's own timed-out send the server recorded) fails the same text is written once into the visually hidden history status container (R2, `progress.md` F19 error states); the empty text "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (in place of the `ul`), and "Попыток пока нет" alone from the moment the first run disables "Проверить" ("Дождитесь окончания проверки", "Результат проверки ещё не получен") until the history re-read after that run returns, and in place of the long text on a lesson whose check bar has no "Проверить" (a quiz-only lesson, from #36, not drawn) (`progress.md` F19 empty states); each attempt row a disclosure button whose name is its fields joined by ". " (`progress.md` A72-19): "№ N" (vocabulary, "attempt number"), date and time (format in the row above), the attempt summary, from #37 the attempt cost, for example "№ 3. 4 ноября, 14:05. Пройдено проверок: 1 из 2. Проверок с незасчитанной попыткой: 1"; an attempt with no check result a plain list item (`li`, `tabindex="-1"`, not a button) whose text holds the same fields, joins and order and the summary "Сбой проверки, попытка не засчитана", for example "№ 2. 4 ноября, 13:50. Сбой проверки, попытка не засчитана"; in an open panel per result: check title (data) or check id (data) with "Этой проверки больше нет в уроке", the result's status word (set "check status", result words only, `progress.md` F19.2), the grader message (data), for a quiz result "Верно C из Q." (set "quiz") in its place, "Подробности" with the raw error (data), from #37 / #39 "Стоимость попытки: $N" (set "check row note", #69), from #37 the review block (set "mentor"). The panel's list has no name of its own; the section has none either (no `region` landmark inside "Урок", `progress.md` F19 keyboard path). The three strings "История попыток", "Попыток пока нет. ..." and "История попыток недоступна" are also in the row "lesson (F6-F13, F19)" below, marked "(from #35, F19)" there |
-| catalog (F5, F6) | "Не удалось загрузить курс" (the course error's title, the page h1, R2 page-level retry table), "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>" |
-| not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"). No other text in `main`: no "404", no breadcrumb, no search |
+| catalog (F5, F6) | "Не удалось загрузить курс" (the course error's title, the page h1, R2 page-level retry table), "Прогресс недоступен", "Уроки модуля готовятся", "Сначала пройдите: <lesson title>"; from #220 (#218) "Другие курсы" and its links (data) |
+| not-found (F5, F7) | "Страница не найдена" (`<title>` and h1), "Возможно, в адресе опечатка или ссылка устарела." (the one sentence under the h1, in every state), and the action "Открыть курс" (only while the course id is known, R6 "Course id unknown"; from #220 [A218-12](#A218-12)). No other text in `main`: no "404", no breadcrumb, no search |
 | lesson tabs | left pane "Теория", "Задание", "Проверки", "Квиз" (D2); environment "Терминал", "Редактор" (D5); one-pane switch "Урок", "Окружение" |
 | lesson (F6-F13, F19) | "Не удалось загрузить курс" (`<title>` and h1 when the course cannot be read, F7 error states), "около N мин", "Чему научитесь", "Содержание", "Источники", "проверено <date>", "Не удалось загрузить текст урока" (the text load error's title, an h2 in the tab panel, R2 page-level retry table), "Не скопировано, выделите текст вручную", "Блок кода" (accessible name of a Теория, Задание or quiz explanation code block that overflows and so takes Tab, #136; `lesson-environment.md` "Code blocks that scroll"), "Окружение и проверки появятся в следующей версии платформы" (M0 lesson only), the key hint "`F6` или Ctrl+Shift+. (клавиша Ю): следующая область" (macOS: "`F6` (Fn+`F6`) или Ctrl+Shift+. (клавиша Ю): следующая область"), the split handle's accessible name "Граница панелей" and its tooltip "Перетащите или щёлкните, чтобы сменить ширину" (F9.3), the reset dialog "Сбросить рабочую папку?" with "Файлы урока вернутся к исходным, ваши изменения пропадут. Счётчики попыток не обнулятся.", the tab name "Проверки, идёт проверка" (visually hidden part during a run), "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы.", "История попыток недоступна" (from #35, F19). The Задание tab renders task.md's own headings ("Что в рабочей папке", "Что сделать", "Что значит "готово"", "Как проверяется", "Попытки и подсказки") as written |
 | lesson, accessible names (#69) | "Навигация" (breadcrumb `nav` label), "Область" (one-pane switch tab list label), "Разделы урока" (left-pane tab list label), "Окружение" (environment tab list label), "Терминал" (terminal frame name), the visually hidden region headings "Урок", "Проверка", "Окружение", "Уведомления" (the page region row of the vocabulary). The user menu is named by its trigger, the email (data, not copy) |
@@ -112,13 +121,15 @@ whether the control is shown in v1; a hidden control appears only when its issue
 | Action | Label | Flows | v1 |
 |--------|-------|-------|----|
 | skip to the content | "К содержимому" | every page | yes |
-| open the dashboard (top bar) | "Академия" (brand link), "Главная" (nav link) | F4 | yes, every page with the top bar |
-| open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships"); not while the course id is unknown (R6, "Course id unknown") |
+| open the dashboard (top bar) | "Академия" (brand link), "Главная" (nav link) | F4; from #220 F20, F22 | yes, every page with the top bar |
+| open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships"); not while the course id is unknown (R6, "Course id unknown"); until #220 |
+| open a course's catalog (block heading, course crumb, "Другие курсы" link) | the course name (data) | F20, F22, F5 | from #220 (#218) |
+| open a course's next lesson (course block) | "Следующий урок: <lesson title>" | F20 | from #220 ([A218-4](#A218-4)) |
 | sign in | "Войти" | F1 | yes |
 | sign in again after expiry | "Войти снова" | F2 | yes |
 | sign out | "Выйти" | F3 | yes |
 | open the next lesson | "Начать" (lesson not started, R5) / "Продолжить" (started) | F4 | yes |
-| open the catalog | "Открыть курс" | F4, F5, F7, F8 | yes, from #30 (R6, "Before the catalog ships"); on the not-found page not while the course id is unknown (R6, "Course id unknown") |
+| open its course's catalog | "Открыть курс" | F4, F5, F7, F8; from #220 F20, F22 | yes, from #30 (R6, "Before the catalog ships"); on the not-found page not while the course id is unknown (R6, "Course id unknown"); from #220 [A218-12](#A218-12) |
 | retry a failed load or start | "Повторить" | F1, F4, F5, F7, F8, F15, F16, F18, F19 | yes where its flow is v1 (F1, F4, F5, F7, F8, F18); F15 D2; F16 D3; F19 from #35. A check run is retried with "Проверить", never "Повторить" (#69, S7, `checks.md` F13 error states) |
 | expand / collapse the outcomes | "Показать все" / "Свернуть" | F7 | yes |
 | copy a code block | "Копировать" | F7 | yes |
@@ -312,6 +323,7 @@ Deferred cases follow the same rule: locked hint levels with "Откроется
   |-------|-------|-------------|----------------------------------------------------------------|
   | dashboard course error | the Card heading "Следующий урок"; `<title>` "Главная" | the error heading "Не удалось загрузить курс" (h2, `tabindex="-1"`, the Alert title, in the Card's place); `<title>` "Главная" | - (the dashboard URL names no course) |
   | dashboard progress section | the section heading (the course line) | the section heading "Прогресс недоступен" | - |
+  | every retry with several courses (from #220) | see #222 | see #222 | see #222 |
   | catalog course error | the course h1; `<title>` the course title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
   | lesson course error | the lesson h1; `<title>` the lesson title | the error h1; `<title>` "Не удалось загрузить курс" | the not-found h1; `<title>` "Страница не найдена" |
   | lesson text load error | the reloaded tab panel; `<title>` unchanged | the error heading "Не удалось загрузить текст урока" (h2, `tabindex="-1"`, the Alert title, in the tab panel); `<title>` unchanged | - (the course was read) |
@@ -516,7 +528,8 @@ The one exception is a course state, not a page: "Course id unknown" below.
 | Release | Pages with the top bar | Top bar, in Tab order after "К содержимому" | `F6` regions (landing) |
 |---------|------------------------|---------------------------------------------|------------------------|
 | before #30 (as #29 shipped) | dashboard | "Академия", "Главная", user menu | "Верхняя панель" ("Академия"); "Уведомления" ("Войти снова", only with the alert); `main` (`main` itself, nothing focusable) |
-| from #30 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс" (left out on all four while the course id is unknown), user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
+| from #30 until #220 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс" (left out on all four while the course id is unknown), user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
+| from #220 (#218) | dashboard, catalog, lesson, not-found | "Академия", "Главная", user menu ([A218-3](#A218-3)) | as from #30 |
 
 "Главная" carries `aria-current="page"` on the dashboard, "Курс" on the catalog; the lesson page and
 not-found put `aria-current` on neither top-bar link. `F6` lands on "Академия" in "Верхняя панель" in
@@ -570,8 +583,8 @@ element on. The whole class, and what each release renders:
 | "Слабые темы", "Слабых тем пока нет" (#50) | dashboard | - | dropped: no release renders them | - | - |
 
 Every other F18 and F19 statement holds in every release from #30. The `F6` landings (R3) do not change in
-any of these releases: on the dashboard `main` lands on the Card's button, and the history is inside the
-"Урок" region.
+any of these releases: on the dashboard `main` lands on the Card's button (from #220 the "Rules (#218)"
+row "Tab order in `main`, `F6`"), and the history is inside the "Урок" region.
 
 ### R7: attempt limits, known and unknown
 
@@ -584,6 +597,73 @@ server reports it. A quiz follows the same rule ("Попытка A из M" / "П
 closes and its later failures are not counted (S1); a closed check is final (S2). Every element it touches:
 `checks.md` "Attempt limits". The few and many plural forms written out there ("Осталось 2 попытки",
 "Осталось 5 попыток") are a record for a later change of S4, not UI text: nothing renders them.
+
+## Several courses (#218)
+
+From #220 (FU20). The normal states with several courses and the root error; every error and focus state
+with several courses, A218-9 to A218-11 and F21: see #222. From #220 the decisions and rules below replace
+what this file and the other flow files state for the one-course app about the top-bar and breadcrumb
+"Курс" and R6 "Course id unknown", the dashboard's Tab order and `F6` landing, the not-found action, its
+landing and its way on, where F18.1-F18.2 sit ("Rules (#218)" row "course block", A218-6), and the
+courses F18.3-F18.5 cover and the F18.3 and F18.4 row names (A218-13). `courses.md` holds F20, F22, "Questions for #219" (Q1-Q10) and
+"Requirements for #220". "#218 research §n" cites `plans/218-research.md`, a working note like the #50
+ones.
+
+### Decisions
+
+- <a id="A218-1"></a>**A218-1. The dashboard is the course list.** `/` shows one course block per course
+  of the root; no other page or route lists courses, except "Другие курсы" ([A218-14](#A218-14)). Because
+  for few courses the dashboard already answers "what next", as on Coursera and Open edX (#218 research
+  §5).
+- <a id="A218-2"></a>**A218-2. The Card course.** At most one "Следующий урок" Card: the next lesson of the
+  course with the newest learner activity (`courses.md` Q5) among the courses with a next lesson, else of
+  the first of them in list order. With no next lesson anywhere, the end Card of the course chosen the same
+  way among the courses with a `ready` lesson: "Все доступные уроки пройдены" when each of its `ready`
+  lessons is passed, else "Все доступные уроки завершены"; with no `ready` lesson anywhere, no Card.
+  Because G1 asks for one next step, and "пройдены" would misinform about a closed lesson.
+- <a id="A218-3"></a>**A218-3. No course link in the top bar.** "Академия", "Главная", the user menu; no
+  "Курс", no course switcher; `aria-current` only on "Главная" on the dashboard. Because with several
+  courses "Курс" has no single target (GOV.UK, #218 research §5).
+- <a id="A218-4"></a>**A218-4. A block's next lesson.** The next-lesson link "Следующий урок: <lesson
+  title>" opens F4's next lesson within the block's course; a course without one has no link. Because a
+  block speaks for its own course.
+- <a id="A218-5"></a>**A218-5. No next-lesson link in the Card course's block**, because the Card holds
+  that lesson.
+- <a id="A218-6"></a>**A218-6. Module rows in every readable block**, at every course count, because one
+  course keeps one layout (FU21).
+- <a id="A218-7"></a>**A218-7. The course name.** `course.yaml` `title`, as is, wherever one course is
+  named: the Card, the block heading, the course crumb, the catalog h1 and `<title>`, the "Другие курсы"
+  links, the rows of A218-13. Because "Курс" does not say which course.
+- <a id="A218-8"></a>**A218-8. The course crumb.** The breadcrumb reads course name / module title / lesson
+  title, with no "Главная" crumb, because the top bar already links home (NN/g, #218 research §5).
+- **A218-9, A218-10, A218-11:** see #222.
+- <a id="A218-12"></a>**A218-12. The not-found action.** "Открыть курс" only in way (4), where `F6` to
+  `main` lands on it; in ways (1)-(3) no action, `F6` to `main` lands on `main` itself, and the top bar
+  ("Академия", "Главная") is the way on. Because in ways (1)-(3) any course would be a guess.
+- <a id="A218-13"></a>**A218-13. Cross-course rows.** F18.3 and F18.4 list every course's attempts and
+  checks, F18.5 sums them; with two or more course blocks a row's name adds the course name after the
+  lesson title: "<lesson title>. <course name>. <date and time>. <summary>" (F18.3, from #37 the cost
+  after it), "<check title>. <lesson title>. <course name>. <status or counter>" (F18.4). Because lesson
+  titles can repeat across courses.
+- <a id="A218-14"></a>**A218-14. "Другие курсы".** With two or more courses, the catalog ends, after the
+  module sections, with a `section` labelled by its h2 "Другие курсы" and a `ul` of links to
+  `/courses/<courseId>`, one per other course in list order, named by the course name, with or without a
+  `ready` lesson; one Tab per link, no `F6` landing change. Because A218-3 removed a second way to each
+  catalog (WCAG 2.4.5).
+
+### Rules (#218)
+
+| Rule | From #220 |
+|------|-----------|
+| dashboard order | h1 "Главная"; the Card ([A218-2](#A218-2)); the course blocks in list order (`courses.md` Q5); after the last block F18.3, F18.4 (#35) and F18.5 (#37), rendered exactly when a Card is |
+| course block | a `section` labelled by its h2, the course name as a link to its catalog. Readable form (a course with a `ready` lesson): the heading, the next-lesson link ([A218-4](#A218-4), [A218-5](#A218-5)), the course line (a `p` that labels the Progress, F18.1) with the Progress, the module rows (F18.2). Empty form (no `ready` lesson, `courses.md` Q6): the heading and "В курсе пока нет готовых уроков" |
+| root error | a root that cannot be read or holds no course (`courses.md` Q3): the Alert "Не удалось загрузить курсы" in the Card's place, no blocks, no F18.3-F18.5; its retry: see #222 |
+| loading | Skeletons for the Card and one block (`aria-hidden`; from #35 also F18.3-F18.5), because the number of courses is known only after the read |
+| Tab order in `main`, `F6` | the Card's button ("Начать" / "Продолжить", or "Открыть курс" in the end Card); per block in list order its heading link, next-lesson link, module rows; from #35 the "Последние попытки" rows, then the "Где трудно" rows. `F6` to `main` lands on the first of these, so with no Card on the first block's heading link; a block is no `F6` stop |
+| course of each control | dashboard: the Card's controls the Card course, a block's controls its course, an F18.3 or F18.4 row its lesson's course; catalog, lesson and not-found (the environment-rejected "Открыть курс" included): the URL's course, except the "Другие курсы" links |
+| course crumb landing | the R3 table's "the breadcrumb "Курс"" is the course crumb ([A218-8](#A218-8)): `F6` to "Урок" lands on it in two panes or full width; in one-pane mode `F6` lands on the switch tab "Урок" and the course crumb is the next Tab |
+| ways to a catalog (WCAG 2.4.5) | its block heading link, and the course crumb of its lessons or "Другие курсы" ([A218-14](#A218-14)); one course with no `ready` lesson: the small-site note of Understanding 2.4.5 |
+| URLs | routes unchanged (`/courses/[courseId]`, `/courses/[courseId]/lessons/[lessonId]`); the course id is the directory name (`courses.md` Q1); no `/courses` route (not-found way (1), `courses.md` Q8); the not-found ways: page inventory |
 
 ## Sitemap
 
@@ -598,10 +678,12 @@ flowchart TD
   catalog --> dash
 ```
 
-The sitemap is the one from #30. Before #30 only sign-in and the dashboard exist, and no link leads to a
+The sitemap is the one from #30; from #220 a catalog also links to the other catalogs
+([A218-14](#A218-14)). Before #30 only sign-in and the dashboard exist, and no link leads to a
 `/courses/...` route (R6, "Before the catalog ships").
 
-Module pages are sections of the catalog (`/courses/[courseId]#[moduleId]`), not routes (decision A6).
+Module pages are sections of their course's catalog (`/courses/[courseId]#[moduleId]`), not routes
+(decision A6).
 Progress is a section of the dashboard plus an attempts list on the lesson page, not a page (decision A7).
 The quiz and the mentor review live in the lesson page's left pane, not on routes of their own: both are
 part of one lesson's checks, and leaving the route would leave the environment (decision in `quiz.md`
@@ -623,9 +705,10 @@ and `mentor.md`).
 - **Breadcrumbs** on the lesson page: "Курс" / module title / lesson title. The module crumb links to
   the catalog anchor of that module; the lesson crumb is the current page (`aria-current="page"`, not a
   link). Not shown when the course cannot be read (F7 error states). No breadcrumb on the not-found page: it names
-  no place in the course (GOV.UK page-not-found pattern, #83 research §5).
-- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson; from #30, before it the
-  dashboard has no primary action, R6 "Before the catalog ships"); catalog: a lesson row; lesson page:
+  no place in a course (GOV.UK page-not-found pattern, #83 research §5).
+- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson, from #220 of the Card
+  course, [A218-2](#A218-2); from #30, before it the dashboard has no primary action, R6 "Before the
+  catalog ships"); catalog: a lesson row; lesson page:
   "Проверить"; not-found page: "Открыть курс" (none while the course id is unknown, R6 "Course id
   unknown"). While the course cannot be read, the dashboard, catalog and lesson page show the course error
   instead and its "Повторить" is the only action in `main`.
@@ -653,8 +736,8 @@ and `mentor.md`).
   | 5 | an id the dashboard does not emit for this lesson: malformed, unknown, another user's (ADR-0007 item 8 owner check), another lesson's; history read | nothing expanded | not moved, as any load (A72-18) |
   | 6 | any value; the check state cannot be read | no history section (`progress.md` F19 error states); the tab's state is #69's (FU13, Q1) | not moved until #69 answers Q1 |
   | 7 | any value; the Проверки tab is not shown (before #35, or a lesson with no check the platform runs, R6) | the `tab` fallback (Теория, or Задание) | not moved |
-  | 8 | any value; the lesson is not a `ready` lesson of the course (it left the course after the dashboard read) | the not-found page (inventory way 4) | the not-found rules (focus not moved on arrival) |
-  | 9 | any value; the course cannot be read | the lesson course error (F7) | its rules (R2, R3) |
+  | 8 | any value; the lesson is not a `ready` lesson of its course (it left its course after the dashboard read) | the not-found page (inventory way 4) | the not-found rules (focus not moved on arrival) |
+  | 9 | any value; the course cannot be read (several courses: see #222) | the lesson course error (F7) | its rules (R2, R3) |
   | 10 | any value; the session expired | F2, `next` keeps `tab` and `attempt` | after sign-in, rows 1-9 apply |
 
   An id of a finished attempt of this lesson and user is always in the read history (F19.1 lists every
@@ -677,13 +760,13 @@ Flows column: every flow whose Entry line or steps happen on the page.
 | Slug | Route | Russian title (`<title>` / h1) | Purpose | Flows | Prototype in #50 |
 |------|-------|-------------------------------|---------|-------|------------------|
 | sign-in | `/sign-in` | "Вход" | email and password for the single local user | F1, F2 (F2.2-F2.3), F3 (F3.3) | yes |
-| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts and "Где трудно", from #37 cost (R6, "Progress by release (#72)") | F1 (F1.4), F2, F3, F4, F5 (entry "Открыть курс", from #30), F18, F19 (entry F18.3, from #35) | yes: F4 and F18.1-F18.2 only; F18.3-F18.5 are drawn in #72's author phase |
-| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков"; "Не удалось загрузить курс" while the course cannot be read | every module with summary, outcomes and its `ready` lessons; planned modules as such | F2, F3, F5, F6 | yes |
-| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entry: module crumb), F6, F7-F17, F19 | yes: the states listed in the #50 design notes; F19 ("История попыток") is drawn in #72's author phase, on #69's Проверки panel |
-| not-found | the ways into the not-found page, each HTTP 404, stated only here: (1) a path no route matches; (2) a catalog URL whose course id is not the course's; (3) a lesson URL whose course id is not the course's; (4) a lesson URL whose lesson id names no `ready` lesson of the course (unknown, or not `ready`). (2)-(4) need the course read: while it cannot be read, those URLs show the course error (HTTP 200), so only (1) remains | "Страница не найдена" | says in one sentence that the address leads nowhere; while the course id is known it links to the catalog ("Открыть курс"), while it is unknown it shows only the sentence and the top bar's "Главная" is the way on (R6, "Course id unknown") | F2, F3, F5, F7 | yes, in #83: `design/pages/not-found/`, states default, no-course, session-expired, user-menu |
+| dashboard | `/` | "Главная" | what to study next; course and module progress; from #35 recent attempts and "Где трудно", from #37 cost (R6, "Progress by release (#72)"); from #220 the course list ([A218-1](#A218-1)) | F1 (F1.4), F2, F3, F4, F5 (entries: `catalog.md` F5 Entry), F18, F19 (entry F18.3, from #35), F20 | yes: F4 and F18.1-F18.2 only; F18.3-F18.5 are drawn in #72's author phase |
+| catalog | `/courses/[courseId]` | course title, e.g. "ИИ для разработчиков"; "Не удалось загрузить курс" while the course cannot be read | every module with summary, outcomes and its `ready` lessons; planned modules as such; from #220 "Другие курсы" ([A218-14](#A218-14)) | F2, F3, F5, F6, F20, F22 | yes |
+| lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entries: `catalog.md` F5 Entry), F6, F7-F17, F19, F20, F22 | yes: the states listed in the #50 design notes; F19 ("История попыток") is drawn in #72's author phase, on #69's Проверки panel |
+| not-found | the ways into the not-found page, each HTTP 404, stated only here: (1) a path no route matches; (2) a catalog URL whose course id is not the course's; (3) a lesson URL whose course id is not the course's; (4) a lesson URL whose lesson id names no `ready` lesson of the course (unknown, or not `ready`). (2)-(4) need the course read: while it cannot be read, those URLs show the course error (HTTP 200), so only (1) remains. From #220 (#218): (2) a catalog URL and (3) a lesson URL whose course id names no course of the root; (4) a lesson URL of a readable course whose lesson id names no `ready` lesson of it; while the root or that course cannot be read: see #222 | "Страница не найдена" | says in one sentence that the address leads nowhere; while the course id is known it links to the catalog ("Открыть курс"), while it is unknown it shows only the sentence and the top bar's "Главная" is the way on (R6, "Course id unknown"); from #220 [A218-12](#A218-12) | F2, F3, F5, F7, F22 | yes, in #83: `design/pages/not-found/`, states default, no-course, session-expired, user-menu |
 
-Every page is reachable from the catalog: the catalog links to every `ready` lesson and, through the
-top bar, to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
+Every page is reachable from a catalog: each catalog links to every `ready` lesson of its course and,
+from #220, to the other catalogs ([A218-14](#A218-14)), and through the top bar to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
 expired session (F2). Release: sign-in and the dashboard from #29; catalog, lesson and not-found from #30.
 Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog ships").
 
@@ -710,8 +793,11 @@ Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog s
 | F17 | `mentor.md` | Ask the mentor for a hint | 4 |
 | F18 | `progress.md` | See progress by module | 5 |
 | F19 | `progress.md` | Review the attempts of a lesson | 3 |
+| F20 | `courses.md` | Choose a course on the dashboard | 4 |
+| F21 | - | id reserved: moved to #222, see #222 | - |
+| F22 | `courses.md` | Tell which course a lesson belongs to and go back to it | 2 |
 
-A new flow takes the next free number (F20). An existing flow keeps its id even if it moves to another
+A new flow takes the next free number (F23). An existing flow keeps its id even if it moves to another
 file.
 
 ## Open follow-ups
@@ -725,7 +811,8 @@ filed and linked here, or when it is done.
   устарела." (page copy above), its h1 gets `tabindex="-1"`, and a catalog or lesson "Повторить" that ends
   on the not-found page focuses that h1 (R2, page-level retry table; today focus falls to `body`). e2e:
   the sentence, the course-id-unknown case (no "Курс", no "Открыть курс", `F6` to `main` lands on `main`),
-  the retry focus, and that an ordinary arrival does not move focus.
+  the retry focus, and that an ordinary arrival does not move focus. If #220 lands first, the e2e tests
+  [A218-12](#A218-12) in place of the course-id-unknown case.
 - **FU2. test(web): e2e for the lesson page whose course cannot be read** (dev or tester, from #83). Only
   the Alert with "Не удалось загрузить курс" and "Повторить" in `main`, `<title>` "Не удалось загрузить
   курс", `F6` to `main` lands on "Повторить", and the three retry outcomes of R2 with their `<title>`.
@@ -858,6 +945,26 @@ filed and linked here, or when it is done.
   take the text, together with lesson acceptance Open question 2: its option "moving focus to the code
   block" would focus a `pre` that, when it fits, has no name under "Scrollable code", so that option must
   set the name as well.
+- **FU20. feat(web): several courses** (dev, #220, from #218). Builds `courses.md` "Requirements for #220"
+  on the pages the #218 author phase marks `ready`; a #219 decision against a `courses.md` assumption
+  (Q1-Q10) first goes to a follow-up DESIGN task.
+- **FU21. design/dev: dashboard progress for several courses** (#35, from #218). Builds F18.3-F18.5 on the
+  #220 dashboard ([A218-13](#A218-13), "Rules (#218)"), so #35 waits for #220 (Stepan's call). Revisit
+  [A218-6](#A218-6) when the dashboard grows long.
+- **FU22. design: where mentor remarks sit with several courses** (#102, from #218). Per-course content
+  goes inside a block after the module rows, cross-course content after the last block and before F18.5;
+  #102 decides which its remarks are.
+- **FU23. design: the per-course empty text and #147** (#147's seam, from #218). #147 changes when "В курсе
+  пока нет готовых уроков" shows; whichever of #147 and #220 merges second puts #147's condition into the
+  empty form of the course block.
+- **FU24. content: per-course reference program folder** (#221, from #218). `docs/courses/<course-id>/`,
+  the course id of `courses.md` Q1.
+- **FU25. docs(adr): the questions of the ADR-0009 amendment** (#219, from #218). `courses.md` "Questions
+  for #219", Q1-Q10.
+- **FU26. design: a second way to every lesson page (WCAG 2.4.5)** (design, from the #218 accessibility
+  review). Since #30 the one way every lesson page has is its catalog row; #218 does not change that.
+  Candidate: previous and next lesson links on the
+  lesson page (G125), a lesson-page DESIGN task. Not a blocker for #220.
 
 Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
 "Focus ring after a mouse click on a tab").

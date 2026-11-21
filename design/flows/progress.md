@@ -40,11 +40,14 @@ class each release shows is listed once, in `ia.md` R6, "Progress by release (#7
 
 ## F18: See progress by module
 
-**Goal:** see how far I am in the course, where I stumble and what my attempts cost. Source:
+**Goal:** see how far I am in each course, where I stumble and what my attempts cost. Source:
 learning-process §4; #35; G5.
 
 **Entry:** the dashboard, below the "Следующий урок" card (F4), from #30. Before #30 the dashboard shows no
 progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before the catalog ships").
+
+From #220: F18.1-F18.2 per course block, F18.3-F18.5 across courses (`ia.md` A218-6, A218-13, "Rules
+(#218)"); error and focus states with several courses: see #222.
 
 **Steps (5):**
 
@@ -95,14 +98,16 @@ progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before th
   section "Последние попытки" with the text "Попыток пока нет", section "Где трудно" with "Пока нет
   проверок, которые не удаются". From #37 also the total "Потрачено на проверки и разборы: $0.00" and its
   note, because from #37 the total is a true figure, not a placeholder (A72-13).
-- Attempts exist, but none of a `ready` lesson (every attempted lesson left the course or is no longer
+- Attempts exist, but none of a `ready` lesson (every attempted lesson left its course or is no longer
   `ready`): "Последние попытки" shows "Попыток пока нет"; the total (#37) still counts their cost (A72-3).
 - No check qualifies for "Где трудно" (nothing failed twice, nothing closed, or every such check passed
   later): "Пока нет проверок, которые не удаются".
-- No `ready` lesson, course error, before #30: no progress section at all (`dashboard.md`).
+- No `ready` lesson, course error, before #30: no progress section at all (`dashboard.md`); until #220
+  (from #220: `ia.md` "Rules (#218)" rows "course block", "dashboard order", "root error"; a course error:
+  see #222).
 
-**Loading:** the Skeleton of the progress section (`dashboard/acceptance.md`, `#state-loading`) covers
-F18.3-F18.5 too (`aria-hidden`), because they come from the same read (A72-4).
+**Loading** (until #220; from #220 `ia.md` "Rules (#218)" row "loading"): the Skeleton of the progress
+section (`dashboard/acceptance.md`, `#state-loading`) covers F18.3-F18.5 too (`aria-hidden`), because they come from the same read (A72-4).
 
 **Exit:** a module row opens its catalog section (F5.2); from #35 a "Последние попытки" row opens F19 with
 that attempt open, and a "Где трудно" row opens the lesson's Проверки tab, where the check rows of F13 show
@@ -400,7 +405,8 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   only attempts of `ready` lessons in the current tree, because a row must open F19 and such a lesson has
   no route (it is not-found, `ia.md` inventory), and ADR-0007 item 5 "Dashboard" ignores such rows. The total
   (F18.5) still counts them (ADR-0007 item 11), because that money was spent.
-- **A72-4. One dashboard read.** F18.1-F18.5 come from one read with one loading and one error state,
+- **A72-4. One dashboard read.** F18.1-F18.5 come from one read with one loading and one error state (with
+  several courses: see #222),
   because they read the same tables and a second error text and "Повторить" in one section would make the
   learner retry twice.
 - **A72-5. F19 shows every finished attempt, no paging.** Collapsed rows are one line each, the read is

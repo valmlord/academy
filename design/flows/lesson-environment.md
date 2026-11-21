@@ -71,11 +71,11 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 ("theory ... starts from a concrete problem"; "task ... what to do and how to tell that it is done");
 #30 e2e "see the theory"; G2.
 
-**Entry:** F4.3, F5.4, or a direct link to the lesson.
+**Entry:** F4.3, F5.4, from #220 F20.3, or a direct link to the lesson.
 
 **Steps (5):**
 
-1. F7.1 Learner sees the lesson header: breadcrumbs, title, type ("теория", "квиз", "артефакт", "оценка
+1. F7.1 Learner sees the lesson header: breadcrumbs (from #220 the course crumb, `ia.md` A218-8), title, type ("теория", "квиз", "артефакт", "оценка
    агента", "поиск багов", "проект"), "около N мин", and "Чему научитесь" (the lesson outcomes, collapsed
    to the first one with "Показать все" when there are more than two; expanded, the button reads
    "Свернуть").
@@ -102,7 +102,7 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
   loads while the URL is a way into the not-found page (`ia.md` page inventory, not-found Route) shows the
   not-found page with focus on its h1 (`<title>` "Страница не найдена"; R2, page-level retry table). The
   lesson h1 and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2,
-  retry focus guard).
+  retry focus guard). With several courses, from #220: see #222.
 - A direct link that is a way into the not-found page (`ia.md` page inventory, not-found Route, ways (3)
   and (4)): the not-found page (`catalog.md` F5 error states).
 - theory.md or task.md cannot be read: the tab shows "Не удалось загрузить текст урока" with
@@ -128,7 +128,7 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 **Empty states:** a lesson with no theory.md (a pure quiz lesson): the Теория tab is not shown and the
 page opens on Задание. A lesson with no sources: the "Источники" block is not shown.
 
-**Exit:** F7.5 into F9; F13 via "Проверить"; breadcrumbs to the catalog. From the course error:
+**Exit:** F7.5 into F9; F13 via "Проверить"; breadcrumbs to the catalog (from #220 F22). From the course error:
 "Повторить", or "Главная" / "Курс" in the top bar (R6).
 
 **Keyboard path:** the tab list is one Tab stop, arrow keys switch tabs (WAI-ARIA tabs), Tab moves into
@@ -215,7 +215,8 @@ while the learner reads hides the wait (decision A10).
 - Container limits hit (CPU, memory, pids; ADR-0002): "Окружение остановлено: превышен лимит <памяти |
   процессов | CPU>. Файлы сохранены." with "Запустить снова".
 - Environment rejected (it belongs to another user, #32): "Нет доступа к этому окружению." with "Открыть
-  курс". Only reachable by a bug or a hand-edited URL; it still needs a state.
+  курс" (from #220: `ia.md` "Rules (#218)" row "course of each control"). Only reachable by a bug or a
+  hand-edited URL; it still needs a state.
 - Agent API key missing (#33), a warning, not an error: "Ключ API для агента не задан: агент в терминале
   не запустится. Добавьте ключ в .env и перезапустите платформу." Bash keeps working.
 - Start takes longer than a threshold (parameter `ENVIRONMENT_START_SLOW_SECONDS`, set by #31): the text

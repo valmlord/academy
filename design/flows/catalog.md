@@ -4,9 +4,9 @@ Page: catalog (`/courses/[courseId]`), with one section per module (`#[moduleId]
 of modules and lessons, `ready` only; e2e "open a module, open a lesson, see the theory"),
 `course/ai-for-developers/course.yaml` and `*/module.yaml`, ADR-0001 item 4, research §3.
 
-Module sections, not module pages, because the course has six modules of which five are `planned` with
-no lessons (research §3): five module pages would be empty, and one page with six sections shows the
-whole course at once (decision A6 in the #50 design notes). "Open a module" in #30's e2e means following the
+Module sections, not module pages, because `ai-for-developers` has six modules of which five are
+`planned` with no lessons (research §3): five module pages would be empty, and one page with six sections
+shows the whole course at once (decision A6 in the #50 design notes). "Open a module" in #30's e2e means following the
 module link to its section.
 
 ## F5: Find a lesson in the catalog
@@ -15,7 +15,10 @@ module link to its section.
 
 **Entry:** "Курс" in the top bar; "Открыть курс" on the dashboard or on the not-found page (the top-bar
 "Курс" and the not-found "Открыть курс" only while the course id is known, `ia.md` R6 "Course id
-unknown"); the module crumb on a lesson page (lands on that module's section).
+unknown"); a dashboard module row (`progress.md` F18.2) or the module crumb on a lesson page (lands on
+that module's section); the lesson page's "Открыть курс" (environment rejected, `lesson-environment.md`
+F8). From #220: no top-bar "Курс" (`ia.md` A218-3), the not-found "Открыть курс" by A218-12, and also a
+dashboard block heading (F20.4), the course crumb (F22.2) and a "Другие курсы" link (A218-14).
 
 **Steps (4):**
 
@@ -40,7 +43,7 @@ unknown"); the module crumb on a lesson page (lands on that module's section).
   course title), the error h1 when it fails again, and the not-found h1 when the course loads but its id
   is not the URL's (`<title>` "Страница не найдена"; `ia.md` R2, page-level retry table). The course h1
   and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2, retry
-  focus guard).
+  focus guard). With several courses, from #220: see #222.
 - A URL that is a way into the not-found page (`ia.md` page inventory, not-found Route): the not-found page
   (`design/pages/not-found/`, #83): h1 "Страница не найдена", the sentence "Возможно, в адресе опечатка
   или ссылка устарела." and "Открыть курс" (only while the course id is known, see below); no breadcrumb, no "404", no destructive colour, because the
@@ -51,20 +54,23 @@ unknown"); the module crumb on a lesson page (lands on that module's section).
   ships"), `aria-current` on neither link; its `F6` stop `main` lands on "Открыть курс". While the course
   id is unknown (`course.yaml` unreadable, so only an unmatched path can reach it) it has no "Открыть
   курс" and no "Курс": `main` holds the h1 and the sentence, `F6` lands on `main` itself, and the way on
-  is "Главная" in the top bar, because every course page would show the course error.
+  is "Главная" in the top bar, because every course page would show the course error. From #220: `ia.md`
+  A218-3, A218-12.
 - Progress cannot be read: lessons show no learner status and no prerequisite note (whether a
   prerequisite is passed is progress data, F6 error states), and a muted line "Прогресс недоступен" once
   at the top; lessons stay openable.
 
 **Empty states:**
 - A `planned` module: its section shows summary and outcomes, then "Уроки модуля готовятся" instead of a
-  lesson list. It is the common case today (five of six modules, research §3).
+  lesson list. It is the common case today (five of the six modules of `ai-for-developers`, research §3).
 - A module that is `ready` but has no `ready` lesson: the same text, module status "Готовится".
 
-**Exit:** F5.4; or the dashboard via the top bar.
+**Exit:** F5.4; or the dashboard via the top bar; from #220 also a "Другие курсы" link into F5 of that
+course (`ia.md` A218-14).
 
 **Keyboard path:** Tab through the module links (Enter moves focus to that module's section heading),
-then through lesson links in order; each lesson row is one link, so one Tab per lesson.
+then through lesson links in order; each lesson row is one link, so one Tab per lesson. From #220 the
+"Другие курсы" links follow (`ia.md` A218-14).
 
 **Time limits:** none.
 
