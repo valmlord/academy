@@ -5,6 +5,7 @@ import {
   actionsMenuLabel,
   brandName,
   breadcrumbLabel,
+  codeBlockLabel,
   copyDeniedLabel,
   copyLabel,
   courseLinkLabel,
@@ -296,6 +297,161 @@ test("a refused clipboard renames the copy button and keeps focus (AC14)", async
   const denied = page.getByRole("button", { name: copyDeniedLabel });
   await expect(denied).toHaveCount(1);
   await expect(denied).toBeFocused();
+});
+
+// The local models block AC75 names (course/ai-for-developers/00-introduction/01-models-and-effort/theory.md);
+// looked up by its line so a course edit fails here instead of testing another block.
+const AC75_LINE = "export ANTHROPIC_BASE_URL=http://localhost:11434";
+const lessonWithAc75Block = lessonWith(
+  (lesson) => lesson.theory.includes(AC75_LINE),
+  "with AC75's local models block",
+);
+
+// A code line this long is far wider than the code pane at 320px; whether it overflows in the app is
+// asserted by each test's premise, not assumed from the length.
+const LONG_CODE_LINE_CHARS = 60;
+
+/** The first line of at least LONG_CODE_LINE_CHARS inside a ``` fence, trimmed. */
+function longFenceLine(markdown: string): string | undefined {
+  let isInFence = false;
+  for (const line of markdown.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) {
+      isInFence = !isInFence;
+      continue;
+    }
+    if (isInFence && trimmed.length >= LONG_CODE_LINE_CHARS) return trimmed;
+  }
+  return undefined;
+}
+
+const taskLessonWithLongCode = lessonWith(
+  (lesson) => longFenceLine(lesson.task) !== undefined,
+  `with a task code line of at least ${LONG_CODE_LINE_CHARS} characters`,
+);
+const taskFenceLine = longFenceLine(taskLessonWithLongCode.task);
+if (taskFenceLine === undefined) throw new Error("unreachable: the lesson was picked by this line");
+
+function codeBlock(page: Page, line: string): { pre: Locator; copyButton: Locator } {
+  const block = page.locator(".code-block", { hasText: line });
+  return { pre: block.locator("pre"), copyButton: block.getByRole("button", { name: copyLabel }) };
+}
+
+function overflowOf(pre: Locator): Promise<{ scrollWidth: number; clientWidth: number }> {
+  return pre.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+}
+
+async function isOverflowing(pre: Locator): Promise<boolean> {
+  const { scrollWidth, clientWidth } = await overflowOf(pre);
+  return scrollWidth > clientWidth;
+}
+
+/**
+ * Two animation frames and a task, so a ResizeObserver delivery and React's commit of its update have had
+ * their frame. Only "none" and "kept" asserts need it: they would pass before the decision ran.
+ */
+function afterRendering(page: Page): Promise<void> {
+  return page.evaluate(
+    () =>
+      new Promise<void>((done) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 0)));
+      }),
+  );
+}
+
+async function expectScrollStop(pre: Locator): Promise<void> {
+  await expect(pre).toHaveAttribute("tabindex", "0");
+  await expect(pre).toHaveAttribute("role", "group");
+  await expect(pre).toHaveAttribute("aria-label", codeBlockLabel);
+}
+
+async function expectNoScrollStop(pre: Locator): Promise<void> {
+  await expect(pre).not.toHaveAttribute("tabindex");
+  await expect(pre).not.toHaveAttribute("role");
+  await expect(pre).not.toHaveAttribute("aria-label");
+}
+
+test("an overflowing theory code block takes Tab, scrolls by arrow key and returns focus (AC75)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 500 });
+  await page.goto(`${pathOf(lessonWithAc75Block)}?tab=theory`);
+  const { pre, copyButton } = codeBlock(page, AC75_LINE);
+  await expect.poll(() => isOverflowing(pre), "overflows at 320").toBe(true);
+
+  await expectScrollStop(pre);
+  expect(await scrollWidthOf(page), "page scrollWidth at 320").toBe(320);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(pre).toBeFocused();
+  const ring = await ringOf(page);
+  const borderRadius = await pre.evaluate((el) => getComputedStyle(el).borderRadius);
+  expect({ ...ring, borderRadius }).toEqual({
+    isFocusVisible: true,
+    outlineStyle: "solid",
+    outlineWidth: "2px",
+    outlineOffset: "-2px",
+    borderRadius: "0px 0px 7px 7px",
+  });
+  await page.keyboard.press("ArrowRight");
+  // Smooth scrolling: scrollLeft is still 0 right after the key press.
+  await expect.poll(() => pre.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  await page.keyboard.press("Shift+Tab");
+  await expect(copyButton).toBeFocused();
+
+  await page.setViewportSize({ width: 375, height: 667 });
+  await expect.poll(() => isOverflowing(pre), "overflows at 375").toBe(true);
+  await expectScrollStop(pre);
+});
+
+test("a theory code block that fits is no Tab stop (AC75)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`${pathOf(lessonWithAc75Block)}?tab=theory`);
+  const { pre, copyButton } = codeBlock(page, AC75_LINE);
+  await waitForHydration(copyButton, "hydrated before the fit check");
+  await afterRendering(page);
+  expect(await isOverflowing(pre), "fits at 1280").toBe(false);
+
+  await expectNoScrollStop(pre);
+  expect(await scrollWidthOf(page), "page scrollWidth at 1280").toBe(1280);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(copyButton).not.toBeFocused();
+  await expect(pre).not.toBeFocused();
+});
+
+test("a focused code block keeps its stop through a resize until focus leaves (AC75)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 500 });
+  await page.goto(`${pathOf(lessonWithAc75Block)}?tab=theory`);
+  const { pre, copyButton } = codeBlock(page, AC75_LINE);
+  await expect.poll(() => isOverflowing(pre), "overflows at 320").toBe(true);
+
+  await expectScrollStop(pre);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(pre).toBeFocused();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(() => isOverflowing(pre), "fits at 1280").toBe(false);
+  await afterRendering(page);
+  await expect(pre).toBeFocused();
+  await expectScrollStop(pre);
+  await page.keyboard.press("Tab");
+  await expect(pre).not.toBeFocused();
+  await expectNoScrollStop(pre);
+});
+
+test("an overflowing task code block takes the same stop (AC75)", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 500 });
+  await page.goto(`${pathOf(taskLessonWithLongCode)}?tab=task`);
+  const { pre, copyButton } = codeBlock(page, taskFenceLine);
+  await expect.poll(() => isOverflowing(pre), "overflows at 320").toBe(true);
+
+  await expectScrollStop(pre);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(pre).toBeFocused();
 });
 
 test("a prerequisite shows the warning Alert with links that open the lesson (F6.2, F6.3)", async ({
