@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { z } from "zod";
+import { TEST_LABEL } from "../support/sweep-predicate.js";
 
 // The harness talks to Docker through the CLI, never through the engine under test, so a bug in the product
 // cannot widen what the harness lists or removes. Every call that prints object data uses one of the explicit
@@ -67,6 +68,71 @@ export async function dockerResult(args: readonly string[]): Promise<CliResult> 
 export async function processArgs(containerId: string): Promise<string[]> {
   const listing = await docker(["exec", containerId, "ps", "-o", "args"]);
   return listing.split("\n").map((entry) => entry.trim());
+}
+
+/**
+ * Lists the live processes of a uid from `/proc/<pid>/status`, run as the learner uid, which a slot-uid process can
+ * neither signal nor stop. A status file that cannot be read belongs to a process that ended and is skipped; zombies
+ * are skipped, as they run nothing. Prints one JSON line per process.
+ */
+const UID_PROCESSES_SCAN = String.raw`const fs = require("fs");
+for (const entry of fs.readdirSync("/proc")) {
+  if (!/^\d+$/.test(entry)) continue;
+  let status;
+  try { status = fs.readFileSync("/proc/" + entry + "/status", "utf8"); } catch { continue; }
+  const uid = /^Uid:\s+(\d+)/m.exec(status);
+  const state = /^State:\s+(\S)/m.exec(status);
+  if (uid === null || uid[1] !== process.argv[1] || state === null || state[1] === "Z") continue;
+  let args = "";
+  try { args = fs.readFileSync("/proc/" + entry + "/cmdline", "utf8").split("\0").filter(Boolean).join(" "); } catch {}
+  console.log(JSON.stringify({ pid: Number(entry), state: state[1], args }));
+}`;
+
+const uidProcessSchema = z.object({ pid: z.number().int(), state: z.string(), args: z.string() });
+
+export type UidProcess = z.infer<typeof uidProcessSchema>;
+
+/** The oracle of "no process of the slot uid left": counted from outside, never by `kill`'s return code. */
+export async function uidProcesses(containerId: string, uid: number): Promise<UidProcess[]> {
+  const output = await docker([
+    "exec",
+    "-u",
+    "1000:1000",
+    containerId,
+    "node",
+    "-e",
+    UID_PROCESSES_SCAN,
+    String(uid),
+  ]);
+  return parseJsonLines(output, uidProcessSchema);
+}
+
+/** Stops a container by Id only after its instance label shows the calling test made it. */
+export async function stopOwnContainer(containerId: string, instance: string): Promise<void> {
+  const inspected = await inspectObject("container", containerId);
+  if (inspected?.labels[TEST_LABEL.instance] !== instance) {
+    throw new DockerCliError(["stop", containerId], `not a container of instance ${instance}`);
+  }
+  await docker(["stop", "-t", "1", containerId]);
+}
+
+/** The stop and start the service makes for a container it no longer trusts, done by hand. */
+export async function restartContainer(containerId: string, instance: string): Promise<void> {
+  await stopOwnContainer(containerId, instance);
+  await docker(["start", containerId]);
+}
+
+/**
+ * Whether slot 0's scratch holds `name`. `docker cp` makes the daemon read the volume, so nothing runs in the
+ * container and no process in it can act on the read; it prints file content, never object metadata.
+ */
+export async function slotFileExists(containerId: string, name: string): Promise<boolean> {
+  const copied = await dockerResult([
+    "cp",
+    `${containerId}:/workspace/.academy-grader/2000/${name}`,
+    "-",
+  ]);
+  return copied.exitCode === 0;
 }
 
 function lines(output: string): string[] {
