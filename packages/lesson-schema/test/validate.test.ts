@@ -461,7 +461,55 @@ status: ready
 sources: [{ title: Docs, url: "https://example.com/docs", checkedAt: "2026-10-01" }]
 `;
 
+// A literal, not the package's constant: the tests must not import the value they check.
+const CONVERSION_REASON = "invalid YAML: document cannot be converted to a value";
+
 describe("YAML the runtime loaders reject", () => {
+  it("reports a YAML 1.1 merge of a non-map in course.yaml and skips its modules", () => {
+    validCourse();
+    write(
+      "c/course.yaml",
+      "%YAML 1.1\n---\nid: c\ntitle: C\ndescription: d\nmodules: [01-intro]\nm:\n  <<: 5\n",
+    );
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: "c/course.yaml", message: CONVERSION_REASON }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 0, 0]);
+  });
+
+  it("reports an unresolved alias as a YAML 1.1 merge source in module.yaml and still validates the next module", () => {
+    validCourse();
+    write("c/course.yaml", "id: c\ntitle: C\ndescription: d\nmodules: [01-intro, 02-next]\n");
+    write("c/02-next/module.yaml", "id: next\ntitle: Next\nsummary: s\nstatus: planned\n");
+    write(
+      `${M}/module.yaml`,
+      "%YAML 1.1\n---\nid: intro\ntitle: Intro\nsummary: s\nstatus: ready\nlessons: [01-agents-md]\nm:\n  <<: *nope\n",
+    );
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: `${M}/module.yaml`, message: CONVERSION_REASON }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 2, 0]);
+  });
+
+  it.each([
+    ["a YAML 1.1 merge of a non-map", "id: agents-md\nm:\n  <<: 5\n"],
+    ["an unresolved alias as a YAML 1.1 merge source", "id: agents-md\nm:\n  <<: *nope\n"],
+    [
+      "an ordered map whose alias key repeats another key",
+      "id: agents-md\nk: &k a\nm: !!omap\n  - *k : 1\n  - a: 2\n",
+    ],
+  ])("reports %s in lesson.yaml as a document that cannot be converted", (_name, body) => {
+    validCourse();
+    write(`${L}/lesson.yaml`, `%YAML 1.1\n---\n${body}`);
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: `${L}/lesson.yaml`, message: CONVERSION_REASON }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+  });
+
   it("reports an unresolved tag in course.yaml and skips its modules", () => {
     validCourse();
     write(

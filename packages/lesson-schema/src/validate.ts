@@ -54,10 +54,10 @@ function readText(file: string): TextRead {
  * Reads a course YAML file and parses it with the loaders' rules (./yaml.ts, ADR-0009 item 7), so
  * content:validate does not pass YAML they reject. A file that cannot be read gives `unreadable (<errno code>)`;
  * a parse failure gives the loaders' reason with the library's code appended, `invalid YAML at line <n> (<code>)`;
- * an alias failure gives the loaders' alias reason. No reason it returns carries the system error's message (it
- * can hold the absolute path), the library's message or any file text. A read error without an errno code is
- * not an author error and propagates. A conversion failure is one, but it propagates too, as the library's own
- * error, until #188 reports it as an issue.
+ * an alias or a conversion failure gives the loaders' reason for it, unchanged and without a line. No reason it
+ * returns carries the system error's message (it can hold the absolute path), the library's message or any file
+ * text. What propagates is not an author error the rules name: a read error without an errno code, and whatever
+ * parseDocument itself throws.
  */
 function readYaml(file: string): YamlRead {
   const read = readText(file);
@@ -69,9 +69,8 @@ function readYaml(file: string): YamlRead {
     case "parse":
       return { ok: false, reason: `${courseYamlReason(parsed)} (${parsed.code})` };
     case "alias":
-      return { ok: false, reason: courseYamlReason(parsed) };
     case "conversion":
-      throw parsed.error;
+      return { ok: false, reason: courseYamlReason(parsed) };
   }
 }
 

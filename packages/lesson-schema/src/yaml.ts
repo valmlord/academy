@@ -18,17 +18,18 @@ export type CourseYamlParse =
    */
   | { readonly kind: "alias" }
   /**
-   * toJS() threw anything else, for example a YAML 1.1 merge key whose source is not a map, or an unresolved
-   * alias used as a merge source, which the library reports as a plain Error. Carries the thrown value unchanged
-   * so content:validate can rethrow it; a loader must not read it, because its message is the library's.
+   * toJS() threw anything other than a ReferenceError, for example a YAML 1.1 merge key whose source is not a
+   * map, or an unresolved alias used as a merge source, which yaml 2.9.1 reports as a plain Error. Carries
+   * nothing: the thrown message is the library's, and every caller gives the same fixed reason.
    */
-  | { readonly kind: "conversion"; readonly error: unknown };
+  | { readonly kind: "conversion" };
 
 export type CourseYamlFailure = Exclude<CourseYamlParse, { kind: "value" }>;
 
 // toJS() throws a ReferenceError with no position for an alias with no anchor before it, outside a YAML 1.1
 // merge key, and for any alias past the alias limit, so this reason names both causes and gives no line rather
-// than a guessed one. An unresolved alias used as a merge source throws a plain Error and is a conversion failure.
+// than a guessed one. With yaml 2.9.1 an unresolved alias used as a merge source throws a plain Error, so it is a
+// conversion failure.
 const ALIAS_REASON = "invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)";
 
 // Any other throw from toJS(), for example a YAML 1.1 merge source that is not a map. The library gives no
@@ -54,14 +55,13 @@ export function parseCourseYaml(text: string): CourseYamlParse {
     return { kind: "value", value };
   } catch (error: unknown) {
     if (error instanceof ReferenceError) return { kind: "alias" };
-    return { kind: "conversion", error };
+    return { kind: "conversion" };
   }
 }
 
 /**
  * The reason the web loader and the workspace service give for a failed parse. content:validate gives the same
- * text for an alias failure, and for a parse failure with " (<code>)" appended. Never reads a conversion
- * failure's error, so no library message reaches a loader's reason.
+ * text for an alias or a conversion failure, and for a parse failure with " (<code>)" appended.
  */
 export function courseYamlReason(failure: CourseYamlFailure): string {
   switch (failure.kind) {

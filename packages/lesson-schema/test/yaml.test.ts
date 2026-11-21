@@ -1,10 +1,6 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { inspect } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { validateCourses } from "../src/validate.js";
-import { type CourseYamlParse, courseYamlReason, parseCourseYaml } from "../src/yaml.js";
+import { courseYamlReason, parseCourseYaml } from "../src/yaml.js";
 
 const WARNING_TAG = "id: one\nextra: !CANARY-TAG CANARY-W\n";
 const UNKNOWN_ALIAS = "id: one\nref: *CANARY-ALIAS\n";
@@ -13,13 +9,6 @@ const MERGE_NON_MAP = "%YAML 1.1\n---\nid: one\nm:\n  <<: 5\n";
 /** An anchored scalar and a flow list of `count` aliases to it, the input for the alias limit. */
 function aliasList(count: number): string {
   return `a: &a 1\nl: [${Array.from({ length: count }, () => "*a").join(", ")}]\n`;
-}
-
-function conversionError(result: CourseYamlParse): unknown {
-  expect(result.kind).toBe("conversion");
-  if (result.kind !== "conversion")
-    throw new Error(`expected a conversion failure, got ${result.kind}`);
-  return result.error;
 }
 
 afterEach(() => {
@@ -95,22 +84,22 @@ describe("parseCourseYaml", () => {
     expect(result).toStrictEqual({ kind: "value", value: { a: 1, l: Array(99).fill(1) } });
   });
 
-  it("reports a YAML 1.1 merge of a non-map as a conversion failure carrying the library's error", () => {
+  it("reports a YAML 1.1 merge of a non-map as a conversion failure that carries nothing else", () => {
     const result = parseCourseYaml(MERGE_NON_MAP);
 
-    const error = conversionError(result);
-    expect(Object.keys(result)).toStrictEqual(["kind", "error"]);
-    expect(error).toBeInstanceOf(Error);
-    expect(error).not.toBeInstanceOf(ReferenceError);
-    if (!(error instanceof Error)) throw error;
-    expect(error.message).toContain("Merge sources");
+    expect(result).toStrictEqual({ kind: "conversion" });
   });
 
   it("reports an unresolved alias used as a YAML 1.1 merge source as a conversion failure", () => {
     const result = parseCourseYaml("%YAML 1.1\n---\nid: one\nm:\n  <<: *nope\n");
 
-    const error = conversionError(result);
-    expect(error).not.toBeInstanceOf(ReferenceError);
+    expect(result).toStrictEqual({ kind: "conversion" });
+  });
+
+  it("reports an ordered map whose alias key repeats another key as a conversion failure", () => {
+    const result = parseCourseYaml("%YAML 1.1\n---\nk: &k a\nm: !!omap\n  - *k : 1\n  - a: 2\n");
+
+    expect(result).toStrictEqual({ kind: "conversion" });
   });
 
   it.each([
@@ -141,49 +130,9 @@ describe("courseYamlReason", () => {
     );
   });
 
-  it("gives a conversion failure a fixed reason without reading the carried error", () => {
-    const refuse = (): never => {
-      throw new Error("courseYamlReason read the carried error");
-    };
-    const handler: ProxyHandler<object> = {
-      get: refuse,
-      has: refuse,
-      ownKeys: refuse,
-      getOwnPropertyDescriptor: refuse,
-      getPrototypeOf: refuse,
-    };
-    const error = new Proxy({}, handler);
-
-    const reason = courseYamlReason({ kind: "conversion", error });
+  it("gives a conversion failure the reason content:validate and both loaders share", () => {
+    const reason = courseYamlReason({ kind: "conversion" });
 
     expect(reason).toBe("invalid YAML: document cannot be converted to a value");
-  });
-});
-
-describe("validateCourses on a document that cannot be converted", () => {
-  let root: string | undefined;
-
-  afterEach(() => {
-    if (root !== undefined) rmSync(root, { recursive: true, force: true });
-    root = undefined;
-  });
-
-  it("rethrows the library's error for a YAML 1.1 merge of a non-map", () => {
-    root = mkdtempSync(join(tmpdir(), "lesson-schema-yaml-"));
-    mkdirSync(join(root, "c"));
-    writeFileSync(join(root, "c", "course.yaml"), MERGE_NON_MAP);
-    const courseRoot = root;
-
-    let thrown: unknown;
-    try {
-      validateCourses(courseRoot);
-    } catch (error: unknown) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(Error);
-    expect(thrown).not.toBeInstanceOf(ReferenceError);
-    if (!(thrown instanceof Error)) throw thrown;
-    expect(thrown.message).toContain("Merge sources");
   });
 });
