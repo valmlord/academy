@@ -57,12 +57,25 @@ export function testContainerSpec(
   return buildContainerSpec({ image, instance, key, names, limits: TEST_LIMITS });
 }
 
-/** The value of a fulfilled call; a rejection fails the test naming the error's constructor. */
-export function fulfilledValue<T>(result: PromiseSettledResult<T>): T {
+function describeRejection(reason: unknown, index: number): string {
+  if (reason instanceof Error) return `[${index}] ${reason.constructor.name}: ${reason.message}`;
+  return `[${index}] ${typeof reason}: ${String(reason)}`;
+}
+
+/**
+ * The value of a fulfilled call; a rejection fails the test naming every rejection of the batch with its
+ * constructor and message. Shaped as a `map` callback, so `results.map(fulfilledValue)` passes the whole array.
+ */
+export function fulfilledValue<T>(
+  result: PromiseSettledResult<T>,
+  _index?: number,
+  all?: readonly PromiseSettledResult<T>[],
+): T {
   if (result.status === "fulfilled") return result.value;
-  const reason: unknown = result.reason;
-  const kind = reason instanceof Error ? reason.constructor.name : typeof reason;
-  throw new Error(`expected every concurrent call fulfilled, one rejected with ${kind}`);
+  const rejections = (all ?? [result]).flatMap((entry, index) =>
+    entry.status === "rejected" ? [describeRejection(entry.reason, index)] : [],
+  );
+  throw new Error(`expected every concurrent call fulfilled; rejected: ${rejections.join("; ")}`);
 }
 
 /** The fixture course (S7) and its one lesson with a workspace, for runtime-level tests. */

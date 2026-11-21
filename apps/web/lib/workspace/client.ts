@@ -69,8 +69,9 @@ export interface WorkspaceClient {
   activity(key: WorkspaceKey): Promise<ActivityAnswer>;
 }
 
-// GET is a few Docker reads. PUT is at most 30 engine calls, each bounded only by the service's 30 s
-// inactivity timeout (ADR-0010 item 8): 120 s covers a slow create without leaving the learner waiting forever.
+// GET is a few Docker reads. PUT is at most 102 engine calls and up to 10 s of waiting on a name another process
+// holds, each call bounded only by the service's 30 s inactivity timeout (ADR-0010 item 8 as amended by #181):
+// 120 s covers a slow create without leaving the learner waiting forever.
 export const GET_TIMEOUT_MS = 10_000;
 export const ENSURE_TIMEOUT_MS = 120_000;
 // Stop and delete queue on the workspace lock behind an ensure (ADR-0010 item 8), then wait out the container's
