@@ -52,7 +52,8 @@ or #34 ships no lesson can be started, so the card always reads "Начать" (
 - Until #220, progress cannot be read (database down) but the course can: the card shows the first lesson with
   "Начать" and a muted line "Прогресс недоступен, показан первый урок", because the learner can still
   study.
-- From #220: the root error (`ia.md` "Rules (#218)"); every other error state with several courses: see #222.
+- From #220: `ia.md` "Rules (#218)" row "root error" and [Error and focus states (#222)](ia.md#errors-222);
+  `courses.md` F21.
 
 **Empty states:**
 - First run (no progress, #29 "empty for now"): the card shows the first lesson of the first module with
@@ -67,7 +68,8 @@ or #34 ships no lesson can be started, so the card always reads "Начать" (
 **Exit:** F4.3; or the catalog via the top bar (F5, from #30).
 
 **Keyboard path:** from #30, the skip link moves focus to `main` (R4); the next Tab, or `F6` to `main`
-(R3), reaches the card's button (or "Повторить" / "Открыть курс" in those states); Enter opens the lesson.
+(R3), reaches the card's button (or "Повторить" / "Открыть курс" in those states) until #220, and from #220
+the first element of `ia.md` "Rules (#218)" row "Tab order in `main`, `F6`"; Enter opens the lesson.
 Before #30 (see "Dashboard by release"), the skip link and `F6` to `main` focus `main` itself
 (`tabindex="-1"`); `main` holds nothing focusable, so the next Tab leaves the page content.
 

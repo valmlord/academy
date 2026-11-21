@@ -47,7 +47,7 @@ learning-process §4; #35; G5.
 progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before the catalog ships").
 
 From #220: F18.1-F18.2 per course block, F18.3-F18.5 across courses (`ia.md` A218-6, A218-13, "Rules
-(#218)"); error and focus states with several courses: see #222.
+(#218)"); error and focus states: `ia.md` [Error and focus states (#222)](ia.md#errors-222).
 
 **Steps (5):**
 
@@ -85,8 +85,9 @@ From #220: F18.1-F18.2 per course block, F18.3-F18.5 across courses (`ia.md` A21
 **Success:** the learner knows where they are, where they stumble and where to go back.
 
 **Error states:**
-- Progress cannot be read: the section shows "Прогресс недоступен" with "Повторить"; F4 still works (see
-  its error state). F18.3-F18.5 come from the same read (A72-4), so none of them is rendered then: no
+- Progress cannot be read (until #220; from #220 `ia.md` [ES3](ia.md#ES3), [ES4](ia.md#ES4),
+  [RO6](ia.md#RO6), [RO7](ia.md#RO7)): the section shows "Прогресс недоступен" with "Повторить"; F4 still
+  works (see its error state). F18.3-F18.5 come from the same read (A72-4), so none of them is rendered then: no
   second error text, no second "Повторить". The retry and its focus are unchanged (`ia.md` R2, row
   "dashboard progress section", and its retry focus guard: the move happens only while focus is still on
   "Повторить", on `body` or in the section); a retry that loads renders F18.1-F18.5 together.
@@ -103,8 +104,8 @@ From #220: F18.1-F18.2 per course block, F18.3-F18.5 across courses (`ia.md` A21
 - No check qualifies for "Где трудно" (nothing failed twice, nothing closed, or every such check passed
   later): "Пока нет проверок, которые не удаются".
 - No `ready` lesson, course error, before #30: no progress section at all (`dashboard.md`); until #220
-  (from #220: `ia.md` "Rules (#218)" rows "course block", "dashboard order", "root error"; a course error:
-  see #222).
+  (from #220: `ia.md` "Rules (#218)" rows "course block", "dashboard order", "root error";
+  [ES1](ia.md#ES1)).
 
 **Loading** (until #220; from #220 `ia.md` "Rules (#218)" row "loading"): the Skeleton of the progress
 section (`dashboard/acceptance.md`, `#state-loading`) covers F18.3-F18.5 too (`aria-hidden`), because they come from the same read (A72-4).
@@ -122,10 +123,11 @@ section (F18.3, F18.4) is a `section` labelled by its h2; each list is a `ul` la
 (F18.5) is a `section` with no accessible name, so it is no `region` landmark: its h2 is a figure
 ("Потрачено на проверки и разборы: $1.24"), and a landmark named by a figure is noise in the landmark
 list, while heading navigation still reaches the h2 (as the F19 section). In an empty state the section
-holds its empty text in place of the `ul` (no empty named list is rendered). Nothing in F18 is live, and
+holds its empty text in place of the `ul` (no empty named list is rendered). Until #220 (from #220 `ia.md`
+[RR1](ia.md#RR1), [AN1](ia.md#AN1), [FB3](ia.md#FB3), [FB4](ia.md#FB4)): nothing in F18 is live, and
 nothing needs to be: F18.3-F18.5 render with the page and are never re-read in the background, so after
 load they change only through the progress section's "Повторить", which moves focus to what it shows
-(`ia.md` R2, row "dashboard progress section", under its retry focus guard); the rows show the state of the read; an attempt still
+(`ia.md` R2, row "dashboard progress section", under its retry focus guard). The rows show the state of the read; an attempt still
 `running` reads "Идёт проверка" with the `running` ring held still until the next load (A72-8, A72-9).
 
 **Time limits:** none.
@@ -142,7 +144,7 @@ latest result, "the earlier message returns with the attempt history", #69 desig
 the Проверки tab is selected and, for a finished attempt with a check result, that attempt's disclosure is
 expanded, scrolled into view and focused. Every other arrival (a finished attempt with no check result, a
 running attempt, the history read failed, an id that is not an attempt of this lesson and this user, the
-check state read failed, the tab not shown, the lesson not `ready`, the course error, an expired session)
+check state read failed, the tab not shown, a not-found URL, the course error, an expired session)
 and its focus target are stated once, in the table of `ia.md` Navigation model, "Attempt deep link"
 (A72-18); in one-pane mode the area shows "Урок" on load in that table's rows 1-6. An `attempt` value never leads to the
 not-found page by itself, because the lesson exists. Before #35 the section is not shown (R6); the text
@@ -405,8 +407,8 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   only attempts of `ready` lessons in the current tree, because a row must open F19 and such a lesson has
   no route (it is not-found, `ia.md` inventory), and ADR-0007 item 5 "Dashboard" ignores such rows. The total
   (F18.5) still counts them (ADR-0007 item 11), because that money was spent.
-- **A72-4. One dashboard read.** F18.1-F18.5 come from one read with one loading and one error state (with
-  several courses: see #222),
+- **A72-4. One dashboard read.** F18.1-F18.5 come from one read with one loading and one error state (from
+  #220: `ia.md` [ES3](ia.md#ES3)),
   because they read the same tables and a second error text and "Повторить" in one section would make the
   learner retry twice.
 - **A72-5. F19 shows every finished attempt, no paging.** Collapsed rows are one line each, the read is
