@@ -189,12 +189,10 @@ not-found page by itself, because the lesson exists. Before #35 the section is n
      stored one;
    - from #37 / #39, "Стоимость попытки: $N" (`ia.md` "check row note", #69), the cost of that result, when
      it spends (ADR-0007 item 11);
-   - from #37, the mentor review of that check (`mentor_reviews.check_id`, `schema.ts:262-263`) as D3
-     designs the review block (`mentor.md` F16); a whole-attempt review (`check_id` null) after the last
-     result. For a quiz result the same rule: a review asked for by "Разобрать с ментором" in the closed
+   - from #37, the mentor review of that check (`mentor_reviews.check_id`, `schema.ts:262-263`) as `ia.md`
+     A71-10 shows it; no control asks a whole-attempt review (`check_id` null, `ia.md` A71-13 item 2). For a quiz result the same rule: a review asked for by "Разобрать с ментором" in the closed
      quiz block (F15.6) belongs to the quiz attempt record of the closing send (a requirement on #37,
-     A72-17), so it shows in that record's panel after "Верно C из Q.". Hints are shown from the release
-     that stores them with the attempt (A72-16).
+     A72-17), so it shows in that record's panel after "Верно C из Q.". Hints: A72-16.
 
    The words and "Подробности" of an old result need its flags and raw error stored with that result, not
    only with the latest one: #34 stores `isCounted`, `isFormatError`, `isBudgetExhausted` and the runner
@@ -328,7 +326,7 @@ because no record was added.
 **Keyboard path:** the history is inside the Проверки tab panel of region "Урок"; the `F6` cycle is
 unchanged (R3). From the last check row (or its open panel) Tab reaches the history's disclosure buttons in
 order, newest first; Enter or Space expands and collapses one, focus stays on it; inside an open panel Tab
-reaches each "Подробности" disclosure, and from #37 the review block's controls (D3), then the next
+reaches each "Подробности" disclosure, then the next
 attempt's button; Shift+Tab goes back. A plain item (no check result) is skipped by Tab. In the error
 state Tab reaches "Повторить". A deep link moves focus once, on load, to the target its table row names
 (`ia.md` "Attempt deep link"). The section is a `section` with no accessible name, so it is no `region`
@@ -390,13 +388,12 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
   limit spent is where the learner stumbled most; on arrival (`?tab=checks`) its check row reads
   "Закрыта: не пройдено" and its panel holds the closed note and the last grader message (`checks.md`
   "Open panel by status word"), which is what the learner can reread in #35; from #37 the same panel also
-  offers the mentor review and the hint levels "Скелет" and "Скажи прямо", which only a closed check
-  unlocks (F16, F17.4, the hint lock "Откроется, когда проверка будет закрыта"). From #36 a quiz check
+  holds what `ia.md` A71-1 and A71-6 give a closed check (F16, F17). From #36 a quiz check
   qualifies by the same rule, and its row links the Квиз tab (`?tab=quiz`), not Проверки, because there
   its Проверки row would show nothing the "Где трудно" row has not said: the panel holds the counter only,
   no closed note and no grader message (`quiz.md`, "Quiz check row in Проверки"), while the Квиз panel holds
   what the learner can do about that check: the questions with "Попытка A из M" while it is open, the
-  review with explanations once closed (F15.5), and from #37 "Разобрать с ментором" (F15.6). The arrival
+  quiz review with explanations once closed (F15.5), and from #37 "Разобрать с ментором" (F15.6). The arrival
   follows `ia.md` "Deep links" (`?tab=quiz`, no focus move on load; a quiz check gone from the lesson
   falls back to Теория). The link target is the one difference from the other rows; the row's name and
   fields are the same (A72-19). The heading "Где трудно" names the learner's experience and
@@ -551,9 +548,7 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
 - **A72-15. Results of removed checks stay in the history.** Shown by their stored id with "Этой проверки
   больше нет в уроке", after the current checks, because `check_results` keeps what was graded
   (`schema.ts:224`) and the title is not stored; hiding them would lose part of what happened.
-- **A72-16. Hints in F19.2 only once they are stored.** No table stores hints (#72 research §1.2), so F19.2
-  promises none in #35 or #37; `mentor.md` F17 "saved with the attempt" stays a requirement on #37, and when
-  a release stores them F19.2 lists them as D3 designs them.
+- **A72-16. Hints in F19.2 only once they are stored.** Since #71: `ia.md` A71-11.
 - **A72-17. Quiz attempt records are attempt records.** From #36 every answered quiz send is an attempt record with
   one check result, the quiz check's, because ADR-0007 has no other place for it: a `check_results` row
   needs its `attempt_id` (`schema.ts:222`, not null), #36 is one of item 5's writers, and #70 stores the
@@ -578,7 +573,7 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
     из Q." from the quiz set (`ia.md`), with C and Q of that attempt, which #36 stores with the result. Not
     `details` verbatim: it holds the selected answers, and from a failed attempt it must not lead to which
     answers were wrong before the quiz is passed or closed (`quiz.md`, "Requirements for #36", item 1); the
-    review with verdicts and explanations is the Квиз tab's (F15.5). Not "Нужно K.", because K is the
+    quiz review with verdicts and explanations is the Квиз tab's (F15.5). Not "Нужно K.", because K is the
     quiz's current threshold and an old attempt's line must stay true if the quiz changes; the result word
     already says whether it passed. No "Стоимость попытки" (a quiz result spends nothing: its null
     `cost_usd` is zero, ADR-0007 item 11), so the record shows no "Потрачено: $N" either, unless from #37 a

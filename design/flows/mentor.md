@@ -1,65 +1,48 @@
 # Journey: mentor review and hints
 
-Page: lesson, left pane, tab Проверки: the review appears under the check results of the attempt it
-reviews, because learning-process §1 puts "check results and the mentor review after submission" on the
-left (research open question 9). Sources: learning-process §3 (Socratic review; sees result and
-transcript; hint ladder question -> direction -> skeleton -> direct explanation; "подсказка", "скелет",
+Page: lesson, left pane, because learning-process §1 puts "check results and the mentor review after
+submission" on the left (research open question 9); where each piece stands: `ia.md` A71-1, A71-5, A71-6,
+A71-10. Sources: learning-process §3 (Socratic review; sees result and transcript; hint ladder question -> direction -> skeleton -> direct explanation; "подсказка", "скелет",
 "скажи прямо"), #37 (rubric grading, Socratic answer, score, budget per call, cost logging), #38
 (transcripts), task.md "Попытки и подсказки" (levels "скелет" and "скажи прямо" open after a check is
-closed), the learner profile, "Format". Prototypes deferred (D3 in the #50 design notes). Nothing of these
-flows is shown before #37 ships: no "Разобрать с ментором", no "Попросить подсказку", no review block
-(rule R6 in `ia.md`).
+closed), the learner profile, "Format". Prototypes: #71's author phase. Their own rules: `ia.md` "Mentor
+review and hints (#71)", A71-1 to A71-13; release: A71-12.
 
 ## F16: Read the mentor review of an attempt
 
 **Goal:** understand what went wrong in my approach, not only in the result. Source: learning-process §3;
-#37; G4, G6.
+#37; task.md "Попытки и подсказки" ("после 5 неудачных интерфейс предложит ментора"); G4, G6.
 
-**Entry:** "Разобрать с ментором" on a failed run (F13.6); automatically after a check closes (F14.3), as
-task.md promises "дальше разбор с ментором"; a rubric check, whose grading is the review itself (#37).
+**Entry:** "Разобрать с ментором" in an open check row panel (F13.6, F14.3) or in the closed quiz block
+(F15.6), where `ia.md` A71-1 offers it.
 
-**Steps (5):**
+**Steps (4):**
 
-1. F16.1 Learner presses "Разобрать с ментором"; the block says "Ментор читает попытку" with elapsed time,
-   and the budget "до $N" when #37 provides one.
-2. F16.2 Learner reads the review: it opens with a question, then a scenario where things break, then a
-   direction (learning-process §3); never a solution.
-3. F16.3 For a rubric check, learner sees the score against `passScore` ("Оценка 6 из 10, нужно 7") and the
-   rubric criteria the review names.
-4. F16.4 Learner answers the mentor's question in a text field, "Ответить", and reads the next reply.
-5. F16.5 Learner sees the cost of the review ("Стоимость разбора: $0.04"), the same figure the dashboard
-   sums (learning-process §2).
+1. F16.1 Learner presses "Разобрать с ментором"; the budget confirmation opens (`ia.md` A71-2); "Запустить"
+   starts the review.
+2. F16.2 The review block reads "Ментор читает попытку" with the elapsed time (`ia.md` A71-5, A71-7).
+3. F16.3 The review arrives (`ia.md` A71-8): it opens with a question, then a scenario where things break,
+   then a direction (learning-process §3); never a solution.
+4. F16.4 Learner sees its cost, "Стоимость разбора: $0.04", and the transcript note when it applies
+   (`ia.md` A71-5), then goes back to the files.
 
-**Success:** the review is saved with the attempt and reachable from the attempt history (F19).
+**Success:** the learner has read the review where `ia.md` A71-5 and A71-10 show it; the next run is the
+learner's answer.
 
-**Error states:**
-- Budget exhausted: "Бюджет на разбор исчерпан" and what was produced so far; no retry button, because
-  retrying spends more of what ran out. The budget value comes from #37.
-- The agent fails or times out: "Ментор не ответил" with "Повторить" and the note that a retry costs
-  again.
-- Mentor key missing: "Ключ API для ментора не задан: разбор недоступен." (#37). Which key the mentor
-  uses, where it is set and how its absence is found (before the call or from a failed one) are #37's:
-  ADR-0002 item 14 "Consumers" gives the agent API key of #115 to the terminal shell only and adds the
-  mentor "by their own amendment", so this state names no variable, file or action. The sentence says only
-  what holds whichever way #37 decides; the learner action and the final wording come from #37 (FU16 in
-  `ia.md`). No "Повторить", because a retry cannot find a key that is not there; the learner goes on
-  working (F9).
-- No transcript attached (#38 not shipped or the agent was not used): the review proceeds on the result
-  only, with a muted note "Ментор не видел транскрипт работы с агентом".
+**Error states:** "Отмена" or Esc in the dialog (`ia.md` A71-2); the mentor fails or times out, or the
+budget runs out (`ia.md` A71-5); a run that includes the check, a call already running, the mentor key
+missing (`ia.md` A71-7); a press refused in a tab that has not re-read (`ia.md` A71-8).
 
-**Empty states:** no review requested yet: the attempt shows "Разобрать с ментором" only.
+**Empty states:** no button, or no review asked yet: `ia.md` A71-1, A71-5.
 
-**Exit:** back to work (F9); F17.
+**Exit:** back to work (F9); F17; "Проверить" (F13).
 
-**Keyboard path:** the review text is not live while it streams; when it is complete, "Разбор готов" is
-inserted into an always-present `role="status"` container (R2) and announced once, and the elapsed time is `role="timer"`, to keep a screen reader quiet.
-The reply draft is kept in `sessionStorage` under the attempt id, so a session expiry (F2) does not lose
-it; it is cleared after "Ответить" succeeds. The answer field: Enter adds a line, Ctrl+Enter (Cmd+Enter) sends, because answers
-can be several lines.
+**Keyboard path:** Tab order in the open panel: `ia.md` A71-5, A71-6; Enter on "Разобрать с ментором"
+opens the dialog, whose focus is `ia.md` A71-2; focus after "Запустить" and at the end: `ia.md` A71-5,
+A71-8. No text field, no key of its own; the `F6` cycle is unchanged (R3).
 
-**Time limits:** the agent call has a server-side timeout (#37); the UI shows elapsed time only.
-Assumption A12: the review runs on request, plus automatically once a check closes, because every review
-costs money (#37).
+**Time limits:** the call's timeout is #37's; the busy display and its time, the run that waits for the
+call, leaving the page, a session expiry (F2) and the idle stop with its warning (F10): `ia.md` A71-7.
 
 ## F17: Ask the mentor for a hint
 
@@ -67,27 +50,28 @@ costs money (#37).
 levels on request); task.md (levels "скелет" and "скажи прямо" only after the check is closed);
 the learner profile, "Format"; G4, G7.
 
-**Entry:** "Попросить подсказку" on any check row (F13.6), on the Задание tab's "Попытки и подсказки"
-section, or in the review (F16).
+**Entry:** "Попросить подсказку" in an open check row panel (F13.6, F14.3), where `ia.md` A71-6 offers it.
 
 **Steps (4):**
 
-1. F17.1 Learner sees the hint ladder for this check: "Вопрос", "Направление", "Скелет", "Скажи прямо",
-   with the current level marked and the levels already used listed.
-2. F17.2 Learner presses "Следующая подсказка" (one level up) or names a level that is open.
-3. F17.3 Learner reads the hint under the ladder; earlier hints stay above it.
-4. F17.4 For a check that is not closed, "Скелет" and "Скажи прямо" show a lock and "Откроется, когда
-   проверка будет закрыта".
+1. F17.1 Learner sees the ladder "Подсказки" with the hints already received (`ia.md` A71-6).
+2. F17.2 Learner presses "Попросить подсказку", "Следующая подсказка" or a level by name, at the cost
+   `ia.md` A71-2 names; "Ментор готовит подсказку" with the elapsed time (`ia.md` A71-6, A71-7).
+3. F17.3 The hint arrives in its level's item (`ia.md` A71-6, A71-8).
+4. F17.4 Learner reaches a locked level (`ia.md` A71-6): an `aria-disabled` control with its reason (R1).
 
-**Success:** the hint at the chosen level is shown and saved with the attempt.
+**Success:** the hint at the chosen level is shown in the ladder and stored (`ia.md` A71-11).
 
-**Error states:** as F16 (budget, agent failure, mentor key missing).
+**Error states:** the mentor fails or the budget runs out (`ia.md` A71-6); a run that includes the check,
+a call already running, the mentor key missing (`ia.md` A71-7); a press refused in a tab that has not
+re-read (`ia.md` A71-8).
 
-**Empty states:** no hint asked yet: the ladder at "Вопрос" with "Попросить подсказку".
+**Empty states:** no ladder, or nothing received yet: `ia.md` A71-6.
 
-**Exit:** back to work (F9).
+**Exit:** back to work (F9); F16; "Проверить" (F13).
 
-**Keyboard path:** the ladder is a list of buttons; locked levels follow R1: focusable, `aria-disabled`,
-the reason "Откроется, когда проверка будет закрыта" as their description, so the learner hears why.
+**Keyboard path:** Tab reaches the ladder's controls in DOM order, locked ones included (R1); Enter asks;
+focus after the press and at the end: `ia.md` A71-6, A71-8. The `F6` cycle is unchanged (R3).
 
-**Time limits:** as F16.
+**Time limits:** the call's timeout is #37's; the busy display and its time, the run that waits for the
+call, leaving the page, a session expiry (F2) and the idle stop with its warning (F10): `ia.md` A71-7.

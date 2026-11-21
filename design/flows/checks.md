@@ -8,7 +8,8 @@ history is from #35 (`progress.md` F19, R6). Sources: `docs/learning-process.md`
 button runs the checks from `lesson.yaml`; agent checks spend tokens, each has a budget); #34 (results
 streamed over SSE, timeout marked as timeout, concurrent checks do not collide, saved as an attempt); #39
 (hidden-task, timeout and budget from `lesson.yaml`); #37 (rubric checks, a budget per call, cost logging);
-#68 (attempt limits and the mentor threshold per check, not yet in the contract); ADR-0007 (attempt and
+#68 (attempt limits and the mentor threshold per check; in the lesson contract as `attempts.limit` and
+`attempts.mentorAfter`, `packages/lesson-schema`); ADR-0007 (attempt and
 result statuses, completion; item 5 "Attempt scope": an attempt is one grading run over a non-empty subset
 of the lesson's checks; item 5's "grading run" covers a run and, from #36, a quiz send, while "run" below is
 only the vocabulary's run, "Words"); task.md "Как проверяется" and "Попытки и подсказки" in all six module 00 lessons;
@@ -168,7 +169,8 @@ Open panel, in order, each only when the panel table below says so:
 | "Сбой проверки, попытка не засчитана" | - | - | if any | yes | if any | yes |
 | "Закрыта: не пройдено" | yes | - | the closing result's, if any (a closed check is never run again, so its latest result is the one that closed it) | - | if any | yes |
 
-Not in the row: the kind (above), mentor and hint controls (from #37, R6), the attempt history (from #35, `progress.md` F19, R6).
+Not in the row: the kind (above), the attempt history (from #35, `progress.md` F19, R6). From #37 the
+open panel also holds what `ia.md` A71-4 to A71-6 place there.
 
 Counter: N is the number of counted failed results the server reports for this check: failed, budget
 spent and timeouts the server counts; never a format error, a runner error, or any result after the
@@ -275,11 +277,13 @@ only next step.
 "Проверить" after an end text: enabled, so after "Урок пройден" the learner can re-run the passed `command`
 checks (S1; a passed check that spends tokens is not re-run, S11); `aria-disabled` with "Проверки
 завершены" when nothing is left to run (Run composition), in S3 by Stepan's decision S3 although the passed
-`command` checks of that lesson could be re-run too; the environment reasons of R1 otherwise.
+`command` checks of that lesson could be re-run too; the environment reasons of R1 otherwise; from #37 the
+mentor call's reason (`ia.md` A71-7).
 
 ## Live regions
 
-**One rule.** The check bar status line is the only live element of checks (R2). Its text changes, and so
+**One rule.** The check bar status line is the only live element of checks (R2; from #37 the region
+"Проверка" also holds the mentor's, `ia.md` A71-9). Its text changes, and so
 is announced, exactly when this page learns of a change in the lesson's run: a run started or found
 (summary 1), the stream lost (2), reconnecting failed (3), a run ended or could not start (4-7), a run that
 ended while the tab was hidden found on return (4-7). Everything else is rendered silently: the text the
@@ -358,7 +362,8 @@ whether the learner activated it or not. "Проверить" is never removed i
 platform runs (R1 keeps it in place), and the row buttons are never removed (the rows are the lesson's
 counted checks). The controls that can go are "К окружению", "Переподключиться", "Открыть результаты" and
 "Подробности" in an open row, and from #36 "Пройти квиз" in an open quiz check row (B26, B27). R2 states the
-focus rule once; this table is every case of it. The prototype and the acceptance run test each row (design
+focus rule once; this table is every case of it, except from #37 the mentor controls and the mentor reason
+of "Проверить", whose transitions are `ia.md` A71-7 and A71-8. The prototype and the acceptance run test each row (design
 note, author phase).
 
 | # | Transition (who triggers it) | Status line text (announced) | Controls removed or replaced | Focus, if a removed control had it |
@@ -424,16 +429,17 @@ focused element is removed or the dialog holding it closes.
    "Открыть результаты" (R1).
 5. F13.5 Learner opens a check row: the open panel of "Check row fields", ending with the counter,
    "Неудачных попыток: 3" when the limit is unknown, "Неудачных попыток: 3 из 10" when it is known (R7).
-6. F13.6 From #37 (D3; not shown in v1, R6): after a failed run, when the lesson's mentor threshold is
-   known and reached (e.g. 5 failed, task.md L2, L5, L6), the row offers "Разобрать с ментором" (F16);
-   otherwise "Попросить подсказку" is always there (F17). In v1 the open row ends with the counter of
-   F13.5, and the Задание tab's "Попытки и подсказки" text stays as written in task.md.
+6. F13.6 From #37 (not shown in v1, R6): the open row holds "Разобрать с ментором" where `ia.md` A71-1
+   offers it (F16) and the hint ladder where `ia.md` A71-6 does (F17). In v1 the open row ends with the
+   counter of F13.5, and the Задание tab's "Попытки и подсказки" text stays as written in task.md.
 
 **Budget confirmation (F13.1, S5, S11; from #37 / #39).** An AlertDialog, the same component as F11.3.
 - When: "Проверить" is pressed and the run would include at least one check that spends tokens (Run
   composition: never a passed one, S11); on every such run, never remembered, because each run spends real
   money from the learner's own key, runs are long and few, and a remembered consent hides a cost the
-  learner may not expect a week later.
+  learner may not expect a week later. A mentor review opens it too, with its own description,
+  list and focus targets (`ia.md` A71-2); the "Description", "Named" and "Focus" bullets below are a
+  run's.
 - Title: "Потратить до $N с вашего ключа API?" ($N: the sum of the items). The title names the decision
   (spending money), not who spends it, because the spender differs by kind: the mentor grades a rubric check
   ("оценка ментора"), an agent solves a hidden task, and "агент" alone would also read as the learner's own
@@ -481,7 +487,8 @@ focused element is removed or the dialog holding it closes.
   N". The retry is "Проверить" itself (S7). There is no separate "Повторить", because it would do exactly
   what "Проверить" does (one label per action, `ia.md` Action labels) and would need every R1 reason of its
   own.
-- The run cannot start (the service refuses for a reason other than a running run, or does not answer): no
+- The run cannot start (the service refuses for a reason other than a running run or, from #37, a mentor
+  call, `ia.md` A71-8; or does not answer): no
   attempt exists, the rows keep their previous status, the status line reads summary 4 with "Открыть
   результаты"; "Проверить" stays enabled. No detail is shown, because no attempt row holds a raw error
   (design note, residuals).
@@ -496,7 +503,7 @@ focused element is removed or the dialog holding it closes.
 - A run of this lesson is already going, started in this tab, in another tab or before a reload (#34
   lock). The page attaches to it: on load, when the server reports a running attempt (B3), and when
   "Проверить", "Запустить" in the budget confirmation or a "Действия" item (F11) is refused because of it
-  (B5-B7). Then the status line reads "Идёт проверка", the timer counts from the run's start, the rows
+  (B5-B7), and from #37 a mentor press (`ia.md` A71-8). Then the status line reads "Идёт проверка", the timer counts from the run's start, the rows
   stream, and "Проверить" is `aria-disabled` with "Дождитесь окончания проверки" (R1). The UI does not say
   which tab started the run (S8), because it cannot tell its own reloaded run from another tab's without a
   tab id, and the learner's only action is the same in both cases: wait (#69 research Q5). Every attached
@@ -595,9 +602,9 @@ which the server reports the check closed (then F14 starts at F14.3).
    and "Открыть результаты" stays, on this visit and on every later one.
 
 **Success:** the learner knows which check is closed, that it stays closed, and what comes next. From #37
-the closed row offers "Разобрать с ментором" and the hint levels "Скелет" and "Скажи прямо" open (F16, F17;
-D3, not shown in v1, R6); in v1 the Задание tab's "Попытки и подсказки" says the same in the course's
-words. When no counted check is open any more, the lesson status becomes "Не пройден" in the catalog and on
+the closed row holds what `ia.md` A71-1 and A71-6 give a closed check (F16, F17; not shown in v1, R6); in
+v1 the Задание tab's "Попытки и подсказки" says the same in the course's words. When no counted check is
+open any more, the lesson status becomes "Не пройден" in the catalog and on
 the dashboard, and the dashboard's next lesson moves on (assumption A9).
 
 **Error states:**

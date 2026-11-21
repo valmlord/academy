@@ -106,12 +106,12 @@ Every member of the class "quiz controls" that R6 hides until #36, and its scope
 | Member | Before #36 | From #36 |
 |--------|------------|----------|
 | the Квиз tab in the left-pane tab list | not rendered | rendered when the lesson has a quiz check |
-| the quiz panel and everything in it (header, questions, "Отправить ответы", result, review) | not rendered | rendered |
+| the quiz panel and everything in it (header, questions, "Отправить ответы", result, quiz review), except the mentor's (next to last row) | not rendered | rendered |
 | the quiz check row in Проверки, with "Пройти квиз" in its open panel | not listed | listed (quiz check row below) |
 | the quiz check in "Пройдено: N из M" and in the lesson status | not counted (A19) | counted |
 | "Пройти квиз" in the check bar of a quiz-only lesson (`checks.md`) | not rendered | rendered; no such lesson exists, not drawn |
 | the deep link `?tab=quiz` | falls back (Navigation model in `ia.md`) | opens the Квиз tab; on a lesson without a quiz check it falls back the same way |
-| "Разобрать с ментором" in the closed quiz block | not rendered | not rendered until #37 (R6) |
+| "Разобрать с ментором" and its mentor review block in the closed quiz block | not rendered | not rendered until #37 (`ia.md` A71-12) |
 | the quiz notice container in "Уведомления" and its notice with "Открыть квиз" (P9) | not rendered | rendered on a lesson page with a quiz check; the notice only after a send answered while away |
 
 No release state "quiz before checks" exists (P4): from #36 on, a lesson page with a quiz also has the check
@@ -146,15 +146,15 @@ check bar of a quiz-only lesson; the deep link `?tab=quiz`, also on the return f
    выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки." The
    header reads "Попытка 2 из 3"; the answers stay selected; nothing says which question is wrong. After
    the failure that leaves one attempt the header adds "Осталась 1 попытка".
-5. F15.5 After a pass, or after the failure that closes the quiz, the questions become the review: each
+5. F15.5 After a pass, or after the failure that closes the quiz, the questions become the quiz review: each
    question heading carries "Верно" or "Неверно", each option the marks "Ваш ответ" and "Верный ответ" where
    they apply, and the `explanation` follows under "Пояснение". The result block reads "Квиз пройден" with
    "Верно 5 из 6." or "Квиз не пройден: попытки исчерпаны" with "Верно 4 из 6. Нужно 5.", then "Ниже верные
    ответы и пояснения." "Отправить ответы" and the attempt line are gone: no attempt follows.
 6. F15.6 After the closing failure the quiz check row in Проверки reads "Закрыта: не пройдено". The
-   learner's next action is the review itself, right below the result block, then the lesson's other open
+   learner's next action is the quiz review itself, right below the result block, then the lesson's other open
    checks (check bar) or the next lesson (top bar "Главная", F4). From #37 the closed block also offers
-   "Разобрать с ментором" (F16; R6 hides it until then).
+   "Разобрать с ментором" and its mentor review (F16, `ia.md` A71-1, A71-5; A71-12).
 
 **Limit known and limit unknown (R7, P3).** "Limit known" means the server reports the quiz check's limit M
 (from #68). Without it the page never infers 3 from task.md, because a number the platform does not enforce
@@ -430,7 +430,7 @@ and with it not shown; "-" marks a combination that cannot occur.
 | "Урок" with Квиз selected: the one-pane switch tab "Урок", breadcrumbs, lesson header ("Показать все"), prerequisite alert links (F6.2), the left-pane tab list, the Квиз panel | not away | - (with Квиз selected the panel is hidden only together with the whole "Урок" pane, one-pane mode with "Окружение" shown, and a hidden pane holds no focus) | the panel is shown |
 | "Урок" with another tab selected (Теория, Задание, Проверки) | - | away | the panel is not shown |
 | "Проверка": "Проверить" and its reason, "К окружению", "Открыть результаты", "Переподключиться" (#69's check bar control, `ia.md:295`, R3) | not away | away (another left-pane tab selected, or one-pane mode with "Окружение" shown) | shown: the check bar sits under the panel and is pressed, not worked in; not shown: the panel axis |
-| the budget confirmation (from #37 / #39), a modal opened from "Проверка" | away ("an open menu or modal dialog anywhere on the page") | away | a send answered while a modal dialog is open must never pull focus out of it |
+| the budget confirmation (from #37 / #39), a modal opened from "Проверка" or, for a mentor review, from a check row or the closed quiz block (`ia.md` A71-2) | away ("an open menu or modal dialog anywhere on the page") | away | a send answered while a modal dialog is open must never pull focus out of it |
 | the split handle (belongs to no region, R3; two panes only) | away | away | it is operated by repeated arrow keys (F9.3); a focus move mid-adjust would send the next arrow key to the result block |
 | "Окружение", two panes: the status action ("Повторить", "Запустить снова", "Переподключиться", "Открыть новый сеанс", "Открыть курс"), "Подробности" and its content, "Действия", the Терминал / Редактор tab list, the terminal, the editor (from #40) | away | away | the learner works there; this is where `F6` into "Окружение" lands ("Действия", R3) |
 | the "Действия" menu and its items (including "Режим для экранного диктора"), and every dialog opened from the region ("Сбросить рабочую папку?", F11.3), wherever they render in the DOM | away ("a menu or dialog opened from it") | away | portalled out of the pane but opened from it; a modal must keep focus |
@@ -920,7 +920,7 @@ the issue named.
      an answered or refused send, and every visibility re-read, read the history in the same server read;
      the history lists quiz attempt records with the runs, numbered "№ N" (`progress.md` A72-10).
    - Cost. A quiz result spends nothing: its `cost_usd` is null, read as zero (ADR-0007 item 11).
-   - Mentor review (#37). A review asked for by "Разобрать с ментором" in the closed quiz block (F15.6) is
+   - Mentor review (#37). A mentor review asked for by "Разобрать с ментором" in the closed quiz block (F15.6) is
      stored with the quiz attempt record of the closing send as its `attempt_id` and the quiz check as its
      `check_id`, so the history shows it in that record's panel (`progress.md` F19.2).
    - Tests: two answered sends in one page view give two records and two history rows; a refusal and a
@@ -1028,7 +1028,7 @@ except FU8's and the author phase's.
 ## Not designed here
 
 - The check kind column (`checks.md`, "Check kind").
-- The mentor review of a closed quiz and A12's automatic review (#37, `mentor.md`).
+- The mentor review of a closed quiz (`mentor.md` F16, `ia.md` A71-1, #71) and hints for the quiz (`ia.md` FU29).
 - The lesson status after a closed quiz against ADR-0007 sticky completion and A19 (follow-up in `ia.md`,
   FU7).
 - A quiz-only lesson's check bar beyond the existing `checks.md` sentence (no such lesson exists).
