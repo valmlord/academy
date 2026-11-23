@@ -5,6 +5,7 @@ import {
   actionsMenuLabel,
   brandName,
   breadcrumbLabel,
+  cancelLabel,
   codeBlockLabel,
   copyDeniedLabel,
   copyLabel,
@@ -19,6 +20,8 @@ import {
   m0LessonNote,
   paneSwitchLabel,
   prerequisiteNotePrefix,
+  resetDialogTitle,
+  resetWorkspaceLabel,
   sessionExpiredMessage,
   signInAgainLabel,
   splitHandleLabel,
@@ -32,7 +35,9 @@ import { IDLE_WARNING_EVENT } from "../lib/environment/idle";
 import { catalogPath, lessonPath } from "../lib/routes";
 import { SESSION_EXPIRED_EVENT } from "../lib/terminal/state";
 import { type RepoLesson, repoCatalog, repoLessons } from "./course";
+import { installDialogClickGuard, readDialogClickGuard } from "./dialog-click-guard";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
+import { ENVIRONMENT_START_TIMEOUT_MS } from "./terminal-page";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
 // exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
@@ -931,6 +936,40 @@ interface LiveContainers {
 // warning never passes for this one.
 const syntheticWarningMinutes = 7;
 
+const noticeTexts: [string, string] = [
+  sessionExpiredMessage,
+  idleWarningMessage(syntheticWarningMinutes),
+];
+const withoutNotices: LiveContainers = {
+  live: ["assertive", "polite", "polite"],
+  isUnhidden: [true, true, true],
+  lessonPaneHidden: "true",
+  liveDescendants: [0, 0, 0],
+  hasText: [false, false],
+};
+const withNotices: LiveContainers = { ...withoutNotices, hasText: [true, true] };
+
+/** The events the producers dispatch, so the notices arrive while a menu or the dialog is open, as in the real case. */
+async function showNotices(page: Page): Promise<void> {
+  await page.evaluate(
+    ({ warningEvent, expiredEvent, minutes }) => {
+      window.dispatchEvent(new CustomEvent(warningEvent, { detail: { minutes } }));
+      window.dispatchEvent(new Event(expiredEvent));
+    },
+    {
+      warningEvent: IDLE_WARNING_EVENT,
+      expiredEvent: SESSION_EXPIRED_EVENT,
+      minutes: syntheticWarningMinutes,
+    },
+  );
+  await expect(page.locator('[data-notifications] > [role="alert"]')).toContainText(
+    sessionExpiredMessage,
+  );
+  await expect(page.locator('[data-notifications] > [role="status"]')).toContainText(
+    idleWarningMessage(syntheticWarningMinutes),
+  );
+}
+
 /** The two notification containers and the environment status: what a modal leaves announced (ia.md R2). */
 function liveContainers(page: Page, texts: [string, string]): Promise<LiveContainers> {
   return page.evaluate((notices) => {
@@ -960,44 +999,15 @@ test("E-live: the live containers stay announced under the user menu and the mod
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(pathOf(firstLesson));
-  const expected: LiveContainers = {
-    live: ["assertive", "polite", "polite"],
-    isUnhidden: [true, true, true],
-    lessonPaneHidden: "true",
-    liveDescendants: [0, 0, 0],
-    hasText: [false, false],
-  };
-  const withNotices: LiveContainers = { ...expected, hasText: [true, true] };
-  const texts: [string, string] = [
-    sessionExpiredMessage,
-    idleWarningMessage(syntheticWarningMinutes),
-  ];
 
   const userMenu = page.locator('header [aria-haspopup="menu"]');
   await waitForHydration(userMenu, "hydrated before the user menu");
   await userMenu.click();
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page, texts), "under the user menu").toEqual(expected);
-  // The events the producers dispatch, so the notices arrive while the menu is open, as in the real case.
-  await page.evaluate(
-    ({ warningEvent, expiredEvent, minutes }) => {
-      window.dispatchEvent(new CustomEvent(warningEvent, { detail: { minutes } }));
-      window.dispatchEvent(new Event(expiredEvent));
-    },
-    {
-      warningEvent: IDLE_WARNING_EVENT,
-      expiredEvent: SESSION_EXPIRED_EVENT,
-      minutes: syntheticWarningMinutes,
-    },
-  );
-  await expect(page.locator('[data-notifications] > [role="alert"]')).toContainText(
-    sessionExpiredMessage,
-  );
-  await expect(page.locator('[data-notifications] > [role="status"]')).toContainText(
-    idleWarningMessage(syntheticWarningMinutes),
-  );
+  expect(await liveContainers(page, noticeTexts), "under the user menu").toEqual(withoutNotices);
+  await showNotices(page);
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page, texts), "under the user menu, notices shown").toEqual(
+  expect(await liveContainers(page, noticeTexts), "under the user menu, notices shown").toEqual(
     withNotices,
   );
   await page.keyboard.press("Escape");
@@ -1007,7 +1017,7 @@ test("E-live: the live containers stay announced under the user menu and the mod
   await page.getByRole("button", { name: actionsMenuLabel }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page, texts), "under the actions menu").toEqual(withNotices);
+  expect(await liveContainers(page, noticeTexts), "under the actions menu").toEqual(withNotices);
   await expect(page.getByRole("menuitem").first()).toBeFocused();
   await page.keyboard.press("Tab");
   expect(
@@ -1015,4 +1025,52 @@ test("E-live: the live containers stay announced under the user menu and the mod
     "Tab stays in the modal menu",
   ).toBe(true);
   await page.keyboard.press("Escape");
+});
+
+test("E-live-reset: the live containers stay announced under the reset dialog (AC51)", async ({
+  page,
+}) => {
+  // A start may take the service's whole PUT timeout.
+  test.setTimeout(ENVIRONMENT_START_TIMEOUT_MS + 30_000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await installDialogClickGuard(page);
+  await page.goto(pathOf(firstLesson));
+
+  const trigger = page.getByRole("button", { name: actionsMenuLabel });
+  await waitForHydration(trigger, "hydrated before the actions menu");
+  await trigger.click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  const item = page.getByRole("menuitem", { name: resetWorkspaceLabel, exact: true });
+  await expect(item).toBeVisible();
+  // Enabled exactly while the environment runs (actionsDisabledReason), a taken-over session included; another
+  // spec's page on this lesson can take the session over, so the running status text may never show.
+  await expect(item).not.toHaveAttribute("aria-disabled", "true", {
+    timeout: ENVIRONMENT_START_TIMEOUT_MS,
+  });
+  await item.click();
+
+  const dialog = page.getByRole("alertdialog", { name: resetDialogTitle });
+  await expect(dialog).toBeVisible();
+  // getByRole skips aria-hidden elements, and the dialog hides the rest of the page.
+  await expect(page.locator('[role="menu"]')).toHaveCount(0);
+  const cancel = dialog.getByRole("button", { name: cancelLabel, exact: true });
+  // Focus reaches Cancel only after the dialog's mount effect hid the rest of the page (react-dialog
+  // DialogContentModal, react-focus-scope), so the reads below see the dialog's hide.
+  await expect(cancel).toBeFocused();
+  expect(await liveContainers(page, noticeTexts), "under the reset dialog").toEqual(withoutNotices);
+  await showNotices(page);
+  await expect(dialog).toBeVisible();
+  expect(await liveContainers(page, noticeTexts), "under the reset dialog, notices shown").toEqual(
+    withNotices,
+  );
+
+  // A guard that stops Cancel stops Reset: both are Radix Dialog.Close with an onClick.
+  await cancel.dispatchEvent("click");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  expect(await readDialogClickGuard(page), "the dialog click guard").toEqual({
+    blocked: [cancelLabel],
+    reachedDocument: [],
+  });
 });
