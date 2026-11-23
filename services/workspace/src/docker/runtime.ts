@@ -351,7 +351,14 @@ export class DockerRuntime implements WorkspaceRuntime {
     } catch (error: unknown) {
       throw new CheckNotStartedError("exec-start", "exec-start", error);
     }
-    return openCheckProcess({ engine: this.#engine, execId, socket, checksTar: spec.checksTar });
+    return openCheckProcess({
+      engine: this.#engine,
+      execId,
+      socket,
+      checksTar: spec.checksTar,
+      containerId: container.Id,
+      uid,
+    });
   }
 
   /** `null` when the container is gone; a container failing the GC predicate is refused by its Id. */
