@@ -94,8 +94,7 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
   first thing a learner can meet): the page is the catalog's course error, not a lesson with a gap.
   `<title>` and h1 "Не удалось загрузить курс" (the h1 is the Alert title, `tabindex="-1"`), "Повторить";
   nothing else in `main`: no breadcrumb, lesson header, M0 line, prerequisite alert or tabs, because each
-  of them is course data. The URL's course and lesson ids are not checked: without the course the page
-  cannot tell a hidden lesson from a real one, and saying "not found" could be wrong. Regions: `ia.md` R3
+  of them is course data. Not-found ways: `ia.md` page inventory, not-found Route. Regions: `ia.md` R3
   (`main` is the `F6` stop and lands on "Повторить"); top bar: R6, with `aria-current` on neither link and
   "Курс" kept unless the course id is unknown. "Повторить" reloads: the lesson opens with focus on its h1
   (`<title>` the lesson title); a second failure focuses the error h1 (`<title>` unchanged); a course that
