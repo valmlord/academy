@@ -88,8 +88,7 @@ while the learner is on a protected page.
 **Keyboard path:** the alert text is inserted into the always-present `role="alert"` container of
 "Уведомления" (R2), so it is announced wherever focus is; it never takes focus by itself, because focus
 may be in the terminal or in a half-typed quiz answer. It is reached with `F6` (region "Уведомления",
-second in the cycle, R3) or with Tab after the top bar; focus lands on "Войти снова", Enter. Quiz answers survive the round trip (`quiz.md`); a mentor call goes
-on meanwhile (`ia.md` A71-7).
+second in the cycle, R3) or with Tab after the top bar; focus lands on "Войти снова", Enter. Quiz answers survive the round trip (`quiz.md`).
 
 **Time limits:** session lifetime 7 days rolling (research §5). No countdown warning: a 7-day rolling
 session almost never expires during use, and a warning for it would be noise.

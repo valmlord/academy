@@ -60,7 +60,8 @@ the learner profile, "Format"; G4, G7.
 3. F17.3 The hint arrives in its level's item (`ia.md` A71-6, A71-8).
 4. F17.4 Learner reaches a locked level (`ia.md` A71-6): an `aria-disabled` control with its reason (R1).
 
-**Success:** the hint at the chosen level is shown in the ladder and stored (`ia.md` A71-11).
+**Success:** the hint at the chosen level is shown in the ladder and stored with its result (`ia.md` A71-6,
+A71-13 item 2).
 
 **Error states:** the mentor fails or the budget runs out (`ia.md` A71-6); a run that includes the check,
 a call already running, the mentor key missing (`ia.md` A71-7); a press refused in a tab that has not

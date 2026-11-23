@@ -146,7 +146,7 @@ check bar of a quiz-only lesson; the deep link `?tab=quiz`, also on the return f
    выбранными. Какие из них неверны, квиз покажет после прохождения или после последней попытки." The
    header reads "Попытка 2 из 3"; the answers stay selected; nothing says which question is wrong. After
    the failure that leaves one attempt the header adds "Осталась 1 попытка".
-5. F15.5 After a pass, or after the failure that closes the quiz, the questions become the quiz review: each
+5. F15.5 After a pass, or after the failure that closes the quiz, the questions become the review: each
    question heading carries "Верно" or "Неверно", each option the marks "Ваш ответ" and "Верный ответ" where
    they apply, and the `explanation` follows under "Пояснение". The result block reads "Квиз пройден" with
    "Верно 5 из 6." or "Квиз не пройден: попытки исчерпаны" with "Верно 4 из 6. Нужно 5.", then "Ниже верные
@@ -1028,7 +1028,7 @@ except FU8's and the author phase's.
 ## Not designed here
 
 - The check kind column (`checks.md`, "Check kind").
-- The mentor review of a closed quiz (`mentor.md` F16, `ia.md` A71-1, #71) and hints for the quiz (`ia.md` FU29).
+- The mentor review of a closed quiz (#71, `mentor.md` F16) and hints for the quiz.
 - The lesson status after a closed quiz against ADR-0007 sticky completion and A19 (follow-up in `ia.md`,
   FU7).
 - A quiz-only lesson's check bar beyond the existing `checks.md` sentence (no such lesson exists).

@@ -170,7 +170,7 @@ Open panel, in order, each only when the panel table below says so:
 | "Закрыта: не пройдено" | yes | - | the closing result's, if any (a closed check is never run again, so its latest result is the one that closed it) | - | if any | yes |
 
 Not in the row: the kind (above), the attempt history (from #35, `progress.md` F19, R6). From #37 the
-open panel also holds what `ia.md` A71-4 to A71-6 place there.
+open panel also holds what `ia.md` A71-1 and A71-4 to A71-6 place there.
 
 Counter: N is the number of counted failed results the server reports for this check: failed, budget
 spent and timeouts the server counts; never a format error, a runner error, or any result after the
@@ -361,9 +361,9 @@ Every transition that adds, removes or replaces a check-bar control or a control
 whether the learner activated it or not. "Проверить" is never removed in a lesson with checks the
 platform runs (R1 keeps it in place), and the row buttons are never removed (the rows are the lesson's
 counted checks). The controls that can go are "К окружению", "Переподключиться", "Открыть результаты" and
-"Подробности" in an open row, and from #36 "Пройти квиз" in an open quiz check row (B26, B27). R2 states the
-focus rule once; this table is every case of it, except from #37 the mentor controls and the mentor reason
-of "Проверить", whose transitions are `ia.md` A71-7 and A71-8. The prototype and the acceptance run test each row (design
+"Подробности" in an open row, from #36 "Пройти квиз" in an open quiz check row (B26, B27), and from #37
+the mentor controls (`ia.md` A71-7, A71-8). R2 states the focus rule once; this table is every case of it
+but the mentor controls'. The prototype and the acceptance run test each row (design
 note, author phase).
 
 | # | Transition (who triggers it) | Status line text (announced) | Controls removed or replaced | Focus, if a removed control had it |

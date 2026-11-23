@@ -189,8 +189,9 @@ not-found page by itself, because the lesson exists. Before #35 the section is n
      stored one;
    - from #37 / #39, "Стоимость попытки: $N" (`ia.md` "check row note", #69), the cost of that result, when
      it spends (ADR-0007 item 11);
-   - from #37, the mentor review of that check (`mentor_reviews.check_id`, `schema.ts:262-263`) as `ia.md`
-     A71-10 shows it; no control asks a whole-attempt review (`check_id` null, `ia.md` A71-13 item 2). For a quiz result the same rule: a review asked for by "Разобрать с ментором" in the closed
+   - from #37, the mentor review of that check (`mentor_reviews.check_id`, `schema.ts:262-263`) as D3
+     designs the review block (`mentor.md` F16); a whole-attempt review (`check_id` null) after the last
+     result. For a quiz result the same rule: a review asked for by "Разобрать с ментором" in the closed
      quiz block (F15.6) belongs to the quiz attempt record of the closing send (a requirement on #37,
      A72-17), so it shows in that record's panel after "Верно C из Q.". Hints: A72-16.
 
@@ -548,7 +549,7 @@ cost (`apps/web/app/(app)/page.tsx:19-21`), and the app has no Проверки 
 - **A72-15. Results of removed checks stay in the history.** Shown by their stored id with "Этой проверки
   больше нет в уроке", after the current checks, because `check_results` keeps what was graded
   (`schema.ts:224`) and the title is not stored; hiding them would lose part of what happened.
-- **A72-16. Hints in F19.2 only once they are stored.** Since #71: `ia.md` A71-11.
+- **A72-16. Hints in F19.2.** Since #71: `ia.md` A71-11.
 - **A72-17. Quiz attempt records are attempt records.** From #36 every answered quiz send is an attempt record with
   one check result, the quiz check's, because ADR-0007 has no other place for it: a `check_results` row
   needs its `attempt_id` (`schema.ts:222`, not null), #36 is one of item 5's writers, and #70 stores the

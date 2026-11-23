@@ -38,7 +38,7 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 | environment (the running container) | environment | окружение | decision A1 in the #50 design notes. `workspace` appears only as the `lesson.yaml` field name (and in the image name `academy-workspace` it holds); docs never call the container a "workspace" |
 | check | check | проверка | |
 | run (one press of "Проверить", or "Запустить" in the budget confirmation, over the checks of `checks.md` "Run composition") | run; saved as one attempt record (next row); the fields `runningAttemptId` and `latestFinishedAttempt` name runs only (`checks.md` "Baseline of a re-read") | проверка, as in "Идёт проверка" | never "запуск" in check copy; the verb "Запустить" is the dialog button (#69). The check bar and the check rows call the run "проверка"; the history and review copy calls its record "попытка" (next row) |
-| attempt record (of a run or of a quiz send) | attempt: ADR-0007's attempt record (item 5 "Attempt scope"; item 5's "grading run" covers both kinds below and is not the row "run" above; these other senses of "run" in `design/flows/` are not this concept either: "First run" for a product with no progress yet (`progress.md` F18 Empty states and A72-2, `dashboard.md` Empty states, "first-run failure" in `auth.md`) and the GitHub Actions runs of `gh run list` (`progress.md` A72-1)), the record of one run or, from #36, of one answered quiz send, a **quiz attempt record** (one record holding the quiz check's one result, `progress.md` A72-17), which is never a run. Docs use this sense for "attempt" with no limit or counting word next to it: "an attempt", "attempt id", "attempt status", "attempt history", "recent attempts", "the cost of an attempt" (dashboard, learning-process §2), the F16 and F19 titles, R5; field `attemptId`; the history baseline `latestAttemptRecordId` (any kind, from #35, `progress.md` F19 Loading); not `runningAttemptId` and `latestFinishedAttempt`, which name runs only (row above). "Quiz attempt record" names a quiz send's record; "a quiz attempt" alone is the per-check sense (next row) | попытка, only in history and review copy: "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (shown in v1 in the Проверки tab), "История попыток недоступна" (from #35, F19), "Ментор читает попытку" (D3, a review only; a hint's busy text names no attempt, [A71-7](#A71-7)) | one run over two checks is one record holding two check results (next row); one answered quiz send is one record holding one. A run total cost has its own label: the row "cost of one attempt record (#72)" |
+| attempt record (of a run or of a quiz send) | attempt: ADR-0007's attempt record (item 5 "Attempt scope"; item 5's "grading run" covers both kinds below and is not the row "run" above; these other senses of "run" in `design/flows/` are not this concept either: "First run" for a product with no progress yet (`progress.md` F18 Empty states and A72-2, `dashboard.md` Empty states, "first-run failure" in `auth.md`) and the GitHub Actions runs of `gh run list` (`progress.md` A72-1)), the record of one run or, from #36, of one answered quiz send, a **quiz attempt record** (one record holding the quiz check's one result, `progress.md` A72-17), which is never a run. Docs use this sense for "attempt" with no limit or counting word next to it: "an attempt", "attempt id", "attempt status", "attempt history", "recent attempts", "the cost of an attempt" (dashboard, learning-process §2), the F16 and F19 titles, R5; field `attemptId`; the history baseline `latestAttemptRecordId` (any kind, from #35, `progress.md` F19 Loading); not `runningAttemptId` and `latestFinishedAttempt`, which name runs only (row above). "Quiz attempt record" names a quiz send's record; "a quiz attempt" alone is the per-check sense (next row) | попытка, only in history and review copy: "История попыток", "Попыток пока нет. Нажмите "Проверить", когда будете готовы." (shown in v1 in the Проверки tab), "История попыток недоступна" (from #35, F19), "Ментор читает попытку" (D3) | one run over two checks is one record holding two check results (next row); one answered quiz send is one record holding one. A run total cost has its own label: the row "cost of one attempt record (#72)" |
 | attempt (one check's result) | attempt in per-check compounds only: "attempt limit", "last attempt" / "last-attempt warning", "attempts left" / "remain" / "leaves one attempt", "counted" / "uncounted" / "failed attempt", "spends an attempt", "attempt counter", a quiz attempt (one sent quiz as one result of the quiz check, `quiz.md`; its record is a "quiz attempt record", row above); fields `attemptLimit`, `lastAttemptCount`, `failedCount`. These count one check's results (ADR-0007 `check_results` rows), never runs: `failedCount >= attemptLimit` compares counted failed results of that check | попытка, in every check-row, limit and quiz string: "Неудачных попыток: N", "Неудачных попыток: N из M", "Осталась 1 попытка", "Проверок на последней попытке: N", "..., попытка не засчитана" (three check statuses and status-line summary 4, where it says no result of the run counts), "Проверок с незасчитанной попыткой: N" (attempt summary note, #72), "Стоимость попытки: $N", "Проверка закрыта: попытки исчерпаны. ...", "Счётчики попыток не обнулятся." (reset dialog), "Попытка A из M", "Попытка A" (quiz) | the unit an attempt limit counts. Not this concept and not the run: sign-in attempts ("Слишком много попыток входа...", `auth.md`) and the reconnect tries `CHECK_STREAM_RECONNECT_ATTEMPTS` / `TERMINAL_RECONNECT_ATTEMPTS` (parameter names, no UI text). Course quotes ("Попытки и подсказки", "Квиз: не больше 3 попыток") are task.md text, rendered as written |
 | attempt limit | attempt limit (one check's results, row above) | no word of its own: "из M" in the counter and "Осталась 1 попытка" (R7) | from #68 |
 | closed check | closed | "Закрыта: не пройдено", "Проверка закрыта" | final: nothing reopens it (S2) |
@@ -49,9 +49,9 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 | quiz question | question | вопрос, only as "Вопрос I из Q" and in the quiz strings | the hint level "Вопрос" (row "hint") is another concept with the same word: it is a level name in the hint ladder in Проверки (F17, D3) and never carries a number, while the quiz word always does and shows only in the Квиз tab, so the two never stand in one panel (#70) |
 | mentor | mentor | ментор | also the grader of a rubric check ("оценка ментора"); never called "агент" |
 | agent | agent | агент | Claude Code (or another coding agent) the learner runs in the terminal, as in "Ключ API для агента не задан: агент в терминале не запустится..."; also the agent a hidden-task check runs on the learner's files, named only in check titles (data). Never the rubric grader (that is the mentor). Lesson type "оценка агента" keeps this meaning. Check copy names no agent: the budget confirmation names the spend, not the spender (#69) |
-| mentor review | mentor review | разбор | from task.md "разбор с ментором"; the action is always "Разобрать с ментором"; never the rubric grading ([A71-3](#A71-3)), never the quiz review (next row) |
-| quiz review (F15.5) | quiz review | no word of its own: the verdicts, marks and "Пояснение" (set "quiz") | the answers view of a passed or closed quiz. Bare "review" names it only next to the quiz (`quiz.md`, the `.review-*` classes and the quiz items of `design/system/` and `design/pages/`); every other bare "review" is the mentor review. Where both stand in one panel (the closed quiz block, F15.6) the docs write "quiz review" and "mentor review", as the row "quiz question" does for "Вопрос" (#71) |
-| hint | hint | подсказка; levels "Вопрос", "Направление", "Скелет", "Скажи прямо" | learning-process §3; the ladder: [A71-6](#A71-6) |
+| mentor review | mentor review | разбор | from task.md "разбор с ментором"; the action is always "Разобрать с ментором" |
+| quiz review (F15.5) | quiz review | no word of its own: the verdicts, marks and "Пояснение" (set "quiz") | the answers view of a passed or closed quiz. Bare "review" names it only next to the quiz (`quiz.md`, the `.review-*` classes and the quiz items of `design/system/` and `design/pages/`); every other bare "review" is the mentor review. A sentence that names both (the closed quiz block, F15.6, holds both) writes "quiz review" and "mentor review" (#71) |
+| hint | hint | подсказка; levels "Вопрос", "Направление", "Скелет", "Скажи прямо" | learning-process §3 |
 | outcomes | outcomes | "Чему научитесь" | the schema field `outcomes` |
 | prerequisites | prerequisites | "Сначала пройдите" | |
 | terminal | terminal | терминал | |
@@ -81,14 +81,14 @@ one meaning each, `quiz.md` "Placeholders"; the mentor set also `S` and `P`, [A7
 | check row meta (collapsed row, after the status word) | running timer "M:SS из M:SS"; "лимит M:SS"; "Осталась 1 попытка" | collapsed check row (F13.3, F14.1) | v1 the timer and "лимит M:SS"; "Осталась 1 попытка" only with a known limit (R7, from #68). Each item only next to the status words of `checks.md` "Row meta by status word": the timer only with "Идёт", "лимит M:SS" only with the two "Время вышло" words, "Осталась 1 попытка" never with "Пройдено" or "Закрыта: не пройдено" |
 | check row note (open row panel, in this order) | "Проверка закрыта: попытки исчерпаны. Сброс рабочей папки и перезапуск окружения её не откроют.", "Проверка уже засчитана. Последний результат: не пройдено", "Проверка уже засчитана. Последний результат: сбой проверки", "Стоимость попытки: $N", "Неудачных попыток: N", "Неудачных попыток: N из M" | open check row (F13.5, F14.3), "Где трудно" rows (F18.4), "Неудачных попыток: N" and "Неудачных попыток: N из M" only | v1 except "Стоимость попытки: $N" (from #37 / #39) and "из M" (R7, from #68). Which note shows with which status word: `checks.md` "Open panel by status word". In the sticky-pass note "не пройдено" is a group word for every latest result that is not a pass and not a runner error (failed, budget spent, timeout counted or not, format error); "сбой проверки" is the runner error |
 | check bar status line (summary, then notes joined with ". ") | summaries: "Идёт проверка", "Соединение с проверкой потеряно. Переподключаемся...", "Не удалось получить результат проверки", "Сбой проверки, попытка не засчитана", "Урок пройден", "Урок завершён: не пройден. Пройдено: N из M", "Пройдено: N из M"; notes after "Пройдено: N из M" only: "Закрытых проверок: N", "Осталась 1 попытка", "Проверок на последней попытке: N", "Проверок со сбоем: N" | check bar (F13, F14); empty on load except in the nothing-to-run state (S3, or a passed lesson whose counted checks all spend tokens, `checks.md` "Run composition"), and emptied silently by a quiz send that makes its text untrue or leaves nothing to run (`quiz.md`, P7, P8) | v1; the two last-attempt notes only with a known limit (R7). Composition and order: `checks.md` "Check bar status line" |
-| disabled reason (R1 description, never a status line) | "Окружение запускается, проверка станет доступна после запуска", "Сначала запустите окружение", "Дождитесь окончания проверки", "Результат проверки ещё не получен", "Проверки завершены", "Доступно, когда окружение работает", "Откроется, когда проверка будет закрыта", "Ключ API для ментора не задан", "Дождитесь ответа ментора"; during a hint call the busy display (set "mentor") is the ladder controls' reason (R1) | "Проверить" (F13, F14; from #37 also "Дождитесь ответа ментора"), "Действия" items (F11), mentor controls (F16, F17); the mentor cases: [A71-7](#A71-7) | v1 except the last three (from #37). "Проверка уже идёт в другой вкладке" (#50) is dropped: the UI cannot tell another tab's run from its own after a reload (#69) |
+| disabled reason (R1 description, never a status line) | "Окружение запускается, проверка станет доступна после запуска", "Сначала запустите окружение", "Дождитесь окончания проверки", "Результат проверки ещё не получен", "Проверки завершены", "Доступно, когда окружение работает", "Откроется, когда проверка будет закрыта", "Ключ API для ментора не задан", "Дождитесь ответа ментора" | "Проверить" (F13, F14), "Действия" items (F11), mentor controls (F16, F17); the mentor reasons: [A71-6](#A71-6), [A71-7](#A71-7) | v1 except the last three (from #37). "Проверка уже идёт в другой вкладке" (#50) is dropped: the UI cannot tell another tab's run from its own after a reload (#69) |
 | check kind (hidden in v1; registered for later) | "команда", "квиз", "оценка ментора", "скрытая задача", "поиск багов" (`command`, `quiz`, `rubric`, `hidden-task`, `bug-hunt`) | check row, after the title | not shown in any release designed so far; showing it is its own DESIGN task once a lesson lists a second kind (#36 or #37), `checks.md` "Check kind" |
 | environment status (status bar) | base: "Создаём окружение", "Запускаем окружение", "Окружение работает", "Окружение остановлено. Файлы в рабочей папке сохранены. Запущенные процессы завершены."; variants: "Окружение остановлено: превышен лимит <памяти \| процессов \| CPU>. Файлы сохранены.", "Docker не запущен. Запустите Docker Desktop и нажмите "Повторить".", "Нет образа окружения academy-workspace. Соберите его (см. README) и нажмите "Повторить".", "Нет доступа к этому окружению."; appended notes: "Запуск идёт дольше обычного", "Рабочая папка сброшена", "Рабочая папка не найдена, создано новое окружение из исходных файлов урока.", "Ключ API для агента не задан: агент в терминале не запустится. Добавьте ключ в .env и перезапустите платформу." | environment status bar (F8, F10, F11) | v1 |
 | terminal connection (status bar) | "Соединение с терминалом потеряно. Переподключаемся...", "Не удалось переподключиться", "Сеанс терминала завершён" | environment status bar (F9) | v1 |
 | one-pane switch suffix | "остановлено", "ошибка" (appended to the accessible name of the tab "Окружение") | the switch "Урок / Окружение" (A8) | v1 |
 | page alert (region "Уведомления") | "Сессия закончилась. Файлы в рабочей папке сохранены.", "Окружение остановится через N мин без активности. Файлы сохранятся."; quiz notice (P9, from #36), exactly these and no other combination (`quiz.md`, "Quiz notice (P9)", rows 1-11): "Ответы квиза проверены. Верно C из Q. Нужно K.", "Ответы квиза проверены. Верно C из Q. Нужно K. Осталась 1 попытка.", "Квиз пройден.", "Квиз пройден. Урок пройден.", "Квиз пройден. Урок завершён: не пройден. Пройдено: N из M.", "Квиз не пройден: попытки исчерпаны.", "Квиз не пройден: попытки исчерпаны. Урок завершён: не пройден. Пройдено: N из M.", "Ответы квиза не отправлены. Попробуйте снова.", "Ответы квиза не приняты: квиз изменился в другой вкладке." | every page with the top bar (F2.1), lesson (F10.1; the quiz notice, F15) | v1; the quiz notice D2, after #36 |
 | quiz (D2; designed in #70) | "Нужно K из Q", "Попытка A из M", "Попытка A" (limit unknown, R7), "Верно C из Q. Нужно K.", "Верно C из Q.", "Квиз пройден", "Квиз не пройден: попытки исчерпаны", "Ответы не отправлялись" (quiz check row, in place of "Не запускалась"), question verdicts "Верно" / "Неверно" and option marks "Ваш ответ" / "Верный ответ" (quiz review), "Ответьте на все вопросы: осталось U", "Ответы не отправлены. Попробуйте снова.", "Не удалось загрузить квиз" (the load error's title, an h3 under the panel heading, R2 page-level retry table; also the one text of the quiz load status container, R2), refusal result block (a send refused because the quiz changed in another browser tab): title "Ответы не приняты: квиз изменился в другой вкладке." and, while the quiz is open, "Последний результат: Верно C из Q. Нужно K." | Квиз tab (F15); from #35 "Верно C из Q." alone also in an open attempt of the history (F19.2, a quiz result, `progress.md` A72-17); the quiz check row in Проверки, which otherwise uses the check status set ("Пройдено", "Не пройдено", "Закрыта: не пройдено"), the check row meta set ("Осталась 1 попытка", also in the quiz header) and the check row note set ("Неудачных попыток: N", "Неудачных попыток: N из M") | D2, after #36; "из M" and "Осталась 1 попытка" only with a known limit (R7, from #68). Q, K, C, A and M come from the server (`quiz.md`, Stepan's decision P2); the letters: `quiz.md` "Placeholders". "Нужно N%", "Результат: N%. Нужно N%." and "Несколько вариантов" (#50) are replaced (#70) |
-| mentor (D3) | busy display ([A71-7](#A71-7)): "Ментор читает попытку" (review), "Ментор готовит подсказку" (hint); review block: h4 "Разбор ментора", "Ментор не видел транскрипт работы с агентом", "Стоимость разбора: $N", "Ментор не ответил", "Бюджет на разбор исчерпан"; hint ladder: h4 "Подсказки", the level names (vocabulary, "hint"), the button description "до $N", "Ментор не ответил", "Бюджет на подсказку исчерпан"; score line "Оценка S%, нужно P%"; mentor status container: "Разбор готов: <check title>", "Подсказка готова: <check title>", "Ментор не ответил: <check title>", "Бюджет на разбор исчерпан: <check title>", "Бюджет на подсказку исчерпан: <check title>", "Проверка не запущена: ментор ещё отвечает" | [A71-4](#A71-4) to [A71-10](#A71-10) (F16, F17) | from #37 ([A71-12](#A71-12)) |
+| mentor (D3) | busy display ([A71-7](#A71-7)): "Ментор читает попытку" (review), "Ментор готовит подсказку" (hint); review block: h4 "Разбор ментора", "Ментор не видел транскрипт работы с агентом", "Стоимость разбора: $N", "Ментор не ответил", "Бюджет на разбор исчерпан"; hint ladder: h4 "Подсказки", the level names (vocabulary, "hint"), the button description "до $N", "Ментор не ответил", "Бюджет на подсказку исчерпан"; score line "Оценка S%, нужно P%"; mentor status container: "Разбор готов: <check title>", "Подсказка готова: <check title>", "Ментор не ответил: <check title>", "Бюджет на разбор исчерпан: <check title>", "Бюджет на подсказку исчерпан: <check title>" | [A71-4](#A71-4) to [A71-10](#A71-10) (F16, F17) | from #37 ([A71-12](#A71-12)) |
 | budget confirmation (AlertDialog) | title "Потратить до $N с вашего ключа API?"; description "Эта проверка расходует токены:" (one listed check) or "Эти проверки расходуют токены:" (two or more), for a review "Разбор расходует токены:" ([A71-2](#A71-2)); list item "<check title>: до $N"; buttons "Отмена", "Запустить" | budget confirmation (F13.1, F16.1) | from #37 / #39; a run's dialog lists only checks the run includes, never a passed one (S11). "Проверка с агентом потратит до $N" (#50) is replaced (#69) |
 | editor (D5) | "Загружаем редактор", "Редактор не отвечает" | Редактор tab (F12) | D5, after #40 |
 | attempt summary (one attempt record, #72) | summaries, the first that matches: "Идёт проверка" (status `running`; #69's run word, check bar summary 1), "Сбой проверки, попытка не засчитана" (the attempt has no check result, or every result is a runner error, as the check bar's summary 4 in `checks.md`, #69), "Пройдено проверок: N из M" (otherwise; M results in this attempt, N of them with the word "Пройдено"); one note after "Пройдено проверок: N из M" only, joined with ". ": "Проверок с незасчитанной попыткой: N" (N is the count K, at least 1: the results of this attempt whose own word, set "check status", contains "попытка не засчитана": "Время вышло, попытка не засчитана", "Ошибка формата, попытка не засчитана", "Сбой проверки, попытка не засчитана"; no other result, whatever its counting flag, so K always equals the number of such words in the attempt's panel). #69's "Проверок со сбоем: N" is not an attempt-row note (a runner error is one of the K). Each result kind and how it enters: `progress.md` A72-6; icon of each form: A72-8 | "Последние попытки" rows (F18.3), "История попыток" rows and plain items (F19.1) | from #35 (`progress.md`, A72-6). "Идёт проверка" shows only on the dashboard, with the `running` ring held still (the dashboard row is a snapshot): the history lists finished attempts (A72-9) |
@@ -192,10 +192,10 @@ a closed check never reopens (S2) and a passed check that spends tokens is not r
 the Tab order are the same in every state, and its reason says why nothing runs. The reason "Проверка уже
 идёт в другой вкладке" (#50) is dropped (S8).
 
-Deferred cases follow the same rule: from #37 the mentor controls and the mentor case of "Проверить", their
-reasons and their order ([A71-7](#A71-7)). For a row of adjacent controls that share a reason, and only
-there, "next to it" has two forms: one reason text right after the row, describing each control; or a busy
-display right after the row as their reason, as "Входим..." is for "Войти". A menu item in "Действия" carries its reason as a second line inside the item, with the same
+Deferred cases follow the same rule: from #37 the mentor controls and the mentor reason of "Проверить",
+with its place in the order above ([A71-7](#A71-7)). For a row of adjacent controls that share a reason,
+one reason text right after the row, tied to each of them by `aria-describedby`, is the text next to each.
+A menu item in "Действия" carries its reason as a second line inside the item, with the same
 `aria-describedby`.
 
 ### R2: live regions
@@ -277,8 +277,7 @@ display right after the row as their reason, as "Входим..." is for "Вой
   first that applies for the place the element was in:
   1. the Квиз panel: the quiz result block, or the send error after a failed send (`quiz.md`); the focus move
      into the panel also removes the quiz notice;
-  2. an open check row panel in Проверки ("Пройти квиз" after a pass or close, "Подробности", from #37 the
-     mentor controls, [A71-7](#A71-7)): that row's own
+  2. an open check row panel in Проверки ("Пройти квиз" after a pass or close, "Подробности"): that row's own
      disclosure button, which is never removed (the rows are the lesson's counted checks);
   3. "Проверка" ("К окружению", "Переподключиться", "Открыть результаты"): its R3 landing as it now is,
      "Проверить", which R1 never removes;
@@ -293,16 +292,17 @@ display right after the row as their reason, as "Входим..." is for "Вой
      it shown).
   An R1 `aria-disabled` control stays focusable, so focus stays on it and its new reason is read when it is
   next reached. A change that removes nothing focused moves no focus. When the budget confirmation closes
-  because of such a change, focus moves first to "Проверить" (a review's dialog: [A71-2](#A71-2)) and the status text is set after (#69's
+  because of such a change, focus moves to "Проверить" first and the status text is set after (#69's
   `checks.md` B6, B23), because the page behind an open modal is inert. Every such transition of the checks
-  is listed with its focus target in `checks.md` "Background changes and focus" (B1-B26). The same order
+  is listed with its focus target in `checks.md` "Background changes and focus" (B1-B26), from #37 the
+  mentor controls' in [A71-7](#A71-7) and [A71-8](#A71-8). The same order
   resolves a return target that is gone (next bullet).
 - Focus when a focused alert disappears: after "Продолжить работу" (F10.2) focus returns to the element
   that had it before focus entered "Уведомления", or, if there was none, to the R3 landing of the shown pane's
   region. If that element is gone or no longer focusable when the warning closes (an answer to a quiz send
   replaced the busy button or the options with the quiz review; P8 removed "К окружению"), focus goes where the
   rule above sends it for the place the element was in. The page's other focus returns (a menu closing to its
-  trigger, the reset dialog to "Действия", the budget confirmation of a run to "Проверить"; a review's: [A71-2](#A71-2)) go to controls that are
+  trigger, the reset dialog to "Действия", a run's budget confirmation to "Проверить") go to controls that are
   always rendered while the menu or dialog is open ("Действия" and the user menu button in every state,
   "Проверить" by R1). When the environment stops (F10.3) while focus is in the idle warning, focus moves
   as item 5 of the rule above says: "Запустить снова", or the switch tab "Окружение" in one-pane mode with
@@ -355,9 +355,8 @@ display right after the row as their reason, as "Входим..." is for "Вой
   when focus is still on "Повторить", on `body`, or inside the block the retry belongs to, and the target is
   shown; otherwise focus stays where the learner put it. The block: the dashboard course error's Alert, the
   dashboard progress section, `main` for the catalog and lesson course errors, the text load error's tab
-  panel, the F19 history section, for the quiz the Квиз tab panel (its heading, which the loading state
-  focuses, included), and from #37 for a mentor call's end its check row panel or the closed quiz block
-  ([A71-8](#A71-8)). Because a learner who moved on before the answer must not be pulled back: two panes,
+  panel, the F19 history section, and for the quiz the Квиз tab panel (its heading, which the loading state
+  focuses, included). Because a learner who moved on before the answer must not be pulled back: two panes,
   "Повторить" pressed, then a click into the terminal; a Shift+Tab to the top bar or the Квиз tab, whose arrow
   keys then keep working; an open menu, whose focus trap (Radix `FocusScope`) would fight a script focus move
   or close the menu. A hidden target cannot take focus at all (HTML focusing steps), so a retry that ends
@@ -582,7 +581,7 @@ element on. The whole class, and what each release renders:
 | the attempt cost in a history row ("Потрачено: ..." variants) | lesson, Проверки | F19.1 | not rendered | not rendered | rendered for an attempt that can spend |
 | "Стоимость попытки: $N" in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | rendered when the result spends (#37 rubric, #39 hidden-task) |
 | "Не пройдено: исчерпан бюджет $N" in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | from #39 |
-| the mentor review in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | rendered ([A71-10](#A71-10)) |
+| the mentor review in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | rendered (D3 designs the block) |
 | hints in a history panel | lesson, Проверки | F19.2 | not rendered | not rendered | not rendered ([A71-11](#A71-11)) |
 | the query parameter `attempt` (Navigation model, "Attempt deep link") | lesson URL | F19 entry | ignored | read | read |
 | "Слабые темы", "Слабых тем пока нет" (#50) | dashboard | - | dropped: no release renders them | - | - |
@@ -605,27 +604,29 @@ closes and its later failures are not counted (S1); a closed check is final (S2)
 
 ### Mentor review and hints (#71)
 
-The one statement of how F16 and F17 (`mentor.md`) behave, from #37. Each decision is a default of the #71
-research note (`plans/71-mentor-review-research.md` §5, Q1-Q14, a working note like the #50 ones) that
-Stepan confirms in the #71 PR. No rule here depends on the course, so "Several courses (#218)" is unchanged.
+The one statement of how F16 and F17 (`mentor.md`) behave, from #37. Each decision answers a question of
+the #71 research note (`plans/71-mentor-review-research.md` §5, Q1-Q14, a working note like the #50 ones);
+Stepan confirms the decisions, and where they depart from the note's defaults, in the #71 PR. No rule here
+depends on the course, so "Several courses (#218)" is unchanged.
 
 - <a id="A71-1"></a>**A71-1. When a review is offered.** "Разобрать с ментором" is in the open panel of a
-  check row, the quiz check row excepted, whose check is not passed and is either closed or has a counter N
-  of at least the `attempts.mentorAfter` the server reports for it; and in the closed quiz block (F15.6). It
-  reviews the check's latest result, only on a press; once that result has a review block (A71-5), the
-  button does not return for it. Because task.md promises "после 5 неудачных интерфейс предложит ментора"
-  and "разбор с ментором" after a close, and every review is paid (Q1); the earlier failures have hints
-  (A71-6).
+  check row, the quiz check row excepted, whose check has a result, is not passed, and whose latest result
+  is not a runner error; and in the closed quiz block (F15.6). It reviews the check's latest result, only
+  on a press; once that result has a review block (A71-5), the button does not return for it. Because
+  task.md promises "после 5 неудачных интерфейс предложит ментора" and "разбор с ментором" after a close,
+  and the threshold field `attempts.mentorAfter` is optional (no module 04 check has it), so an offer from
+  the first failure on reaches every check; every review is paid, so it runs only on a press (Q1); a runner
+  error graded nothing the learner did; and the quiz says which answers are wrong only once passed or
+  closed (F15.4, F15.5), so an earlier review would tell what the quiz withholds.
 - <a id="A71-2"></a>**A71-2. Consent and cost.** "Разобрать с ментором" and the review's "Повторить" open
   the budget confirmation (`checks.md` "Budget confirmation") on every press, with "Разбор расходует
   токены:" and one item "<check title>: до $N", $N the per-call budget of #37; focus starts on "Отмена" and
-  Tab cycles inside, as for a run; "Отмена" and Esc close it as B24 does, and a background change that
-  alters what it would review (a newer result, a call started in another tab, A71-13 item 3) as B23 does,
-  each with the pressed control in place of "Проверить" (when that control is gone: R2 "Focus after a
-  background change"); "Запустить": A71-5. A hint opens no dialog: each hint control is
-  described by "до $N" (visible, `aria-describedby`). A review and a hint add to their attempt's cost and
-  the total (ADR-0007 item 11; the total's "разборы" then covers hints, accepted). Because S5 asks before
-  every spend, and a dialog per rung would double the presses of a four-level ladder (Q2).
+  Tab cycles inside, as for a run; "Отмена" and Esc close it, nothing is asked, and focus returns to the
+  pressed control (when that control is gone: R2 "Focus after a background change"); a background change
+  leaves it open, because its one item stays true (a "Запустить" the server then refuses: A71-8);
+  "Запустить": A71-5. A hint opens no dialog: each hint control is described by "до $N" (visible,
+  `aria-describedby`). A review adds to its attempt's cost and to the total (ADR-0007 item 11). Because S5
+  asks before every spend, and a dialog per rung would double the presses of a four-level ladder (Q2).
 - <a id="A71-3"></a>**A71-3. Grading is not a review.** A rubric check's grading is a check result of the
   run, under the run's budget confirmation: status word, grader message and score line (A71-4). A review of
   it is offered by A71-1 like any other. Because ADR-0007 stores the two apart (`check_results`,
@@ -635,8 +636,7 @@ Stepan confirms in the #71 PR. No rule here depends on the course, so "Several c
   the check's `passScore` in percent. Shown only when the result passed with S >= P or failed with S < P;
   otherwise (a gate, a criterion at zero, an inverted rule) the grader message alone says why. Not in history
   panels. Because course text says "нужно 70%" and the stored score is a fraction; rounding down never shows
-  a miss as reaching the bar, and a bar line next to a gated fail would misinform (Q4). A criteria list with
-  points: FU31.
+  a miss as reaching the bar, and a bar line next to a gated fail would misinform (Q4).
 - <a id="A71-5"></a>**A71-5. The review block.** After "Запустить" the block, pending, takes the place of
   "Разобрать с ментором" (after the counter, the last item of `checks.md` "Open panel"; in the quiz, where
   F15.6 offers the button) or of its own failed form, and focus moves to its h4 "Разбор ментора"
@@ -646,18 +646,20 @@ Stepan confirms in the #71 PR. No rule here depends on the course, so "Several c
   a cost (`checks.md` "Money"); failed or timed out, the Alert "Ментор не ответил" with "Повторить" (A71-2),
   no countdown before (Q14); budget spent, the Alert "Бюджет на разбор исчерпан" with the cost line and
   "Повторить" (A71-2), no partial text. It shows the review of the latest result only; an older result's
-  review is in the history (A71-10). No reply field (FU28). Because the SDK's budget error carries no text
-  and a Socratic text cut mid-sentence misleads (Q9); a spent budget is retried like a failure, and like a
+  review is in the history (A71-10). No reply field. Because nothing stores a reply and each would be
+  another paid call (Q5); the SDK's budget error carries no text and a Socratic text cut mid-sentence
+  misleads (Q9); a spent budget is retried like a failure, and like a
   hint's (A71-6), because on a closed check or quiz no newer result ever comes (S2), so without it the
   review task.md promises after a close would be lost, and the dialog names the spend again each time.
 - <a id="A71-6"></a>**A71-6. The hint ladder.** In the open panel of a check row, the quiz check row
-  excepted (FU29), whose check is not passed and has a result, after the review block or its button: h4
+  excepted (hints for the quiz are not designed in #71), whose check is not passed and has a result, after
+  the review block or its button, or after the counter when the panel has neither: h4
   "Подсказки", an `ol` of "Вопрос", "Направление", "Скелет", "Скажи прямо", each received level holding its
   hint (data, verbatim); then "Попросить подсказку" (nothing received: asks "Вопрос") or "Следующая
   подсказка" (one level above the highest received; not rendered once "Скажи прямо" is received), then
   "Скелет" and "Скажи прямо", each only while above the level that "Попросить подсказку" or "Следующая
-  подсказка" asks; a level below the highest received is not asked again. A press puts the busy display (A71-7,
-  `tabindex="-1"`) right after the controls and moves focus to it. The ladder holds the latest result's
+  подсказка" asks; a level below the highest received is not asked again. A press puts the busy display
+  (A71-7, `tabindex="-1"`) after the controls and their reason text and moves focus to it. The ladder holds the latest result's
   hints; a newer result starts an empty one. Lock: on a check with a known attempt limit (R7) that is not
   closed, every control that asks "Скелет" or "Скажи прямо" is `aria-disabled` with "Откроется, когда
   проверка будет закрыта" (R1, one text after the row). A failed call shows "Ментор не ответил" or "Бюджет на
@@ -665,12 +667,13 @@ Stepan confirms in the #71 PR. No rule here depends on the course, so "Several c
   S7 for runs, and the review's retry, A71-5). Because
   learning-process §3 names "подсказка", "скелет" and "скажи прямо", a hint answers the files as they are
   now, task.md locks these levels where they "выдали бы ключ", a check that never closes would keep a
-  false reason forever (Q6, Q7), and the pressed control turns `aria-disabled` and would say nothing.
+  false reason forever (Q6, Q7), and on the pressed control, now `aria-disabled`, the new reason is read
+  only when it is next reached (R2).
 - <a id="A71-7"></a>**A71-7. Mentor controls.** The mentor controls are "Разобрать с ментором", the review's
   "Повторить" and the ladder's controls. During a run that includes the check, none of its mentor controls,
-  block or ladder is rendered, as its grader message is not (`checks.md` "Open panel by status word"). A
-  call and a run never overlap: while a call runs on a check that is not closed, "Проверить" is
-  `aria-disabled` with "Дождитесь ответа ментора" (after "Результат проверки ещё не получен" in R1's order,
+  block or ladder is rendered, as its grader message is not (`checks.md` "Open panel by status word"); when
+  one of them held focus: R2 "Focus after a background change". A call and a run never overlap: while a
+  call runs on a check that is not closed, "Проверить" is `aria-disabled` with "Дождитесь ответа ментора" (after "Результат проверки ещё не получен" in R1's order,
   and winning over the environment reasons as "Дождитесь окончания проверки" does; it never meets that
   reason or "Проверки завершены", which leave no such check), and the server refuses a run then, and such a
   call during a run (A71-13 item 3). So the result a call answers stays its check's latest until the call
@@ -679,56 +682,55 @@ Stepan confirms in the #71 PR. No rule here depends on the course, so "Several c
   busy display, one form for both kinds: "Ментор читает попытку" for a review (it reads the attempt),
   "Ментор готовит подсказку" for a hint (it reads the files), with the elapsed time (`role="timer"`, R2)
   counted from the request time the server reports, so every tab and a reload show the same time. Reasons,
-  each next to its control and the ladder's in one text after its row (R1): with no mentor key, reported
-  before any call (FU16), "Ключ API для ментора не задан" (Q10); during a hint call, for the ladder controls
-  the busy display's text (not its timer); during any other call, "Дождитесь ответа ментора". One reason
-  at a time: the key, the call, the lock (A71-6). The call goes on on the server when the page is left or
+  each next to its control, the ladder's as one text after its row (R1): with no mentor key, reported
+  before any call (FU16), "Ключ API для ментора не задан" (Q10); during a call, "Дождитесь ответа
+  ментора". One reason at a time: the key, the call, the lock (A71-6). The call goes on on the server when the page is left or
   the session expires (F2) and shows on return (Q12); it needs no running environment and is not activity
   for the idle stop (F10). Because a learner who only lacks a key must still find the
   feature (R1), two paid calls on one check help nobody, and a run under a pending call would leave a paid
   answer with no result on screen to belong to.
 - <a id="A71-8"></a>**A71-8. A call's end and a refused press.** By A71-7 a call ends on the result it
-  answers, so its outcome stands in that check's row panel or closed quiz block, shown or not. At the end
-  focus moves under R2's retry focus guard (the block: R2): a done review to its text (`tabindex="-1"`), a
-  failed or spent review to its Alert title (`tabindex="-1"`), a done hint to its level's item
-  (`tabindex="-1"`), a failed hint to its error text (`tabindex="-1"`). When the guard keeps focus where it
-  is (also with the row collapsed or its tab not shown), the mentor status container says the outcome
-  (A71-9); when focus moves, nothing is written; "Проверить" drops "Дождитесь ответа ментора" silently (R1).
-  A press the server refuses, in a tab that has not re-read ("Запустить" closes its dialog first, as B6): a
-  mentor press because of a run attaches to it as `checks.md` B5 (focus by R2, item 2); a mentor press
-  because of a call of that check shows that call and moves focus to its busy display (for a review the
-  block's h4); "Проверить" or its dialog's "Запустить" because of a call leaves focus on "Проверить", now
-  with "Дождитесь ответа ментора", and the container says "Проверка не запущена: ментор ещё отвечает". A
-  re-read that finds a call started elsewhere shows it silently (focus by R2 when it removed the focused control). Because a
-  30-60 s call sends the learner to the terminal or another tab (Q11), the outcome is said once, and a
-  press must have a perceivable result.
+  answers, so its outcome stands in that check's row panel or closed quiz block, shown or not. At the end,
+  when focus is on `body` or inside that row panel or closed quiz block and the outcome is shown, focus
+  moves to it and nothing is written: a done review to its text (`tabindex="-1"`), a failed or spent review
+  to its Alert title (`tabindex="-1"`), a done hint to its level's item (`tabindex="-1"`), a failed hint to
+  its error text (`tabindex="-1"`). Otherwise focus stays where it is (also with the row collapsed or its
+  tab not shown) and the mentor status container says the outcome (A71-9). "Проверить" drops "Дождитесь
+  ответа ментора" silently (R1). A press the server refuses by A71-13 item 3 (a mentor press, or a run
+  asked while a call runs; only a tab that has not re-read shows such a control enabled) first closes its
+  budget confirmation if one is open, focus going as after "Отмена" (A71-2; for a run's, B24), then re-reads
+  the check states as a visibility re-read does (`checks.md` B8-B11); a focused control the re-read removes moves
+  focus by R2 "Focus after a background change". Because a 30-60 s call sends the learner to the terminal
+  or another tab (Q11), a learner who moved on must not be pulled back, the outcome is said once, and after
+  a refusal the page shows what the server holds.
 - <a id="A71-9"></a>**A71-9. The mentor status container.** On a lesson page with the region "Проверка",
   one `role="status"` container (`aria-live="polite"`, visually hidden) inside "Проверка" after the status
   line, present and empty from load (R2). Texts: "Разбор готов: <check title>", "Подсказка готова: <check
   title>", "Ментор не ответил: <check title>", "Бюджет на разбор исчерпан: <check title>", "Бюджет на
-  подсказку исчерпан: <check title>", "Проверка не запущена: ментор ещё отвечает"; each no sooner than
-  `CHECK_STATUS_TEXT_GAP_MS` after the status line's or its own last text; emptied silently when a call
-  starts. Because "Проверка" is never unmounted (the Проверки panel may be, FU15), and in "Уведомления" the text would add a landmark and an `F6` stop, as
-  for the history error (R2). This replaces Q11's notice in "Уведомления"; a visible cue for a learner who
-  is away: FU32.
+  подсказку исчерпан: <check title>"; each no sooner than `CHECK_STATUS_TEXT_GAP_MS` after the status
+  line's or its own last text; emptied silently when a call starts. Because "Проверка" is never unmounted
+  (the Проверки panel may be, FU15), and in "Уведомления" the text would add a landmark and an `F6` stop, as
+  for the history error (R2). This replaces Q11's notice in "Уведомления".
 - <a id="A71-10"></a>**A71-10. Reviews in the history.** In an open history panel (F19.2) a done review of a
   result follows that result's items in A71-5's done form, with no control; a pending or failed review is not
   shown there. Because the history records what was said, and a call is asked and retried in the check row.
-- <a id="A71-11"></a>**A71-11. Hints are stored, not yet listed.** #37 stores each hint with the attempt of
-  the result it answers (A71-13); F19.2 lists none until a DESIGN task draws them (FU30), because the
+- <a id="A71-11"></a>**A71-11. Hints are not in the history.** F19.2 lists no hint, though #37 stores each
+  with the result it answers (A71-13 item 2), until a later DESIGN task draws them there, because the
   ladder's form has controls that a history panel must not have.
 - <a id="A71-12"></a>**A71-12. Release.** Before #37 none of these is rendered, from #37 all: "Разобрать с
   ментором" (A71-1), the review's budget confirmation (A71-2), the score line (A71-4), the review block
   (A71-5), the hint ladder (A71-6), the busy display and the mentor reasons, "Проверить"'s included (A71-7), the mentor status container (A71-9), reviews in
   history panels (A71-10). One boundary for every member, so no class table (R6).
-- <a id="A71-13"></a>**A71-13. Requirements for #37.** (1) The server reports each check's
-  `attempts.mentorAfter` (A71-1), its per-call budget (A71-2) and, with each rubric result, `score` and
-  `passScore` (A71-4). (2) A review or a hint is a `mentor_reviews` row with the attempt id of the result it
-  answers, the check id, its kind and a hint's level (A71-6, A71-11), a schema change in ADR-0007. (3) At most
-  one pending call per check, a second request answered with it; no run while a call runs on a check that
-  is not closed, and no such call during a run (409, as #34's lock); the check-state read reports a pending
-  call with its kind and request time (A71-7, A71-8). (4) A mentor-key signal before any
-  call (A71-7, FU16). (5) On a check with a known limit that is not closed the server refuses "Скелет" and
+- <a id="A71-13"></a>**A71-13. Requirements for #37.** (1) The server reports each check's per-call budget
+  (A71-2) and, with each rubric result, `score` and `passScore` (A71-4). (2) A review is a `mentor_reviews`
+  row with the attempt id of the result it answers and the check id (A71-5, A71-10); a hint is stored with
+  the same two ids and its level (A71-6, A71-11), its storage a schema change of #37 in ADR-0007. (3) At
+  most one pending call per check, a second request refused; no run while a call runs on a check that is
+  not closed, and no such call during a run; a call names the result it answers and is refused unless that
+  is the check's latest result and it holds no done review (for a review) or no done hint of the asked
+  level (for a hint); each refusal a 409, as #34's lock; the check-state read reports, per check, the
+  latest result's review and hints and a pending call with its kind and request time (A71-7, A71-8). (4) A
+  mentor-key signal before any call (A71-7, FU16). (5) On a check with a known limit that is not closed the server refuses "Скелет" and
   "Скажи прямо", and the mentor names no per-item verdict, because a UI lock cannot bind what the mentor
   writes (`00-introduction/01-models-and-effort/task.md`: "не говорит, какая карточка или какой вопрос
   неверны"). (6) No streamed text; the whole body at the end, none after a budget stop (A71-5). (7) A call's end reaches an open page (A71-8). (8) A
@@ -1044,8 +1046,8 @@ filed and linked here, or when it is done.
   the agent API key of #115 to the terminal shell only and leaves the mentor (#37) to its own amendment. To
   decide in #37: which key the mentor uses and where it is set; the signal of [A71-13](#A71-13) item 4; what
   a rubric check shows without the key; the learner action and the final wording of the reason, in the
-  disabled reason set and the copy register row "mentor (D3)" together. Two wording notes for the same
-  decision: ADR-0007 item 11 "Unit" says the terminal agent "uses the same API key", written before #115 made that key terminal-only; and
+  disabled reason set. Two wording notes for the same decision: ADR-0007 item 11 "Unit"
+  says the terminal agent "uses the same API key", written before #115 made that key terminal-only; and
   `checks.md` "Named" cites `learning-process.md` §1 for "the learner's API key", but §1 speaks of the
   terminal key only. Both are confirmed or re-pointed to #37's amendment once it names the key.
 - **FU17. feat(web): lesson code blocks that overflow take Tab** (dev, from #136). The app side of
@@ -1098,22 +1100,6 @@ filed and linked here, or when it is done.
   review). Since #30 the one way every lesson page has is its catalog row; #218 does not change that.
   Candidate: previous and next lesson links on the
   lesson page (G125), a lesson-page DESIGN task. Not a blocker for #220.
-- **FU27. docs(adr) + design: re-assessment after a close** (dev with Stepan, then design, from #71 Q8).
-  The module 00 design note (`plans/15-module-introduction-design.md`, a working note) has a review after a
-  close re-assess on reserve items and record a separate passing result that counts toward completion; no
-  ADR item, schema column or flow has it, and it contradicts F14 Success. Not in [A71-5](#A71-5): it needs
-  an ADR-0007 change and Stepan's approval first.
-- **FU28. design: a reply thread with the mentor** (design, from #71 Q5), once #37 stores turns; nothing
-  stores one today ([A71-5](#A71-5)).
-- **FU29. design: hints for the quiz check** (design, from #71). Where the ladder sits (Квиз panel or quiz
-  row) and the vocabulary row "quiz question", which keeps "Вопрос I из Q" and the level "Вопрос" in two
-  panels ([A71-6](#A71-6)).
-- **FU30. design: hints in a history panel** (design, from #71, [A71-11](#A71-11), `progress.md` A72-16).
-- **FU31. design: rubric criteria with their points** (design, from #71 Q4), if #37 stores per-criterion
-  points in `check_results.details` ([A71-4](#A71-4)).
-- **FU32. design: a visible cue for a mentor answer that arrives while the learner is away** (design, from
-  #71 Q11). [A71-9](#A71-9) announces it to a screen reader only; decide whether a notice like the quiz's
-  (P9) is wanted.
 
 Decided, no follow-up: the ring on the first mouse click on a tab (#30 test report F3) is accepted (R4,
 "Focus ring after a mouse click on a tab").
