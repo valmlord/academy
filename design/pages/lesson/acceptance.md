@@ -33,7 +33,8 @@ names no `ready` lesson of the course, opens.
 
 Dev issues: #30 (M0 lesson), #31 and #32 (environment, terminal), #34 (check bar and Проверки, v1 lesson),
 #35 ("История попыток" and the attempt deep link), #36 (the Квиз tab, F15; blocked by #34, `quiz.md` P4),
-#37 and #39 (its cost elements).
+#37 and #39 (its cost elements), #220 (several courses: the top bar of `ia.md` A218-3 and the course crumb of
+A218-8; design #233).
 
 ## Prototype
 
@@ -57,7 +58,20 @@ of 3, it has none in `lesson.yaml`), and the token-spending lessons from #37 / #
 `#state-statuses-agent`, `#state-passed-paid-only`: lesson 05 with its `agents-md-rubric` and a sample
 hidden-task check "Агент решает скрытую задачу с вашим AGENTS.md", sample budgets and costs). Before #36 the
 quiz check `models-effort-quiz` is not listed anywhere (R6, A19), so the v1 count is "из 1": every state
-without the `quiz-` prefix draws this release.
+but `#state-quiz`, the `#state-quiz-*` states, `#state-history-quiz` and `#state-history-quiz-open` draws this
+release.
+
+**Several courses (from #220, #218).** Every state except `#state-m0` draws #220 (its States label starts
+"#220, "; its release words stay): the top bar is `ia.md` A218-3 ("Академия", "Главная", the user menu; no
+"Курс", `aria-current` on neither link), and the breadcrumb is A218-8, its first crumb the course name
+(A218-7): "ИИ для разработчиков" / "Введение в разработку с ИИ" / "Модель, уровень ризонинга и локальные
+модели". The course crumb is `#crumb-course`, on one element only. `#state-m0` is the M0 lesson
+(`lesson-environment.md` "Lesson page by release"), a release before #220, so it keeps that release's top
+bar ("Академия", "Главная", "Курс"; `ia.md` R6 "Top bar by release") and the crumb "Курс": both are
+`data-state="m0"` variants, the crumb one in the same `li` as `#crumb-course`, with no id. No
+`data-goto-state` targets `#state-m0` or shows in it. With several courses the page draws no new state: the
+lesson course error is still the catalog's `#state-course-error` (a state kept until #220; its #220 form
+with several courses: see #222), a pointer here, not a link.
 
 **From #36, the 30 `#state-quiz-*` states** (`quiz.md`, F15) draw the Квиз tab with the real quiz of this
 lesson: `models-effort-quiz` "Квиз: effort, поверхности и локальные модели", 6 questions in file order (2
@@ -99,6 +113,19 @@ from shows except the button and the lock (`quiz.md` "Sending"), so each attempt
    finishes the lesson not passed (S3, AC39, AC40); the close with the limit unknown (AC38); the check bar
    rows of "Check bar after a quiz send" other than empty, P7 and P8 (a run going, summary 4, summary 7 left
    true, the line at 5 or 6 with a refusal: AC40, AC43); a 401 on load (AC54).
+6. Other sample progress (design #233 rule L4): the prototype draws one lesson, so these links open a state
+   with the same courses and release but other sample progress. From #220: "Академия" and "Главная" open
+   `../dashboard/prototype.html#state-courses-two` (app route `/`, focus on arrival: none, page load); the
+   course crumb opens `../catalog/prototype.html`, the catalog's default state (route
+   `/courses/ai-for-developers`, focus: none); the prerequisite link (F6.3) opens `prototype.html`, this
+   lesson's default state (route `/courses/ai-for-developers/lessons/intro-agent-loop`, focus: none). In
+   `#state-m0`: "Академия" and "Главная" open `../dashboard/prototype.html#state-first-run-until-220` (route
+   `/`, focus: none); the top-bar and crumb "Курс" open `../catalog/prototype.html#state-default-until-220`
+   (route `/courses/ai-for-developers`, focus: none).
+7. Module crumb of `#state-m0` (design #233 rule L1): `../catalog/prototype.html#introduction` opens the
+   catalog's default state, drawn from #220, because proto.js joins no state and anchor; the app opens the
+   M0 release's catalog (route `/courses/ai-for-developers#introduction`, focus target on arrival: the
+   `#introduction` module section).
 
 Limit known and limit unknown are both drawn (Stepan's decision B0, `ia.md` R7): the states marked "limit
 known (from #68)" show "из M" and the last-attempt warning; every other state shows the counter without
@@ -174,7 +201,7 @@ The course error (the course cannot be read) is not drawn in this prototype: it 
 | F14.2 | "Проверить" pressed on the last attempt (its own variant in the prototype); the run it starts keeps the row's "Осталась 1 попытка" and "Неудачных попыток: 9 из 10" | `#state-limit-warning`; the run `#state-limit-warning-running` |
 | F14.3 | the closed row's open panel: closed note, closing message, "Неудачных попыток: 10 из 10" | `#state-closed` |
 | F14.4 | the reason "Проверки завершены" of the `aria-disabled` "Проверить" (status "Урок завершён: не пройден. Пройдено: 0 из 1") | `#state-closed`, `#state-closed-limit-unknown`; mixed outcome in `#state-mixed` |
-| F15.1 | the quiz header ("Нужно 5 из 6", the attempt line, the last-attempt warning) | every `#state-quiz-*` state with questions; the warning in `#state-quiz-last-attempt`, `-notice-two-pane`, `-refused`, `-sending-last`, `-sending-refused` (from #36) |
+| F15.1 | the quiz header ("Нужно 5 из 6", the attempt line, the last-attempt warning) | `#state-quiz` and every `#state-quiz-*` state with questions; the warning in `#state-quiz-last-attempt`, `-notice-two-pane`, `-refused`, `-sending-last`, `-sending-refused` (from #36) |
 | F15.2 | the radio group of question 1 | `#state-quiz`, `#state-quiz-partial` and every state with inputs (from #36) |
 | F15.3 | "Отправить ответы" | `#state-quiz`; blocked in `#state-quiz-blocked`; busy in `#state-quiz-sending`, `-sending-failed`, `-sending-last`, `-sending-refused`, `-sending-limit-unknown` (from #36) |
 | F15.4 | the failed result block "Верно 4 из 6. Нужно 5." | `#state-quiz-failed`; also `#state-quiz-last-attempt`, `-limit-unknown` (from #36) |
@@ -184,9 +211,11 @@ The course error (the course cannot be read) is not drawn in this prototype: it 
 | F19.1 | the attempt list (`ul` labelled by the h3 "История попыток") | `#state-history` (also every `history-*` state with attempts, `#state-checks-weak`); with a quiz attempt record "№ 9" in `#state-history-quiz` (from #36) |
 | F19.2 | the open panel of "№ 3": A "Пройдено" with its message, the removed check `cost-estimate` with "Этой проверки больше нет в уроке", "Сбой проверки, попытка не засчитана" and "Подробности" | `#state-history-open`; a quiz result ("Не пройдено", "Верно 4 из 6.") in `#state-history-quiz-open` (from #36) |
 | F19.3 | the expanded disclosure button of "№ 3" (collapses it, focus stays) | `#state-history-open` |
+| F22.1 | the breadcrumb `nav` "Навигация", its first crumb the course name (A218-8) | `#state-theory` (from #220: every state but `#state-m0`) |
+| F22.2 | the course crumb `#crumb-course` "ИИ для разработчиков" (opens the catalog, F5.1); the module crumb opens F5.2 | `#state-theory` (from #220: every state but `#state-m0`) |
 
 F13.6 (mentor, D3) is not drawn: no mentor or hint control in any state (R6). Before #36 no quiz control
-either; from #36 the quiz controls of F15 are drawn only in the `#state-quiz-*` states and in the two quiz
+either; from #36 the quiz controls of F15 are drawn only in `#state-quiz`, the `#state-quiz-*` states and the two quiz
 states of the attempt history (`#state-history-quiz`, `#state-history-quiz-open`), and "Разобрать с
 ментором" in the closed quiz block is not drawn until #37 (R6, `quiz.md` "Release scope"). The mentor review
 in an attempt panel (F19.2, from #37) is D3's block and is not drawn either; hints are not shown in F19.2
@@ -206,8 +235,8 @@ the #69 design asks for), and from #36 the lesson with its quiz (no "quiz before
 P4). Limit known needs #68 reported by the server; checks that spend tokens and the budget confirmation are
 drawn for #37 / #39. From #35 the Проверки tab also holds the attempt history of the lesson (F19,
 `progress.md`), reached from the tab or from a dashboard "Последние попытки" row by the attempt deep link;
-its cost elements come with #37 and the budget word with #39 (`ia.md` R6, "Progress by release (#72)"). The
-`#state-quiz-*` states draw #36 without #35 (no history section); `#state-history-quiz` and
+its cost elements come with #37 and the budget word with #39 (`ia.md` R6, "Progress by release (#72)"). `#state-quiz`
+and the `#state-quiz-*` states draw #36 without #35 (no history section); `#state-history-quiz` and
 `#state-history-quiz-open` draw #36 with #35, where every answered quiz send is a quiz attempt record in the
 history (`progress.md` A72-17, `quiz.md` "Requirements for #36" item 11).
 
@@ -254,7 +283,7 @@ holds, in DOM order, region "Урок" (left pane), region "Проверка" (c
 | Alert | session expired (destructive) and idle warning (default) in "Уведомления"; prerequisite (warning); text load error (destructive, its title an h2, `tabindex="-1"`); course load error (destructive, static, its title is the h1, as on the catalog). From #36: the quiz notice in "Уведомления" (default, info icon, sm "Открыть квиз", the idle warning's composition, no role of its own); the quiz load error (destructive, plain: no role, no `tabindex` on the Alert; its title an h3, `tabindex="-1"`; the quiz load status container beside it); the result block, the error summary (destructive, with `ul.alert-links`) and the send error (destructive) as focusable messages (`role="group" tabindex="-1" aria-labelledby` the title, `aria-describedby` the lines), never `role="alert"`: the app's `Alert` renders `role="alert"` by default (`ui/alert.tsx:36`) and is overridden as sign-in and `notifications.tsx:57-58` do |
 | DropdownMenu | user menu; "Действия" with two items, their `aria-disabled` variants with a reason line, and the checkbox item "Режим для экранного диктора". **"Действия" is built modal**, as the user menu is: from `apps/web/components/ui/dropdown-menu.tsx` without `modal={false}` (Radix `DropdownMenu` defaults to `modal = true`: focus trap and `hideOthers`). The quiz "Away" rule rests on it (`quiz.md` "Away"); a non-modal "Действия" needs that table re-read in a DESIGN task |
 | RadioGroup, Checkbox (from #36) | the quiz groups: `role="radiogroup"` for `single`, `role="group"` of checkboxes for `multiple`, each named by its question `h3` and described by the prompt, the note and the error (`.choice-group`, `label.choice`); boundaries on `--input`, never `--border` (`design/system/README.md`); the locked look while sending |
-| Breadcrumb | "Курс" / module / lesson (`aria-current="page"`); not shown when the course cannot be read |
+| Breadcrumb | from #220: course name / module / lesson (`aria-current="page"`; `ia.md` A218-8, A218-7), a long course name wraps inside the crumb; until #220 (`#state-m0`): "Курс" / module / lesson (replaced by A218-8); not shown when the course cannot be read |
 | Tabs | left pane (Теория, Задание, Проверки; Квиз from #36), environment (Терминал), one-pane switch (`.pane-switch`) |
 | Badge | lesson type "артефакт" (outline) |
 | Collapsible | outcomes, check rows, "Подробности" (status bar F8, runner-error check row F13 and runner-error result in an attempt panel F19.2: the same ghost sm trigger controlling one `pre.error-details`, collapsed by default), attempt rows of "История попыток" (F19.1, from #35) |
@@ -310,7 +339,7 @@ enabled, status line empty), tab Теория.
 
 | Anchor | What it shows |
 |--------|---------------|
-| `../catalog/prototype.html#state-course-error` (the course cannot be read; F7 error states) | that composition inside `main`: only the destructive static Alert "Не удалось загрузить курс" (its title is the h1, `tabindex="-1"`) with "Повторить". It differs from the drawn catalog prototype state in three things only: `<title>` "Не удалось загрузить курс" (the catalog app sets the same `<title>`; the static catalog prototype keeps the course title); no `aria-current` on "Курс" or "Главная" (the catalog marks "Курс"); "Повторить" targets as in Interactions and keyboard (the course error retry bullet). "Курс" is left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown") |
+| `../catalog/prototype.html#state-course-error` (the course cannot be read; F7 error states) | that composition inside `main`: only the destructive static Alert "Не удалось загрузить курс" (its title is the h1, `tabindex="-1"`) with "Повторить". It differs from the drawn catalog prototype state in three things only: `<title>` "Не удалось загрузить курс" (the catalog app sets the same `<title>`; the static catalog prototype keeps the course title); no `aria-current` on "Курс" or "Главная" (the catalog marks "Курс"); "Повторить" targets as in Interactions and keyboard (the course error retry bullet). "Курс" is left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown"). A catalog state kept until #220; its #220 form with several courses: see #222 |
 | `#state-theory` | default v1 lesson; running environment with the key hint. The "Локальные модели" code block (`#code-ollama`, longest line `export ANTHROPIC_BASE_URL=http://localhost:11434`, 48 characters) overflows at 320 and 375 px (`pre` `scrollWidth` / `clientWidth`: Chromium with classic scrollbars 437 / 271 and 437 / 326, WebKit with overlay scrollbars 447 / 286 and 447 / 341) and so is a Tab stop "Блок кода" after its "Копировать"; at 1280 px two-pane it fits (591 / 591 Chromium, 606 / 606 WebKit) and is no stop (README "Scrollable code", AC75) |
 | `#state-task` | Задание tab |
 | `#state-outcomes-collapsed` / `#state-outcomes-expanded` | three outcomes: first one plus "Показать все" / all three plus "Свернуть". The list collapses only with **more than two** outcomes (`lesson-environment.md` F7.1): one outcome, as in this lesson, or two show in full with no button |
@@ -322,7 +351,7 @@ enabled, status line empty), tab Теория.
 | `#state-prerequisite` | F6.2 warning Alert above the tabs |
 | `#state-session-expired` | F2.1 in "Уведомления" |
 | `#state-user-menu` | F3.1 menu open |
-| `#state-m0` | M0 lesson: "Урок" only, full width, Теория and Задание, the M0 line; no check bar, no Проверки, no "Окружение" |
+| `#state-m0` | M0 lesson: "Урок" only, full width, Теория and Задание, the M0 line; no check bar, no Проверки, no "Окружение"; a release before #220, so the top bar "Академия", "Главная", "Курс" and the crumb "Курс" (until #220; replaced by `ia.md` A218-3 and A218-8) |
 | `#state-env-creating` / `#state-env-starting` | "Создаём окружение" / "Запускаем окружение", spinner, timer; "Проверить" `aria-disabled` "Окружение запускается, проверка станет доступна после запуска"; "Действия" items `aria-disabled` "Доступно, когда окружение работает" |
 | `#state-env-slow` | starting plus "Запуск идёт дольше обычного" |
 | `#state-api-key` | running plus the API key warning note |
@@ -479,30 +508,33 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
 
   | State | Верхняя панель | Уведомления | Урок | Проверка | Окружение |
   |-------|----------------|-------------|------|----------|-----------|
-  | two panes, running, starting, slow, API key, reconnecting, reset done, after a run | "Академия" | no stop | "Курс" | "Проверить" | "Действия" |
-  | two panes, every #69 state without a dialog: limit known, last attempt, closed (both), mixed, runs (own, attached, with a closed check, spending tokens), sticky pass, runner error, stream lost, stream failed, tokens before a run and after it, nothing to run; every #72 state (`history-*`, `checks-weak`): the history is inside "Урок" and adds no stop | "Академия" | no stop | "Курс" | "Проверить" (enabled, or `aria-disabled` with its reason) | "Действия" |
+  | two panes, running, starting, slow, API key, reconnecting, reset done, after a run | "Академия" | no stop | course crumb | "Проверить" | "Действия" |
+  | two panes, every #69 state without a dialog: limit known, last attempt, closed (both), mixed, runs (own, attached, with a closed check, spending tokens), sticky pass, runner error, stream lost, stream failed, tokens before a run and after it, nothing to run; every #72 state (`history-*`, `checks-weak`): the history is inside "Урок" and adds no stop | "Академия" | no stop | course crumb | "Проверить" (enabled, or `aria-disabled` with its reason) | "Действия" |
   | budget confirmation open (either) | the cycle is off: `F6` and Shift+`F6` leave focus where it is in the dialog | | | | |
-  | session expired | "Академия" | "Войти снова" | "Курс" | "Проверить" | "Действия" |
-  | idle warning | "Академия" | "Продолжить работу" | "Курс" | "Проверить" | "Действия" |
-  | from #36: quiz notice only (`#state-quiz-answered-away`, `-notice-env`, `-notice-send-error`, `-notice-two-pane`); with the session alert or the idle warning beside it, the two rows above | "Академия" | "Открыть квиз" | "Курс" | "Проверить" | "Действия" |
-  | from #36: every other quiz state | "Академия" | no stop ("Войти снова" in `#state-quiz-session-expired`) | "Курс" | "Проверить" (enabled, or `aria-disabled` "Проверки завершены" in `#state-quiz-closed-finished`, `-notice-env`) | "Действия" |
-  | Docker not running, image missing | "Академия" | no stop | "Курс" | "Проверить" | "Повторить" |
-  | stopped, limits, after a run with the environment stopped | "Академия" | no stop | "Курс" | "Проверить" | "Запустить снова" |
-  | rejected | "Академия" | no stop | "Курс" | "Проверить" | "Открыть курс" |
-  | reconnect failed / shell exited | "Академия" | no stop | "Курс" | "Проверить" | "Переподключиться" / "Открыть новый сеанс" |
-  | M0 lesson | "Академия" | no stop | "Курс" | no stop | no stop |
-  | no `workspace` | "Академия" | no stop | "Курс" | "Проверить" | no stop |
-  | no check the platform runs | "Академия" | no stop | "Курс" | no stop | "Действия" |
-  | course cannot be read | "Академия" | "Войти снова" with the session alert, else no stop | no stop | no stop | no stop |
-  | one-pane mode, any state | "Академия" | as above | switch tab "Урок" (pane shown) | "Проверить" | switch tab "Окружение" (pane shown) |
+  | session expired | "Академия" | "Войти снова" | course crumb | "Проверить" | "Действия" |
+  | idle warning | "Академия" | "Продолжить работу" | course crumb | "Проверить" | "Действия" |
+  | from #36: quiz notice only (`#state-quiz-answered-away`, `-notice-env`, `-notice-send-error`, `-notice-two-pane`); with the session alert or the idle warning beside it, the two rows above | "Академия" | "Открыть квиз" | course crumb | "Проверить" | "Действия" |
+  | from #36: every other quiz state | "Академия" | no stop ("Войти снова" in `#state-quiz-session-expired`) | course crumb | "Проверить" (enabled, or `aria-disabled` "Проверки завершены" in `#state-quiz-closed-finished`, `-notice-env`) | "Действия" |
+  | Docker not running, image missing | "Академия" | no stop | course crumb | "Проверить" | "Повторить" |
+  | stopped, limits, after a run with the environment stopped | "Академия" | no stop | course crumb | "Проверить" | "Запустить снова" |
+  | rejected | "Академия" | no stop | course crumb | "Проверить" | "Открыть курс" |
+  | reconnect failed / shell exited | "Академия" | no stop | course crumb | "Проверить" | "Переподключиться" / "Открыть новый сеанс" |
+  | M0 lesson | "Академия" | no stop | breadcrumb "Курс" (until #220) | no stop | no stop |
+  | no `workspace` | "Академия" | no stop | course crumb | "Проверить" | no stop |
+  | no check the platform runs | "Академия" | no stop | course crumb | no stop | "Действия" |
+  | course cannot be read (from #220 with several courses: see #222) | "Академия" | "Войти снова" with the session alert, else no stop | no stop | no stop | no stop |
+  | one-pane mode, any state | "Академия" | as above | switch tab "Урок" (pane shown); the course crumb is the next Tab | "Проверить" | switch tab "Окружение" (pane shown) |
 
-  "Курс" in the Урок column is the breadcrumb "Курс", not the top-bar link. With the course unreadable,
+  "Course crumb" in the Урок column is `#crumb-course`, the course name (from #220, `ia.md` "Rules (#218)"
+  row "course crumb landing", which replaces R3's "the breadcrumb "Курс""); in one-pane mode `F6` lands on
+  the switch tab "Урок" and the course crumb is the next Tab (the same row). Until #220 (`#state-m0`) the
+  landing is the breadcrumb "Курс", not the top-bar link. With the course unreadable,
   `main` is the `F6` stop and lands on "Повторить". That row is the catalog's `#state-course-error` cycle,
-  checked there, not in this prototype. The cycle is off while either AlertDialog is open. From the split
+  checked there, not in this prototype (kept until #220; from #220 with several courses: see #222). The cycle is off while either AlertDialog is open. From the split
   handle (no region) `F6` goes to the next region in DOM order ("Окружение").
 - **Tab order (R4):** with the course read: "К содержимому"; top bar; "Уведомления" when non-empty
   ("Войти снова", "Продолжить работу", from #36 "Открыть квиз", in container order); "Урок"
-  ([switch] "Курс", module crumb, "Показать все", prerequisite link, the tab list (one stop), the tab panel
+  ([switch] course crumb (until #220 "Курс", `#state-m0`; row "course crumb landing"), module crumb, "Показать все", prerequisite link, the tab list (one stop), the tab panel
   (in Теория and Задание each code block is "Копировать", then its `pre` only while it overflows),
   in Проверки each row button and, inside an open runner-error row, its "Подробности", inside the open quiz
   check row "Пройти квиз"; from #35 then the history: "Повторить" in its error state, else each attempt's
@@ -591,7 +623,8 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   the first preset, 50 % (verified: drag to 47 %, click gives 50 %; Right to 55 %, Enter gives 50 %).
 - **"Продолжить работу" (every release; `ia.md` R2, "Focus when a focused alert disappears"):** clears the
   warning; focus returns to the element that had it before focus entered "Уведомления". If there was none,
-  focus goes to the R3 landing of the shown pane's region: the breadcrumb "Курс" with two panes, the switch
+  focus goes to the R3 landing of the shown pane's region: the course crumb with two panes (from #220,
+  `ia.md` "Rules (#218)" row "course crumb landing"; until #220 the breadcrumb "Курс"), the switch
   tab "Урок" in one-pane mode with "Урок" shown, the switch tab "Окружение" in one-pane mode with "Окружение"
   shown. The shown pane does not change. If the return target is gone or no longer focusable when the
   warning closes, focus goes where R2 "Focus after a background change" sends it for the place that element
@@ -601,7 +634,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   landing for the new state; anywhere else the R3 landing of the shown pane. Never `body`; an
   `aria-disabled` target keeps focus. The prototype always takes the "there was none" branch: the button
   carries `data-keep-pane` (the theory state it goes to keeps the pane the learner had) and focuses the
-  switch tab of the shown pane, or "Курс" with two panes.
+  switch tab of the shown pane, or the course crumb `#crumb-course` with two panes.
 - **Text load "Повторить":** focus moves to the reloaded tab panel (R2); when the text fails again, focus
   moves to the h2 "Не удалось загрузить текст урока" (`#text-error-title`, `tabindex="-1"`, the Alert title),
   on every later failure too; `<title>` unchanged (`ia.md` R2, page-level retry table). A pointer press on
@@ -942,10 +975,11 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   |---------|-----------------|----------------|
   | "Войти снова" (F2.1) | `/sign-in?next=<current path with the current ?tab=, URL-encoded>` | `../sign-in/prototype.html?next=<encoded app path with the current ?tab=>#state-with-next`, rewritten on every tab selection |
   | "Выйти" (F3.2) | sign out, then `/sign-in`, which shows "Вы вышли" (F3.3) | `../sign-in/prototype.html#state-signed-out` |
-  | breadcrumb "Курс", top bar "Курс", "Открыть курс" | `/courses/[courseId]`; top bar "Курс" not while the course id is unknown (ia.md R6, "Course id unknown"); the breadcrumb and "Открыть курс" are not rendered while the course cannot be read | `../catalog/prototype.html` |
-  | breadcrumb module | `/courses/[courseId]#<moduleId>` (`ia.md`, A6; module 00 is `introduction`) | `../catalog/prototype.html#introduction` |
-  | "Академия", "Главная" | `/` | `../dashboard/prototype.html` |
-  | prerequisite lesson link (F6.3) | `/courses/[courseId]/lessons/[lessonId]` of that lesson | `prototype.html` |
+  | course crumb `#crumb-course` (from #220, F22.2), "Открыть курс" (environment rejected) | `/courses/[courseId]`, the URL's course (`ia.md` "Rules (#218)" row "course of each control"); neither is rendered while the course cannot be read | `../catalog/prototype.html` (course crumb: Prototype limitations item 6) |
+  | until #220 (`#state-m0`): breadcrumb "Курс", top bar "Курс" | `/courses/[courseId]`; top bar "Курс" not while the course id is unknown (ia.md R6, "Course id unknown"); replaced from #220 by the course crumb (A218-8) and no top-bar "Курс" (A218-3) | `../catalog/prototype.html#state-default-until-220` (item 6) |
+  | breadcrumb module | `/courses/[courseId]#<moduleId>` (`ia.md`, A6; module 00 is `introduction`) | `../catalog/prototype.html#introduction` (`#state-m0`: item 7) |
+  | "Академия", "Главная" | `/` | from #220 `../dashboard/prototype.html#state-courses-two`; `#state-m0` `../dashboard/prototype.html#state-first-run-until-220` (item 6) |
+  | prerequisite lesson link (F6.3) | `/courses/[courseId]/lessons/[lessonId]` of that lesson | `prototype.html` (item 6) |
   | source links | the source URL, same tab | the source URL |
 
 ## Copy
@@ -955,7 +989,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
 | skip link | К содержимому |
 | brand | Академия |
 | nav | Главная |
-| nav | Курс (not while the course id is unknown, ia.md R6 "Course id unknown") |
+| nav | Курс: until #220 only (`#state-m0`; not while the course id is unknown, ia.md R6 "Course id unknown"); from #220 no "Курс" (A218-3) |
 | user menu item | Выйти |
 | notifications heading (hidden) | Уведомления |
 | session alert | Сессия закончилась. Файлы в рабочей папке сохранены. |
@@ -967,7 +1001,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
 | one-pane switch tabs | Урок / Окружение |
 | switch suffix (hidden) | остановлено / ошибка |
 | breadcrumb label | Навигация |
-| breadcrumb | Курс / <module title> / <lesson title> (not shown when the course cannot be read) |
+| breadcrumb | from #220: <course name> / <module title> / <lesson title>, the course name `course.yaml` `title` (A218-8, A218-7; sample "ИИ для разработчиков"); until #220 (`#state-m0`): Курс / <module title> / <lesson title> (not shown when the course cannot be read) |
 | lesson type | артефакт (one of "теория", "квиз", "артефакт", "оценка агента", "поиск багов", "проект") |
 | duration | около N мин |
 | outcomes heading | Чему научитесь |
@@ -1193,8 +1227,8 @@ quiz content, data, not copy.
   the server reports (FU7 decides that status when a quiz closes).
 - **R6:** before #36, no Квиз tab, quiz row, "Пройти квиз", quiz notice container or other quiz control in
   any state, and the quiz check is not counted ("Пройдено: 0 из 1"); `?tab=quiz` falls back. From #36 they
-  appear on a lesson with a quiz check, the quiz check is counted ("из 2" in this lesson), and only the
-  `#state-quiz-*` states and the two quiz states of the history (`#state-history-quiz`,
+  appear on a lesson with a quiz check, the quiz check is counted ("из 2" in this lesson), and only
+  `#state-quiz`, the `#state-quiz-*` states and the two quiz states of the history (`#state-history-quiz`,
   `#state-history-quiz-open`) draw them (`quiz.md` "Release scope"). The attempt history only from #35 (the
   `history-*` and `checks-weak` states; no #69 or #70 state draws it, and `attempt` is ignored before #35);
   a quiz attempt record in it only from #36 with #35. In every release: no mentor, hint or Редактор control,
@@ -1426,8 +1460,9 @@ quiz content, data, not copy.
 - AC19: When the course cannot be read, `main` holds only "Не удалось загрузить курс" (the h1, `tabindex="-1"`)
   and "Повторить"; `<title>` "Не удалось загрузить курс" (the app; the catalog prototype that draws this
   composition keeps the course title); HTTP 200; `F6` to `main` lands on "Повторить"; no
-  `aria-current` on either top-bar link, and "Курс" is left out while the course id is unknown (only when
-  `course.yaml` itself cannot be read). "Повторить"
+  `aria-current` on either top-bar link; until #220 "Курс" is left out while the course id is unknown (only
+  when `course.yaml` itself cannot be read; from #220 the bar has no "Курс", `ia.md` A218-3, and the course
+  error with several courses: see #222). "Повторить"
   puts focus on the lesson h1 with `<title>` the lesson title on success; the error h1 with `<title>` "Не
   удалось загрузить курс" on a second failure; the not-found h1 with `<title>` "Страница не найдена" when
   the course loads but the URL is a way into the not-found page. A pointer press on "Повторить" that did not
@@ -1484,7 +1519,8 @@ quiz content, data, not copy.
   that does not wrap at 320 px, the row fallback removed, and the warning dropped from the last-attempt
   run.
 - AC30, "Продолжить работу" (every release): it clears the idle warning and returns focus to the element
-  that had it before focus entered "Уведомления"; with none, to "Курс" with two panes, to the switch tab
+  that had it before focus entered "Уведомления"; with none, to the course crumb with two panes (until
+  #220 "Курс"; row "course crumb landing"), to the switch tab
   "Урок" in one-pane mode with "Урок" shown, to the switch tab "Окружение" in one-pane mode with "Окружение"
   shown, and the shown pane does not change; when the return target is gone (from #36: an answer replaced
   the busy button or the options with the review), focus goes to the R2 target of its place (the result
@@ -1835,6 +1871,21 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
   1280 px, numbers per engine in States (`#state-theory`); headless WebKit does not scroll a focused `pre`
   with arrow keys and leaves buttons out of the Tab order by default, so the `scrollLeft` and Shift+Tab
   checks are Chromium's.
+- AC76, several courses (from #220; `ia.md` A218-3, A218-7, A218-8, "Rules (#218)" rows "course crumb landing"
+  and "course of each control"; `courses.md` F22): the top bar is "Академия", "Главная" and the user menu, no
+  "Курс", `aria-current` on neither link; the breadcrumb reads course name / module title / lesson title,
+  the lesson crumb `aria-current="page"`; the course crumb opens `/courses/<courseId>` and the module crumb
+  `/courses/<courseId>#<moduleId>`, both of the URL's course; `F6` to "Урок" lands on the course crumb in
+  two panes and full width, and on the switch tab "Урок" in one-pane mode, with the course crumb the next
+  Tab; a 120-character course name wraps inside the crumb and the root's `scrollWidth` equals its
+  `clientWidth` at 320 px and at 1280 px with 200 % zoom. Prototype, measured 2026-11-24 headless in
+  Chromium (Playwright 1.64.1, a fresh context per state): all 124 states, 123 with the A218-3 bar and
+  `#crumb-course` "ИИ для разработчиков" (`a#crumb-course` the only element with that id in each state, no
+  duplicate id in any state), `#state-m0` with "Курс" in the bar and the crumb; `F6` landings in
+  `#state-theory` at 1280, 375 and 320 px, `#state-no-workspace` at 1280 and 375 px, `#state-one-pane-env`
+  at 375 and 320 px; the long name in `#state-theory`, `#state-no-workspace` and `#state-one-pane-env`
+  (Урок shown) at 320x800 and 640x400 at device scale 2, light and dark: 4 lines at 320 px, 2 at 640 px,
+  `nav.breadcrumb` `scrollWidth` equal to its `clientWidth`.
 
 ## Open questions
 
