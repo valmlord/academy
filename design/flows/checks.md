@@ -437,9 +437,7 @@ focused element is removed or the dialog holding it closes.
 - When: "Проверить" is pressed and the run would include at least one check that spends tokens (Run
   composition: never a passed one, S11); on every such run, never remembered, because each run spends real
   money from the learner's own key, runs are long and few, and a remembered consent hides a cost the
-  learner may not expect a week later. A mentor review opens it too, with its own description,
-  list and focus targets (`ia.md` A71-2); the "Description", "Named" and "Focus" bullets below are a
-  run's.
+  learner may not expect a week later.
 - Title: "Потратить до $N с вашего ключа API?" ($N: the sum of the items). The title names the decision
   (spending money), not who spends it, because the spender differs by kind: the mentor grades a rubric check
   ("оценка ментора"), an agent solves a hidden task, and "агент" alone would also read as the learner's own
