@@ -63,7 +63,7 @@ Sizes are Tailwind's, so every value is a class in the app.
 | Step | Size / line height | Used for |
 |------|--------------------|----------|
 | `text-xs` | 0.75rem / 1rem | badges, key hint, R1 reason in a menu item, gallery notes |
-| `text-sm` | 0.875rem / 1.25rem | controls, labels, status bars, check rows, alerts, breadcrumbs, tables, code |
+| `text-sm` | 0.875rem / 1.25rem | controls, labels, status bars, check rows, alerts, breadcrumbs, tables, code; the h4 of a mentor block (weight 600) |
 | `text-base` | 1rem / 1.5rem | body text, inputs (16px avoids iOS zoom on focus) |
 | `text-lg` | 1.125rem / 1.75rem | card and dialog titles; empty-state titles; h3 on pages (quiz question); h4 in prose |
 | `text-xl` | 1.25rem / 1.75rem | h2 on pages; h3 in prose |
@@ -145,7 +145,12 @@ DropdownMenu items keep shadcn's `accent` background on focus but also draw the 
 ring measures 4.742:1 / 6.939:1 on `popover` and 4.349:1 / 5.857:1 on `accent` = `muted` (light / dark,
 "Contrast runs"). A code block's `pre` that is a Tab stop (it overflows, "Scrollable code") draws the ring
 inset (`outline-offset: calc(var(--focus-offset) * -1)`), inside the block, so it lies on `muted`: the
-4.349:1 / 5.857:1 above. The browser decides `:focus-visible`: the ring Radix Tabs draws on the first mouse click
+4.349:1 / 5.857:1 above. Two `tabindex="-1"` targets draw the ring outside instead (2px offset), and only these two: a
+received hint level (`.hint-level`) and the busy display (`.mentor-busy`), because neither has padding and an
+inset ring would lie on its first glyph; outside, it lies on the check row panel's `background`, the pair the
+validator measures for `ring`. The other mentor focus targets keep the inset ring of `tabindex="-1"`: the
+block's `h4`, the review text (`pre.check-row-message`, which has padding) and a failed call's
+`p.alert-title`. The browser decides `:focus-visible`: the ring Radix Tabs draws on the first mouse click
 on a tab is accepted (ia.md R4).
 
 Selected tab: shadcn's default pill (`background` on the `muted` tab list, `shadow-sm`), with a 1px
@@ -197,6 +202,7 @@ shadcn names (ui.shadcn.com/docs/components/radix/<name>). Prototype markup: cla
 | Skeleton | `.skeleton` | dashboard, catalog, lesson | one |
 | Empty | `.empty`, `.empty-title`, `.empty-description` | dashboard, catalog | one |
 | Separator | `.separator` (`data-orientation`) | catalog, lesson | horizontal, vertical |
+| none: a composition of Button, Alert and Spinner ("Hint ladder" below) | `.mentor-block`, `.hint-levels`, `.hint-level`, `.hint-level-name`, `.mentor-actions`, `.mentor-action`, `.mentor-busy` | lesson, Проверки (check row panel, attempt panel) and Квиз (closed quiz block) (from #37) | review block: pending, done (with the transcript note and the cost line), failed and budget spent (destructive Alert with "Повторить" in its `.alert-actions`); ladder: nothing received, levels received, a locked level (its controls `aria-disabled` with one lock reason), every control `aria-disabled` with one reason (a call running, no mentor key), a failed hint (destructive Alert); busy display: plain (review block) and focusable (ladder). shadcn has no ladder or stepper; ButtonGroup (`ui/button-group.tsx`, new-york-v4) joins its buttons into one segmented control (`rounded-l-none`, `border-l-0` on every button after the first, `w-fit`, no wrap), so it leaves no room for each control's "до $N" and cannot wrap at 320px |
 
 Custom pieces, each with its reason: `.status-icon` (`data-status` success, destructive, warning, info,
 queued, running, running-still, muted, closed, chosen): one icon per status with a different shape, except
@@ -213,8 +219,12 @@ quiz review mark "Ваш ответ": a solid `foreground` ring with a dot, a sh
 reads as a result ("Верный ответ" takes the `success` check mark); `.choice-indicator`
 (`data-type="radio|checkbox"`, `data-checked="true"`, `aria-hidden`): the RadioGroup or Checkbox drawing on a
 span, for the quiz review, which shows answers without inputs; `.disabled-reason`: the R1
-reason text; `.timer`: a standalone elapsed time, `role="timer"`, used in the check bar and the environment
-status bar, a sibling of their `[data-live-key]` container, never inside a button or a live container;
+reason text, next to its control, or, for a row of adjacent controls that share a reason (R1's row form: the
+hint ladder's controls, `ia.md` A71-6, A71-7), one `p.disabled-reason` right after the row, its `id` in the
+`aria-describedby` of every `aria-disabled` control of the row and of no enabled one; `.timer`: a standalone
+elapsed time, `role="timer"`, used in the check bar, the environment status bar and the mentor busy display
+(`.mentor-busy`, `ia.md` A71-7, from #37), a sibling of their `[data-live-key]` container or of the busy
+display's words, never inside a button or a live container;
 `.check-row-time`: the running time inside a check row button ("0:42 из 2:00"), no role, read as part of
 the button's name, because a button's children are presentational and a role there is dropped; one rule
 gives both the same look (`tabular-nums`, `muted-foreground`); `.icon-note`: a muted `text-sm` line with a leading `.status-icon`
@@ -240,7 +250,8 @@ Compositions (no new primitives): `.topbar` (with `.topbar-brand`, `.topbar-nav`
 the API key note F8.3, `.env-actions`, `.env-hint`, `.error-details`), `.check-bar` (`.check-bar-controls`,
 `.check-bar-status`), `.check-list` / `.check-row-trigger` (`.check-row-title`, `.check-row-status`,
 `.check-row-meta` with `.check-row-time` and `[data-tone="warning"]`) / `.check-row-panel` /
-`.check-row-message` / `.error-details`, the attempt row and attempt panel (`.history-plain`,
+`.check-row-message` / `.error-details`, the mentor block and hint ladder (`.mentor-block`, `.hint-levels`,
+`.hint-level`, `.hint-level-name`, `.mentor-actions`, `.mentor-action`, `.mentor-busy`; "Hint ladder" below), the attempt row and attempt panel (`.history-plain`,
 `.history-results`, `.history-result-title`; below),
 `.prose` (`.table-wrap`, `.code-block`, `.toc`), `.terminal-frame` (`.terminal-output`, `.ansi-<color>`,
 `.ansi-bright-<color>`, `.terminal-cursor`, `.terminal-selection`, `data-connection="lost"`,
@@ -343,6 +354,78 @@ badge, breadcrumb, button, card, dropdown-menu, empty, field, input, item, label
 spinner, tabs). The environment status bar and its timer shipped with #105
 (`components/environment/environment-panel.tsx:178`, `:262`), after this paragraph was first written. #34
 builds the check pieces from this section and `checks.md`; nothing here describes a shipped difference.
+
+### Hint ladder and mentor busy display (F16, F17, from #37)
+
+`design/flows/ia.md` A71-1, A71-2, A71-4 to A71-8, A71-10. None of it is in `apps/web`; #37 builds it from
+this section. No new token: every colour is one the check row panel and the Alert already use
+(`foreground`, `muted-foreground` on `background` and on `card`, `muted`, the outline, secondary and
+disabled Button, the destructive Alert), each measured in "Contrast runs" or by the validator.
+
+- Mentor block: `div.mentor-block`, led by an `h4` ("Подсказки", or "Разбор ментора" for the review block,
+  which reuses the same class) in `text-sm`, weight 600, its own items `space-2` apart; a hidden item takes
+  no space. Placements, each with its parent and the gap above the block (`proto.css` "mentor block"):
+
+  | Placement (flows) | Parent | Gap above | Why this gap |
+  |-------------------|--------|-----------|--------------|
+  | check row panel, Проверки: review block and ladder (A71-5, A71-6) | `.check-row-panel` | `space-4` | one step above the panel's `space-2`, so the `h4` starts a part of the row |
+  | closed quiz block, Квиз: review block (A71-5) | `.quiz` (a direct child, after the closed result Alert) | `space-6` | the quiz panel's part gap: the review is one of its parts, as the result block and each question; no override |
+  | attempt panel, Проверки history: done review (A71-10) | `.history-results > li` | `space-2` | results are `space-4` apart; a larger gap would put the review as far from its result as from the next result |
+
+  "Разобрать с ментором" sits in the same parent at the same gap: after the counter in the check row panel
+  (`space-2`, a panel item), after the closed result Alert in the quiz (`space-6`).
+- Score line (A71-4): `p.text-sm` in `foreground`, "Оценка S%, нужно P%", the first item of a rubric row's
+  panel, right before the grader message, `space-2` apart like every panel item. Not muted: it says why the
+  row failed or passed, as the grader message does; the muted lines (cost, counter) are bookkeeping. Not in
+  attempt panels.
+- Review block forms (A71-5), in the `h4`'s block: pending, the busy display (below); done, the review in
+  `pre.check-row-message` with `tabindex="-1"` and an `id` (the A71-8 focus target), then the transcript note
+  `p.icon-note` with the `info` status icon ("Ментор не видел транскрипт работы с агентом") when it applies,
+  then "Стоимость разбора: $N" as `p.text-sm.muted`; failed and budget spent, the destructive Alert (no live
+  role) with its `p.alert-title` ("Ментор не ответил", "Бюджет на разбор исчерпан") with `tabindex="-1"` and
+  an `id`, the A71-8 focus target; the budget form puts "Стоимость разбора: $N" in the Alert as a
+  `p.alert-description` after the title (A71-5: the Alert "with the cost line"). Then, inside the Alert, the
+  retry: `div.alert-actions` holding one `div.mentor-action` with a secondary sm Button "Повторить" and its
+  `span.text-sm.muted` "до $N" (`aria-describedby`, A71-2). Its cost sits beside it as on every mentor
+  control; `muted-foreground` on `card` measures
+  5.251:1 / 6.939:1 ("Contrast runs"). When it is `aria-disabled` (another call on the check, no mentor key:
+  A71-7) its reason is a `p.disabled-reason` right after `.alert-actions`, still in the Alert's text column,
+  and the Button lists it first: `aria-describedby="<reason id> <cost id>"`. The attempt panel draws the done
+  form only, without a control (A71-10).
+- Levels: `ol.hint-levels` with `role="list"` (WebKit drops the list role when `list-style` is none), four
+  `li.hint-level` in ladder order, each `p.hint-level-name` ("Вопрос", "Направление", "Скелет", "Скажи
+  прямо"). A level not received shows its name only, `muted-foreground`; a received level is
+  `data-received="true"` and `tabindex="-1"` (A71-8 focuses it when its hint arrives), its name in
+  `foreground` at weight 500, followed by the hint in `pre.check-row-message`, `space-1` below the name.
+  The grader message's `pre` is reused because a hint is data shown verbatim (A71-6) and the "Скелет" level
+  holds code whose line breaks and indentation `pre-wrap` keeps; it wraps, so it never overflows and is no
+  Tab stop. A locked level looks like any level not received: the lock is on its controls, with its reason
+  text, because the copy set "mentor (D3)" has no lock word for an item and colour or an icon alone would
+  say it without words.
+- Controls: `div.mentor-actions` after the list, one `div.mentor-action` per control: an outline sm Button
+  ("Попросить подсказку" or "Следующая подсказка", then "Скелет" and "Скажи прямо" where A71-6 offers
+  them), then its visible cost `span.text-sm.muted` "до $N" with an `id`, named in the Button's
+  `aria-describedby` (A71-2). Outline, as "Пройти квиз": the check area's one default action is
+  "Проверить". Pairs are `space-4` apart and wrap as whole pairs; inside a pair the cost moves under its
+  Button when the panel is too narrow (320px). An `aria-disabled` control lists the reason first, then its
+  cost: `aria-describedby="<reason id> <cost id>"`. The reason is one `p.disabled-reason` right after
+  `.mentor-actions` (R1 row form): "Откроется, когда проверка будет закрыта" on the controls that ask
+  "Скелет" or "Скажи прямо" (the others stay enabled), "Дождитесь ответа ментора" or "Ключ API для ментора
+  не задан" on all of them. "Разобрать с ментором" is one `.mentor-action` directly in the check row
+  panel or the `.quiz`, on a line of its own (`width: fit-content`), its reason a `p.disabled-reason` right
+  after it.
+- Failed hint: the destructive Alert after the controls and their reason, no live role, its `p.alert-title`
+  ("Ментор не ответил", "Бюджет на подсказку исчерпан") with `tabindex="-1"` and an `id`, the A71-8 focus
+  target. The review's failed Alert without `.alert-actions`: A71-6 gives the hint no retry in the Alert (the
+  controls stay and a press of the same ladder button asks again), so there is no "Повторить" here and the
+  secondary retry look does not apply.
+- Busy display: `div.mentor-busy` holding `span.spinner` (`aria-hidden`), the words in a `span` ("Ментор
+  читает попытку", "Ментор готовит подсказку") and `span.timer` with `role="timer"`, never a live region
+  (R2). In the ladder it comes after the controls and their reason and takes focus after a press (A71-6):
+  `role="group"`, `tabindex="-1"`, `aria-labelledby` the words' `id`, so it is named by its words and not
+  by the ticking time (the Alert's focus form, for the same reason: a name on a `div` without a role is not
+  exposed). In the review block it follows the `h4`, which holds focus, so it has no role and no tabindex.
+  The time counts from the server's request time (A71-7); the prototypes draw it still, as every timer.
 
 ### Quiz panel (F15, from #36)
 

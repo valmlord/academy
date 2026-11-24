@@ -551,6 +551,192 @@
   </div>
 
   <div class="gallery-section">
+    <h3>Composition: hint ladder and mentor busy display (from #37)</h3>
+    <ul class="check-list" lang="ru">
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-hint-a">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-hint-a">
+          <pre class="check-row-message">test_unknown_tool: expected an error result in context, got KeyError</pre>
+          <p class="text-sm muted">Неудачных попыток: 2</p>
+          <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-a-review-cost">Разобрать с ментором</button><span class="text-sm muted" id="g-hint-a-review-cost">до $0.05</span></div>
+          <div class="mentor-block">
+            <h4>Подсказки</h4>
+            <ol class="hint-levels" role="list">
+              <li class="hint-level"><p class="hint-level-name">Вопрос</p></li>
+              <li class="hint-level"><p class="hint-level-name">Направление</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скелет</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скажи прямо</p></li>
+            </ol>
+            <div class="mentor-actions">
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-a-cost-1">Попросить подсказку</button><span class="text-sm muted" id="g-hint-a-cost-1">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-a-cost-2">Скелет</button><span class="text-sm muted" id="g-hint-a-cost-2">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-a-cost-3">Скажи прямо</button><span class="text-sm muted" id="g-hint-a-cost-3">до $0.05</span></div>
+            </div>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-hint-b">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Тесты ловят сломанные версии late_fee, код проходит скрытые приёмочные тесты</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-hint-b">
+          <pre class="check-row-message">mutant late_fee_grace_off_by_one survived: no test failed</pre>
+          <p class="text-sm muted">Неудачных попыток: 4 из 10</p>
+          <div class="mentor-block">
+            <h4>Подсказки</h4>
+            <ol class="hint-levels" role="list">
+              <li class="hint-level"><p class="hint-level-name">Вопрос</p></li>
+              <li class="hint-level"><p class="hint-level-name">Направление</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скелет</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скажи прямо</p></li>
+            </ol>
+            <div class="mentor-actions">
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-b-cost-1">Попросить подсказку</button><span class="text-sm muted" id="g-hint-b-cost-1">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-b-lock g-hint-b-cost-2">Скелет</button><span class="text-sm muted" id="g-hint-b-cost-2">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-b-lock g-hint-b-cost-3">Скажи прямо</button><span class="text-sm muted" id="g-hint-b-cost-3">до $0.05</span></div>
+            </div>
+            <p class="disabled-reason" id="g-hint-b-lock">Откроется, когда проверка будет закрыта</p>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-hint-c">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Тесты ловят сломанные версии late_fee, код проходит скрытые приёмочные тесты</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-hint-c">
+          <pre class="check-row-message">mutant late_fee_grace_off_by_one survived: no test failed</pre>
+          <p class="text-sm muted">Неудачных попыток: 6 из 10</p>
+          <div class="mentor-block">
+            <h4>Подсказки</h4>
+            <ol class="hint-levels" role="list">
+              <li class="hint-level" data-received="true" tabindex="-1" id="g-hint-c-level-1"><p class="hint-level-name">Вопрос</p><pre class="check-row-message">Какой из сломанных вариантов late_fee ваши тесты пропускают, и на каком дне просрочки он считает не так, как спецификация?</pre></li>
+              <li class="hint-level" data-received="true" tabindex="-1" id="g-hint-c-level-2"><p class="hint-level-name">Направление</p><pre class="check-row-message">Посмотрите на день, когда просрочка ровно равна льготному периоду. Что спецификация говорит про этот день, и есть ли у вас тест именно на него?</pre></li>
+              <li class="hint-level"><p class="hint-level-name">Скелет</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скажи прямо</p></li>
+            </ol>
+            <div class="mentor-actions">
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-c-lock g-hint-c-cost-1">Следующая подсказка</button><span class="text-sm muted" id="g-hint-c-cost-1">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-c-lock g-hint-c-cost-2">Скажи прямо</button><span class="text-sm muted" id="g-hint-c-cost-2">до $0.05</span></div>
+            </div>
+            <p class="disabled-reason" id="g-hint-c-lock">Откроется, когда проверка будет закрыта</p>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-hint-d">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-hint-d">
+          <pre class="check-row-message">test_unknown_tool: expected an error result in context, got KeyError</pre>
+          <p class="text-sm muted">Неудачных попыток: 3</p>
+          <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-d-review-wait g-hint-d-review-cost">Разобрать с ментором</button><span class="text-sm muted" id="g-hint-d-review-cost">до $0.05</span></div>
+          <p class="disabled-reason" id="g-hint-d-review-wait">Дождитесь ответа ментора</p>
+          <div class="mentor-block">
+            <h4>Подсказки</h4>
+            <ol class="hint-levels" role="list">
+              <li class="hint-level" data-received="true" tabindex="-1" id="g-hint-d-level-1"><p class="hint-level-name">Вопрос</p><pre class="check-row-message">Когда модель просит инструмент, которого нет в реестре, что из этого должно попасть в контекст на следующем шаге цикла?</pre></li>
+              <li class="hint-level"><p class="hint-level-name">Направление</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скелет</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скажи прямо</p></li>
+            </ol>
+            <div class="mentor-actions">
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-d-wait g-hint-d-cost-1">Следующая подсказка</button><span class="text-sm muted" id="g-hint-d-cost-1">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-d-wait g-hint-d-cost-2">Скелет</button><span class="text-sm muted" id="g-hint-d-cost-2">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-d-wait g-hint-d-cost-3">Скажи прямо</button><span class="text-sm muted" id="g-hint-d-cost-3">до $0.05</span></div>
+            </div>
+            <p class="disabled-reason" id="g-hint-d-wait">Дождитесь ответа ментора</p>
+            <div class="mentor-busy" role="group" tabindex="-1" aria-labelledby="g-hint-d-busy"><span class="spinner" aria-hidden="true"></span><span id="g-hint-d-busy">Ментор готовит подсказку</span><span class="timer" role="timer">0:12</span></div>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-hint-e">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-hint-e">
+          <pre class="check-row-message">test_unknown_tool: expected an error result in context, got KeyError</pre>
+          <p class="text-sm muted">Неудачных попыток: 3</p>
+          <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-e-review-cost">Разобрать с ментором</button><span class="text-sm muted" id="g-hint-e-review-cost">до $0.05</span></div>
+          <div class="mentor-block">
+            <h4>Подсказки</h4>
+            <ol class="hint-levels" role="list">
+              <li class="hint-level" data-received="true" tabindex="-1" id="g-hint-e-level-1"><p class="hint-level-name">Вопрос</p><pre class="check-row-message">Когда модель просит инструмент, которого нет в реестре, что из этого должно попасть в контекст на следующем шаге цикла?</pre></li>
+              <li class="hint-level"><p class="hint-level-name">Направление</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скелет</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скажи прямо</p></li>
+            </ol>
+            <div class="mentor-actions">
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-e-cost-1">Следующая подсказка</button><span class="text-sm muted" id="g-hint-e-cost-1">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-e-cost-2">Скелет</button><span class="text-sm muted" id="g-hint-e-cost-2">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-hint-e-cost-3">Скажи прямо</button><span class="text-sm muted" id="g-hint-e-cost-3">до $0.05</span></div>
+            </div>
+            <div class="alert" data-variant="destructive">
+              <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+              <p class="alert-title" tabindex="-1" id="g-hint-e-error">Ментор не ответил</p>
+            </div>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-hint-f">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-hint-f">
+          <pre class="check-row-message">test_unknown_tool: expected an error result in context, got KeyError</pre>
+          <p class="text-sm muted">Неудачных попыток: 1</p>
+          <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-f-review-key g-hint-f-review-cost">Разобрать с ментором</button><span class="text-sm muted" id="g-hint-f-review-cost">до $0.05</span></div>
+          <p class="disabled-reason" id="g-hint-f-review-key">Ключ API для ментора не задан</p>
+          <div class="mentor-block">
+            <h4>Подсказки</h4>
+            <ol class="hint-levels" role="list">
+              <li class="hint-level"><p class="hint-level-name">Вопрос</p></li>
+              <li class="hint-level"><p class="hint-level-name">Направление</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скелет</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скажи прямо</p></li>
+            </ol>
+            <div class="mentor-actions">
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-f-key g-hint-f-cost-1">Попросить подсказку</button><span class="text-sm muted" id="g-hint-f-cost-1">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-f-key g-hint-f-cost-2">Скелет</button><span class="text-sm muted" id="g-hint-f-cost-2">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-hint-f-key g-hint-f-cost-3">Скажи прямо</button><span class="text-sm muted" id="g-hint-f-cost-3">до $0.05</span></div>
+            </div>
+            <p class="disabled-reason" id="g-hint-f-key">Ключ API для ментора не задан</p>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-hint-g">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-hint-g">
+          <pre class="check-row-message">test_unknown_tool: expected an error result in context, got KeyError</pre>
+          <p class="text-sm muted">Неудачных попыток: 3</p>
+          <div class="mentor-block">
+            <h4 tabindex="-1" id="g-hint-g-review">Разбор ментора</h4>
+            <div class="mentor-busy"><span class="spinner" aria-hidden="true"></span><span>Ментор читает попытку</span><span class="timer" role="timer">0:08</span></div>
+          </div>
+        </div>
+      </li>
+    </ul>
+    <p class="gallery-note">Rows: nothing received on a check with no attempt limit ("Попросить подсказку", "Скелет", "Скажи прямо"); nothing received on a check with a known limit that is not closed ("Скелет" and "Скажи прямо" aria-disabled, one lock reason after the row, tied to both); two levels received there, so "Следующая подсказка" asks "Скелет" and is locked with "Скажи прямо" (a locked level: the level item looks like any level not yet received, the lock is on its controls); a hint pending (every mentor control aria-disabled, "Разобрать с ментором" with its own reason, the ladder's one reason after its row, then the busy display, the hint's focus target: role="group", tabindex="-1", named by its words, never a live region); a failed hint (destructive Alert after the controls, no actions, its title the focus target, tabindex="-1"; the controls stay and a press asks again); no mentor key (every control aria-disabled with "Ключ API для ментора не задан"); a review pending (h4 "Разбор ментора" with tabindex="-1" holds focus, so the busy display there is not focusable). Every control is an outline sm Button in a .mentor-action with its visible "до $N" (span.text-sm.muted) as its aria-describedby; a disabled one lists its reason first, then the cost. A received level and the busy display draw the focus ring outside, on the panel background. Check titles come from the course; grader messages, hints, costs and times are sample data.</p>
+  </div>
+
+  <div class="gallery-section">
     <h3>Composition: quiz panel, blocked send</h3>
     <div class="quiz" lang="ru">
       <div class="quiz-intro">
@@ -613,6 +799,157 @@
       <button class="button" type="button" aria-disabled="true" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Отправляем...</button>
     </div>
     <p class="gallery-note">While sending: the Button busy pattern (aria-busy plus aria-disabled, Spinner, the busy label is the reason, R1) and every option and group aria-disabled; nothing else changes look.</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Composition: mentor review block and score line, three placements (from #37)</h3>
+    <h4 class="gallery-part-heading">Check row panel</h4>
+    <ul class="check-list" lang="ru">
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-rev-a">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Качество плана (оценка ментора по рубрике)</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-rev-a">
+          <p class="text-sm">Оценка 60%, нужно 70%</p>
+          <pre class="check-row-message">Критерий 1: у шагов 2 и 4 нет ожидаемого результата проверки.</pre>
+          <p class="text-sm muted">Стоимость попытки: $0.04</p>
+          <p class="text-sm muted">Неудачных попыток: 1</p>
+          <div class="mentor-block">
+            <h4 tabindex="-1" id="g-rev-a-heading">Разбор ментора</h4>
+            <pre class="check-row-message" tabindex="-1" id="g-rev-a-text">Что в плане говорит исполнителю, что шаг выполнен?&#10;&#10;Перечитайте шаги 2 и 4 так, будто вы их исполняете: по какому выводу вы поймёте, что можно идти дальше?</pre>
+            <p class="icon-note"><span class="status-icon" data-status="info" aria-hidden="true"></span><span>Ментор не видел транскрипт работы с агентом</span></p>
+            <p class="text-sm muted">Стоимость разбора: $0.04</p>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-rev-b">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-rev-b">
+          <pre class="check-row-message">2 из 6 карточек неверны.</pre>
+          <p class="text-sm muted">Неудачных попыток: 3 из 10</p>
+          <div class="mentor-block">
+            <h4 tabindex="-1" id="g-rev-b-heading">Разбор ментора</h4>
+            <div class="alert" data-variant="destructive">
+              <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+              <p class="alert-title" tabindex="-1" id="g-rev-b-error">Ментор не ответил</p>
+              <div class="alert-actions"><div class="mentor-action"><button class="button" type="button" data-variant="secondary" data-size="sm" aria-describedby="g-rev-b-cost">Повторить</button><span class="text-sm muted" id="g-rev-b-cost">до $0.05</span></div></div>
+            </div>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-rev-c">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-rev-c">
+          <pre class="check-row-message">2 из 6 карточек неверны.</pre>
+          <p class="text-sm muted">Неудачных попыток: 3 из 10</p>
+          <div class="mentor-block">
+            <h4 tabindex="-1" id="g-rev-c-heading">Разбор ментора</h4>
+            <div class="alert" data-variant="destructive">
+              <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+              <p class="alert-title" tabindex="-1" id="g-rev-c-error">Бюджет на разбор исчерпан</p>
+              <p class="alert-description">Стоимость разбора: $0.05</p>
+              <div class="alert-actions"><div class="mentor-action"><button class="button" type="button" data-variant="secondary" data-size="sm" aria-describedby="g-rev-c-cost">Повторить</button><span class="text-sm muted" id="g-rev-c-cost">до $0.05</span></div></div>
+            </div>
+          </div>
+        </div>
+      </li>
+      <li>
+        <button class="check-row-trigger" type="button" data-collapsible aria-expanded="true" aria-controls="g-rev-d">
+          <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+          <span class="check-row-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</span>
+          <span class="check-row-status">Не пройдено</span>
+        </button>
+        <div class="check-row-panel" id="g-rev-d">
+          <pre class="check-row-message">2 из 6 карточек неверны.</pre>
+          <p class="text-sm muted">Неудачных попыток: 3 из 10</p>
+          <div class="mentor-block">
+            <h4 tabindex="-1" id="g-rev-d-heading">Разбор ментора</h4>
+            <div class="alert" data-variant="destructive">
+              <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
+              <p class="alert-title" tabindex="-1" id="g-rev-d-error">Ментор не ответил</p>
+              <div class="alert-actions"><div class="mentor-action"><button class="button" type="button" data-variant="secondary" data-size="sm" aria-disabled="true" aria-describedby="g-rev-d-wait g-rev-d-cost">Повторить</button><span class="text-sm muted" id="g-rev-d-cost">до $0.05</span></div></div>
+              <p class="disabled-reason" id="g-rev-d-wait">Дождитесь ответа ментора</p>
+            </div>
+          </div>
+          <div class="mentor-block">
+            <h4>Подсказки</h4>
+            <ol class="hint-levels" role="list">
+              <li class="hint-level"><p class="hint-level-name">Вопрос</p></li>
+              <li class="hint-level"><p class="hint-level-name">Направление</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скелет</p></li>
+              <li class="hint-level"><p class="hint-level-name">Скажи прямо</p></li>
+            </ol>
+            <div class="mentor-actions">
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-rev-d-ladder-wait g-rev-d-hint-1">Попросить подсказку</button><span class="text-sm muted" id="g-rev-d-hint-1">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-rev-d-ladder-wait g-rev-d-hint-2">Скелет</button><span class="text-sm muted" id="g-rev-d-hint-2">до $0.05</span></div>
+              <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-disabled="true" aria-describedby="g-rev-d-ladder-wait g-rev-d-hint-3">Скажи прямо</button><span class="text-sm muted" id="g-rev-d-hint-3">до $0.05</span></div>
+            </div>
+            <p class="disabled-reason" id="g-rev-d-ladder-wait">Дождитесь ответа ментора</p>
+            <div class="mentor-busy" role="group" tabindex="-1" aria-labelledby="g-rev-d-busy"><span class="spinner" aria-hidden="true"></span><span id="g-rev-d-busy">Ментор готовит подсказку</span><span class="timer" role="timer">0:12</span></div>
+          </div>
+        </div>
+      </li>
+    </ul>
+    <h4 class="gallery-part-heading">Closed quiz block</h4>
+    <div class="quiz" lang="ru">
+      <div class="alert" id="g-rev-quiz-closed" role="group" tabindex="-1" aria-labelledby="g-rev-quiz-closed-title" aria-describedby="g-rev-quiz-closed-score g-rev-quiz-closed-review">
+        <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+        <p class="alert-title" id="g-rev-quiz-closed-title">Квиз не пройден: попытки исчерпаны</p>
+        <p class="alert-description" id="g-rev-quiz-closed-score">Верно 4 из 6. Нужно 5.</p>
+        <p class="alert-description" id="g-rev-quiz-closed-review">Ниже верные ответы и пояснения.</p>
+      </div>
+      <div class="mentor-action"><button class="button" type="button" data-variant="outline" data-size="sm" aria-describedby="g-rev-quiz-cost">Разобрать с ментором</button><span class="text-sm muted" id="g-rev-quiz-cost">до $0.05</span></div>
+    </div>
+    <div class="quiz" lang="ru">
+      <div class="alert" id="g-rev-quiz-closed-2" role="group" tabindex="-1" aria-labelledby="g-rev-quiz-closed-2-title" aria-describedby="g-rev-quiz-closed-2-score g-rev-quiz-closed-2-review">
+        <span class="status-icon" data-status="closed" aria-hidden="true"></span>
+        <p class="alert-title" id="g-rev-quiz-closed-2-title">Квиз не пройден: попытки исчерпаны</p>
+        <p class="alert-description" id="g-rev-quiz-closed-2-score">Верно 4 из 6. Нужно 5.</p>
+        <p class="alert-description" id="g-rev-quiz-closed-2-review">Ниже верные ответы и пояснения.</p>
+      </div>
+      <div class="mentor-block">
+        <h4 tabindex="-1" id="g-rev-quiz-heading">Разбор ментора</h4>
+        <pre class="check-row-message" tabindex="-1" id="g-rev-quiz-text">Что из вашего выбора меняет то, сколько контекста остаётся модели, а что нет?</pre>
+        <p class="icon-note"><span class="status-icon" data-status="info" aria-hidden="true"></span><span>Ментор не видел транскрипт работы с агентом</span></p>
+        <p class="text-sm muted">Стоимость разбора: $0.04</p>
+      </div>
+    </div>
+    <h4 class="gallery-part-heading">Attempt panel</h4>
+    <ul class="check-list" lang="ru">
+      <li>
+        <button class="check-row-trigger" type="button" id="g-rev-attempt" data-collapsible aria-expanded="true" aria-controls="g-rev-attempt-panel"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">№ 4<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 2. Потрачено: $0.04</span></span></button>
+        <div class="check-row-panel" id="g-rev-attempt-panel">
+          <ul class="history-results">
+            <li>
+              <p class="history-result-title">Маршрутизация 6 задач: уровень модели, effort, запуск и ограничение</p>
+              <p><span class="check-row-status"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройдено</span></p>
+              <pre class="check-row-message">2 из 6 карточек неверны.</pre>
+              <div class="mentor-block">
+                <h4>Разбор ментора</h4>
+                <pre class="check-row-message">Начните с binding_constraint и проверьте, что каждое следующее поле из него следует.</pre>
+                <p class="text-sm muted">Стоимость разбора: $0.04</p>
+              </div>
+            </li>
+            <li>
+              <p class="history-result-title">Структура plan.md: разделы, шаги с проверкой, пути, вопросы</p>
+              <p><span class="check-row-status"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройдено</span></p>
+              <pre class="check-row-message">plan.md не найден в корне рабочего места</pre>
+            </li>
+          </ul>
+        </div>
+      </li>
+    </ul>
+    <p class="gallery-note">Check row panel: a rubric row with the score line "Оценка S%, нужно P%" (text-sm, foreground, first item, right before the grader message) and the done review (review text in pre.check-row-message with tabindex="-1", the transcript note, the cost line); the failed review; the budget-spent review (the cost line in the Alert as an alert-description); the failed review while a hint call runs ("Повторить" aria-disabled, its reason after .alert-actions inside the Alert, then the ladder with its one reason and the busy display). Every review "Повторить" is a secondary sm Button inside the destructive Alert's .alert-actions, with its "до $N" beside it as its aria-describedby (reason first when disabled). The mentor block sits space-4 below the panel item before it. Closed quiz block: "Разобрать с ментором" and then the done review as direct children of .quiz, space-6 below the closed result block (the quiz's part gap). Attempt panel: the done review only, no control, space-2 below the result's grader message, inside the result's li (results are space-4 apart). The quiz demos omit the panel heading, header and questions. Check titles come from the course; grader messages, reviews, costs and times are sample data.</p>
   </div>
 
   <div class="gallery-section">
