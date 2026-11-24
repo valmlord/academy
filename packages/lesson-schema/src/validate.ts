@@ -1,4 +1,13 @@
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  type Dirent,
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  type Stats,
+  statSync,
+} from "node:fs";
 import { join, relative } from "node:path";
 import type { z } from "zod";
 import {
@@ -339,25 +348,109 @@ function subdirs(dir: string): string[] {
   return readdirSync(dir).filter((n) => statSync(join(dir, n)).isDirectory());
 }
 
-/** Validate every course under `root` (each subdirectory with a course.yaml). */
+// The root's path relative to itself is empty; "." names it without printing its absolute path.
+const ROOT_LABEL = ".";
+
+type RootListing =
+  | { readonly ok: true; readonly courseNames: string[]; readonly symlinkNames: string[] }
+  | { readonly ok: false; readonly reason: string };
+
+/**
+ * The real directories and the symlinks directly under the root, each as a name list in plain-string
+ * order. The entry types come from the listing and do not follow links, so a broken symlink is listed,
+ * not followed. Other entries are dropped.
+ */
+function listCourseRoot(root: string): RootListing {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(root, { withFileTypes: true });
+  } catch (error: unknown) {
+    const reason = readFailureReason(error);
+    if (reason === undefined) throw error;
+    return { ok: false, reason };
+  }
+  const names = (keep: (entry: Dirent) => boolean): string[] =>
+    entries
+      .filter(keep)
+      .map((entry) => entry.name)
+      .sort();
+  return {
+    ok: true,
+    courseNames: names((entry) => entry.isDirectory()),
+    symlinkNames: names((entry) => entry.isSymbolicLink()),
+  };
+}
+
+type CourseFileState =
+  | { readonly kind: "missing" }
+  | { readonly kind: "symlink" }
+  | { readonly kind: "unreadable"; readonly reason: string }
+  | { readonly kind: "present" };
+
+/** The state of a course.yaml from `lstat`, which does not follow a symlink. */
+function courseFileState(file: string): CourseFileState {
+  let stats: Stats;
+  try {
+    stats = lstatSync(file);
+  } catch (error: unknown) {
+    const reason = readFailureReason(error);
+    if (reason === undefined) throw error;
+    const isMissing =
+      typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+    return isMissing ? { kind: "missing" } : { kind: "unreadable", reason };
+  }
+  return stats.isSymbolicLink() ? { kind: "symlink" } : { kind: "present" };
+}
+
+/** Validates the course root and every course in it (ADR-0009 item 6). */
 export function validateCourses(root: string): ValidationResult {
   const result: ValidationResult = { courses: 0, modules: 0, lessons: 0, issues: [] };
   const issue = (file: string, message: string) =>
-    result.issues.push({ file: relative(root, file) || file, message });
+    result.issues.push({ file: relative(root, file) || ROOT_LABEL, message });
 
   if (!existsSync(root)) {
     issue(root, "course root does not exist");
     return result;
   }
 
-  for (const courseDir of subdirs(root).map((d) => join(root, d))) {
+  const listing = listCourseRoot(root);
+  if (!listing.ok) {
+    issue(root, `course root cannot be listed: ${listing.reason}`);
+    return result;
+  }
+  for (const name of listing.symlinkNames) {
+    issue(root, `symlink ${JSON.stringify(name)} directly under the course root is not a course`);
+  }
+  if (listing.courseNames.length === 0) {
+    issue(root, "no course: the course root holds no directory");
+    return result;
+  }
+
+  for (const name of listing.courseNames) {
+    result.courses++;
+    // Checked before any file of the directory is opened.
+    const courseId = Course.shape.id.safeParse(name);
+    if (!courseId.success) {
+      const reason = courseId.error.issues[0]?.message ?? "invalid";
+      issue(root, `directory ${JSON.stringify(name)} is not a course id (${reason})`);
+      continue;
+    }
+    const courseDir = join(root, name);
     const courseFile = join(courseDir, "course.yaml");
-    if (!existsSync(courseFile)) {
+    const courseFileStatus = courseFileState(courseFile);
+    if (courseFileStatus.kind === "missing") {
       issue(courseDir, "missing course.yaml");
       continue;
     }
+    if (courseFileStatus.kind === "symlink") {
+      issue(courseFile, "course.yaml is a symlink");
+      continue;
+    }
+    if (courseFileStatus.kind === "unreadable") {
+      issue(courseFile, courseFileStatus.reason);
+      continue;
+    }
     const courseRead = readYaml(courseFile);
-    result.courses++;
     if (!courseRead.ok) {
       issue(courseFile, courseRead.reason);
       continue;
@@ -365,6 +458,14 @@ export function validateCourses(root: string): ValidationResult {
     const course = Course.safeParse(courseRead.value);
     if (!course.success) {
       result.issues.push(...zodIssues(relative(root, courseFile), course.error));
+      continue;
+    }
+    // Checked before any module.yaml of the course is read.
+    if (course.data.id !== name) {
+      issue(
+        courseFile,
+        `id ${JSON.stringify(course.data.id)} is not the directory name ${JSON.stringify(name)}`,
+      );
       continue;
     }
 

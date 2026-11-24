@@ -1,4 +1,12 @@
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -1035,5 +1043,164 @@ describe("quiz threshold in task.md", () => {
     const messages = issueMessages();
 
     expect(messages).toEqual([]);
+  });
+});
+
+function freshRoot(): void {
+  root = mkdtempSync(join(tmpdir(), "lesson-schema-"));
+}
+
+/** A planned course `name` with one module and one planned lesson per lesson id. */
+function writeCourse(
+  name: string,
+  { id = name, lessonIds = ["a"] }: { id?: string; lessonIds?: string[] } = {},
+): void {
+  const lessonDirs = lessonIds.map((_, index) => `0${index + 1}-l`);
+  write(`${name}/course.yaml`, `id: ${id}\ntitle: T\ndescription: d\nmodules: [01-intro]\n`);
+  write(
+    `${name}/01-intro/module.yaml`,
+    `id: intro\ntitle: Intro\nsummary: s\nstatus: planned\nlessons: [${lessonDirs.join(", ")}]\n`,
+  );
+  lessonIds.forEach((lessonId, index) => {
+    write(
+      `${name}/01-intro/${lessonDirs[index]}/lesson.yaml`,
+      `id: ${lessonId}\ntitle: L\ntype: theory\noutcomes: ["o"]\nestimatedMinutes: 10\nstatus: planned\n`,
+    );
+  });
+}
+
+describe("a course root of several courses", () => {
+  it("accepts two courses that use the same lesson id", () => {
+    freshRoot();
+    writeCourse("alpha");
+    writeCourse("beta");
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([2, 2, 2]);
+  });
+
+  it("fails only the course whose course.yaml id is not its directory name", () => {
+    freshRoot();
+    writeCourse("alpha");
+    writeCourse("beta", { id: "gamma" });
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: "beta/course.yaml", message: 'id "gamma" is not the directory name "beta"' },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([2, 1, 1]);
+  });
+
+  it("reports a lesson id repeated within one course and not the other course", () => {
+    freshRoot();
+    writeCourse("alpha", { lessonIds: ["a", "a"] });
+    writeCourse("beta");
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      {
+        file: "alpha/01-intro/02-l/lesson.yaml",
+        message: 'duplicate lesson id "a" (also in alpha/01-intro/01-l/lesson.yaml)',
+      },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([2, 2, 3]);
+  });
+
+  it("counts a directory without course.yaml as a failing course", () => {
+    freshRoot();
+    writeCourse("alpha");
+    mkdirSync(join(root, "beta"));
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: "beta", message: "missing course.yaml" }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([2, 1, 1]);
+  });
+
+  it("fails directories whose names are not course ids before opening them, in name order", () => {
+    freshRoot();
+    writeCourse("alpha");
+    for (const name of ["X5", "X4", "X3", "X2", "X1", "X0"]) mkdirSync(join(root, name));
+    writeCourse("Beta");
+    mkdirSync(join(root, ".hidden"));
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual(
+      [".hidden", "Beta", "X0", "X1", "X2", "X3", "X4", "X5"].map((name) => ({
+        file: ".",
+        message: `directory "${name}" is not a course id (lowercase-kebab-case)`,
+      })),
+    );
+    expect([r.courses, r.modules, r.lessons]).toEqual([9, 1, 1]);
+  });
+
+  it("reports symlinks directly under the root, broken or not, and skips files", () => {
+    freshRoot();
+    writeCourse("alpha");
+    symlinkSync(join(root, "alpha"), join(root, "beta"));
+    symlinkSync(join(root, "missing-target"), join(root, "gone"));
+    write("README.md", "readme\n");
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: ".", message: 'symlink "beta" directly under the course root is not a course' },
+      { file: ".", message: 'symlink "gone" directly under the course root is not a course' },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([1, 1, 1]);
+  });
+
+  it.each([
+    { fixture: "an empty root", files: [] },
+    { fixture: "a root holding only a file", files: ["README.md"] },
+  ])("reports $fixture as holding no course", ({ files }) => {
+    freshRoot();
+    for (const file of files) write(file, "readme\n");
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([
+      { file: ".", message: "no course: the course root holds no directory" },
+    ]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([0, 0, 0]);
+  });
+
+  it("reports a missing root without its absolute path", () => {
+    freshRoot();
+
+    const r = validateCourses(join(root, "nope"));
+
+    expect(r.issues).toEqual([{ file: ".", message: "course root does not exist" }]);
+    expect(JSON.stringify(r.issues)).not.toContain(root);
+  });
+
+  it("reports a root that is a file instead of throwing", () => {
+    freshRoot();
+    write("f", "not a directory\n");
+
+    const r = validateCourses(join(root, "f"));
+
+    expect(r.issues).toEqual([
+      { file: ".", message: "course root cannot be listed: unreadable (ENOTDIR)" },
+    ]);
+  });
+
+  it("fails a course whose course.yaml is a symlink", () => {
+    freshRoot();
+    writeCourse("alpha");
+    writeCourse("beta");
+    write("shared.yaml", "id: beta\ntitle: T\ndescription: d\nmodules: [01-intro]\n");
+    rmSync(join(root, "beta/course.yaml"));
+    symlinkSync(join(root, "shared.yaml"), join(root, "beta/course.yaml"));
+
+    const r = validateCourses(root);
+
+    expect(r.issues).toEqual([{ file: "beta/course.yaml", message: "course.yaml is a symlink" }]);
+    expect([r.courses, r.modules, r.lessons]).toEqual([2, 1, 1]);
   });
 });
