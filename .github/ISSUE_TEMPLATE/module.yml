@@ -13,10 +13,11 @@ body:
     id: target
     attributes:
       label: Module / lesson
+      description: "`course/<course-id>/<module>` or `course/<course-id>/<module>/<lesson>`. The course id is the course directory name (ADR-0009 item 6)."
       placeholder: course/ai-for-developers/02-agentic-patterns
     validations: { required: true }
   - type: textarea
     id: scope
     attributes:
-      label: Scope (from docs/course-reference.md) and any learner-specific focus
+      label: Scope (from docs/courses/<course-id>/reference.md) and any learner-specific focus
     validations: { required: true }
