@@ -820,6 +820,46 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 .history-results > li > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-2); }
 .history-result-title { font-weight: 500; overflow-wrap: anywhere; }
 
+/* ---------- Composition: mentor block, hint ladder, busy display (F16, F17, from #37) ---------- */
+
+/* A mentor block (the review block, the hint ladder) is led by an h4 and keeps space-2 between its own items.
+   Three parents, each with its own gap above the block (README "Hint ladder", Placements):
+   - a check row panel: space-4 below the panel item before it, one step above the panel's space-2, so the
+     heading starts a part of the row;
+   - the closed quiz block (a child of .quiz): the quiz's part gap, space-6 (.quiz rule), no override;
+   - an attempt panel (.history-results > li): the result's space-2, because results are space-4 apart and a
+     larger gap would set the review as far from its result as from the next one.
+   The h4 is text-sm, as the .outcomes and .toc headings: it heads a part of one row, below the row title. */
+.mentor-block > :not([hidden]) ~ :not([hidden]) { margin-top: var(--space-2); }
+.check-row-panel > :not([hidden]) ~ .mentor-block:not([hidden]) { margin-top: var(--space-4); }
+.mentor-block > h4 { font-size: var(--text-sm); line-height: var(--text-sm-line); }
+/* The four levels in ladder order. role="list" on the ol: WebKit drops the list role when list-style is
+   none. A level not yet received shows only its name, muted; a received one its name in foreground and the
+   hint as the grader message is shown (pre.check-row-message: data, verbatim, with its line breaks and the
+   skeleton's indentation). */
+.hint-levels { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.hint-level { font-size: var(--text-sm); line-height: var(--text-sm-line); color: var(--muted-foreground); }
+.hint-level[data-received="true"] { color: var(--foreground); }
+.hint-level[data-received="true"] > .hint-level-name { font-weight: 500; }
+.hint-level > .check-row-message { margin-top: var(--space-1); }
+/* Mentor controls: each Button with its visible "до $N" (span.text-sm.muted, its aria-describedby) in one
+   .mentor-action, so a narrow panel wraps a whole pair before it splits one; pairs are space-4 apart, a
+   button and its cost space-2. "Разобрать с ментором" is a .mentor-action of its own, on a line of its own
+   in the panel or the quiz. The review's "Повторить" is a .mentor-action inside the Alert's .alert-actions,
+   a secondary sm Button as every other "Повторить". */
+.mentor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.mentor-action { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; }
+.check-row-panel > .mentor-action, .quiz > .mentor-action { display: flex; width: fit-content; max-width: 100%; }
+/* The busy display: spinner, the words, the elapsed .timer (role="timer"), never a live region (R2). In the
+   ladder it takes focus after a press (role="group", tabindex="-1", named by its words). */
+.mentor-busy {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); width: fit-content; max-width: 100%;
+  font-size: var(--text-sm); line-height: var(--text-sm-line);
+}
+/* Focus targets with no padding of their own: the ring goes outside, on the panel's background, because the
+   inset ring of [tabindex="-1"] would lie on the first glyph. Same specificity as that rule, so it comes after. */
+.hint-level:focus-visible, .mentor-busy:focus-visible { outline-offset: var(--focus-offset); }
+
 /* ---------- Composition: prose (theory.md, task.md) ---------- */
 
 .prose { max-width: var(--prose-measure); font-size: var(--text-base); line-height: var(--prose-line); overflow-wrap: break-word; }
