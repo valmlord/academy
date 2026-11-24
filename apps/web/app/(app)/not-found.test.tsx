@@ -7,7 +7,7 @@ import { LESSON_TITLE_ID } from "@/components/lesson/lesson-header";
 import { takeAnyRetryFocus } from "@/components/retry-button";
 import { notFoundSentence, notFoundTitle, openCourseLabel, retryLabel } from "@/lib/copy";
 import { CourseReadError } from "@/lib/course/errors";
-import { getCourse } from "@/lib/course/server";
+import { getFirstReadableCourse } from "@/lib/course/server";
 import { getSession } from "@/lib/session";
 import NotFound from "./not-found";
 
@@ -17,7 +17,7 @@ let refreshOutcome: () => void = () => undefined;
 const refresh = vi.fn(() => refreshOutcome());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/lib/session", () => ({ getSession: vi.fn() }));
-vi.mock("@/lib/course/server", () => ({ getCourse: vi.fn() }));
+vi.mock("@/lib/course/server", () => ({ getFirstReadableCourse: vi.fn() }));
 
 const COURSE_ID = "ai-for-developers";
 // The catalog page's h1 id (app/(app)/courses/[courseId]/page.tsx): a page file cannot export it.
@@ -41,12 +41,9 @@ beforeEach(() => {
     user: { id: "user-1", email: "learner@example.com" },
     session: { expiresAt: new Date("2030-01-01T00:00:00Z") },
   });
-  vi.mocked(getCourse).mockResolvedValue({
-    id: COURSE_ID,
-    title: "Course",
-    description: "About",
-    dir: COURSE_ID,
-    modules: [],
+  vi.mocked(getFirstReadableCourse).mockResolvedValue({
+    kind: "course",
+    tree: { id: COURSE_ID, title: "Course", description: "About", dir: COURSE_ID, modules: [] },
   });
 });
 
@@ -104,9 +101,10 @@ describe("NotFound", () => {
   });
 
   it("renders only the h1 and the sentence while the course id is unknown", async () => {
-    vi.mocked(getCourse).mockRejectedValue(
-      new CourseReadError(`${COURSE_ID}/course.yaml`, "unreadable (EACCES)"),
-    );
+    vi.mocked(getFirstReadableCourse).mockResolvedValue({
+      kind: "course-failure",
+      error: new CourseReadError(COURSE_ID, `${COURSE_ID}/course.yaml`, "unreadable (EACCES)"),
+    });
 
     render(await NotFound());
 

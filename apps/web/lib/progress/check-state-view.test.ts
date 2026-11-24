@@ -5,10 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type CourseFixture,
   createCourseFixture,
+  readFixtureTree,
   VISIBLE_CHECK_TITLE,
 } from "@/test/course-fixture";
-import { nodeCourseFs } from "../course/node-fs";
-import { readCourse } from "../course/read";
 import { toAttemptView, toCheckStateView } from "./check-state";
 import { evaluateLesson, type LessonFacts, type ResultFact } from "./rules";
 import { SHIPPED_CHECK_KINDS } from "./shipped-kinds";
@@ -39,7 +38,7 @@ afterEach(() => {
 });
 
 async function fixtureLessons(): Promise<Lesson[]> {
-  const tree = await readCourse(nodeCourseFs, fixture.root);
+  const tree = await readFixtureTree(fixture.root);
   return tree.modules.flatMap((module) => module.lessons.map((node) => node.lesson));
 }
 

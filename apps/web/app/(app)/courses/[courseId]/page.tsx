@@ -7,8 +7,7 @@ import { ModuleSection } from "@/components/catalog/module-section";
 import { CourseError } from "@/components/course-error";
 import { FocusOnMount } from "@/components/focus-on-mount";
 import { courseErrorTitle, notFoundTitle } from "@/lib/copy";
-import { loadOrError } from "@/lib/course/page-error";
-import { getCourse } from "@/lib/course/server";
+import { getCourseById } from "@/lib/course/server";
 import { toCatalogView } from "@/lib/course/view";
 import { catalogPath } from "@/lib/routes";
 import { requireSession } from "@/lib/session";
@@ -23,21 +22,23 @@ export async function generateMetadata({
 }: PageProps<"/courses/[courseId]">): Promise<Metadata> {
   const { courseId } = await params;
   await requireSession(catalogPath(courseId));
-  const course = await loadOrError(getCourse);
-  if (!course.ok) return { title: courseErrorTitle };
-  if (course.value.id !== courseId) return { title: notFoundTitle };
-  return { title: course.value.title };
+  const course = await getCourseById(courseId);
+  if (course.kind === "not-found") return { title: notFoundTitle };
+  if (course.kind !== "course") return { title: courseErrorTitle };
+  return { title: course.tree.title };
 }
 
-// design/pages/catalog: the course header, the module list, one section per module. A course that cannot
-// be read shows only the error Alert, whose title is the h1 (`#state-course-error`, catalog AC8).
+// design/pages/catalog: the course header, the module list, one section per module. A course id that names
+// no course of the root is not found; a course that cannot be read shows only the error Alert, whose title is
+// the h1 (`#state-course-error`, catalog AC8).
 export default async function CatalogPage({
   params,
 }: PageProps<"/courses/[courseId]">): Promise<ReactElement> {
   const { courseId } = await params;
   await requireSession(catalogPath(courseId));
-  const course = await loadOrError(getCourse);
-  if (!course.ok) {
+  const course = await getCourseById(courseId);
+  if (course.kind === "not-found") notFound();
+  if (course.kind !== "course") {
     return (
       <main id="main" tabIndex={-1} data-region className={MAIN_CLASS_NAME}>
         <div className={COLUMN_CLASS_NAME}>
@@ -46,8 +47,7 @@ export default async function CatalogPage({
       </main>
     );
   }
-  if (course.value.id !== courseId) notFound();
-  const view = toCatalogView(course.value);
+  const view = toCatalogView(course.tree);
   return (
     <main id="main" tabIndex={-1} data-region className={MAIN_CLASS_NAME}>
       <div className={COLUMN_CLASS_NAME}>

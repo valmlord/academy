@@ -1,6 +1,6 @@
 import { migrateDatabase } from "@academy/db";
+import { readEveryCourse } from "./course/courses";
 import { nodeCourseFs } from "./course/node-fs";
-import { readCourse } from "./course/read";
 import { courseRoot } from "./course/root";
 import { recomputeOutcomesOnStartup } from "./progress/recompute";
 import { migrateOnStartup } from "./startup";
@@ -31,8 +31,9 @@ export async function runStartup(): Promise<void> {
   if (databaseUrl === undefined) return;
   await recomputeOutcomesOnStartup({
     databaseUrl,
-    // Not getCourse: that is a per-request cache() of React, and this runs outside any request.
-    readTree: async () => readCourse(nodeCourseFs, courseRoot(process.env, process.cwd())),
+    // Not lib/course/server: its reads are per-request cache() of React, and this runs outside any request.
+    readCourses: () =>
+      readEveryCourse({ fs: nodeCourseFs, root: () => courseRoot(process.env, process.cwd()) }),
     logError: (line) => console.error(line),
     logInfo: (line) => console.log(line),
   });

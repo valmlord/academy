@@ -1,11 +1,18 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { nodeCourseFs } from "@/lib/course/node-fs";
-import { type CourseTree, readCourse } from "@/lib/course/read";
+import { type CourseLookup, readCourseById } from "@/lib/course/courses";
+import { CourseRootReadError } from "@/lib/course/errors";
 import type { StartedLesson } from "@/lib/progress/lesson-started";
 import type { SessionData } from "@/lib/session-reader";
 import type { TicketRequest } from "@/lib/terminal/mint";
-import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
+import {
+  BROKEN_COURSE_ID,
+  type CourseFixture,
+  createCourseFixture,
+  FIXTURE_COURSE_ID,
+  fixtureSource,
+  recordingCourseFs,
+} from "@/test/course-fixture";
 import {
   fakeWorkspaceClient,
   NO_SLEEP,
@@ -25,16 +32,14 @@ import { createEnvironmentActions } from "./environment";
 // own user id, the lesson checked against the course, and each service answer mapped to a state.
 
 let fixture: CourseFixture;
-let course: CourseTree;
 
-beforeAll(async () => {
+beforeAll(() => {
   fixture = createCourseFixture();
   // With a workspace section, so only its draft status can make it unavailable.
   fixture.write(
-    "course/00-basics/03-draft/lesson.yaml",
+    "fixture-course/00-basics/03-draft/lesson.yaml",
     "id: draft-lesson\ntitle: Draft lesson\ntype: theory\noutcomes:\n  - Not yet.\nestimatedMinutes: 5\nstatus: draft\nworkspace: {}\n",
   );
-  course = await readCourse(nodeCourseFs, fixture.root);
 });
 
 afterAll(() => {
@@ -43,6 +48,10 @@ afterAll(() => {
 
 // second-lesson is the fixture's visible lesson with a workspace section.
 const LESSON = "second-lesson";
+
+function fixtureCourseById(courseId: unknown): Promise<CourseLookup> {
+  return readCourseById(fixtureSource(fixture.root), courseId);
+}
 
 // The fixed clock of these tests; sessions expire a day after it unless a test says otherwise.
 const NOW = Date.UTC(2026, 10, 4, 12, 0, 0);
@@ -76,7 +85,7 @@ function workspace(change: Partial<Workspace>): Workspace {
   };
 }
 
-function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
+function setup(answer: WorkspaceAnswer, getCourseById = fixtureCourseById) {
   const calls: { method: "get" | "ensure"; key: WorkspaceKey }[] = [];
   const client = fakeWorkspaceClient({
     get: async (key) => {
@@ -95,7 +104,7 @@ function setup(answer: WorkspaceAnswer, getCourse = async () => course) {
   });
   const log = vi.fn((_line: string) => {});
   const actions = createEnvironmentActions({
-    getCourse,
+    getCourseById,
     client,
     mintTicket,
     now: () => NOW,
@@ -119,13 +128,13 @@ describe("environment actions", () => {
   });
 
   it("answers unauthenticated without a session and calls nothing", async () => {
-    const getCourse = vi.fn(async () => course);
-    const { actions, calls } = setup({ kind: "failed" }, getCourse);
+    const getCourseById = vi.fn(fixtureCourseById);
+    const { actions, calls } = setup({ kind: "failed" }, getCourseById);
 
     const result = await actions.startEnvironment(async () => null, FIXTURE_COURSE_ID, LESSON);
 
     expect(result).toEqual({ kind: "unauthenticated" });
-    expect(getCourse).not.toHaveBeenCalled();
+    expect(getCourseById).not.toHaveBeenCalled();
     expect(calls).toEqual([]);
   });
 
@@ -153,10 +162,11 @@ describe("environment actions", () => {
     expect(calls).toEqual([]);
   });
 
-  it("answers failed when the course cannot be read", async () => {
-    const { actions, calls } = setup({ kind: "failed" }, async () => {
-      throw new Error("course read failed");
-    });
+  it("answers failed when the course root cannot be read", async () => {
+    const { actions, calls } = setup({ kind: "failed" }, async () => ({
+      kind: "root-failure",
+      error: new CourseRootReadError(".", "missing"),
+    }));
 
     const result = await actions.peekEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
 
@@ -287,7 +297,7 @@ interface Script {
   readStarted?: (lesson: StartedLesson) => Promise<boolean>;
 }
 
-function scripted(script: Script, readCourseTree = async () => course) {
+function scripted(script: Script, getCourseById = fixtureCourseById) {
   const order: string[] = [];
   const reads: StartedLesson[] = [];
   const lines: string[] = [];
@@ -313,7 +323,7 @@ function scripted(script: Script, readCourseTree = async () => course) {
     },
   });
   const actions = createEnvironmentActions({
-    getCourse: readCourseTree,
+    getCourseById,
     client,
     mintTicket: () => ({ ticket: "minted", renewInMs: 1 }),
     now: () => NOW,
@@ -349,7 +359,7 @@ describe("restart, reset, idle and activity actions", () => {
     "readEnvironmentIdle",
     "recordEnvironmentActivity",
   ] as const)("%s answers unauthenticated without a session and calls nothing", async (name) => {
-    const getCourse = vi.fn(async () => course);
+    const getCourseById = vi.fn(fixtureCourseById);
     const { actions, order } = scripted(
       {
         get: RUNNING_ANSWER,
@@ -358,13 +368,13 @@ describe("restart, reset, idle and activity actions", () => {
         removes: [{ kind: "removed" }],
         activity: { kind: "recorded" },
       },
-      getCourse,
+      getCourseById,
     );
 
     const result = await actions[name](async () => null, FIXTURE_COURSE_ID, LESSON);
 
     expect(result).toEqual({ kind: "unauthenticated" });
-    expect(getCourse).not.toHaveBeenCalled();
+    expect(getCourseById).not.toHaveBeenCalled();
     expect(order).toEqual([]);
   });
 
@@ -703,4 +713,95 @@ describe("recreated working folder signal", () => {
       expect(order).toEqual([]);
     },
   );
+});
+
+const ACTION_NAMES = [
+  "peekEnvironment",
+  "startEnvironment",
+  "openTerminal",
+  "recordLessonStarted",
+  "restartEnvironment",
+  "resetEnvironment",
+  "readEnvironmentIdle",
+  "recordEnvironmentActivity",
+] as const;
+
+// Every client method and every side-effect dependency records its call, so a test sees any of them.
+function recordingActions() {
+  const { fs, calls: fsCalls } = recordingCourseFs();
+  const sideEffects: string[] = [];
+  const record = (method: keyof WorkspaceClient) => async (): Promise<never> => {
+    sideEffects.push(method);
+    throw new UnexpectedWorkspaceCallError(method);
+  };
+  const actions = createEnvironmentActions({
+    getCourseById: (courseId) => readCourseById(fixtureSource(fixture.root, fs), courseId),
+    client: fakeWorkspaceClient({
+      get: record("get"),
+      ensure: record("ensure"),
+      stop: record("stop"),
+      remove: record("remove"),
+      activity: record("activity"),
+    }),
+    mintTicket: () => {
+      sideEffects.push("mintTicket");
+      return { ticket: "minted", renewInMs: 1 };
+    },
+    now: () => NOW,
+    recordStarted: async () => {
+      sideEffects.push("recordStarted");
+    },
+    readStarted: async () => {
+      sideEffects.push("readStarted");
+      return false;
+    },
+    log: () => {},
+    sleep: NO_SLEEP,
+  });
+  return { actions, fsCalls, sideEffects };
+}
+
+describe("every action and a course id that names no readable course", () => {
+  const LISTING = 'listDirs ""';
+  it.each(
+    ACTION_NAMES.flatMap((name) =>
+      [
+        { courseId: "A B", lessonId: LESSON, files: [] },
+        { courseId: "..", lessonId: LESSON, files: [] },
+        { courseId: "../course-b", lessonId: LESSON, files: [] },
+        { courseId: "no-such-course", lessonId: LESSON, files: [LISTING] },
+        // broken-lesson has a workspace section, so only the course's failure keeps the key from being built.
+        {
+          courseId: BROKEN_COURSE_ID,
+          lessonId: "broken-lesson",
+          files: [LISTING, 'readText "broken-course/course.yaml"'],
+        },
+      ].map((row) => ({ name, ...row })),
+    ),
+  )(
+    "$name answers failed for $courseId, calls nothing and opens only $files",
+    async ({ name, courseId, lessonId, files }) => {
+      const { actions, fsCalls, sideEffects } = recordingActions();
+
+      const result = await actions[name](session("user_a"), courseId, lessonId);
+
+      expect(result).toEqual({ kind: "failed" });
+      expect(sideEffects).toEqual([]);
+      expect(fsCalls).toEqual(files);
+    },
+  );
+
+  it("still starts the readable course beside the failing one", async () => {
+    const { actions, calls } = setup(RUNNING_ANSWER);
+
+    const result = await actions.startEnvironment(session("user_a"), FIXTURE_COURSE_ID, LESSON);
+
+    expect(result).toEqual({ kind: "running", outcome: "started", isVolumeRecreated: false });
+    expect(calls).toEqual([
+      {
+        method: "ensure",
+        key: { userId: "user_a", courseId: FIXTURE_COURSE_ID, lessonId: LESSON },
+      },
+    ]);
+  });
 });

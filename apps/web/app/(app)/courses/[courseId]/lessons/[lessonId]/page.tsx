@@ -29,8 +29,7 @@ import {
   m0LessonNote,
   notFoundTitle,
 } from "@/lib/copy";
-import { loadOrError } from "@/lib/course/page-error";
-import { getCourse } from "@/lib/course/server";
+import { getCourseById } from "@/lib/course/server";
 import { findLesson, toLessonView } from "@/lib/course/view";
 import { catalogPath, lessonPath, moduleAnchorPath } from "@/lib/routes";
 import { requireSession } from "@/lib/session";
@@ -49,9 +48,10 @@ async function returnPath({ params, searchParams }: LessonPageProps): Promise<st
 export async function generateMetadata(props: LessonPageProps): Promise<Metadata> {
   await requireSession(await returnPath(props));
   const { courseId, lessonId } = await props.params;
-  const course = await loadOrError(getCourse);
-  if (!course.ok) return { title: courseErrorTitle };
-  const found = course.value.id === courseId ? findLesson(course.value, lessonId) : undefined;
+  const course = await getCourseById(courseId);
+  if (course.kind === "not-found") return { title: notFoundTitle };
+  if (course.kind !== "course") return { title: courseErrorTitle };
+  const found = findLesson(course.tree, lessonId);
   if (found === undefined) return { title: notFoundTitle };
   return { title: found.node.lesson.title };
 }
@@ -61,13 +61,14 @@ export async function generateMetadata(props: LessonPageProps): Promise<Metadata
 // split handle from 64rem, one pane with the switch below); one without keeps design/pages/lesson `#state-m0`,
 // full width with the M0 line.
 // `main` is no F6 stop of its own (ia.md R3: the regions are), so the second F6 lands on the breadcrumb's
-// course link. A course that cannot be read uses the catalog's error composition (#30 design notes, D2); an
-// unknown, foreign or invisible lesson is not found.
+// course link. A course id that names no course of the root is not found; a course that cannot be read uses
+// the catalog's error composition (#30 design notes, D2); an unknown, foreign or invisible lesson is not found.
 export default async function LessonPage(props: LessonPageProps): Promise<ReactElement> {
   await requireSession(await returnPath(props));
   const { courseId, lessonId } = await props.params;
-  const course = await loadOrError(getCourse);
-  if (!course.ok) {
+  const course = await getCourseById(courseId);
+  if (course.kind === "not-found") notFound();
+  if (course.kind !== "course") {
     return (
       <main id="main" tabIndex={-1} data-region className="mx-auto w-full max-w-6xl px-4 py-6">
         <div className="flex max-w-3xl flex-col gap-8">
@@ -76,9 +77,9 @@ export default async function LessonPage(props: LessonPageProps): Promise<ReactE
       </main>
     );
   }
-  const found = course.value.id === courseId ? findLesson(course.value, lessonId) : undefined;
+  const found = findLesson(course.tree, lessonId);
   if (found === undefined) notFound();
-  const lesson = toLessonView(course.value, found);
+  const lesson = toLessonView(course.tree, found);
   const initialTab: LessonTab = lessonTabOf((await props.searchParams).tab) ?? "theory";
   const hasEnvironment = found.node.lesson.workspace !== undefined;
   const heading = (

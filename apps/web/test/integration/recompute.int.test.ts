@@ -2,7 +2,8 @@ import { createDb } from "@academy/db";
 import type { Check, Lesson } from "@academy/lesson-schema/schema";
 import { sql } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
-import { CourseReadError } from "@/lib/course/errors";
+import type { EveryCourse } from "@/lib/course/courses";
+import { CourseReadError, CourseRootReadError } from "@/lib/course/errors";
 import type { CourseTree } from "@/lib/course/read";
 import { recomputeLessonOutcome } from "@/lib/progress/outcome-writer";
 import { recomputeOutcomesOnStartup } from "@/lib/progress/recompute";
@@ -16,7 +17,7 @@ import {
   seedProgress,
 } from "./progress-seed";
 
-// I-recompute (#101 design 6.5): the startup recompute over a course tree built in the test.
+// I-recompute (#101 design 6.5): the startup recompute over course trees built in the test.
 
 let database: TestDatabase | undefined;
 
@@ -33,12 +34,12 @@ function readyLesson(id: string, checks: Check[], status: Lesson["status"] = "re
   return { ...lessonWith(checks), id, status };
 }
 
-function tree(lessons: Lesson[]): CourseTree {
+function tree(lessons: Lesson[], courseId = COURSE_ID): CourseTree {
   return {
-    id: COURSE_ID,
+    id: courseId,
     title: "Course",
     description: "A course.",
-    dir: "course",
+    dir: courseId,
     modules: [
       {
         dir: "00-module",
@@ -70,11 +71,13 @@ interface Logs {
   errors: string[];
 }
 
-async function recompute(db: TestDatabase, course: CourseTree): Promise<Logs> {
+async function recompute(db: TestDatabase, course: CourseTree | EveryCourse): Promise<Logs> {
+  const every: EveryCourse =
+    "kind" in course ? course : { kind: "courses", courses: [{ kind: "course", tree: course }] };
   const logs: Logs = { info: [], errors: [] };
   await recomputeOutcomesOnStartup({
     databaseUrl: db.url,
-    readTree: async () => course,
+    readCourses: async () => every,
     logInfo: (line) => logs.info.push(line),
     logError: (line) => logs.errors.push(line),
   });
@@ -83,6 +86,8 @@ async function recompute(db: TestDatabase, course: CourseTree): Promise<Logs> {
 
 const PROGRESS = `SELECT lesson_id, status, updated_at::text AS updated_at,
   completed_at::text AS completed_at FROM lesson_progress ORDER BY lesson_id`;
+const PROGRESS_BY_COURSE = `SELECT course_id, lesson_id, status, updated_at::text AS updated_at,
+  completed_at::text AS completed_at FROM lesson_progress ORDER BY course_id, lesson_id`;
 const CLOSURES = `SELECT lesson_id, check_id, check_kind, attempt_limit, failed_count,
   closed_at::text AS closed_at FROM check_closures ORDER BY lesson_id, check_id, check_kind`;
 
@@ -224,29 +229,66 @@ describe("I-recompute recomputeOutcomesOnStartup", () => {
     }
   }, 30_000);
 
-  it("logs the skip line and writes nothing when the course is unreadable", async () => {
+  it("logs the root failure and writes nothing when the course root fails", async () => {
     database = await testDatabase();
     const db = database;
     await seedProgress(db.db, key("l1"));
     await finishedAttempt(db.db, key("l1"), [{ checkId: "a", status: "passed" }]);
     const before = await db.rows(PROGRESS);
-    const logs: Logs = { info: [], errors: [] };
 
-    await recomputeOutcomesOnStartup({
-      databaseUrl: db.url,
-      readTree: async () => {
-        throw new CourseReadError("course/course.yaml", "missing");
-      },
-      logInfo: (line) => logs.info.push(line),
-      logError: (line) => logs.errors.push(line),
+    const logs = await recompute(db, {
+      kind: "root-failure",
+      error: new CourseRootReadError(".", "missing"),
     });
 
     expect(logs).toEqual({
       info: [],
-      errors: [
-        "web: lesson outcome recompute skipped: course unreadable (course/course.yaml: missing)",
-      ],
+      errors: ["web: lesson outcome recompute skipped: root: .: missing"],
     });
     expect(await db.rows(PROGRESS)).toEqual(before);
+  });
+
+  it("recomputes a readable course while a failing and an unlisted course keep their rows", async () => {
+    database = await testDatabase();
+    const db = database;
+    const readable = { userId: USER, courseId: "fixture-course", lessonId: "l1" };
+    const failing = { userId: USER, courseId: "broken-course", lessonId: "l1" };
+    const unlisted = { userId: USER, courseId: "gone-course", lessonId: "l1" };
+    for (const lesson of [readable, failing, unlisted]) {
+      await seedProgress(db.db, lesson);
+      await finishedAttempt(db.db, lesson, [{ checkId: "a", status: "passed" }]);
+    }
+    const untouched = async (): Promise<unknown> =>
+      (await db.rows(PROGRESS_BY_COURSE)).filter((row) => row.course_id !== readable.courseId);
+    const before = await untouched();
+
+    const logs = await recompute(db, {
+      kind: "courses",
+      courses: [
+        {
+          kind: "course-failure",
+          error: new CourseReadError(
+            "broken-course",
+            "broken-course/course.yaml",
+            "id is not the directory name",
+          ),
+        },
+        { kind: "course", tree: tree([readyLesson("l1", [commandCheck("a")])], "fixture-course") },
+      ],
+    });
+
+    expect(await untouched()).toEqual(before);
+    expect(
+      (await db.rows(PROGRESS_BY_COURSE)).find((row) => row.course_id === readable.courseId)
+        ?.status,
+    ).toBe("completed");
+    expect(logs.errors).toEqual([
+      "web: lesson outcome recompute skipped: course broken-course: broken-course/course.yaml: id is not the directory name",
+      "web: lesson outcome recompute skipped: course gone-course: no course directory, rows: 1",
+    ]);
+    expect(logs.info).toHaveLength(1);
+    expect(logs.info[0]).toMatch(
+      /^web: lesson outcomes recomputed: 3 rows, 1 changed, 2 skipped, 0 failed in \d+ ms$/,
+    );
   });
 });

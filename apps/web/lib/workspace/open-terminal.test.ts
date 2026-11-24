@@ -1,10 +1,14 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { nodeCourseFs } from "@/lib/course/node-fs";
-import { type CourseTree, readCourse } from "@/lib/course/read";
+import { readCourseById } from "@/lib/course/courses";
 import type { SessionData } from "@/lib/session-reader";
 import { createTicketVerifier, deriveTicketKey } from "@/server/ticket";
-import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
+import {
+  type CourseFixture,
+  createCourseFixture,
+  FIXTURE_COURSE_ID,
+  fixtureSource,
+} from "@/test/course-fixture";
 import { fakeWorkspaceClient, NO_SLEEP } from "@/test/workspace-fakes";
 import type { Workspace, WorkspaceAnswer, WorkspaceKey } from "./client";
 import { createEnvironmentActions } from "./environment";
@@ -23,11 +27,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const LESSON = "second-lesson";
 
 let fixture: CourseFixture;
-let course: CourseTree;
 
-beforeAll(async () => {
+beforeAll(() => {
   fixture = createCourseFixture();
-  course = await readCourse(nodeCourseFs, fixture.root);
 });
 
 afterAll(() => {
@@ -69,7 +71,7 @@ function setup(answer: WorkspaceAnswer = { kind: "workspace", workspace: workspa
     ensure: async () => ({ kind: "failed" }),
   });
   const actions = createEnvironmentActions({
-    getCourse: async () => course,
+    getCourseById: (courseId) => readCourseById(fixtureSource(fixture.root), courseId),
     client,
     mintTicket: (request) => mintTerminalTicket(KEY, request, 900, NOW),
     now: () => NOW,
@@ -184,7 +186,7 @@ describe("openTerminal (U-action-uid)", () => {
 
   it("answers failed when the ticket cannot be minted", async () => {
     const actions = createEnvironmentActions({
-      getCourse: async () => course,
+      getCourseById: (courseId) => readCourseById(fixtureSource(fixture.root), courseId),
       client: fakeWorkspaceClient({
         get: async () => ({ kind: "workspace", workspace: workspace() }),
         ensure: async () => ({ kind: "failed" }),

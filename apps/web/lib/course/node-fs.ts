@@ -9,8 +9,6 @@ import { LEARNER_FILES } from "./files";
 export interface CourseFs {
   /** The text of a learner file; throws `CourseFileError` for any refused or unreadable path. */
   readText(root: string, rel: string): Promise<string>;
-  /** Whether a learner file exists as a regular file; refusals other than "missing" throw. */
-  isRegularFile(root: string, rel: string): Promise<boolean>;
   /** Names of the real (not symlinked) directories directly under `rel`. */
   listDirs(root: string, rel: string): Promise<string[]>;
 }
@@ -73,17 +71,6 @@ export const nodeCourseFs: CourseFs = {
     refuseNonLearnerPath(rel);
     const file = await verifiedPath(root, rel);
     return withReason(rel, () => readFile(/*turbopackIgnore: true*/ file, "utf8"));
-  },
-
-  async isRegularFile(root, rel) {
-    refuseNonLearnerPath(rel);
-    try {
-      await verifiedPath(root, rel);
-      return true;
-    } catch (error) {
-      if (error instanceof CourseFileError && error.reason === MISSING) return false;
-      throw error;
-    }
   },
 
   async listDirs(root, rel) {

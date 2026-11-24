@@ -1,6 +1,8 @@
 import path from "node:path";
+import { readEveryCourse } from "../lib/course/courses";
+import { describeCourseFailure } from "../lib/course/errors";
 import { nodeCourseFs } from "../lib/course/node-fs";
-import { type CourseTree, readCourse } from "../lib/course/read";
+import type { CourseTree } from "../lib/course/read";
 import { readLessonText } from "../lib/course/text";
 import {
   type CatalogView,
@@ -17,11 +19,41 @@ import {
 // built from this course/, whatever a shell variable says.
 export const REPO_COURSE_ROOT = path.join(import.meta.dirname, "../../../course");
 
-let tree: Promise<CourseTree> | undefined;
+/** The repository's course/ does not read; the image built from it would not build either. */
+export class RepoCourseReadError extends Error {
+  constructor(detail: string) {
+    super(`the repository's course root does not read: ${detail}`);
+    this.name = "RepoCourseReadError";
+  }
+}
 
-export function repoCourse(): Promise<CourseTree> {
-  tree ??= readCourse(nodeCourseFs, REPO_COURSE_ROOT);
-  return tree;
+let trees: Promise<CourseTree[]> | undefined;
+
+async function readRepoCourses(): Promise<CourseTree[]> {
+  const every = await readEveryCourse({ fs: nodeCourseFs, root: () => REPO_COURSE_ROOT });
+  if (every.kind === "root-failure")
+    throw new RepoCourseReadError(describeCourseFailure(every.error));
+  const read: CourseTree[] = [];
+  for (const course of every.courses) {
+    if (course.kind === "course-failure") {
+      throw new RepoCourseReadError(describeCourseFailure(course.error));
+    }
+    read.push(course.tree);
+  }
+  return read;
+}
+
+/** Every course of the repository, in list order. */
+export function repoCourses(): Promise<CourseTree[]> {
+  trees ??= readRepoCourses();
+  return trees;
+}
+
+/** The first course: what the one-course dashboard, top bar and specs show until #241. */
+export async function repoCourse(): Promise<CourseTree> {
+  const [first] = await repoCourses();
+  if (first === undefined) throw new RepoCourseReadError("no course");
+  return first;
 }
 
 export async function repoCatalog(): Promise<CatalogView> {

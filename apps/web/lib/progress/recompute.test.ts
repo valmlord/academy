@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { inspect } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CourseTree } from "../course/read";
+import type { EveryCourse } from "../course/courses";
 import { recomputeOutcomesOnStartup } from "./recompute";
 
 // The database is unreachable: the host name carries a canary, and the driver's error message names the
@@ -9,12 +9,14 @@ import { recomputeOutcomesOnStartup } from "./recompute";
 const CANARY = "recompute-canary-101";
 const UNREACHABLE_URL = `postgres://user:pw@${CANARY}.invalid:5432/academy`;
 
-const EMPTY_TREE: CourseTree = {
-  id: "course",
-  title: "Course",
-  description: "A course.",
-  dir: "course",
-  modules: [],
+const ONE_EMPTY_COURSE: EveryCourse = {
+  kind: "courses",
+  courses: [
+    {
+      kind: "course",
+      tree: { id: "course", title: "Course", description: "A course.", dir: "course", modules: [] },
+    },
+  ],
 };
 
 afterEach(() => {
@@ -31,7 +33,7 @@ describe("recomputeOutcomesOnStartup", () => {
 
     await recomputeOutcomesOnStartup({
       databaseUrl: UNREACHABLE_URL,
-      readTree: async () => EMPTY_TREE,
+      readCourses: async () => ONE_EMPTY_COURSE,
       logInfo,
       logError,
     });

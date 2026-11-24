@@ -18,7 +18,7 @@ afterEach(() => {
   fixture.remove();
 });
 
-const LESSON = "course/00-basics/01-first";
+const LESSON = "fixture-course/00-basics/01-first";
 const THEORY = `${LESSON}/theory.md`;
 
 async function textError(): Promise<unknown> {
@@ -36,7 +36,7 @@ describe("readLessonText", () => {
   });
 
   it("reports a symlinked theory.md as a lesson text error", async () => {
-    fixture.symlink(THEORY, fixture.path("course/00-basics/02-second/checks/verify.py"));
+    fixture.symlink(THEORY, fixture.path("fixture-course/00-basics/02-second/checks/verify.py"));
 
     const error = await textError();
 

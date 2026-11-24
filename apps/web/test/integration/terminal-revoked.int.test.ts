@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { nodeCourseFs } from "@/lib/course/node-fs";
-import { readCourse } from "@/lib/course/read";
+import { readCourseById } from "@/lib/course/courses";
 import { createSessionReader } from "@/lib/session-reader";
 import type { Workspace } from "@/lib/workspace/client";
 import { createEnvironmentActions } from "@/lib/workspace/environment";
 import { deriveTicketKey } from "@/server/ticket";
-import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
+import {
+  type CourseFixture,
+  createCourseFixture,
+  FIXTURE_COURSE_ID,
+  fixtureSource,
+} from "@/test/course-fixture";
 import { fakeWorkspaceClient, NO_SLEEP } from "@/test/workspace-fakes";
 import { APP_HOST, createCredentialUser, sessionCookieOf, signIn, testAuth } from "./auth";
 import { type TestDatabase, testDatabase } from "./db";
@@ -37,7 +41,7 @@ describe("I-revoked", () => {
   it("mints a ticket for a live session and answers unauthenticated once its rows are deleted", async () => {
     database = await testDatabase();
     fixture = createCourseFixture();
-    const course = await readCourse(nodeCourseFs, fixture.root);
+    const source = fixtureSource(fixture.root);
     const { auth } = testAuth(database);
     const userId = await createCredentialUser(auth, EMAIL, PASSWORD);
     const cookie = sessionCookieOf(await signIn(auth, EMAIL, PASSWORD));
@@ -55,7 +59,7 @@ describe("I-revoked", () => {
       limits: { nanoCpus: 2_000_000_000, memoryBytes: 2_147_483_648, pidsLimit: 512 },
     };
     const actions = createEnvironmentActions({
-      getCourse: async () => course,
+      getCourseById: (courseId) => readCourseById(source, courseId),
       client: fakeWorkspaceClient({
         get: async () => ({ kind: "workspace", workspace: running }),
         ensure: async () => ({ kind: "failed" }),

@@ -4,8 +4,7 @@ import type { ReactElement } from "react";
 import { FocusOnAnyRetry } from "@/components/focus-on-mount";
 import { Button } from "@/components/ui/button";
 import { notFoundSentence, notFoundTitle, openCourseLabel } from "@/lib/copy";
-import { loadOrError } from "@/lib/course/page-error";
-import { getCourse } from "@/lib/course/server";
+import { getFirstReadableCourse } from "@/lib/course/server";
 import { catalogPath } from "@/lib/routes";
 import { getSession } from "@/lib/session";
 
@@ -26,9 +25,8 @@ const TITLE_ID = "not-found-title";
 // focus where it was.
 export default async function NotFound(): Promise<ReactElement> {
   const session = await getSession();
-  const course = session === null ? null : await loadOrError(getCourse);
-  const courseId =
-    course === null ? undefined : course.ok ? course.value.id : course.error.courseId;
+  const course = session === null ? null : await getFirstReadableCourse();
+  const courseId = course?.kind === "course" ? course.tree.id : undefined;
   return (
     <main id="main" tabIndex={-1} data-region className="mx-auto w-full max-w-6xl px-4 py-6">
       <div className="flex max-w-3xl flex-col items-start gap-4">

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { CourseReadError } from "./errors";
+import { CourseRootReadError } from "./errors";
 import { courseRoot } from "./root";
 
 describe("courseRoot", () => {
@@ -22,7 +22,7 @@ describe("courseRoot", () => {
   it("refuses a relative COURSE_ROOT naming the variable", () => {
     const act = (): unknown => courseRoot({ COURSE_ROOT: "course" }, "/repo/apps/web");
 
-    expect(act).toThrow(CourseReadError);
+    expect(act).toThrow(CourseRootReadError);
     expect(act).toThrow("COURSE_ROOT: must be an absolute path");
   });
 });

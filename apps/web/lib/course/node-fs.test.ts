@@ -18,7 +18,7 @@ afterEach(() => {
   fixture.remove();
 });
 
-const THEORY = "course/00-basics/01-first/theory.md";
+const THEORY = "fixture-course/00-basics/01-first/theory.md";
 
 async function refusal(rel: string): Promise<CourseFileError> {
   const error: unknown = await nodeCourseFs.readText(fixture.root, rel).catch((e: unknown) => e);
@@ -35,16 +35,16 @@ describe("nodeCourseFs.readText", () => {
   });
 
   it("reports a missing file as missing", async () => {
-    const error = await refusal("course/00-basics/03-draft/task.md");
+    const error = await refusal("fixture-course/00-basics/03-draft/task.md");
 
     expect(error.reason).toBe("missing");
-    expect(error.file).toBe("course/00-basics/03-draft/task.md");
+    expect(error.file).toBe("fixture-course/00-basics/03-draft/task.md");
   });
 
   it("reports a directory as not a regular file", async () => {
-    mkdirSync(fixture.path("course/00-basics/03-draft/task.md"));
+    mkdirSync(fixture.path("fixture-course/00-basics/03-draft/task.md"));
 
-    const error = await refusal("course/00-basics/03-draft/task.md");
+    const error = await refusal("fixture-course/00-basics/03-draft/task.md");
 
     expect(error.reason).toBe("not a regular file");
   });
@@ -56,11 +56,14 @@ describe("nodeCourseFs.readText", () => {
   ])("refuses %s as outside the course root", async (_label, variant) => {
     let rel = THEORY;
     if (variant === "theory") {
-      fixture.symlink(THEORY, fixture.path("course/00-basics/02-second/checks/verify.py"));
+      fixture.symlink(THEORY, fixture.path("fixture-course/00-basics/02-second/checks/verify.py"));
     } else if (variant === "lesson-dir") {
-      fixture.symlink("course/00-basics/01-first", fixture.path("course/00-basics/02-second"));
+      fixture.symlink(
+        "fixture-course/00-basics/01-first",
+        fixture.path("fixture-course/00-basics/02-second"),
+      );
     } else {
-      rel = "course/00-basics/../00-basics/01-first/theory.md";
+      rel = "fixture-course/00-basics/../00-basics/01-first/theory.md";
     }
 
     const error = await refusal(rel);
@@ -69,9 +72,9 @@ describe("nodeCourseFs.readText", () => {
   });
 
   it.each([
-    "course/00-basics/02-second/quiz.yaml",
-    "course/00-basics/02-second/checks/x.md",
-    "course/00-basics/02-second/starter/task.md",
+    "fixture-course/00-basics/02-second/quiz.yaml",
+    "fixture-course/00-basics/02-second/checks/x.md",
+    "fixture-course/00-basics/02-second/starter/task.md",
   ])("refuses %s as not a learner file", async (rel) => {
     const error = await refusal(rel);
 
@@ -90,9 +93,12 @@ describe("nodeCourseFs.readText", () => {
   });
 
   it("never puts the absolute path into a reason", async () => {
-    fixture.symlink(THEORY, fixture.path("course/00-basics/02-second/checks/verify.py"));
+    fixture.symlink(THEORY, fixture.path("fixture-course/00-basics/02-second/checks/verify.py"));
 
-    const errors = [await refusal(THEORY), await refusal("course/00-basics/03-draft/task.md")];
+    const errors = [
+      await refusal(THEORY),
+      await refusal("fixture-course/00-basics/03-draft/task.md"),
+    ];
 
     for (const error of errors) expect(error.message).not.toContain(fixture.root);
   });
@@ -109,14 +115,12 @@ describe("fsFailureReason", () => {
   });
 });
 
-describe("nodeCourseFs.isRegularFile and listDirs", () => {
-  it("tells a regular learner file from a missing one", async () => {
-    expect(await nodeCourseFs.isRegularFile(fixture.root, "course/course.yaml")).toBe(true);
-    expect(await nodeCourseFs.isRegularFile(fixture.root, "other/course.yaml")).toBe(false);
-  });
-
+describe("nodeCourseFs.listDirs", () => {
   it("lists the directories under the root", async () => {
-    expect(await nodeCourseFs.listDirs(fixture.root, "")).toEqual(["course"]);
+    expect(await nodeCourseFs.listDirs(fixture.root, "")).toEqual([
+      "broken-course",
+      "fixture-course",
+    ]);
   });
 
   it("reports a missing root as the root itself", async () => {

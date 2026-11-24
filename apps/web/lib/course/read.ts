@@ -1,5 +1,5 @@
-import { Course, Lesson, Module } from "@academy/lesson-schema/schema";
-import { COURSE_ROOT_FILE, CourseFileError, CourseReadError } from "./errors";
+import { type Course, Lesson, Module } from "@academy/lesson-schema/schema";
+import { CourseFileError } from "./errors";
 import type { CourseFs } from "./node-fs";
 import { parseYamlFile } from "./yaml";
 
@@ -26,7 +26,7 @@ export interface CourseTree {
   modules: ModuleNode[];
 }
 
-const COURSE_FILE = "course.yaml";
+export const COURSE_FILE = "course.yaml";
 
 // The part of a zod schema this module uses; the web does not depend on zod itself.
 type ParseResult<T> =
@@ -39,7 +39,8 @@ interface Schema<T> {
   safeParse(value: unknown): ParseResult<T>;
 }
 
-async function parseFile<T>(
+/** The validated content of one YAML file; every failure is a `CourseFileError` naming that file. */
+export async function parseFile<T>(
   fs: CourseFs,
   root: string,
   file: string,
@@ -57,22 +58,11 @@ async function parseFile<T>(
   return result.data;
 }
 
-async function findCourseDir(fs: CourseFs, root: string): Promise<string> {
-  const candidates: string[] = [];
-  for (const dir of await fs.listDirs(root, "")) {
-    if (await fs.isRegularFile(root, `${dir}/${COURSE_FILE}`)) candidates.push(dir);
-  }
-  const [only] = candidates;
-  if (only === undefined || candidates.length !== 1) {
-    throw new CourseFileError(
-      COURSE_ROOT_FILE,
-      `expected exactly one course, found ${candidates.length}`,
-    );
-  }
-  return only;
-}
-
-async function readModules(
+/**
+ * Every module.yaml and lesson.yaml `course` lists, validated against the lesson contract; lesson ids are
+ * unique within this course only. Never opens a Markdown file.
+ */
+export async function readModules(
   fs: CourseFs,
   root: string,
   courseDir: string,
@@ -97,24 +87,4 @@ async function readModules(
     modules.push({ dir, number: moduleName.slice(0, 2), module, lessons });
   }
   return modules;
-}
-
-/**
- * The course structure: course.yaml, every listed module.yaml and lesson.yaml, validated against the
- * lesson contract. Never opens a Markdown file. Every file failure is a `CourseReadError`.
- */
-export async function readCourse(fs: CourseFs, root: string): Promise<CourseTree> {
-  let courseId: string | undefined;
-  try {
-    const dir = await findCourseDir(fs, root);
-    const course = await parseFile(fs, root, `${dir}/${COURSE_FILE}`, Course);
-    courseId = course.id;
-    const modules = await readModules(fs, root, dir, course);
-    return { id: course.id, title: course.title, description: course.description, dir, modules };
-  } catch (error) {
-    if (error instanceof CourseFileError) {
-      throw new CourseReadError(error.file, error.reason, courseId);
-    }
-    throw error;
-  }
 }
