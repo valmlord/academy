@@ -85,18 +85,33 @@ Always pass `--build` after a change: compose tags the images `academy-web:local
 
 ### Course content
 
-The catalog and lesson pages read `course/` at request time (ADR-0009). The image carries a copy of the
-learner-visible files only, in `/app/course`: `course.yaml`, every listed `module.yaml`, and `lesson.yaml`,
+The catalog and lesson pages read `course/` at request time (ADR-0009). Every directory in it is a course
+named by its id, which its `course.yaml` must repeat. The image carries a copy of the learner-visible files of
+every course only, in `/app/course`: each `<course>/course.yaml`, every listed `module.yaml`, and `lesson.yaml`,
 `theory.md`, `task.md` of every listed lesson; never `checks/`, `starter/` or `quiz.yaml`. So a content change
 shows up in the compose stack only after `docker compose up -d --build`; `pnpm dev` shows it on reload.
 `bash apps/web/scripts/check-image-course.sh` checks the image against the current `course/` and prints the
 lines `C1 OK` to `C4 OK`.
 
-`COURSE_ROOT` names the directory that holds the course, as an absolute path. Unset, `pnpm dev` reads the
+`COURSE_ROOT` names the directory that holds the courses, as an absolute path. Unset, `pnpm dev` reads the
 repository's `course/`; the image sets `/app/course`; a relative path puts the course pages into their course
-error state and logs `web: course read failed: COURSE_ROOT: must be an absolute path`. The line
-`web: course read failed: .: missing` means the course root itself does not exist: `COURSE_ROOT` points
-nowhere, or the image was built without `/app/course`.
+error state and logs `web: course read failed: root: COURSE_ROOT: must be an absolute path`. The line
+`web: course read failed: root: .: missing` means the course root itself does not exist: `COURSE_ROOT` points
+nowhere, or the image was built without `/app/course`; `root: .: no course` means it holds no directory, and
+`root: .: unreadable (E...)` that it cannot be listed.
+
+Each line names a course or the root, a file relative to the root and a closed reason, never file contents; a
+course id that is not in the id form is printed JSON-quoted. A request logs each failing course it reads once:
+
+- `web: course read failed: course <id>: <file>: <reason>`: that course shows its course error, the others
+  read. A `course.yaml` whose `id` is not its directory's name gives `id is not the directory name`.
+- `web: lesson outcome recompute skipped: root: <file>: <reason>`: at startup, no outcome was recomputed.
+- `web: lesson outcome recompute skipped: course <id>: <file>: <reason>`: at startup, that course's progress
+  rows were left alone; the other courses were recomputed.
+- `web: lesson outcome recompute skipped: course <id>: no course directory, rows: <n>`: progress rows of a
+  course id that has no directory, usually a renamed course; renaming the directory back restores them.
+- `export-course: CourseExportError: course <id>: <file>: <reason>` (one per failing course) and
+  `export-course: CourseExportError: root: <file>: <reason>`: the image build failed and copied nothing.
 
 `ACADEMY_SKIP_ROOT_ENV` is for isolated test runs that must not read the root `.env`. Unset, which is the
 normal case, `pnpm dev`, `pnpm build`, `pnpm seed` and `pnpm test:e2e` load the root `.env` exactly as
