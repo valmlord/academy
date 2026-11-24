@@ -152,7 +152,7 @@ export async function readEveryCourse(source: CourseSource): Promise<EveryCourse
  * cached read, so no course is read twice in a request.
  *
  * The failure of a non-slug name and the `.: no course` result are built here, not by `courseById`, so neither
- * logs a per-request line: the startup recompute and the image build's export report such a root.
+ * logs a per-request line.
  */
 export async function firstReadableCourse(
   list: () => Promise<CourseList>,

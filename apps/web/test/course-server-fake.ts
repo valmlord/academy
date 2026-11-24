@@ -27,15 +27,12 @@ let current: Current | undefined;
 
 /** Every file call since the last useCourseRoot, as `<method> "<rel>"`. */
 export const fsCalls: string[] = [];
-/** Every operator line since the last useCourseRoot. */
-export const logLines: string[] = [];
 
 export function useCourseRoot(root: string): void {
   fsCalls.length = 0;
-  logLines.length = 0;
   const reads = createCourseReads({
     source: fixtureSource(root, recordingCourseFs(fsCalls).fs),
-    logError: (line) => logLines.push(line),
+    logError: () => undefined,
   });
   current = { root, reads };
 }
