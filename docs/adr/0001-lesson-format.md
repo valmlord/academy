@@ -4,7 +4,8 @@
 - Date: 2026-10-27
 - Issue: (bootstrap)
 - Amended: 2026-11-04, #68 (Decision 8: per-check attempt limits and mentor threshold; Decision 6:
-  unknown check keys). Status stays Proposed until Stepan accepts.
+  unknown check keys); 2026-11-21, #135 (Decision 6: the quiz threshold in task.md). Status stays
+  Proposed until Stepan accepts.
 
 ## Context
 The methodologists produce lessons; the platform displays and checks them. If the format is not
@@ -27,6 +28,25 @@ agreement must be checked by a machine, not by text.
    any check whose keys it cannot compare (a missing kind or one no check member defines, a check
    that is not an object, or a `checks` value that is present but not a list); an absent `checks`
    is an empty list, as the schema's default makes it.
+   In `ready` lessons it also compares the quiz threshold that `task.md` states with the quiz files
+   and `passScore` (amended 2026-11-21, #135):
+   - `task.md` states the threshold of each `quiz` check: how many questions the check has (Q) and
+     how many correct answers it requires (K). An example from the course is
+     `` **`memory-precedence-quiz`** (квиз): 8 вопросов, нужно 6 верных. ``
+     (`ai-for-developers/00-introduction/05-memory-agents-md/task.md`).
+   - Q is the number of items in the top-level `questions` list of the check's quiz file. K is the
+     server's required count: the smallest integer K with K / Q >= `passScore`, computed by
+     `requiredCorrect`, which `@academy/lesson-schema/schema` exports for the quiz server (#36). For
+     example, passScore 0.8 with 6 questions gives K 5, and 0.75 with 8 gives K 6. A stated Q or K
+     that differs from these is reported, and so is a quiz check whose own threshold sentence is
+     missing from `task.md`.
+   - A threshold statement that cannot be read is reported, not skipped, so the author rewords it.
+   - A quiz file that does not parse, or has no non-empty top-level `questions` list, is reported
+     on that file, and its check's threshold is not compared.
+   - What counts as a threshold statement and how it is read are defined by
+     `packages/lesson-schema/src/task-threshold.ts` and the fixture table in
+     `packages/lesson-schema/test/task-threshold.test.ts`. Where this text and the code seem to
+     differ, the code and the table decide, and changing either of them is a change of this item.
 7. Changing the format: a dev team task that updates this ADR and migrates all lessons
    in the same PR. Owner (CODEOWNERS): Stepan.
 8. Attempt limits (amended 2026-11-04, #68). Any check may carry an optional `attempts` object holding

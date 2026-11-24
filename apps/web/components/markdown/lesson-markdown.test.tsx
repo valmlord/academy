@@ -2,15 +2,27 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { render } from "@testing-library/react";
 import type { Html, Root } from "mdast";
+import { renderToStaticMarkup } from "react-dom/server";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { copyLabel } from "@/lib/copy";
 import type { LessonTextKind } from "@/lib/course/text";
+import { RecordingResizeObserver } from "@/test/dom-stubs";
 import { sectionsOf } from "./headings";
 import { LessonMarkdown } from "./lesson-markdown";
+
+// The code block's pre observes its own box, and jsdom has no ResizeObserver.
+beforeEach(() => {
+  RecordingResizeObserver.instances.length = 0;
+  vi.stubGlobal("ResizeObserver", RecordingResizeObserver);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function renderMarkdown(markdown: string, kind: LessonTextKind = "theory"): HTMLElement {
   const { container } = render(<LessonMarkdown markdown={markdown} kind={kind} />);
@@ -73,6 +85,16 @@ describe("LessonMarkdown safety", () => {
 
     expect(block?.querySelector("pre")?.textContent).toBe("echo hi\n");
     expect(block?.querySelector("button")?.textContent).toBe(copyLabel);
+  });
+
+  it("server-renders the pre of a code block with no tabindex, role or aria-label", () => {
+    const html = renderToStaticMarkup(
+      <LessonMarkdown markdown={"```sh\necho hi\n```\n"} kind="theory" />,
+    );
+
+    const preTag = /<pre[^>]*>/.exec(html)?.[0];
+
+    expect(preTag).toBe("<pre>");
   });
 
   it("shows raw HTML as literal text", () => {

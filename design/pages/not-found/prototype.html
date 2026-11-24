@@ -11,11 +11,11 @@
 <div class="app">
   <a class="skip-link" href="#main">К содержимому</a>
 
-  <!-- The "from #30" top bar; aria-current on neither link. "Курс" is left out while the course id is
-       unknown (ia.md R6, "Course id unknown"). -->
+  <!-- The #220 top bar (ia.md A218-3): no "Курс", aria-current on neither link. The page shows no progress,
+       so both links open the dashboard's two-course sample. -->
   <header class="topbar" data-region>
-    <a class="topbar-brand" href="../dashboard/prototype.html">Академия</a>
-    <nav class="topbar-nav"><a href="../dashboard/prototype.html">Главная</a><a href="../catalog/prototype.html" data-state="default session-expired user-menu">Курс</a></nav>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-courses-two">Академия</a>
+    <nav class="topbar-nav"><a href="../dashboard/prototype.html#state-courses-two">Главная</a></nav>
     <div class="topbar-end">
       <div class="dropdown">
         <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
@@ -35,13 +35,13 @@
     <div class="live" role="alert" data-live-key="page-alert"></div>
     <div class="live" role="status" data-live-key="page-status"></div>
   </div>
-  <!-- next is the sample unmatched path this page stands for; the sign-in prototype maps an unknown path
-       to the dashboard, while the app returns to the same URL (F2.4). -->
+  <!-- next is a way-(4) sample: a lesson URL of course 1 whose lesson id names no ready lesson. The sign-in
+       prototype maps every lesson path to the lesson prototype, while the app returns to the same URL (F2.4). -->
   <template data-live-source="page-alert" data-state="session-expired">
     <div class="alert" data-variant="destructive" data-step="F2.1">
       <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
       <p class="alert-title">Сессия закончилась. Файлы в рабочей папке сохранены.</p>
-      <div class="alert-actions"><a class="button" data-size="sm" href="../sign-in/prototype.html?next=%2Fno%2Fsuch%2Fpath#state-with-next">Войти снова</a></div>
+      <div class="alert-actions"><a class="button" data-size="sm" href="../sign-in/prototype.html?next=%2Fcourses%2Fai-for-developers%2Flessons%2Fno-such-lesson#state-with-next">Войти снова</a></div>
     </div>
   </template>
 
@@ -61,10 +61,10 @@
     <span>Prototype states:</span>
     <nav data-state-index aria-label="Prototype states" class="row"></nav>
     <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
-    <span hidden data-state="default" data-state-label="default (course id known)"></span>
-    <span hidden data-state="no-course" data-state-label="course id unknown"></span>
-    <span hidden data-state="session-expired" data-state-label="session expired (F2.1)"></span>
-    <span hidden data-state="user-menu" data-state-label="user menu open (F3.1)"></span>
+    <span hidden data-state="default" data-state-label="#220, default (course id known)"></span>
+    <span hidden data-state="no-course" data-state-label="#220, course id unknown"></span>
+    <span hidden data-state="session-expired" data-state-label="#220, session expired (F2.1)"></span>
+    <span hidden data-state="user-menu" data-state-label="#220, user menu open (F3.1)"></span>
   </div>
 </div>
 

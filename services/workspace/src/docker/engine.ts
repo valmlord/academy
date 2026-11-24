@@ -24,6 +24,7 @@ import {
   volumeListSchema,
 } from "./schemas.js";
 import type {
+  CheckCleanupExecCreateBody,
   CheckExecCreateBody,
   CheckExecStartBody,
   ContainerCreateBody,
@@ -257,7 +258,7 @@ export class DockerEngine {
   /** Returns the new exec's Id; a stopped container is 409 and a missing one 404, both as `DockerApiError`. */
   async createExec(
     containerId: string,
-    body: ExecCreateBody | KillExecCreateBody | CheckExecCreateBody,
+    body: ExecCreateBody | KillExecCreateBody | CheckExecCreateBody | CheckCleanupExecCreateBody,
   ): Promise<string> {
     const handle = await call("create exec", () =>
       this.#docker.getContainer(containerId).exec({ _query: {}, _body: body }),
