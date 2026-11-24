@@ -26,10 +26,9 @@ theory). `<title>` and h1: the lesson title. `?tab=` is read and written:
   the `#state-` hash picks the arrival case (the dashboard prototype links each row to its own state).
 
 While the course cannot be read, `<title>` and h1 are "Не удалось загрузить курс" (HTTP 200), whatever
-course and lesson ids the URL names: without the course the page cannot tell a hidden lesson from a real
-one (F7 error states). The not-found page (`design/pages/not-found/`, HTTP 404; `ia.md` page inventory,
-not-found Route) is what a lesson URL whose course id is not the course's, or a lesson URL whose lesson id
-names no `ready` lesson of the course, opens.
+course and lesson ids the URL names (until #220, F7 error states; from #220 [ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9)). The not-found page
+(`design/pages/not-found/`, HTTP 404) is what a lesson URL that is a way into it opens: the `ia.md` page
+inventory, not-found Route, ways (3) and (4), in its until-#220 list and from #220 in its from-#220 list.
 
 Dev issues: #30 (M0 lesson), #31 and #32 (environment, terminal), #34 (check bar and Проверки, v1 lesson),
 #35 ("История попыток" and the attempt deep link), #36 (the Квиз tab, F15; blocked by #34, `quiz.md` P4),
@@ -69,9 +68,10 @@ release.
 (`lesson-environment.md` "Lesson page by release"), a release before #220, so it keeps that release's top
 bar ("Академия", "Главная", "Курс"; `ia.md` R6 "Top bar by release") and the crumb "Курс": both are
 `data-state="m0"` variants, the crumb one in the same `li` as `#crumb-course`, with no id. No
-`data-goto-state` targets `#state-m0` or shows in it. With several courses the page draws no new state: the
-lesson course error is still the catalog's `#state-course-error` (a state kept until #220; its #220 form
-with several courses: see #222), a pointer here, not a link.
+`data-goto-state` targets `#state-m0` or shows in it. From #220 the page draws no new state: the lesson
+course error is the catalog's `#state-course-error` until #220 and, from #220 ([ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9)), the catalog's
+`#state-root-error`, the same composition with the A218-3 top bar and no "Другие курсы"; a pointer here, not
+a link.
 
 **From #36, the 30 `#state-quiz-*` states** (`quiz.md`, F15) draw the Квиз tab with the real quiz of this
 lesson: `models-effort-quiz` "Квиз: effort, поверхности и локальные модели", 6 questions in file order (2
@@ -158,7 +158,8 @@ one event after §5.0's last: at 5 ноября, 15:22, while №8 still runs, t
 A72-17). The dashboard reads of §5.0 (the latest at 15:21) come before it, so no dashboard state changes.
 
 The course error (the course cannot be read) is not drawn in this prototype: it is the catalog's
-`#state-course-error` inside `main` (States, the row for `../catalog/prototype.html#state-course-error`).
+`#state-course-error` inside `main` until #220, and its `#state-root-error` from #220 (States, the row for
+`../catalog/prototype.html#state-course-error`).
 
 ## Flows
 
@@ -247,7 +248,8 @@ holds, in DOM order, region "Урок" (left pane), region "Проверка" (c
 "Окружение" (right pane).
 
 - **Course cannot be read:** no panes, no switch, no handle and no check bar at any width; `main` holds only
-  the course error, in the catalog's column (`../catalog/prototype.html#state-course-error`).
+  the course error, in the catalog's column (`../catalog/prototype.html#state-course-error`; from #220
+  `#state-root-error`, [ES9](../../flows/ia.md#ES9)).
 
 - **1280 (from 1024 px): two panes.** Grid columns: left `var(--split-left)` (presets 50 / 35 / 65 %, min
   25 %, max 75 %, each pane at least `20rem`), handle `0.75rem` with a 24 px hit area, right pane the rest.
@@ -339,7 +341,7 @@ enabled, status line empty), tab Теория.
 
 | Anchor | What it shows |
 |--------|---------------|
-| `../catalog/prototype.html#state-course-error` (the course cannot be read; F7 error states) | that composition inside `main`: only the destructive static Alert "Не удалось загрузить курс" (its title is the h1, `tabindex="-1"`) with "Повторить". It differs from the drawn catalog prototype state in three things only: `<title>` "Не удалось загрузить курс" (the catalog app sets the same `<title>`; the static catalog prototype keeps the course title); no `aria-current` on "Курс" or "Главная" (the catalog marks "Курс"); "Повторить" targets as in Interactions and keyboard (the course error retry bullet). "Курс" is left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown"). A catalog state kept until #220; its #220 form with several courses: see #222 |
+| `../catalog/prototype.html#state-course-error` (the course cannot be read; F7 error states) | that composition inside `main`: only the destructive static Alert "Не удалось загрузить курс" (its title is the h1, `tabindex="-1"`) with "Повторить". It differs from the drawn catalog prototype state in three things only: `<title>` "Не удалось загрузить курс" (the catalog app sets the same `<title>`; the static catalog prototype keeps the course title); no `aria-current` on "Курс" or "Главная" (the catalog marks "Курс"); "Повторить" targets as in Interactions and keyboard (the course error retry bullet). "Курс" is left out while the course id is unknown, only when `course.yaml` itself cannot be read (ia.md R6, "Course id unknown"). A catalog state kept until #220. From #220 ([ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9)): `../catalog/prototype.html#state-root-error`, the same Alert with the A218-3 top bar (no "Курс", `aria-current` on neither link); it differs from that catalog state in `<title>` (as above) and in the "Повторить" targets |
 | `#state-theory` | default v1 lesson; running environment with the key hint. The "Локальные модели" code block (`#code-ollama`, longest line `export ANTHROPIC_BASE_URL=http://localhost:11434`, 48 characters) overflows at 320 and 375 px (`pre` `scrollWidth` / `clientWidth`: Chromium with classic scrollbars 437 / 271 and 437 / 326, WebKit with overlay scrollbars 447 / 286 and 447 / 341) and so is a Tab stop "Блок кода" after its "Копировать"; at 1280 px two-pane it fits (591 / 591 Chromium, 606 / 606 WebKit) and is no stop (README "Scrollable code", AC75) |
 | `#state-task` | Задание tab |
 | `#state-outcomes-collapsed` / `#state-outcomes-expanded` | three outcomes: first one plus "Показать все" / all three plus "Свернуть". The list collapses only with **more than two** outcomes (`lesson-environment.md` F7.1): one outcome, as in this lesson, or two show in full with no button |
@@ -522,7 +524,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   | M0 lesson | "Академия" | no stop | breadcrumb "Курс" (until #220) | no stop | no stop |
   | no `workspace` | "Академия" | no stop | course crumb | "Проверить" | no stop |
   | no check the platform runs | "Академия" | no stop | course crumb | no stop | "Действия" |
-  | course cannot be read (from #220 with several courses: see #222) | "Академия" | "Войти снова" with the session alert, else no stop | no stop | no stop | no stop |
+  | course cannot be read (from #220 [ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9)) | "Академия" | "Войти снова" with the session alert, else no stop | no stop | no stop | no stop |
   | one-pane mode, any state | "Академия" | as above | switch tab "Урок" (pane shown); the course crumb is the next Tab | "Проверить" | switch tab "Окружение" (pane shown) |
 
   "Course crumb" in the Урок column is `#crumb-course`, the course name (from #220, `ia.md` "Rules (#218)"
@@ -530,7 +532,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   the switch tab "Урок" and the course crumb is the next Tab (the same row). Until #220 (`#state-m0`) the
   landing is the breadcrumb "Курс", not the top-bar link. With the course unreadable,
   `main` is the `F6` stop and lands on "Повторить". That row is the catalog's `#state-course-error` cycle,
-  checked there, not in this prototype (kept until #220; from #220 with several courses: see #222). The cycle is off while either AlertDialog is open. From the split
+  checked there, not in this prototype (kept until #220; from #220 its `#state-root-error`, catalog AC19). The cycle is off while either AlertDialog is open. From the split
   handle (no region) `F6` goes to the next region in DOM order ("Окружение").
 - **Tab order (R4):** with the course read: "К содержимому"; top bar; "Уведомления" when non-empty
   ("Войти снова", "Продолжить работу", from #36 "Открыть квиз", in container order); "Урок"
@@ -554,7 +556,7 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   target is shown; otherwise focus stays where the learner put it and nothing is announced, because the error
   is unchanged on screen and a load that succeeds is page content (`ia.md:338-353`, retry focus guard). The
   guard covers the lesson h1 and error h1 moves; the not-found move keeps its
-  statement (#95).
+  statement (#95). From #220 the guard is judged as [RG1](../../flows/ia.md#RG1) says ([ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9) render the error).
 - **Tabs:** arrow keys, Home, End, automatic activation; the one-pane switch the same. The ring on the first
   mouse click on a tab is accepted (ia.md R4): Radix focuses the trigger on `mousedown`, so the global
   `:focus-visible` ring shows once; tab triggers get no special focus rule.
@@ -963,8 +965,8 @@ the same render as the changed quiz row (`progress.md` A72-17; drawn in `#state-
   | 5 | an id the dashboard does not emit for this lesson (malformed, unknown, another user's, another lesson's); history read | nothing expanded | not moved | `#state-history` loaded with any `attempt` |
   | 6 | any value; the check state cannot be read | no history section; the tab's state is #69's (FU13 Q1) | not moved until #69 answers Q1 | not drawn |
   | 7 | any value; the Проверки tab is not shown (before #35, or no check the platform runs) | the `tab` fallback: Теория, or Задание | not moved | `#state-no-checks`, `#state-m0` |
-  | 8 | any value; the lesson is not `ready` | the not-found page | not moved | `../not-found/prototype.html` |
-  | 9 | any value; the course cannot be read | the lesson course error (F7) | its rules | `../catalog/prototype.html#state-course-error` |
+  | 8 | any value; the URL is not-found way (4), from #220 way (3) or (4) (`ia.md` page inventory) | the not-found page | not moved | `../not-found/prototype.html` |
+  | 9 | any value; the course cannot be read (from #220 [ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9)) | the lesson course error (F7) | its rules | `../catalog/prototype.html#state-course-error`; from #220 `#state-root-error` |
   | 10 | any value; the session expired | F2; `next` keeps `tab` and `attempt` | after sign-in, rows 1-9 | `#state-session-expired` |
 
   The focus move happens once, on load; a background re-read never moves focus. Arriving from a "Где
@@ -1462,7 +1464,7 @@ quiz content, data, not copy.
   composition keeps the course title); HTTP 200; `F6` to `main` lands on "Повторить"; no
   `aria-current` on either top-bar link; until #220 "Курс" is left out while the course id is unknown (only
   when `course.yaml` itself cannot be read; from #220 the bar has no "Курс", `ia.md` A218-3, and the course
-  error with several courses: see #222). "Повторить"
+  error is [ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9)). "Повторить"
   puts focus on the lesson h1 with `<title>` the lesson title on success; the error h1 with `<title>` "Не
   удалось загрузить курс" on a second failure; the not-found h1 with `<title>` "Страница не найдена" when
   the course loads but the URL is a way into the not-found page. A pointer press on "Повторить" that did not
@@ -1471,7 +1473,9 @@ quiz content, data, not copy.
   "Повторить", on `body` or inside `main`, and its target is shown; otherwise focus stays where the learner
   put it and nothing is announced, because the error is unchanged on screen and a load that succeeds is page
   content (`ia.md:338-353`, retry focus guard). The guard
-  covers the lesson h1 and error h1 moves; the not-found move keeps its statement (#95).
+  covers the lesson h1 and error h1 moves; the not-found move keeps its statement (#95). From #220 the guard is
+  judged as [RG1](../../flows/ia.md#RG1) says; app test: a Shift+Tab to the top bar before the answer keeps focus there in both
+  outcomes.
 - AC20: task.md `###` renders as h4 at `text-lg`, weight 600, `space-6` above; theory.md `####` the same.
   No h4 is a "Содержание" target (no `tabindex`).
 - AC21, nothing to run: when every counted check is passed or closed and at least one is closed (S3), or a

@@ -8,7 +8,8 @@ are numbered (1)-(4) there; this note uses those numbers and never restates thei
 
 - From #220 (#218): the page inventory's "From #220" ways. `#state-default` draws way (4), with
   "Открыть курс"; `#state-no-course` draws ways (1)-(3), with no action ([A218-12](../../flows/ia.md#A218-12)).
-  While the root or the URL's course cannot be read: see #222.
+  The ways that need a read, and what shows instead: the page inventory's not-found Route
+  ([ES7](../../flows/ia.md#ES7), [ES8](../../flows/ia.md#ES8), [ES9](../../flows/ia.md#ES9)).
 - Until #220 (the one-course app): the inventory's first list. `#state-no-course` stood for "course id
   unknown" and `#state-default` for "course id known" (`ia.md` R6, "Course id unknown"); from #220
   A218-12 replaces that rule on this page (`ia.md` "Several courses (#218)", intro).
@@ -111,10 +112,11 @@ A218-3.
   | session expired | "Академия" | "Войти снова" | "Открыть курс" |
   | user menu open | "Академия" | no stop | "Открыть курс" |
 
-- Focus on arrival: none. An ordinary arrival leaves focus where the browser puts it on a new page. Until
-  #220 the one exception: a catalog or lesson "Повторить" whose course loads while the URL is a way into
-  this page puts focus on the h1 (`id="not-found-title"`, `tabindex="-1"`; `ia.md` R2, page-level retry
-  table). From #220: see #222. The h1 is no Tab stop and no `F6` target.
+- Focus on arrival: none. An ordinary arrival leaves focus where the browser puts it on a new page. The
+  exception, until #220 and from #220: a catalog or lesson "Повторить" whose result is a way into this page
+  puts focus on the h1 (`id="not-found-title"`, `tabindex="-1"`; `ia.md` R2, page-level retry table, its
+  not-found column, which keeps its catalog and lesson rows from #220). The h1 is no Tab stop and no `F6`
+  target.
 - "Открыть курс": link to the URL's course catalog, `/courses/[courseId]` (F5; row "course of each
   control"). The prototype link: Prototype limits.
 - "Главная", "Академия": `/`, as on every page with the top bar. Until #220 "Курс": `/courses/[courseId]`;
@@ -151,7 +153,7 @@ set. Sample data (not copy): `learner@example.com`.
   name). The `navigation` in the bar has no name (the only one in the banner). One h1.
 - Live containers: only the two in "Уведомления" (`role="alert"` and `role="status"`), present and empty
   from load; text inserted, never the container (R2). The sentence is static.
-- The h1 has `tabindex="-1"` for the retry focus only (R2; from #220 see #222); it is not a Tab stop and
+- The h1 has `tabindex="-1"` for the retry focus only (R2, page-level retry table, in both releases); it is not a Tab stop and
   not an `F6` target (R3 excludes `tabindex="-1"`).
 - The sentence names both real causes (a typed address, an old link) and is true for a hidden lesson too,
   so the page never reveals that a non-`ready` lesson exists.
@@ -177,7 +179,8 @@ All checks apply from #220; the "until #220" lines above are the one-course form
   becomes the "Уведомления" region; "Войти снова" goes to `/sign-in?next=<current path>`.
 - AC8: the user menu works as on the dashboard (dashboard AC11): Enter or Space opens it, Esc returns
   focus to the button, "Выйти" signs out to `/sign-in` with "Вы вышли".
-- AC9: focus does not move on arrival. Focus after a catalog or lesson "Повторить" that ends here: see #222.
+- AC9: focus does not move on arrival, except after a catalog or lesson "Повторить" that ends here, which
+  focuses the h1 (`ia.md` R2, page-level retry table, not-found column; catalog AC18, lesson AC19).
 - AC10: the response is HTTP 404 for each way in (Route).
 - AC11: no horizontal scroll at 320, 375 and 1280, light and dark, in every state.
 
