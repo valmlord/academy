@@ -355,7 +355,7 @@ Mentor compositions (from #37, `design/system/README.md` "Hint ladder and mentor
 the gallery's): "Разобрать с ментором" is one `div.mentor-action` (outline sm Button, then its visible
 "до $N" `span.text-sm.muted`, named in the Button's `aria-describedby`) on a line of its own, its R1 reason a
 `p.disabled-reason` right after it. The review's "Повторить" is the same `div.mentor-action` pair with a
-secondary sm Button, inside the destructive Alert's `.alert-actions`, as every other "Повторить". The review block
+secondary sm Button, inside the destructive Alert's `.alert-actions`. The review block
 and the ladder are each a `div.mentor-block` led by an `h4` ("Разбор ментора", "Подсказки"): the review block
 holds the busy display (`div.mentor-busy`: `span.spinner`, the words, `span.timer` with `role="timer"`; no role
 and no tabindex there), or the review text (`pre.check-row-message`, `tabindex="-1"`), the transcript note

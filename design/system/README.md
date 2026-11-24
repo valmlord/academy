@@ -381,10 +381,8 @@ disabled Button, the destructive Alert), each measured in "Contrast runs" or by 
   an `id`, the A71-8 focus target; the budget form puts "Стоимость разбора: $N" in the Alert as a
   `p.alert-description` after the title (A71-5: the Alert "with the cost line"). Then, inside the Alert, the
   retry: `div.alert-actions` holding one `div.mentor-action` with a secondary sm Button "Повторить" and its
-  `span.text-sm.muted` "до $N" (`aria-describedby`, A71-2). Secondary in `.alert-actions` because every other
-  "Повторить" (catalog, dashboard, sign-in, the lesson's text and quiz load errors and the history error) is
-  a secondary sm Button, in the error Alert's `.alert-actions` wherever an Alert holds the error: one label,
-  one look. Its cost sits beside it as on every mentor control; `muted-foreground` on `card` measures
+  `span.text-sm.muted` "до $N" (`aria-describedby`, A71-2). Its cost sits beside it as on every mentor
+  control; `muted-foreground` on `card` measures
   5.251:1 / 6.939:1 ("Contrast runs"). When it is `aria-disabled` (another call on the check, no mentor key:
   A71-7) its reason is a `p.disabled-reason` right after `.alert-actions`, still in the Alert's text column,
   and the Button lists it first: `aria-describedby="<reason id> <cost id>"`. The attempt panel draws the done

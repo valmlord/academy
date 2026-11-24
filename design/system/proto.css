@@ -845,8 +845,7 @@ main:focus-visible { outline-offset: calc(var(--focus-offset) * -1); }
 /* Mentor controls: each Button with its visible "до $N" (span.text-sm.muted, its aria-describedby) in one
    .mentor-action, so a narrow panel wraps a whole pair before it splits one; pairs are space-4 apart, a
    button and its cost space-2. "Разобрать с ментором" is a .mentor-action of its own, on a line of its own
-   in the panel or the quiz. The review's "Повторить" is a .mentor-action inside the Alert's .alert-actions,
-   a secondary sm Button as every other "Повторить". */
+   in the panel or the quiz. The review's "Повторить" is a .mentor-action inside the Alert's .alert-actions. */
 .mentor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
 .mentor-action { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; }
 .check-row-panel > .mentor-action, .quiz > .mentor-action { display: flex; width: fit-content; max-width: 100%; }
