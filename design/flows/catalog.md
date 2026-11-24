@@ -37,13 +37,14 @@ dashboard block heading (F20.4), the course crumb (F22.2) and a "Другие к
 
 **Error states:**
 - Course data cannot be read: alert "Не удалось загрузить курс" with "Повторить", whatever course id the
-  URL names, because without the course the page cannot tell a wrong id from the right one. The top bar
+  URL names, because without the course the page cannot tell a wrong id from the right one (until #220;
+  from #220 `ia.md` [ES7](ia.md#ES7), [ES8](ia.md#ES8)). The top bar
   keeps "Курс" unless `course.yaml` itself is unreadable (`ia.md` R6, "Course id unknown"). `<title>`
   "Не удалось загрузить курс". "Повторить" focuses the course h1 when the course loads (`<title>` the
   course title), the error h1 when it fails again, and the not-found h1 when the course loads but its id
   is not the URL's (`<title>` "Страница не найдена"; `ia.md` R2, page-level retry table). The course h1
   and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2, retry
-  focus guard). With several courses, from #220: see #222.
+  focus guard; from #220 `ia.md` [RG1](ia.md#RG1), [RG2](ia.md#RG2)).
 - A URL that is a way into the not-found page (`ia.md` page inventory, not-found Route): the not-found page
   (`design/pages/not-found/`, #83): h1 "Страница не найдена", the sentence "Возможно, в адресе опечатка
   или ссылка устарела." and "Открыть курс" (only while the course id is known, see below); no breadcrumb, no "404", no destructive colour, because the
@@ -70,7 +71,7 @@ course (`ia.md` A218-14).
 
 **Keyboard path:** Tab through the module links (Enter moves focus to that module's section heading),
 then through lesson links in order; each lesson row is one link, so one Tab per lesson. From #220 the
-"Другие курсы" links follow (`ia.md` A218-14).
+"Другие курсы" links follow (`ia.md` A218-14); in the course error: `ia.md` [ES12](ia.md#ES12).
 
 **Time limits:** none.
 

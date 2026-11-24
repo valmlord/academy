@@ -94,15 +94,14 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
   first thing a learner can meet): the page is the catalog's course error, not a lesson with a gap.
   `<title>` and h1 "Не удалось загрузить курс" (the h1 is the Alert title, `tabindex="-1"`), "Повторить";
   nothing else in `main`: no breadcrumb, lesson header, M0 line, prerequisite alert or tabs, because each
-  of them is course data. The URL's course and lesson ids are not checked: without the course the page
-  cannot tell a hidden lesson from a real one, and saying "not found" could be wrong. Regions: `ia.md` R3
+  of them is course data. Not-found ways: `ia.md` page inventory, not-found Route. Regions: `ia.md` R3
   (`main` is the `F6` stop and lands on "Повторить"); top bar: R6, with `aria-current` on neither link and
   "Курс" kept unless the course id is unknown. "Повторить" reloads: the lesson opens with focus on its h1
   (`<title>` the lesson title); a second failure focuses the error h1 (`<title>` unchanged); a course that
   loads while the URL is a way into the not-found page (`ia.md` page inventory, not-found Route) shows the
   not-found page with focus on its h1 (`<title>` "Страница не найдена"; R2, page-level retry table). The
   lesson h1 and error h1 moves happen only while focus is still on "Повторить", on `body` or in `main` (R2,
-  retry focus guard). With several courses, from #220: see #222.
+  retry focus guard). From #220: `ia.md` [ES8](ia.md#ES8), [ES9](ia.md#ES9), [RG1](ia.md#RG1).
 - A direct link that is a way into the not-found page (`ia.md` page inventory, not-found Route, ways (3)
   and (4)): the not-found page (`catalog.md` F5 error states).
 - theory.md or task.md cannot be read: the tab shows "Не удалось загрузить текст урока" with
@@ -129,7 +128,7 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 page opens on Задание. A lesson with no sources: the "Источники" block is not shown.
 
 **Exit:** F7.5 into F9; F13 via "Проверить"; breadcrumbs to the catalog (from #220 F22). From the course error:
-"Повторить", or "Главная" / "Курс" in the top bar (R6).
+"Повторить", or "Главная" / "Курс" in the top bar (R6) until #220; from #220 `ia.md` [ES9](ia.md#ES9).
 
 **Keyboard path:** the tab list is one Tab stop, arrow keys switch tabs (WAI-ARIA tabs), Tab moves into
 the tab panel. "Содержание" links are in order; Enter moves focus to the heading. A code block is "Копировать", then
