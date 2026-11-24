@@ -25,7 +25,7 @@ bottom and its "Dark theme" button are prototype chrome, not product UI.
 | F20.2 | from #220: one course block, the `section` of the first course |
 | F20.3 | from #220: the first block's next-lesson link "Следующий урок: <lesson title>" (`courses-two`, `attempts-two-courses`) |
 | F20.4 | from #220: the first block's heading h2 (its link opens the course's catalog; a module row opens a module section) |
-| F21.1 | from #220: block 2's Alert in the error form ([ES1](../../flows/ia.md#ES1)), `courses-one-broken` and the states drawn on its data (States) |
+| F21.1 | from #220: block 2's Alert in the error form ([ES1](../../flows/ia.md#ES1)), drawn in every state whose States row reads "as `courses-one-broken`", in `courses-one-broken` itself and in `courses-progress-lost-block-broken` |
 | F21.2 | from #220: block 2's "Повторить" in `courses-one-broken` (one element; the other states draw the same button for their outcome) |
 | F21.3 | from #220: block 2's h2 `#course-zz-stub-course-heading`, the [RO1](../../flows/ia.md#RO1) focus target of the re-read ([RR1](../../flows/ia.md#RR1)); [RO2](../../flows/ia.md#RO2) and [AN1](../../flows/ia.md#AN1): Interactions and keyboard |
 | F18.3 | the `section` "Последние попытки" (from #35) |
@@ -275,7 +275,8 @@ state of the same release class that its outcome renders, States), except:
   block 2: `#state-stub-course-empty`); `courses-progress-lost` (block 1: `#state-courses-two`, block 2:
   `#state-stub-course`); `courses-progress-lost-block-broken` (block 1: `#state-courses-two`, whose "Пробный
   курс" opens the readable `stub-course`, as in (b)).
-  (b) A course that cannot be read is drawn on the catalog only as `#state-courses-course-error` (catalog AC15),
+  (b) From #220, a course that cannot be read while the root reads is drawn on the catalog only as
+  `#state-courses-course-error` (catalog AC15),
   so a catalog state reached from a state where one course is broken shows the URL's course as that state has
   it, while its own "Другие курсы" link and top bar are those of the sample where every course reads: block 1
   of `courses-one-broken`, `courses-block-error-fails-again`, `courses-progress-lost-at-retry`, `courses-progress-lost-fails-again`, `courses-progress-lost-focus-away`, `courses-other-broke-at-retry`, `courses-block-renamed`, `courses-block-removed` opens `#state-courses-two`, whose "Пробный курс" opens the readable `stub-course`; block 2 of

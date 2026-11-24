@@ -70,7 +70,7 @@ state and anchor):
    focus on the course h1; "Fails again", the not-found column, the guard and the press focus are not drawn
    (AC15-AC19). The progress line is drawn only in the kept `#state-progress-unavailable`; from #220 it is the
    same composition (F6 error states; #222 adds no rule for it).
-8. A course that cannot be read is drawn only as `#state-courses-course-error`. Its "ИИ для разработчиков" link
+8. From #220, a course that cannot be read while the root reads is drawn only as `#state-courses-course-error`. Its "ИИ для разработчиков" link
    opens `#state-courses-two`, which shows course 1 as that sample has it, while the "Пробный курс" link and the
    top bar of `courses-two` are drawn for the sample in which every course reads (the readable
    `#state-stub-course`, dashboard `courses-two`). `#state-courses-other-no-title` stands for a root where course
