@@ -20,9 +20,18 @@
 <div class="app">
   <a class="skip-link" href="#main">К содержимому</a>
 
+  <!-- Top bar by release (ia.md R6 "Top bar by release"): from #220 A218-3, no "Курс" and no aria-current
+       here; the kept states keep today's bar with "Курс". Each link variant opens the dashboard state with
+       this state's courses and release (design rule LT); only one variant renders per state. -->
   <header class="topbar" data-region>
-    <a class="topbar-brand" href="../dashboard/prototype.html">Академия</a>
-    <nav class="topbar-nav"><a href="../dashboard/prototype.html">Главная</a><a href="prototype.html" aria-current="page">Курс</a></nav>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-in-progress" data-state="default failed-lesson ready-no-lessons session-expired user-menu">Академия</a>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-courses-two" data-state="courses-two stub-course">Академия</a>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-courses-one-empty" data-state="courses-one-empty stub-course-empty">Академия</a>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-loading" data-state="loading">Академия</a>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-course-error" data-state="course-error">Академия</a>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-progress-unavailable" data-state="progress-unavailable">Академия</a>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-in-progress-until-220" data-state="default-until-220">Академия</a>
+    <nav class="topbar-nav"><a href="../dashboard/prototype.html#state-in-progress" data-state="default failed-lesson ready-no-lessons session-expired user-menu">Главная</a><a href="../dashboard/prototype.html#state-courses-two" data-state="courses-two stub-course">Главная</a><a href="../dashboard/prototype.html#state-courses-one-empty" data-state="courses-one-empty stub-course-empty">Главная</a><a href="../dashboard/prototype.html#state-loading" data-state="loading">Главная</a><a href="../dashboard/prototype.html#state-course-error" data-state="course-error">Главная</a><a href="../dashboard/prototype.html#state-progress-unavailable" data-state="progress-unavailable">Главная</a><a href="../dashboard/prototype.html#state-in-progress-until-220" data-state="default-until-220">Главная</a><a href="prototype.html#state-course-error" aria-current="page" data-state="course-error">Курс</a><a href="prototype.html#state-progress-unavailable" aria-current="page" data-state="progress-unavailable">Курс</a><a href="prototype.html#state-default-until-220" aria-current="page" data-state="default-until-220">Курс</a></nav>
     <div class="topbar-end">
       <div class="dropdown">
         <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
@@ -61,14 +70,19 @@
         <span class="skeleton" style="width: 60%"></span>
       </div>
 
-      <!-- F5 error: course data cannot be read. The alert title is the page h1 in this state. -->
+      <!-- F5 error: course data cannot be read. The alert title is the page h1 in this state. Kept until
+           #220; its #220 form is #222's. -->
       <div class="alert" data-variant="destructive" data-state="course-error">
         <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
         <h1 class="alert-title text-sm" id="course-error-title" tabindex="-1">Не удалось загрузить курс</h1>
-        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="default" data-focus="#course-title">Повторить</button></div>
+        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="default-until-220" data-focus="#course-title">Повторить</button></div>
       </div>
 
-      <div class="course-header" data-state="default failed-lesson ready-no-lessons progress-unavailable session-expired user-menu">
+      <!-- Course 1: course/ai-for-developers on HEAD (six ready modules, 37 ready lessons). Sample
+           progress in every state with a status: lesson 01 passed, lesson 02 started (failed-lesson: not
+           passed). Lesson rows and prerequisite links come in two variants: the from-#220 states open the
+           lesson prototype, the kept states its m0 state (rule LT). -->
+      <div class="course-header" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty progress-unavailable default-until-220">
         <h1 id="course-title" tabindex="-1">ИИ для разработчиков</h1>
         <p class="muted">Работа с ИИ-агентами в реальной разработке: контекст и харнесс, Spec Driven Development, паттерны агентной разработки, оркестрация субагентов, итоговый проект и работа с legacy. Программа держится близко к курсу Hexlet "ИИ для разработчиков" (см. docs/course-reference.md).</p>
         <!-- F5 / F6 error: progress cannot be read. The same line as on the dashboard, once, at the top. -->
@@ -76,26 +90,19 @@
       </div>
 
       <!-- F5.1: module list in course order with module status. -->
-      <ol class="module-list" data-step="F5.1" data-state="default failed-lesson ready-no-lessons progress-unavailable session-expired user-menu">
-        <li><a href="#introduction">00. Введение в разработку с ИИ</a>
-          <span class="badge" data-variant="secondary" data-state="default failed-lesson progress-unavailable session-expired user-menu">Доступен</span>
-          <span class="badge" data-variant="outline" data-tone="muted" data-state="ready-no-lessons">Готовится</span></li>
-        <li><a href="#spec-driven-development">01. Spec Driven Development</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
-        <li><a href="#agentic-patterns">02. Паттерны агентной разработки</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
-        <li><a href="#subagent-orchestration">03. Оркестрация субагентов и мультиагентные пайплайны</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
-        <li><a href="#final-project">04. Итоговый проект: календарь звонков</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
-        <li><a href="#legacy-code">05. Работа с legacy-кодом</a> <span class="badge" data-variant="outline" data-tone="muted">Готовится</span></li>
+      <ol class="module-list" data-step="F5.1" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty progress-unavailable default-until-220">
+        <li><a href="#introduction">00. Введение в разработку с ИИ</a> <span class="badge" data-variant="secondary">Доступен</span></li>
+        <li><a href="#spec-driven-development">01. Spec Driven Development</a> <span class="badge" data-variant="secondary">Доступен</span></li>
+        <li><a href="#agentic-patterns">02. Паттерны агентной разработки</a> <span class="badge" data-variant="secondary">Доступен</span></li>
+        <li><a href="#subagent-orchestration">03. Оркестрация субагентов и мультиагентные пайплайны</a> <span class="badge" data-variant="secondary">Доступен</span></li>
+        <li><a href="#final-project">04. Итоговый проект: календарь звонков</a> <span class="badge" data-variant="secondary">Доступен</span></li>
+        <li><a href="#legacy-code">05. Работа с legacy-кодом</a> <span class="badge" data-variant="secondary" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty progress-unavailable default-until-220">Доступен</span><span class="badge" data-variant="outline" data-tone="muted" data-state="ready-no-lessons">Готовится</span></li>
       </ol>
 
-      <div data-state="default failed-lesson ready-no-lessons progress-unavailable session-expired user-menu">
-        <!-- F5.2: a ready module section. -->
+      <div data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty progress-unavailable default-until-220">
         <section class="module-section" id="introduction" aria-labelledby="introduction-heading" data-step="F5.2">
           <hr class="separator">
-          <div class="module-heading">
-            <h2 id="introduction-heading" tabindex="-1">00. Введение в разработку с ИИ</h2>
-            <span class="badge" data-variant="secondary" data-state="default failed-lesson progress-unavailable session-expired user-menu">Доступен</span>
-            <span class="badge" data-variant="outline" data-tone="muted" data-state="ready-no-lessons">Готовится</span>
-          </div>
+          <div class="module-heading"><h2 id="introduction-heading" tabindex="-1">00. Введение в разработку с ИИ</h2><span class="badge" data-variant="secondary">Доступен</span></div>
           <p>Синхронизирующий блок. Выбор моделей и уровня ризонинга, локальные модели; ассистенты и экономика цена/качество; контекст-инжиниринг, планирование и исполнение; устройство агентов (loop, harness, tools, MCP); память и AGENTS.md; безопасность и контроль разрешений.</p>
           <div class="outcomes">
             <h3>Чему научитесь</h3>
@@ -108,88 +115,367 @@
               <li>Переносит критичные запреты из инструкций в механизмы, которые исполняет харнесс (правила разрешений, хук), и находит обходы в конфигурации разрешений.</li>
             </ul>
           </div>
-
-          <!-- F5 empty: a ready module with no ready lesson. -->
-          <div class="empty" data-state="ready-no-lessons"><p class="empty-title">Уроки модуля готовятся</p></div>
-
-          <!-- F5.3: lesson rows. Each row is one link (one Tab); a prerequisite note follows its row. -->
-          <ul class="item-group" aria-labelledby="introduction-heading" data-step="F5.3" data-state="default failed-lesson progress-unavailable session-expired user-menu">
+          <ul class="item-group" aria-labelledby="introduction-heading" data-step="F5.3">
             <li>
-              <a class="item" href="../lesson/prototype.html" data-step="F5.4">
-                <span class="item-content"><span class="item-title">01. Модель, уровень ризонинга и локальные модели</span><span class="item-description">артефакт, около 40 мин</span></span>
-                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройден</span></span>
-              </a>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty" data-step="F5.4"><span class="item-content"><span class="item-title">01. Модель, уровень ризонинга и локальные модели</span><span class="item-description">артефакт, около 40 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройден</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220" data-step="F5.4"><span class="item-content"><span class="item-title">01. Модель, уровень ризонинга и локальные модели</span><span class="item-description">артефакт, около 40 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="success"><span class="status-icon" data-status="success" aria-hidden="true"></span>Пройден</span></span></a>
             </li>
             <li>
-              <a class="item" href="../lesson/prototype.html">
-                <span class="item-content"><span class="item-title">02. Устройство агента: цикл, харнесс, инструменты, MCP</span><span class="item-description">артефакт, около 60 мин</span></span>
-                <span class="item-actions" data-state="default session-expired user-menu"><span class="badge" data-variant="secondary">В процессе</span></span>
-                <span class="item-actions" data-state="failed-lesson"><span class="badge" data-variant="outline" data-tone="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройден</span></span>
-              </a>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">02. Устройство агента: цикл, харнесс, инструменты, MCP</span><span class="item-description">артефакт, около 60 мин</span></span><span class="item-actions" data-state="default ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="secondary">В процессе</span></span><span class="item-actions" data-state="failed-lesson"><span class="badge" data-variant="outline" data-tone="destructive"><span class="status-icon" data-status="destructive" aria-hidden="true"></span>Не пройден</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">02. Устройство агента: цикл, харнесс, инструменты, MCP</span><span class="item-description">артефакт, около 60 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="secondary">В процессе</span></span></a>
             </li>
             <li>
-              <a class="item" href="../lesson/prototype.html">
-                <span class="item-content"><span class="item-title">03. Ассистенты, тарифы и экономика цена/качество</span><span class="item-description">артефакт, около 45 мин</span></span>
-                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
-              </a>
-              <p class="item-note" data-step="F6.1" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a></p>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">03. Ассистенты, тарифы и экономика цена/качество</span><span class="item-description">артефакт, около 45 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">03. Ассистенты, тарифы и экономика цена/качество</span><span class="item-description">артефакт, около 45 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-step="F6.1" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a></p>
+              <p class="item-note" data-step="F6.1" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Устройство агента: цикл, харнесс, инструменты, MCP</a></p>
             </li>
             <li>
-              <a class="item" href="../lesson/prototype.html">
-                <span class="item-content"><span class="item-title">04. Контекст-инжиниринг. Планирование и исполнение</span><span class="item-description">поиск багов, около 70 мин</span></span>
-                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
-              </a>
-              <p class="item-note" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html">Ассистенты, тарифы и экономика цена/качество</a></p>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">04. Контекст-инжиниринг. Планирование и исполнение</span><span class="item-description">поиск багов, около 70 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">04. Контекст-инжиниринг. Планирование и исполнение</span><span class="item-description">поиск багов, около 70 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html">Ассистенты, тарифы и экономика цена/качество</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html#state-m0">Ассистенты, тарифы и экономика цена/качество</a></p>
             </li>
             <li>
-              <a class="item" href="../lesson/prototype.html">
-                <span class="item-content"><span class="item-title">05. Память агента и AGENTS.md</span><span class="item-description">артефакт, около 50 мин</span></span>
-                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
-              </a>
-              <p class="item-note" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Контекст-инжиниринг. Планирование и исполнение</a></p>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">05. Память агента и AGENTS.md</span><span class="item-description">артефакт, около 50 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">05. Память агента и AGENTS.md</span><span class="item-description">артефакт, около 50 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Контекст-инжиниринг. Планирование и исполнение</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Контекст-инжиниринг. Планирование и исполнение</a></p>
             </li>
             <li>
-              <a class="item" href="../lesson/prototype.html">
-                <span class="item-content"><span class="item-title">06. Безопасность и контроль разрешений</span><span class="item-description">артефакт, около 80 мин</span></span>
-                <span class="item-actions" data-state="default failed-lesson session-expired user-menu"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span>
-              </a>
-              <p class="item-note" data-state="default failed-lesson session-expired user-menu">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html">Память агента и AGENTS.md</a></p>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">06. Безопасность и контроль разрешений</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">06. Безопасность и контроль разрешений</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html">Память агента и AGENTS.md</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Устройство агента: цикл, харнесс, инструменты, MCP</a>, <a href="../lesson/prototype.html#state-m0">Память агента и AGENTS.md</a></p>
             </li>
           </ul>
         </section>
 
-        <!-- F5 empty: planned modules. No outcomes in their module.yaml, so no "Чему научитесь". -->
         <section class="module-section" id="spec-driven-development" aria-labelledby="spec-driven-development-heading">
           <hr class="separator">
-          <div class="module-heading"><h2 id="spec-driven-development-heading" tabindex="-1">01. Spec Driven Development</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <div class="module-heading"><h2 id="spec-driven-development-heading" tabindex="-1">01. Spec Driven Development</h2><span class="badge" data-variant="secondary">Доступен</span></div>
           <p>Верификация результата работы агента; скиллы и их жизненный цикл в проекте; SDD от проектирования до реализации (ADR, PRD и другие артефакты, автоматический контроль их целостности); онтология проекта: доменная модель, сущности, связи, процессы.</p>
-          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+          <div class="outcomes">
+            <h3>Чему научитесь</h3>
+            <ul>
+              <li>Делает проверку работы агента детерминированной: пишет тесты, которые падают на неверной реализации, и Stop-хук, который сам запускает тесты и не даёт агенту закончить ход при красных тестах.</li>
+              <li>Оформляет повторяемую процедуру как скилл (SKILL.md по открытому стандарту Agent Skills, с полями Claude Code только там, где они нужны), решает, может ли модель вызывать его сама, и оставляет в постоянно загружаемой памяти проекта только то, что нужно в каждой сессии.</li>
+              <li>Составляет глоссарий предметной области в формате, который читает агент: термины с определениями без деталей реализации, запрещённые синонимы и связи контекстов через доменные события, разводит по контекстам слово, которое в разных частях системы значит разное, и отличает сущность от объекта-значения и границу агрегата.</li>
+              <li>Превращает описание фичи и протокол интервью в спецификацию с проверяемыми требованиями, один ADR для решения, которое трудно отменить, и список вертикальных задач, где каждая задача ссылается на требования и команду проверки.</li>
+              <li>Реализует задачи из готовой спецификации через TDD вместе с агентом так, что код проходит скрытые приёмочные тесты, а каждое требование покрыто тестом с его идентификатором, и находит в записи сессии агента подмену проверки: правку теста, тавтологичный тест, пропущенный красный шаг, заявление без вывода команды, горизонтальную задачу, действие до подтверждения решения.</li>
+              <li>Автоматизирует контроль целостности артефактов: пишет детерминированную проверку согласованности спецификации, задач, тестов, ADR и глоссария, подключает её к Stop-хуку и вносит изменение требований так, что проверка остаётся зелёной.</li>
+            </ul>
+          </div>
+          <ul class="item-group" aria-labelledby="spec-driven-development-heading">
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">01. Проверка результата работы агента</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">01. Проверка результата работы агента</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Безопасность и контроль разрешений</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Безопасность и контроль разрешений</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">02. Скиллы: устройство и жизненный цикл в проекте</span><span class="item-description">артефакт, около 50 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">02. Скиллы: устройство и жизненный цикл в проекте</span><span class="item-description">артефакт, около 50 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Проверка результата работы агента</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Проверка результата работы агента</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">03. Онтология проекта: глоссарий, контексты, события</span><span class="item-description">артефакт, около 50 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">03. Онтология проекта: глоссарий, контексты, события</span><span class="item-description">артефакт, около 50 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Скиллы: устройство и жизненный цикл в проекте</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Скиллы: устройство и жизненный цикл в проекте</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">04. SDD: от фичи к спецификации, ADR и задачам</span><span class="item-description">артефакт, около 70 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">04. SDD: от фичи к спецификации, ADR и задачам</span><span class="item-description">артефакт, около 70 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Онтология проекта: глоссарий, контексты, события</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Онтология проекта: глоссарий, контексты, события</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">05. Реальный кейс: конвейер скиллов Matt Pocock, реализация через TDD</span><span class="item-description">проект, около 65 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">05. Реальный кейс: конвейер скиллов Matt Pocock, реализация через TDD</span><span class="item-description">проект, около 65 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">SDD: от фичи к спецификации, ADR и задачам</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">SDD: от фичи к спецификации, ADR и задачам</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">06. Разбор сессии: где агент подменил проверку</span><span class="item-description">поиск багов, около 45 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">06. Разбор сессии: где агент подменил проверку</span><span class="item-description">поиск багов, около 45 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Реальный кейс: конвейер скиллов Matt Pocock, реализация через TDD</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Реальный кейс: конвейер скиллов Matt Pocock, реализация через TDD</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">07. Автоматический контроль целостности и обновление артефактов</span><span class="item-description">артефакт, около 66 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">07. Автоматический контроль целостности и обновление артефактов</span><span class="item-description">артефакт, около 66 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Разбор сессии: где агент подменил проверку</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Разбор сессии: где агент подменил проверку</a></p>
+            </li>
+          </ul>
         </section>
+
         <section class="module-section" id="agentic-patterns" aria-labelledby="agentic-patterns-heading">
           <hr class="separator">
-          <div class="module-heading"><h2 id="agentic-patterns-heading" tabindex="-1">02. Паттерны агентной разработки</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <div class="module-heading"><h2 id="agentic-patterns-heading" tabindex="-1">02. Паттерны агентной разработки</h2><span class="badge" data-variant="secondary">Доступен</span></div>
           <p>Адаптация проекта под агента (менять код, а не дописывать правила); метанавыки: где и почему LLM не справляется и как улучшать обвязку; разработка в закрытых контурах; антипаттерны.</p>
-          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+          <div class="outcomes">
+            <h3>Чему научитесь</h3>
+            <ul>
+              <li>Раскладывает правила из файла инструкций агента по ступеням (удалить, изменить код, проверка, хук, память) по заданному порядку решения, убирает из памяти всё, что ушло на другие ступени, и меняет код так, чтобы ошибка, от которой предостерегало правило, стала невозможной.</li>
+              <li>Пишет детерминированную проверку архитектурных правил по AST, которая на каждое нарушение печатает правило, файл, строку и способ исправления для агента, подключает её к единой команде проверки проекта и приводит проект к зелёной проверке изменением кода, а не исключениями и не обходом правил.</li>
+              <li>Разбирает сбои агента по записям сессий: называет класс причины и ступень, на которой исправление предотвратит повтор, формулирует конкретное исправление и реализует одно из них как проверку зависимостей.</li>
+              <li>Находит и исправляет в настройках Claude Code и окружения проекта дефекты закрытого контура (адрес шлюза, секрет в репозитории, необязательный трафик, веб-инструменты, песочница со строгим списком хостов, внутренний индекс пакетов, доверие корпоративному CA для каждого инструмента) и в сценариях со слабой локальной моделью выбирает изменения процесса: чаще запускать проверки, дробить задачи, закреплять версии и документацию.</li>
+              <li>Находит в снимке проекта и записи сессии антипаттерны работы с агентом (раздутая память, обязательное правило только в прозе, обвязка ради предпочтения или вместо дешёвой проверки, управление сессией уговорами) и отличает их от похожих хороших практик.</li>
+            </ul>
+          </div>
+          <ul class="item-group" aria-labelledby="agentic-patterns-heading">
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">01. Менять код, а не правила</span><span class="item-description">артефакт, около 60 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">01. Менять код, а не правила</span><span class="item-description">артефакт, около 60 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Автоматический контроль целостности и обновление артефактов</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Автоматический контроль целостности и обновление артефактов</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">02. Проверка архитектуры, которая подсказывает агенту исправление</span><span class="item-description">артефакт, около 85 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">02. Проверка архитектуры, которая подсказывает агенту исправление</span><span class="item-description">артефакт, около 85 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Менять код, а не правила</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Менять код, а не правила</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">03. Где и почему агент ошибается</span><span class="item-description">артефакт, около 70 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">03. Где и почему агент ошибается</span><span class="item-description">артефакт, около 70 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Проверка архитектуры, которая подсказывает агенту исправление</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Проверка архитектуры, которая подсказывает агенту исправление</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">04. Закрытый контур</span><span class="item-description">артефакт, около 60 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">04. Закрытый контур</span><span class="item-description">артефакт, около 60 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Где и почему агент ошибается</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Где и почему агент ошибается</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">05. Антипаттерны</span><span class="item-description">поиск багов, около 50 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">05. Антипаттерны</span><span class="item-description">поиск багов, около 50 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Закрытый контур</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Закрытый контур</a></p>
+            </li>
+          </ul>
         </section>
+
         <section class="module-section" id="subagent-orchestration" aria-labelledby="subagent-orchestration-heading">
           <hr class="separator">
-          <div class="module-heading"><h2 id="subagent-orchestration-heading" tabindex="-1">03. Оркестрация субагентов и мультиагентные пайплайны</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
-          <p>Read-only ревьюер и пайплайн Coder -&gt; Reviewer -&gt; Summarizer под оркестратором; контракт роли; модель под роль; fan-out параллельных ревьюеров и synthesizer; защита от каскада галлюцинаций; наблюдаемость передач и rule-based оценка на стыках.</p>
-          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+          <div class="module-heading"><h2 id="subagent-orchestration-heading" tabindex="-1">03. Оркестрация субагентов и мультиагентные пайплайны</h2><span class="badge" data-variant="secondary">Доступен</span></div>
+          <p>Read-only ревьюер, который обеспечивает харнесс; контракт роли и вызов `claude -p` из Python; пайплайн Coder -&gt; Reviewer -&gt; Summarizer с передачей по ссылке; fan-out ревьюеров (безопасность, производительность, тесты) и synthesizer; проверки цитат на стыках против каскада галлюцинаций; журнал передач и разбор записи прогона.</p>
+          <div class="outcomes">
+            <h3>Чему научитесь</h3>
+            <ul>
+              <li>Описывает в `.claude/agents/` ревьюера, у которого запрет менять файлы, запускать команды и делегировать обеспечивает сам Claude Code закрытым списком инструментов, а не промптом. Назначает ему модель, которая действительно запустится в заданном сценарии. Находит, какой файл определения загружается и какая настройка переопределяет модель.</li>
+              <li>Оформляет контракт роли (цель, формат вывода в виде JSON Schema, границы) и вызывает роль из Python через `claude -p`. Модель и лимит расходов берутся из конфигурации, структуру вывода проверяет сам Claude Code, у ролей-читателей только инструменты чтения без MCP, у кодера правка без запроса разрешения в headless-режиме без обхода разрешений. Каждый сбой вызова (код выхода, ошибка лимита, нет `structured_output`, исчерпаны попытки структурного вывода) распознаётся, а не принимается за ответ.</li>
+              <li>Собирает оркестратор Coder -&gt; Reviewer -&gt; Summarizer, в котором каждая роль получает только то, что ей нужно, прямо в промпте или по ссылке на файл: ревьюер видит изменение и критерии приёмки, но не рассуждения кодера, а Summarizer видит находки, но не стенограммы. Пайплайн останавливается на первом сбое и пишет журнал каждой передачи.</li>
+              <li>Запускает параллельных ревьюеров по разделам (безопасность, производительность, тесты) с общим synthesizer. Ревьюеры независимы друг от друга, synthesizer сохраняет происхождение каждой находки, а упавший раздел помечается непроверенным. Для сценария выбирает одного агента, шаблон workflow (цепочка с гейтами, маршрутизация, sectioning, voting, orchestrator-workers, evaluator-optimizer) или несколько агентов по измеренным признакам и по контексту, а не по должностям ролей.</li>
+              <li>Пишет детерминированную проверку на стыке. Она пропускает дальше только находки с проверяемой цитатой (существующий файл снимка, строка в диапазоне, цитата с этой строки) и итоговые находки, сводимые к принятым исходным. Ставит её так, чтобы ни одна роль и ни одно поле отчёта не получили непроверенную находку, и выбирает, где проверка исполняется в headless- и интерактивном режиме.</li>
+              <li>Находит в записи stream-json мультиагентного прогона стык, на котором сломалась передача: нарушение границ роли, утечку контекста, непроверенную находку, проигнорированный сбой, "проверено" без проверки. Какой агент сделал событие, определяет по `parent_tool_use_id`, в том числе через вложенные вызовы.</li>
+            </ul>
+          </div>
+          <ul class="item-group" aria-labelledby="subagent-orchestration-heading">
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">01. Read-only ревьюер: запрет, который исполняет харнесс</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">01. Read-only ревьюер: запрет, который исполняет харнесс</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Антипаттерны</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Антипаттерны</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">02. Контракт роли и вызов `claude -p` из скрипта</span><span class="item-description">артефакт, около 100 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">02. Контракт роли и вызов `claude -p` из скрипта</span><span class="item-description">артефакт, около 100 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Read-only ревьюер: запрет, который исполняет харнесс</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Read-only ревьюер: запрет, который исполняет харнесс</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">03. Пайплайн Coder -&gt; Reviewer -&gt; Summarizer: передача по ссылке</span><span class="item-description">артефакт, около 70 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">03. Пайплайн Coder -&gt; Reviewer -&gt; Summarizer: передача по ссылке</span><span class="item-description">артефакт, около 70 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Контракт роли и вызов `claude -p` из скрипта</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Контракт роли и вызов `claude -p` из скрипта</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">04. Fan-out ревьюеров и synthesizer</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">04. Fan-out ревьюеров и synthesizer</span><span class="item-description">артефакт, около 80 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Пайплайн Coder -&gt; Reviewer -&gt; Summarizer: передача по ссылке</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Пайплайн Coder -&gt; Reviewer -&gt; Summarizer: передача по ссылке</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">05. Цитаты и перекрёстные проверки на стыках</span><span class="item-description">артефакт, около 100 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">05. Цитаты и перекрёстные проверки на стыках</span><span class="item-description">артефакт, около 100 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Fan-out ревьюеров и synthesizer</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Fan-out ревьюеров и synthesizer</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">06. Журнал передач: где сломался стык</span><span class="item-description">поиск багов, около 65 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">06. Журнал передач: где сломался стык</span><span class="item-description">поиск багов, около 65 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Цитаты и перекрёстные проверки на стыках</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Цитаты и перекрёстные проверки на стыках</a></p>
+            </li>
+          </ul>
         </section>
+
         <section class="module-section" id="final-project" aria-labelledby="final-project-heading">
           <hr class="separator">
-          <div class="module-heading"><h2 id="final-project-heading" tabindex="-1">04. Итоговый проект: календарь звонков</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <div class="module-heading"><h2 id="final-project-heading" tabindex="-1">04. Итоговый проект: календарь звонков</h2><span class="badge" data-variant="secondary">Доступен</span></div>
           <p>Букинг тайм-слотов по типу Calendly с разными расписаниями и видами активностей, через Design First: API-контракт на TypeSpec, backend и frontend через SDD, интеграционные и E2E тесты, CI и деплой.</p>
-          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+          <div class="outcomes">
+            <h3>Чему научитесь</h3>
+            <ul>
+              <li>Разбивает бриф и протокол интервью на спецификацию с требованиями REQ; исполняемые примеры, которые совпадают с моделью заказчика и различают каждое из восьми его решений о времени (несуществующее локальное время, повторяющееся локальное время, смежные встречи, буферы с обеих сторон, минимальное уведомление, окно бронирования, исключение даты вместо недельного правила, день недели в поясе хоста); один ADR; упорядоченный план вертикальных срезов, где каждый срез ссылается на требования и команду проверки.</li>
+              <li>Описывает API на TypeSpec так, что компиляция закреплённым компилятором без JS-расширений даёт OpenAPI, совпадающий с обязательным контрактом по операциям, параметрам, схемам и кодам ошибок. Документирует каждую операцию и модель.</li>
+              <li>Пишет тестовые случаи движка слотов, которые ловят каждую из двенадцати подложенных ошибок. Пишет реализацию движка за CLI-швом, которая проходит скрытые случайные пробы в восьми часовых поясах обоих полушарий.</li>
+              <li>Реализует HTTP-бэкенд по контракту. Бэкенд проходит пробы соответствия (problem+json, 400/404/405/409/422, отказ от лишних полей, время только со смещением, синтаксис ключа идемпотентности), не допускает двойного бронирования при параллельных запросах и повторах с ключом идемпотентности и освобождает слот при отмене.</li>
+              <li>Делает страницу бронирования с клиентом, сгенерированным из контракта и совпадающим с перегенерацией: страница на сервере отрисовывает слоты из API в часовом поясе приглашённого и проксирует /api/ на бэкенд; к странице есть E2E-сценарии для локального запуска (проверяются рубрикой по коду сценариев и приложенному выводу).</li>
+              <li>Собирает единую команду make ci, которая падает на каждой подложенной регрессии API, на контракте, изменённом без перегенерации, и на ручной правке сгенерированного клиента, и проходит на корректных реализациях и после make gen. Пишет Dockerfile и compose, проходящие статическую проверку. Доводит репозиторий до состояния, в котором видимое изменение требования проходит те же проверки, а скрытое изменение, выполненное агентом, тоже их проходит (hidden-task, исполняется после #39).</li>
+            </ul>
+          </div>
+          <ul class="item-group" aria-labelledby="final-project-heading">
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">01. Итоговый проект: от брифа к спецификации, примерам и срезам</span><span class="item-description">артефакт, около 115 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">01. Итоговый проект: от брифа к спецификации, примерам и срезам</span><span class="item-description">артефакт, около 115 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">SDD: от фичи к спецификации, ADR и задачам</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">SDD: от фичи к спецификации, ADR и задачам</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">02. Итоговый проект: API-контракт на TypeSpec</span><span class="item-description">артефакт, около 85 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">02. Итоговый проект: API-контракт на TypeSpec</span><span class="item-description">артефакт, около 85 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: от брифа к спецификации, примерам и срезам</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: от брифа к спецификации, примерам и срезам</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">03. Итоговый проект: движок слотов на Go</span><span class="item-description">проект, около 105 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">03. Итоговый проект: движок слотов на Go</span><span class="item-description">проект, около 105 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: API-контракт на TypeSpec</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: API-контракт на TypeSpec</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">04. Итоговый проект: API чтения на Go</span><span class="item-description">проект, около 125 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">04. Итоговый проект: API чтения на Go</span><span class="item-description">проект, около 125 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: движок слотов на Go</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: движок слотов на Go</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">05. Итоговый проект: бронирования, идемпотентность и параллельные запросы</span><span class="item-description">проект, около 105 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">05. Итоговый проект: бронирования, идемпотентность и параллельные запросы</span><span class="item-description">проект, около 105 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: API чтения на Go</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: API чтения на Go</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">06. Итоговый проект: страница бронирования на Nuxt</span><span class="item-description">проект, около 105 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">06. Итоговый проект: страница бронирования на Nuxt</span><span class="item-description">проект, около 105 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: бронирования, идемпотентность и параллельные запросы</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: бронирования, идемпотентность и параллельные запросы</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">07. Итоговый проект: тесты API и единая команда make ci</span><span class="item-description">проект, около 125 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">07. Итоговый проект: тесты API и единая команда make ci</span><span class="item-description">проект, около 125 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: страница бронирования на Nuxt</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: страница бронирования на Nuxt</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">08. Итоговый проект: развёртывание в Docker и изменение требования</span><span class="item-description">проект, около 90 мин</span></span><span class="item-actions" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">08. Итоговый проект: развёртывание в Docker и изменение требования</span><span class="item-description">проект, около 90 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson ready-no-lessons session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: тесты API и единая команда make ci</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: тесты API и единая команда make ci</a></p>
+            </li>
+          </ul>
         </section>
+
         <section class="module-section" id="legacy-code" aria-labelledby="legacy-code-heading">
           <hr class="separator">
-          <div class="module-heading"><h2 id="legacy-code-heading" tabindex="-1">05. Работа с legacy-кодом</h2><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></div>
+          <div class="module-heading"><h2 id="legacy-code-heading" tabindex="-1">05. Работа с legacy-кодом</h2><span class="badge" data-variant="secondary" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty progress-unavailable default-until-220">Доступен</span><span class="badge" data-variant="outline" data-tone="muted" data-state="ready-no-lessons">Готовится</span></div>
           <p>Анализ существующего проекта, погружение ИИ в структуру проекта, безопасный рефакторинг (characterization-тесты), постепенное внедрение ИИ в существующие процессы.</p>
-          <div class="empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+          <div class="outcomes">
+            <h3>Чему научитесь</h3>
+            <ul>
+              <li>Проверяет по самому коду анализ незнакомого legacy-репозитория, сделанный агентом, и находит неверные утверждения и действия: "мёртвый" код, который вызывается по строке из данных; "зависит только от аргументов" у функции, которая читает часы, случайность, состояние модуля или файлы; "без побочных эффектов" у функции, которая пишет файлы; "исправление" поведения, на которое опирается другой модуль; факт из README вопреки коду; команду, которая во время исследования меняет файлы. Выбирает инструмент исследования (субагент Explore, plan mode, ссылки @) по тому, что он загружает и что блокирует.</li>
+              <li>Размещает факты команды о legacy-проекте в местах памяти, которые принимает курс, по строке охвата в конце каждой заметки. Факт области: заметка называет файлы, которых касается, например внешний потребитель файлов, которые пишет один модуль, выгрузка, которая заменяет один файл данных, или внешнее расписание, под которое выставлена одна настройка; такой факт размещается так, что по модели проверки он загружается при работе с каждым названным файлом и не загружается при работе с другими, в том числе у субагента Explore. Факт сессии: заметка касается любого файла, в том числе нового модуля, например согласование любого изменения цены или форма, в которой внешняя система читает суммы из любого модуля; такой факт размещается так, что по модели проверки он загружается при запуске основной сессии. Записывает версию Claude Code и дату, по которым проверил загрузку в документации и в списке изменений. Указывает при запуске команду проверки, которая действительно запускает тесты этого репозитория.</li>
+              <li>Пишет characterization-тесты для кода без тестов, которые фиксируют текущее поведение, в том числе странное, и не зависят от часов, часового пояса, случайности, порядка хеширования, состояния модуля и порядка тестов: набор проходит на исходном коде и падает на каждой скрытой изменённой версии.</li>
+              <li>Рефакторит под защитой сети тестов: закрывает тестами дыры готового набора, которые называет проверка, затем выносит расчёт цены в чистую функцию без часов, файлов и глобальных настроек, на которую опирается старая точка входа, и сохраняет наблюдаемое поведение на заданных и случайных входах проверки.</li>
+              <li>Вводит агента в процесс команды поэтапно: пишет правила гейта, который принимает изменение агента, только если оно применяется, не трогает существующие тесты и защищённые файлы, мало, и тесты, взятые до изменения, и тесты после него проходят. Пишет план внедрения с этапами, областью, измеряемыми сигналами результата, условием остановки и ответственным. Выбирает следующий шаг по измерениям (METR, DORA, семантика Code Review), а не по ощущениям.</li>
+            </ul>
+          </div>
+          <div class="empty" data-state="ready-no-lessons"><p class="empty-title">Уроки модуля готовятся</p></div>
+          <ul class="item-group" aria-labelledby="legacy-code-heading" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty progress-unavailable default-until-220">
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">01. Анализ чужого проекта: проверяем выводы агента по коду</span><span class="item-description">поиск багов, около 106 мин</span></span><span class="item-actions" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">01. Анализ чужого проекта: проверяем выводы агента по коду</span><span class="item-description">поиск багов, около 106 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Итоговый проект: развёртывание в Docker и изменение требования</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Итоговый проект: развёртывание в Docker и изменение требования</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">02. Погружение агента: факт там, где он нужен</span><span class="item-description">артефакт, около 98 мин</span></span><span class="item-actions" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">02. Погружение агента: факт там, где он нужен</span><span class="item-description">артефакт, около 98 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Анализ чужого проекта: проверяем выводы агента по коду</a>, <a href="../lesson/prototype.html">Память агента и AGENTS.md</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Анализ чужого проекта: проверяем выводы агента по коду</a>, <a href="../lesson/prototype.html#state-m0">Память агента и AGENTS.md</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">03. Characterization-тесты: зафиксировать то, что код делает</span><span class="item-description">артефакт, около 104 мин</span></span><span class="item-actions" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">03. Characterization-тесты: зафиксировать то, что код делает</span><span class="item-description">артефакт, около 104 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Анализ чужого проекта: проверяем выводы агента по коду</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Анализ чужого проекта: проверяем выводы агента по коду</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">04. Рефакторинг под сетью тестов</span><span class="item-description">артефакт, около 109 мин</span></span><span class="item-actions" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">04. Рефакторинг под сетью тестов</span><span class="item-description">артефакт, около 109 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Characterization-тесты: зафиксировать то, что код делает</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Characterization-тесты: зафиксировать то, что код делает</a></p>
+            </li>
+            <li>
+              <a class="item" href="../lesson/prototype.html" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="item-content"><span class="item-title">05. Агент в процессе команды: гейт и план внедрения</span><span class="item-description">проект, около 104 мин</span></span><span class="item-actions" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <a class="item" href="../lesson/prototype.html#state-m0" data-state="progress-unavailable default-until-220"><span class="item-content"><span class="item-title">05. Агент в процессе команды: гейт и план внедрения</span><span class="item-description">проект, около 104 мин</span></span><span class="item-actions" data-state="default-until-220"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+              <p class="item-note" data-state="default failed-lesson session-expired user-menu courses-two courses-one-empty">Сначала пройдите: <a href="../lesson/prototype.html">Рефакторинг под сетью тестов</a></p>
+              <p class="item-note" data-state="default-until-220">Сначала пройдите: <a href="../lesson/prototype.html#state-m0">Рефакторинг под сетью тестов</a></p>
+            </li>
+          </ul>
         </section>
       </div>
+
+      <!-- Course 2: the #217 stub (sample data, design section 2). stub-course-empty: its lesson is not
+           ready, so the module is "Готовится" and its section shows the empty text. -->
+      <div class="course-header" data-state="stub-course stub-course-empty">
+        <h1 id="stub-course-title" tabindex="-1">Пробный курс</h1>
+        <p class="muted">Курс-заглушка с одним уроком.</p>
+      </div>
+
+      <ol class="module-list" data-state="stub-course stub-course-empty">
+        <li><a href="#stub-module">00. Пробный модуль</a> <span class="badge" data-variant="secondary" data-state="stub-course">Доступен</span><span class="badge" data-variant="outline" data-tone="muted" data-state="stub-course-empty">Готовится</span></li>
+      </ol>
+
+      <div data-state="stub-course stub-course-empty">
+        <section class="module-section" id="stub-module" aria-labelledby="stub-module-heading">
+          <hr class="separator">
+          <div class="module-heading"><h2 id="stub-module-heading" tabindex="-1">00. Пробный модуль</h2><span class="badge" data-variant="secondary" data-state="stub-course">Доступен</span><span class="badge" data-variant="outline" data-tone="muted" data-state="stub-course-empty">Готовится</span></div>
+          <p>Один урок для проверки нескольких курсов.</p>
+          <div class="outcomes">
+            <h3>Чему научитесь</h3>
+            <ul>
+              <li>Открыть урок второго курса.</li>
+            </ul>
+          </div>
+          <div class="empty" data-state="stub-course-empty"><p class="empty-title">Уроки модуля готовятся</p></div>
+          <!-- No course-2 lesson state exists, so the row opens the lesson prototype (limit L2). -->
+          <ul class="item-group" aria-labelledby="stub-module-heading" data-state="stub-course">
+            <li>
+              <a class="item" href="../lesson/prototype.html"><span class="item-content"><span class="item-title">01. Пробный урок</span><span class="item-description">артефакт, около 15 мин</span></span><span class="item-actions"><span class="badge" data-variant="outline" data-tone="muted">Не начат</span></span></a>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- A218-14: with two or more courses the catalog ends with "Другие курсы", one link per other course
+           in list order. The list takes the module list's style. -->
+      <section class="module-section" aria-labelledby="other-courses-heading" data-state="courses-two courses-one-empty stub-course stub-course-empty">
+        <hr class="separator">
+        <h2 id="other-courses-heading">Другие курсы</h2>
+        <ul class="module-list">
+          <li data-state="courses-two"><a href="#state-stub-course">Пробный курс</a></li>
+          <li data-state="courses-one-empty"><a href="#state-stub-course-empty">Пробный курс</a></li>
+          <li data-state="stub-course"><a href="#state-courses-two">ИИ для разработчиков</a></li>
+          <li data-state="stub-course-empty"><a href="#state-courses-one-empty">ИИ для разработчиков</a></li>
+        </ul>
+      </section>
     </div>
   </main>
 
@@ -197,14 +483,19 @@
     <span>Prototype states:</span>
     <nav data-state-index aria-label="Prototype states" class="row"></nav>
     <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
-    <span hidden data-state="default" data-state-label="default (ready and planned modules, prerequisites)"></span>
-    <span hidden data-state="failed-lesson" data-state-label="lesson failed (D1 data)"></span>
-    <span hidden data-state="ready-no-lessons" data-state-label="ready module without ready lessons"></span>
-    <span hidden data-state="loading" data-state-label="loading"></span>
-    <span hidden data-state="course-error" data-state-label="course load error"></span>
-    <span hidden data-state="progress-unavailable" data-state-label="progress unavailable"></span>
-    <span hidden data-state="session-expired" data-state-label="session expired (F2.1)"></span>
-    <span hidden data-state="user-menu" data-state-label="user menu open (F3.1)"></span>
+    <span hidden data-state="default" data-state-label="#220, default (ready and planned modules, prerequisites)"></span>
+    <span hidden data-state="failed-lesson" data-state-label="#220, lesson failed (D1 data)"></span>
+    <span hidden data-state="ready-no-lessons" data-state-label="#220, ready module without ready lessons"></span>
+    <span hidden data-state="loading" data-state-label="#220, loading"></span>
+    <span hidden data-state="session-expired" data-state-label="#220, session expired (F2.1)"></span>
+    <span hidden data-state="user-menu" data-state-label="#220, user menu open (F3.1)"></span>
+    <span hidden data-state="courses-two" data-state-label="#220, two courses: course 1"></span>
+    <span hidden data-state="courses-one-empty" data-state-label="#220, two courses, course 2 without ready lessons: course 1"></span>
+    <span hidden data-state="stub-course" data-state-label="#220, two courses: course 2"></span>
+    <span hidden data-state="stub-course-empty" data-state-label="#220, two courses: course 2 without ready lessons"></span>
+    <span hidden data-state="course-error" data-state-label="course load error, until #220"></span>
+    <span hidden data-state="progress-unavailable" data-state-label="progress unavailable, until #220"></span>
+    <span hidden data-state="default-until-220" data-state-label="default, until #220"></span>
   </div>
 </div>
 

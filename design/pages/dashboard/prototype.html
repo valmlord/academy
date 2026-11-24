@@ -13,7 +13,7 @@
     .progress-block { display: flex; flex-direction: column; gap: var(--space-4); }
     .progress-course { display: flex; flex-direction: column; gap: var(--space-2); }
     .progress-course > h2, .progress-part > h2 { font-size: var(--text-lg); line-height: var(--text-lg-line); }
-    .progress-part { margin-top: var(--space-4); }
+    .course-blocks { display: flex; flex-direction: column; gap: var(--space-8); }
     .item .progress { margin-top: var(--space-1); }
   </style>
 </head>
@@ -21,9 +21,37 @@
 <div class="app">
   <a class="skip-link" href="#main">К содержимому</a>
 
+  <!-- Top bar. From #220 (ia.md A218-3): "Академия", "Главная", user menu. Until #220 (the kept states, ia.md R6
+       "Top bar by release") also "Курс". Each "Академия" and "Главная" variant opens its own state (session-expired
+       and user-menu: in-progress, their data); "Главная" carries aria-current="page" in every variant. -->
   <header class="topbar" data-region>
-    <a class="topbar-brand" href="prototype.html">Академия</a>
-    <nav class="topbar-nav"><a href="prototype.html" aria-current="page">Главная</a><a href="../catalog/prototype.html" data-state="first-run in-progress all-passed no-ready-lessons loading course-error course-error-fails-again progress-unavailable session-expired user-menu attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none attempts-loading cost-first-run cost cost-at-least cost-no-data">Курс</a></nav>
+    <a class="topbar-brand" href="prototype.html#state-courses-two" data-state="courses-two">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-courses-one-empty" data-state="courses-one-empty">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-courses-all-passed" data-state="courses-all-passed">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-attempts-two-courses" data-state="attempts-two-courses">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-all-finished" data-state="all-finished">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-first-run" data-state="first-run">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-in-progress" data-state="in-progress session-expired user-menu">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-all-passed" data-state="all-passed">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-no-ready-lessons" data-state="no-ready-lessons">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-loading" data-state="loading">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-attempts-first-run" data-state="attempts-first-run">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-attempts-running-first" data-state="attempts-running-first">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-attempts-mixed" data-state="attempts-mixed">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-attempts" data-state="attempts">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-attempts-weak-none" data-state="attempts-weak-none">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-attempts-loading" data-state="attempts-loading">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-cost-first-run" data-state="cost-first-run">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-cost" data-state="cost">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-cost-at-least" data-state="cost-at-least">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-cost-no-data" data-state="cost-no-data">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-course-error" data-state="course-error">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-course-error-fails-again" data-state="course-error-fails-again">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-progress-unavailable" data-state="progress-unavailable">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-first-run-until-220" data-state="first-run-until-220">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-in-progress-until-220" data-state="in-progress-until-220">Академия</a>
+    <a class="topbar-brand" href="prototype.html#state-before-catalog" data-state="before-catalog">Академия</a>
+    <nav class="topbar-nav"><a href="prototype.html#state-courses-two" aria-current="page" data-state="courses-two">Главная</a><a href="prototype.html#state-courses-one-empty" aria-current="page" data-state="courses-one-empty">Главная</a><a href="prototype.html#state-courses-all-passed" aria-current="page" data-state="courses-all-passed">Главная</a><a href="prototype.html#state-attempts-two-courses" aria-current="page" data-state="attempts-two-courses">Главная</a><a href="prototype.html#state-all-finished" aria-current="page" data-state="all-finished">Главная</a><a href="prototype.html#state-first-run" aria-current="page" data-state="first-run">Главная</a><a href="prototype.html#state-in-progress" aria-current="page" data-state="in-progress session-expired user-menu">Главная</a><a href="prototype.html#state-all-passed" aria-current="page" data-state="all-passed">Главная</a><a href="prototype.html#state-no-ready-lessons" aria-current="page" data-state="no-ready-lessons">Главная</a><a href="prototype.html#state-loading" aria-current="page" data-state="loading">Главная</a><a href="prototype.html#state-attempts-first-run" aria-current="page" data-state="attempts-first-run">Главная</a><a href="prototype.html#state-attempts-running-first" aria-current="page" data-state="attempts-running-first">Главная</a><a href="prototype.html#state-attempts-mixed" aria-current="page" data-state="attempts-mixed">Главная</a><a href="prototype.html#state-attempts" aria-current="page" data-state="attempts">Главная</a><a href="prototype.html#state-attempts-weak-none" aria-current="page" data-state="attempts-weak-none">Главная</a><a href="prototype.html#state-attempts-loading" aria-current="page" data-state="attempts-loading">Главная</a><a href="prototype.html#state-cost-first-run" aria-current="page" data-state="cost-first-run">Главная</a><a href="prototype.html#state-cost" aria-current="page" data-state="cost">Главная</a><a href="prototype.html#state-cost-at-least" aria-current="page" data-state="cost-at-least">Главная</a><a href="prototype.html#state-cost-no-data" aria-current="page" data-state="cost-no-data">Главная</a><a href="prototype.html#state-course-error" aria-current="page" data-state="course-error">Главная</a><a href="prototype.html#state-course-error-fails-again" aria-current="page" data-state="course-error-fails-again">Главная</a><a href="prototype.html#state-progress-unavailable" aria-current="page" data-state="progress-unavailable">Главная</a><a href="prototype.html#state-first-run-until-220" aria-current="page" data-state="first-run-until-220">Главная</a><a href="prototype.html#state-in-progress-until-220" aria-current="page" data-state="in-progress-until-220">Главная</a><a href="prototype.html#state-before-catalog" aria-current="page" data-state="before-catalog">Главная</a><a href="../catalog/prototype.html#state-course-error" data-state="course-error course-error-fails-again">Курс</a><a href="../catalog/prototype.html#state-progress-unavailable" data-state="progress-unavailable">Курс</a><a href="../catalog/prototype.html#state-default-until-220" data-state="first-run-until-220 in-progress-until-220">Курс</a></nav>
     <div class="topbar-end">
       <div class="dropdown">
         <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
@@ -37,6 +65,7 @@
       </div>
     </div>
   </header>
+
 
   <div class="notifications" data-notifications data-region>
     <h2 class="sr-only" id="notifications-heading" data-notifications-heading>Уведомления</h2>
@@ -55,16 +84,17 @@
     <div class="column">
       <h1>Главная</h1>
 
-      <!-- Loading: the card and the progress section as skeletons. From #35 (attempts-loading) the same
-           Skeleton also covers "Последние попытки" and "Где трудно", because they come from the same read
-           (A72-4); from #37 it covers the total too (no state of its own). -->
+      <!-- Loading (#220, ia.md "Rules (#218)" row "loading"): Skeletons for the Card and one block, because the
+           number of courses is known only after the read; from #35 (attempts-loading) also over F18.3-F18.5. -->
       <div class="stack" data-state="loading attempts-loading" aria-hidden="true">
         <div class="card">
           <span class="skeleton" style="width: 30%"></span>
           <span class="skeleton" style="width: 80%"></span>
           <span class="skeleton" style="width: 50%"></span>
         </div>
-        <span class="skeleton" style="width: 40%"></span>
+        <span class="skeleton" style="width: 50%"></span>
+        <span class="skeleton" style="width: 30%"></span>
+        <span class="skeleton" style="width: 100%"></span>
         <span class="skeleton" style="width: 100%"></span>
         <span class="skeleton" style="width: 30%" data-state="attempts-loading"></span>
         <span class="skeleton" style="width: 100%" data-state="attempts-loading"></span>
@@ -80,58 +110,63 @@
       <div class="alert" data-variant="destructive" data-state="course-error course-error-fails-again">
         <span class="status-icon" data-status="destructive" aria-hidden="true"></span>
         <h2 class="alert-title text-sm" id="course-error-title" tabindex="-1">Не удалось загрузить курс</h2>
-        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-state="course-error" data-goto-state="first-run" data-focus="#next-lesson-heading">Повторить</button><button class="button" type="button" data-variant="secondary" data-size="sm" data-state="course-error-fails-again" data-goto-state="course-error" data-focus="#course-error-title">Повторить</button></div>
+        <div class="alert-actions"><button class="button" type="button" data-variant="secondary" data-size="sm" data-state="course-error" data-goto-state="first-run-until-220" data-focus="#next-lesson-heading">Повторить</button><button class="button" type="button" data-variant="secondary" data-size="sm" data-state="course-error-fails-again" data-goto-state="course-error" data-focus="#course-error-title">Повторить</button></div>
       </div>
 
-      <!-- F4 empty: no ready lesson at all (no-ready-lessons), and every course before #30 (before-catalog,
-           ia.md R6). Nothing focusable in main, so F6 lands on main (R3). -->
-      <div class="empty" data-state="no-ready-lessons before-catalog">
+      <!-- Before #30 (before-catalog, ia.md R6): h1 and this Empty whatever the course holds; nothing focusable in
+           main, so F6 lands on main (R3). From #220 a course with no ready lesson is a block in the empty form. -->
+      <div class="empty" data-state="before-catalog">
         <p class="empty-title">В курсе пока нет готовых уроков</p>
       </div>
 
-      <!-- F4.1: the "Следующий урок" card. -->
-      <section class="card" aria-labelledby="next-lesson-heading" data-step="F4.1" data-state="first-run in-progress progress-unavailable session-expired user-menu attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data">
+      <!-- F4.1: the "Следующий урок" Card. From #220 the Card course (A218-2) is named under the heading (A218-7);
+           the kept states (until #220) draw today's Card without it. The page script sets the button's target. -->
+      <section class="card" aria-labelledby="next-lesson-heading" data-step="F4.1" data-state="first-run attempts-first-run attempts-running-first cost-first-run in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses progress-unavailable first-run-until-220 in-progress-until-220">
         <div class="card-header">
           <h2 class="card-title" id="next-lesson-heading" tabindex="-1">Следующий урок</h2>
+          <p class="card-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-one-empty">ИИ для разработчиков</p>
+          <p class="card-description" data-state="courses-two attempts-two-courses">Пробный курс</p>
         </div>
         <div class="stack" data-gap="2">
-          <p class="next-lesson-title" data-state="first-run progress-unavailable attempts-first-run attempts-running-first cost-first-run">Модель, уровень ризонинга и локальные модели</p>
-          <p class="next-lesson-title" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data">Устройство агента: цикл, харнесс, инструменты, MCP</p>
-          <p class="muted">Введение в разработку с ИИ</p>
+          <p class="next-lesson-title" data-state="first-run attempts-first-run attempts-running-first cost-first-run progress-unavailable first-run-until-220">Модель, уровень ризонинга и локальные модели</p>
+          <p class="next-lesson-title" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-one-empty in-progress-until-220">Устройство агента: цикл, харнесс, инструменты, MCP</p>
+          <p class="next-lesson-title" data-state="courses-two attempts-two-courses">Пробный урок</p>
+          <p class="muted" data-state="first-run attempts-first-run attempts-running-first cost-first-run progress-unavailable first-run-until-220 in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-one-empty in-progress-until-220">Введение в разработку с ИИ</p>
+          <p class="muted" data-state="courses-two attempts-two-courses">Пробный модуль</p>
           <p class="lesson-meta">
             <span class="badge" data-variant="outline">артефакт</span>
-            <span data-state="first-run progress-unavailable attempts-first-run attempts-running-first cost-first-run">около 40 мин</span>
-            <span data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data">около 60 мин</span>
+            <span data-state="first-run attempts-first-run attempts-running-first cost-first-run progress-unavailable first-run-until-220">около 40 мин</span>
+            <span data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-one-empty in-progress-until-220">около 60 мин</span>
+            <span data-state="courses-two attempts-two-courses">около 15 мин</span>
           </p>
           <p class="icon-note" data-state="progress-unavailable"><span class="status-icon" data-status="info" aria-hidden="true"></span><span>Прогресс недоступен, показан первый урок</span></p>
         </div>
         <div class="card-footer" data-step="F4.2">
-          <a class="button" id="next-lesson-button" data-step="F4.3" href="../lesson/prototype.html" data-href-start="../lesson/prototype.html" data-href-continue="../lesson/prototype.html?tab=task"><span data-state="first-run progress-unavailable attempts-first-run cost-first-run">Начать</span><span data-state="in-progress session-expired user-menu attempts-running-first attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data">Продолжить</span></a>
+          <a class="button" id="next-lesson-button" data-step="F4.3" href="../lesson/prototype.html" data-href-start="../lesson/prototype.html" data-href-continue="../lesson/prototype.html?tab=task" data-href-start-until-220="../lesson/prototype.html#state-m0" data-href-continue-until-220="../lesson/prototype.html?tab=task#state-m0"><span data-state="first-run attempts-first-run cost-first-run courses-two progress-unavailable first-run-until-220">Начать</span><span data-state="attempts-running-first in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-one-empty attempts-two-courses in-progress-until-220">Продолжить</span></a>
         </div>
       </section>
 
-      <!-- F4 empty: every ready lesson passed. -->
-      <section class="card" aria-labelledby="all-passed-heading" data-state="all-passed">
+      <!-- The end Card (#220, A218-2): its heading, the Card course's name (A218-7) and "Открыть курс" to that course's
+           catalog. "Новые модули появятся в каталоге" is until #220 (dashboard.md F4 Empty states): no kept state
+           draws an end Card. -->
+      <section class="card" aria-labelledby="all-passed-heading" data-state="all-passed courses-all-passed all-finished">
         <div class="card-header">
-          <h2 class="card-title" id="all-passed-heading">Все доступные уроки пройдены</h2>
-          <p class="card-description">Новые модули появятся в каталоге</p>
+          <h2 class="card-title" id="all-passed-heading"><span data-state="all-passed courses-all-passed">Все доступные уроки пройдены</span><span data-state="all-finished">Все доступные уроки завершены</span></h2>
+          <p class="card-description">ИИ для разработчиков</p>
         </div>
-        <div class="card-footer"><a class="button" data-variant="outline" href="../catalog/prototype.html">Открыть курс</a></div>
+        <div class="card-footer"><a class="button" data-variant="outline" href="../catalog/prototype.html" data-state="all-passed all-finished">Открыть курс</a><a class="button" data-variant="outline" href="../catalog/prototype.html#state-courses-two" data-state="courses-all-passed">Открыть курс</a></div>
       </section>
 
-      <!-- F18.1-F18.2 (from #30): course and module progress. F18.3-F18.4 from #35 and F18.5 from #37 are
-           drawn only in the attempts-* and cost-* states (ia.md R6, "Progress by release (#72)"); every #30
-           state (first-run, in-progress, all-passed, session-expired, user-menu) renders none of them. -->
-      <section class="progress-block" data-state="first-run in-progress all-passed progress-unavailable session-expired user-menu attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data">
-        <div class="progress-course" data-step="F18.1" data-state="first-run in-progress all-passed session-expired user-menu attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data">
+      <!-- Until #220 (the kept states, RM): today's progress section, its course line the h2 #progress-heading. Module
+           rows open the catalog section with no #state-, so the catalog shows its default state (L1). -->
+      <section class="progress-block" data-state="progress-unavailable first-run-until-220 in-progress-until-220">
+        <div class="progress-course" data-state="first-run-until-220 in-progress-until-220">
           <h2 id="progress-heading" tabindex="-1">
-            <span data-state="first-run attempts-first-run attempts-running-first cost-first-run">Пока нет пройденных уроков</span>
-            <span data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data">Пройдено уроков: 1 из 6</span>
-            <span data-state="all-passed">Пройдено уроков: 6 из 6</span>
+            <span data-state="first-run-until-220">Пока нет пройденных уроков</span>
+            <span data-state="in-progress-until-220">Пройдено уроков: 1 из 37</span>
           </h2>
-          <div class="progress" role="progressbar" aria-labelledby="progress-heading" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0" aria-valuetext="0 из 6" style="--progress-value: 0%" data-state="first-run attempts-first-run attempts-running-first cost-first-run"><span class="progress-indicator"></span></div>
-          <div class="progress" role="progressbar" aria-labelledby="progress-heading" aria-valuemin="0" aria-valuemax="6" aria-valuenow="1" aria-valuetext="1 из 6" style="--progress-value: 16.7%" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data"><span class="progress-indicator"></span></div>
-          <div class="progress" role="progressbar" aria-labelledby="progress-heading" aria-valuemin="0" aria-valuemax="6" aria-valuenow="6" aria-valuetext="6 из 6" style="--progress-value: 100%" data-state="all-passed"><span class="progress-indicator"></span></div>
+          <div class="progress" role="progressbar" aria-labelledby="progress-heading" aria-valuemin="0" aria-valuemax="37" aria-valuenow="0" aria-valuetext="0 из 37" style="--progress-value: 0%" data-state="first-run-until-220"><span class="progress-indicator"></span></div>
+          <div class="progress" role="progressbar" aria-labelledby="progress-heading" aria-valuemin="0" aria-valuemax="37" aria-valuenow="1" aria-valuetext="1 из 37" style="--progress-value: 2.7%" data-state="in-progress-until-220"><span class="progress-indicator"></span></div>
         </div>
 
         <!-- F18 error: the same "Прогресс недоступен" line as the catalog, plus "Повторить". From #35 it
@@ -139,117 +174,330 @@
              retry. -->
         <div class="stack" data-gap="2" data-state="progress-unavailable">
           <h2 class="icon-note" id="progress-unavailable-heading" tabindex="-1"><span class="status-icon" data-status="info" aria-hidden="true"></span><span>Прогресс недоступен</span></h2>
-          <div><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="in-progress" data-focus="#progress-heading">Повторить</button></div>
+          <div><button class="button" type="button" data-variant="secondary" data-size="sm" data-goto-state="in-progress-until-220" data-focus="#progress-heading">Повторить</button></div>
         </div>
 
-        <ul class="item-group" data-step="F18.2" data-state="first-run in-progress all-passed session-expired user-menu attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data">
+        <ul class="item-group" data-state="first-run-until-220 in-progress-until-220">
           <li>
             <a class="item" href="../catalog/prototype.html#introduction">
               <span class="item-content">
                 <span class="item-title">Введение в разработку с ИИ</span>
-                <span class="item-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run">0 из 6 уроков</span>
-                <span class="item-description" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data">1 из 6 уроков</span>
-                <span class="item-description" data-state="all-passed">6 из 6 уроков</span>
-                <span class="progress" aria-hidden="true" data-state="first-run attempts-first-run attempts-running-first cost-first-run" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
-                <span class="progress" aria-hidden="true" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data" style="--progress-value: 16.7%"><span class="progress-indicator"></span></span>
-                <span class="progress" aria-hidden="true" data-state="all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                <span class="item-description" data-state="first-run-until-220">0 из 6 уроков</span>
+                <span class="item-description" data-state="in-progress-until-220">1 из 6 уроков</span>
+                <span class="progress" aria-hidden="true" data-state="first-run-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                <span class="progress" aria-hidden="true" data-state="in-progress-until-220" style="--progress-value: 16.7%"><span class="progress-indicator"></span></span>
               </span>
             </a>
           </li>
-          <li><a class="item" href="../catalog/prototype.html#spec-driven-development"><span class="item-content"><span class="item-title">Spec Driven Development</span></span><span class="item-actions"><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></span></a></li>
-          <li><a class="item" href="../catalog/prototype.html#agentic-patterns"><span class="item-content"><span class="item-title">Паттерны агентной разработки</span></span><span class="item-actions"><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></span></a></li>
-          <li><a class="item" href="../catalog/prototype.html#subagent-orchestration"><span class="item-content"><span class="item-title">Оркестрация субагентов и мультиагентные пайплайны</span></span><span class="item-actions"><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></span></a></li>
-          <li><a class="item" href="../catalog/prototype.html#final-project"><span class="item-content"><span class="item-title">Итоговый проект: календарь звонков</span></span><span class="item-actions"><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></span></a></li>
-          <li><a class="item" href="../catalog/prototype.html#legacy-code"><span class="item-content"><span class="item-title">Работа с legacy-кодом</span></span><span class="item-actions"><span class="badge" data-variant="outline" data-tone="muted">Готовится</span></span></a></li>
+          <li>
+            <a class="item" href="../catalog/prototype.html#spec-driven-development">
+              <span class="item-content">
+                <span class="item-title">Spec Driven Development</span>
+                <span class="item-description" data-state="first-run-until-220">0 из 7 уроков</span>
+                <span class="item-description" data-state="in-progress-until-220">0 из 7 уроков</span>
+                <span class="progress" aria-hidden="true" data-state="first-run-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                <span class="progress" aria-hidden="true" data-state="in-progress-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="item" href="../catalog/prototype.html#agentic-patterns">
+              <span class="item-content">
+                <span class="item-title">Паттерны агентной разработки</span>
+                <span class="item-description" data-state="first-run-until-220">0 из 5 уроков</span>
+                <span class="item-description" data-state="in-progress-until-220">0 из 5 уроков</span>
+                <span class="progress" aria-hidden="true" data-state="first-run-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                <span class="progress" aria-hidden="true" data-state="in-progress-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="item" href="../catalog/prototype.html#subagent-orchestration">
+              <span class="item-content">
+                <span class="item-title">Оркестрация субагентов и мультиагентные пайплайны</span>
+                <span class="item-description" data-state="first-run-until-220">0 из 6 уроков</span>
+                <span class="item-description" data-state="in-progress-until-220">0 из 6 уроков</span>
+                <span class="progress" aria-hidden="true" data-state="first-run-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                <span class="progress" aria-hidden="true" data-state="in-progress-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="item" href="../catalog/prototype.html#final-project">
+              <span class="item-content">
+                <span class="item-title">Итоговый проект: календарь звонков</span>
+                <span class="item-description" data-state="first-run-until-220">0 из 8 уроков</span>
+                <span class="item-description" data-state="in-progress-until-220">0 из 8 уроков</span>
+                <span class="progress" aria-hidden="true" data-state="first-run-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                <span class="progress" aria-hidden="true" data-state="in-progress-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="item" href="../catalog/prototype.html#legacy-code">
+              <span class="item-content">
+                <span class="item-title">Работа с legacy-кодом</span>
+                <span class="item-description" data-state="first-run-until-220">0 из 5 уроков</span>
+                <span class="item-description" data-state="in-progress-until-220">0 из 5 уроков</span>
+                <span class="progress" aria-hidden="true" data-state="first-run-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                <span class="progress" aria-hidden="true" data-state="in-progress-until-220" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+              </span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <!-- From #220 (ia.md "Rules (#218)" rows "dashboard order", "course block"; A218-1, A218-4 to A218-7): one
+           block per course in list order. Readable form: heading link, next-lesson link (not in the Card course's
+           block), the course line (a p that labels the Progress), module rows. Empty form: heading and the empty
+           text. -->
+      <div class="course-blocks" data-step="F20.1" data-state="first-run attempts-first-run attempts-running-first cost-first-run in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses all-passed courses-all-passed all-finished no-ready-lessons">
+        <section class="progress-course" aria-labelledby="course-ai-for-developers-heading" data-step="F20.2">
+          <h2 class="heading-link" id="course-ai-for-developers-heading" data-step="F20.4"><a href="../catalog/prototype.html#state-courses-two" data-state="courses-two courses-all-passed attempts-two-courses">ИИ для разработчиков</a><a href="../catalog/prototype.html#state-courses-one-empty" data-state="courses-one-empty">ИИ для разработчиков</a><a href="../catalog/prototype.html" data-state="first-run attempts-first-run attempts-running-first cost-first-run in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data all-passed all-finished no-ready-lessons">ИИ для разработчиков</a></h2>
+          <p data-state="courses-two attempts-two-courses"><a href="../lesson/prototype.html?tab=task" data-step="F20.3">Следующий урок: Устройство агента: цикл, харнесс, инструменты, MCP</a></p>
+          <div class="progress-course" data-step="F18.1" data-state="first-run attempts-first-run attempts-running-first cost-first-run in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses all-passed courses-all-passed all-finished">
+          <p id="course-ai-for-developers-line">
+            <span data-state="first-run attempts-first-run attempts-running-first cost-first-run">Пока нет пройденных уроков</span>
+            <span data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses">Пройдено уроков: 1 из 37</span>
+            <span data-state="all-passed courses-all-passed">Пройдено уроков: 37 из 37</span>
+            <span data-state="all-finished">Пройдено уроков: 36 из 37</span>
+          </p>
+          <div class="progress" role="progressbar" aria-labelledby="course-ai-for-developers-line" aria-valuemin="0" aria-valuemax="37" aria-valuenow="0" aria-valuetext="0 из 37" style="--progress-value: 0%" data-state="first-run attempts-first-run attempts-running-first cost-first-run"><span class="progress-indicator"></span></div>
+          <div class="progress" role="progressbar" aria-labelledby="course-ai-for-developers-line" aria-valuemin="0" aria-valuemax="37" aria-valuenow="1" aria-valuetext="1 из 37" style="--progress-value: 2.7%" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses"><span class="progress-indicator"></span></div>
+          <div class="progress" role="progressbar" aria-labelledby="course-ai-for-developers-line" aria-valuemin="0" aria-valuemax="37" aria-valuenow="37" aria-valuetext="37 из 37" style="--progress-value: 100%" data-state="all-passed courses-all-passed"><span class="progress-indicator"></span></div>
+          <div class="progress" role="progressbar" aria-labelledby="course-ai-for-developers-line" aria-valuemin="0" aria-valuemax="37" aria-valuenow="36" aria-valuetext="36 из 37" style="--progress-value: 97.3%" data-state="all-finished"><span class="progress-indicator"></span></div>
+          </div>
+          <ul class="item-group" data-step="F18.2" data-state="first-run attempts-first-run attempts-running-first cost-first-run in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses all-passed courses-all-passed all-finished">
+            <li>
+              <a class="item" href="../catalog/prototype.html#introduction">
+                <span class="item-content">
+                  <span class="item-title">Введение в разработку с ИИ</span>
+                  <span class="item-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run">0 из 6 уроков</span>
+                  <span class="item-description" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses">1 из 6 уроков</span>
+                  <span class="item-description" data-state="all-passed courses-all-passed">6 из 6 уроков</span>
+                  <span class="item-description" data-state="all-finished">6 из 6 уроков</span>
+                  <span class="progress" aria-hidden="true" data-state="first-run attempts-first-run attempts-running-first cost-first-run" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses" style="--progress-value: 16.7%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-passed courses-all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-finished" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a class="item" href="../catalog/prototype.html#spec-driven-development">
+                <span class="item-content">
+                  <span class="item-title">Spec Driven Development</span>
+                  <span class="item-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run">0 из 7 уроков</span>
+                  <span class="item-description" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses">0 из 7 уроков</span>
+                  <span class="item-description" data-state="all-passed courses-all-passed">7 из 7 уроков</span>
+                  <span class="item-description" data-state="all-finished">7 из 7 уроков</span>
+                  <span class="progress" aria-hidden="true" data-state="first-run attempts-first-run attempts-running-first cost-first-run" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-passed courses-all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-finished" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a class="item" href="../catalog/prototype.html#agentic-patterns">
+                <span class="item-content">
+                  <span class="item-title">Паттерны агентной разработки</span>
+                  <span class="item-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run">0 из 5 уроков</span>
+                  <span class="item-description" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses">0 из 5 уроков</span>
+                  <span class="item-description" data-state="all-passed courses-all-passed">5 из 5 уроков</span>
+                  <span class="item-description" data-state="all-finished">5 из 5 уроков</span>
+                  <span class="progress" aria-hidden="true" data-state="first-run attempts-first-run attempts-running-first cost-first-run" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-passed courses-all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-finished" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a class="item" href="../catalog/prototype.html#subagent-orchestration">
+                <span class="item-content">
+                  <span class="item-title">Оркестрация субагентов и мультиагентные пайплайны</span>
+                  <span class="item-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run">0 из 6 уроков</span>
+                  <span class="item-description" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses">0 из 6 уроков</span>
+                  <span class="item-description" data-state="all-passed courses-all-passed">6 из 6 уроков</span>
+                  <span class="item-description" data-state="all-finished">6 из 6 уроков</span>
+                  <span class="progress" aria-hidden="true" data-state="first-run attempts-first-run attempts-running-first cost-first-run" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-passed courses-all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-finished" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a class="item" href="../catalog/prototype.html#final-project">
+                <span class="item-content">
+                  <span class="item-title">Итоговый проект: календарь звонков</span>
+                  <span class="item-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run">0 из 8 уроков</span>
+                  <span class="item-description" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses">0 из 8 уроков</span>
+                  <span class="item-description" data-state="all-passed courses-all-passed">8 из 8 уроков</span>
+                  <span class="item-description" data-state="all-finished">8 из 8 уроков</span>
+                  <span class="progress" aria-hidden="true" data-state="first-run attempts-first-run attempts-running-first cost-first-run" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-passed courses-all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-finished" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a class="item" href="../catalog/prototype.html#legacy-code">
+                <span class="item-content">
+                  <span class="item-title">Работа с legacy-кодом</span>
+                  <span class="item-description" data-state="first-run attempts-first-run attempts-running-first cost-first-run">0 из 5 уроков</span>
+                  <span class="item-description" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses">0 из 5 уроков</span>
+                  <span class="item-description" data-state="all-passed courses-all-passed">5 из 5 уроков</span>
+                  <span class="item-description" data-state="all-finished">4 из 5 уроков</span>
+                  <span class="progress" aria-hidden="true" data-state="first-run attempts-first-run attempts-running-first cost-first-run" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="in-progress session-expired user-menu attempts-mixed attempts attempts-weak-none cost cost-at-least cost-no-data courses-two courses-one-empty attempts-two-courses" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-passed courses-all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="all-finished" style="--progress-value: 80%"><span class="progress-indicator"></span></span>
+                </span>
+              </a>
+            </li>
+          </ul>
+          <div class="empty" data-state="no-ready-lessons"><p class="empty-description">В курсе пока нет готовых уроков</p></div>
+        </section>
+
+        <section class="progress-course" aria-labelledby="course-zz-stub-course-heading" data-state="courses-two courses-all-passed attempts-two-courses courses-one-empty">
+          <h2 class="heading-link" id="course-zz-stub-course-heading"><a href="../catalog/prototype.html#state-stub-course" data-state="courses-two courses-all-passed attempts-two-courses">Пробный курс</a><a href="../catalog/prototype.html#state-stub-course-empty" data-state="courses-one-empty">Пробный курс</a></h2>
+          <div class="progress-course" data-state="courses-two courses-all-passed attempts-two-courses">
+            <p id="course-zz-stub-course-line">
+              <span data-state="courses-two attempts-two-courses">Пока нет пройденных уроков</span>
+              <span data-state="courses-all-passed">Пройдено уроков: 1 из 1</span>
+            </p>
+            <div class="progress" role="progressbar" aria-labelledby="course-zz-stub-course-line" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0" aria-valuetext="0 из 1" style="--progress-value: 0%" data-state="courses-two attempts-two-courses"><span class="progress-indicator"></span></div>
+            <div class="progress" role="progressbar" aria-labelledby="course-zz-stub-course-line" aria-valuemin="0" aria-valuemax="1" aria-valuenow="1" aria-valuetext="1 из 1" style="--progress-value: 100%" data-state="courses-all-passed"><span class="progress-indicator"></span></div>
+          </div>
+          <!-- L3: the catalog prototype joins no state and anchor, so the row opens stub-course, whose only module
+               section is #stub-module (route /courses/zz-stub-course#stub-module). -->
+          <ul class="item-group" data-state="courses-two courses-all-passed attempts-two-courses">
+            <li>
+              <a class="item" href="../catalog/prototype.html#state-stub-course">
+                <span class="item-content">
+                  <span class="item-title">Пробный модуль</span>
+                  <span class="item-description" data-state="courses-two attempts-two-courses">0 из 1 уроков</span>
+                  <span class="item-description" data-state="courses-all-passed">1 из 1 уроков</span>
+                  <span class="progress" aria-hidden="true" data-state="courses-two attempts-two-courses" style="--progress-value: 0%"><span class="progress-indicator"></span></span>
+                  <span class="progress" aria-hidden="true" data-state="courses-all-passed" style="--progress-value: 100%"><span class="progress-indicator"></span></span>
+                </span>
+              </a>
+            </li>
+          </ul>
+          <div class="empty" data-state="courses-one-empty"><p class="empty-description">В курсе пока нет готовых уроков</p></div>
+        </section>
+      </div>
+
+      <!-- From #220 F18.3-F18.5 follow the last course block, rendered exactly when a Card is (ia.md "Rules (#218)"
+             row "dashboard order"); with one course block their row names carry no course name (A218-13).
+             Sample data (#72 design note §5.0, one learner on one timeline): lesson L is module 00 lesson 1
+           "Модель, уровень ризонинга и локальные модели", the page the lesson prototype draws; every
+           "Последние попытки" row is one of L's attempts №1-№8, and each link opens the lesson prototype
+           state that shows that very attempt (design note §5.3). Lesson P is module 00 lesson 2
+           "Устройство агента: цикл, харнесс, инструменты, MCP"; its three checks X1 harness-behaviour, X2
+           permissions-policy and X3 hook-blocks-generated (ids and titles of module 00 command checks, X2
+           and X3 borrowed from lesson 06; their limits and counters are sample data) fill "Где трудно",
+           in a sample order of their latest counted failure: X3 at P's last attempt, X2 before it, X1 at
+           the failure that closed it. The attempt ids are sample uuids, one per attempt. Times are
+           the learner's local time (+03:00 in the sample). Each state is one moment: attempts-running-first
+           28 октября 2025, 13:31; attempts-mixed 4 ноября 2026, 14:10; attempts, attempts-weak-none and
+           the cost-* states 5 ноября 2026, 15:21. -->
+
+      <!-- F18.3 (from #35): the five newest attempts of ready lessons, newest first. Each row is one link;
+           its name is the visible text in DOM order with ". " between fields (A72-19), visually hidden
+           where the layout shows no punctuation. The status icon is aria-hidden and repeats the summary
+           (A72-8); "Идёт проверка" takes running-still, the ring that never spins (A72-9). -->
+      <section class="progress-part stack" data-gap="2" aria-labelledby="recent-attempts-heading" data-step="F18.3" data-state="attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data attempts-two-courses">
+        <h2 id="recent-attempts-heading">Последние попытки</h2>
+
+        <div class="empty" data-state="attempts-first-run cost-first-run"><p class="empty-description">Попыток пока нет</p></div>
+
+        <!-- 28 октября 2025, 13:31: №1 running, the read in the same year (no year shown). -->
+        <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="attempts-running-first">
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000001#state-history-deep-link-running-empty"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2025-10-28T13:30:00+03:00">28 октября, 13:30</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
         </ul>
 
-        <!-- Sample data (#72 design note §5.0, one learner on one timeline): lesson L is module 00 lesson 1
-             "Модель, уровень ризонинга и локальные модели", the page the lesson prototype draws; every
-             "Последние попытки" row is one of L's attempts №1-№8, and each link opens the lesson prototype
-             state that shows that very attempt (design note §5.3). Lesson P is module 00 lesson 2
-             "Устройство агента: цикл, харнесс, инструменты, MCP"; its three checks X1 harness-behaviour, X2
-             permissions-policy and X3 hook-blocks-generated (ids and titles of module 00 command checks, X2
-             and X3 borrowed from lesson 06; their limits and counters are sample data) fill "Где трудно",
-             in a sample order of their latest counted failure: X3 at P's last attempt, X2 before it, X1 at
-             the failure that closed it. The attempt ids are sample uuids, one per attempt. Times are
-             the learner's local time (+03:00 in the sample). Each state is one moment: attempts-running-first
-             28 октября 2025, 13:31; attempts-mixed 4 ноября 2026, 14:10; attempts, attempts-weak-none and
-             the cost-* states 5 ноября 2026, 15:21. -->
+        <!-- 4 ноября, 14:10: L's three attempts are the user's only attempts. -->
+        <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="attempts-mixed">
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000003#state-history-deep-link"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-04T14:05:00+03:00">4 ноября, 14:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 2. Проверок с незасчитанной попыткой: 1</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000002#state-history-deep-link-plain"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-04T13:50:00+03:00">4 ноября, 13:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Сбой проверки, попытка не засчитана</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000001#state-history-deep-link-1"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2025-10-28T13:30:00+03:00">28 октября 2025, 13:30</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 1</span></span></a></li>
+        </ul>
 
-        <!-- F18.3 (from #35): the five newest attempts of ready lessons, newest first. Each row is one link;
-             its name is the visible text in DOM order with ". " between fields (A72-19), visually hidden
-             where the layout shows no punctuation. The status icon is aria-hidden and repeats the summary
-             (A72-8); "Идёт проверка" takes running-still, the ring that never spins (A72-9). -->
-        <section class="progress-part stack" data-gap="2" aria-labelledby="recent-attempts-heading" data-step="F18.3" data-state="attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data">
-          <h2 id="recent-attempts-heading">Последние попытки</h2>
+        <!-- 5 ноября, 15:21, #35 (attempts; attempts-weak-none has the same rows and links): №8-№4. -->
+        <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="attempts attempts-weak-none">
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000008#state-history-deep-link-running"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:20:00+03:00">5 ноября, 15:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000007#state-history-deep-link-7"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:05:00+03:00">5 ноября, 15:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000006#state-history-deep-link-6"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:50:00+03:00">5 ноября, 14:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000005#state-history-deep-link-5"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:35:00+03:00">5 ноября, 14:35</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 3</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3</span></span></a></li>
+        </ul>
 
-          <div class="empty" data-state="attempts-first-run cost-first-run"><p class="empty-description">Попыток пока нет</p></div>
+        <!-- 5 ноября, 15:50, #220 with #35: two later finished attempts of "Пробный урок" (course 2, the #217 stub),
+             each a counted failure of stub-check, then the three newest rows of attempts (№8-№6). Course 2 has no
+             lesson prototype (L2): its rows open the target of attempts row 5, the finished destructive attempt №4. -->
+        <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="attempts-two-courses">
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000010#state-history-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Пробный урок<span class="sr-only-inline">. </span></span><span class="item-description">Пробный курс<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:45:00+03:00">5 ноября, 15:45</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 1</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000009#state-history-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Пробный урок<span class="sr-only-inline">. </span></span><span class="item-description">Пробный курс<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:30:00+03:00">5 ноября, 15:30</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 1</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000008#state-history-deep-link-running"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description">ИИ для разработчиков<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:20:00+03:00">5 ноября, 15:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000007#state-history-deep-link-7"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description">ИИ для разработчиков<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:05:00+03:00">5 ноября, 15:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000006#state-history-deep-link-6"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description">ИИ для разработчиков<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:50:00+03:00">5 ноября, 14:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
+        </ul>
 
-          <!-- 28 октября 2025, 13:31: №1 running, the read in the same year (no year shown). -->
-          <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="attempts-running-first">
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000001#state-history-deep-link-running-empty"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2025-10-28T13:30:00+03:00">28 октября, 13:30</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
-          </ul>
+        <!-- 5 ноября, 15:21, #37: №4 as #37 runs it, with the rubric checks R1 and R2 ($0.04 each in cost).
+             Rows 1-4 hold free checks only or no result yet, so they show no cost (A72-12); in cost-at-least
+             and cost-no-data they open the cost targets of the same attempt (design note §5.3, prototype
+             limit). -->
+        <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="cost cost-at-least cost-no-data">
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000008#state-history-cost-deep-link-running"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:20:00+03:00">5 ноября, 15:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000007#state-history-cost-deep-link-7"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:05:00+03:00">5 ноября, 15:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000006#state-history-cost-deep-link-6"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:50:00+03:00">5 ноября, 14:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000005#state-history-cost-deep-link-5"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:35:00+03:00">5 ноября, 14:35</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 3</span></span></a></li>
+          <li data-state="cost"><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-cost-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 2 из 5. Потрачено: $0.08</span></span></a></li>
+          <li data-state="cost-at-least"><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-cost-at-least-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 2 из 5. Потрачено: не меньше $0.04</span></span></a></li>
+          <li data-state="cost-no-data"><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-cost-no-data-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 2 из 5. Потрачено: нет данных</span></span></a></li>
+        </ul>
+      </section>
 
-          <!-- 4 ноября, 14:10: L's three attempts are the user's only attempts. -->
-          <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="attempts-mixed">
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000003#state-history-deep-link"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-04T14:05:00+03:00">4 ноября, 14:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 2. Проверок с незасчитанной попыткой: 1</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000002#state-history-deep-link-plain"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-04T13:50:00+03:00">4 ноября, 13:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Сбой проверки, попытка не засчитана</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000001#state-history-deep-link-1"><span class="status-icon" data-status="success" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2025-10-28T13:30:00+03:00">28 октября 2025, 13:30</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 1</span></span></a></li>
-          </ul>
+      <!-- F18.4 (from #35): checks of ready lessons that are not passed and closed or failed at least twice
+           (A72-2). Each row is one link to the lesson's Проверки tab with no attempt (no focus move on
+           arrival); its name is check title, lesson title, then the closed word or the counter, joined by
+           ". " (A72-19). -->
+      <section class="progress-part stack" data-gap="2" aria-labelledby="weak-checks-heading" data-step="F18.4" data-state="attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data attempts-two-courses">
+        <h2 id="weak-checks-heading">Где трудно</h2>
 
-          <!-- 5 ноября, 15:21, #35 (attempts; attempts-weak-none has the same rows and links): №8-№4. -->
-          <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="attempts attempts-weak-none">
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000008#state-history-deep-link-running"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:20:00+03:00">5 ноября, 15:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000007#state-history-deep-link-7"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:05:00+03:00">5 ноября, 15:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000006#state-history-deep-link-6"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:50:00+03:00">5 ноября, 14:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000005#state-history-deep-link-5"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:35:00+03:00">5 ноября, 14:35</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 3</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3</span></span></a></li>
-          </ul>
+        <div class="empty" data-state="attempts-first-run attempts-running-first attempts-mixed attempts-weak-none cost-first-run"><p class="empty-description">Пока нет проверок, которые не удаются</p></div>
 
-          <!-- 5 ноября, 15:21, #37: №4 as #37 runs it, with the rubric checks R1 and R2 ($0.04 each in cost).
-               Rows 1-4 hold free checks only or no result yet, so they show no cost (A72-12); in cost-at-least
-               and cost-no-data they open the cost targets of the same attempt (design note §5.3, prototype
-               limit). -->
-          <ul class="item-group" aria-labelledby="recent-attempts-heading" data-state="cost cost-at-least cost-no-data">
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000008#state-history-cost-deep-link-running"><span class="status-icon" data-status="running-still" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:20:00+03:00">5 ноября, 15:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Идёт проверка</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000007#state-history-cost-deep-link-7"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T15:05:00+03:00">5 ноября, 15:05</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 1 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000006#state-history-cost-deep-link-6"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:50:00+03:00">5 ноября, 14:50</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 2</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000005#state-history-cost-deep-link-5"><span class="status-icon" data-status="warning" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:35:00+03:00">5 ноября, 14:35</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 0 из 3. Проверок с незасчитанной попыткой: 3</span></span></a></li>
-            <li data-state="cost"><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-cost-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 2 из 5. Потрачено: $0.08</span></span></a></li>
-            <li data-state="cost-at-least"><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-cost-at-least-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 2 из 5. Потрачено: не меньше $0.04</span></span></a></li>
-            <li data-state="cost-no-data"><a class="item" href="../lesson/prototype.html?tab=checks&amp;attempt=5e1f0c2a-7b3d-4c8e-9a6f-000000000004#state-history-cost-no-data-deep-link-4"><span class="status-icon" data-status="destructive" aria-hidden="true"></span><span class="item-content"><span class="item-title">Модель, уровень ризонинга и локальные модели<span class="sr-only-inline">. </span></span><span class="item-description"><time datetime="2026-11-05T14:20:00+03:00">5 ноября, 14:20</time><span class="sr-only-inline">. </span></span><span class="item-description">Пройдено проверок: 2 из 5. Потрачено: нет данных</span></span></a></li>
-          </ul>
-        </section>
+        <ul class="item-group" aria-labelledby="weak-checks-heading" data-state="attempts cost cost-at-least cost-no-data">
+          <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 9 из 10</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">Правила разрешений в .claude/settings.json и Makefile против политики<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 3</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">Закрыта: не пройдено</span></span></a></li>
+        </ul>
 
-        <!-- F18.4 (from #35): checks of ready lessons that are not passed and closed or failed at least twice
-             (A72-2). Each row is one link to the lesson's Проверки tab with no attempt (no focus move on
-             arrival); its name is check title, lesson title, then the closed word or the counter, joined by
-             ". " (A72-19). -->
-        <section class="progress-part stack" data-gap="2" aria-labelledby="weak-checks-heading" data-step="F18.4" data-state="attempts-first-run attempts-running-first attempts-mixed attempts attempts-weak-none cost-first-run cost cost-at-least cost-no-data">
-          <h2 id="weak-checks-heading">Где трудно</h2>
+        <!-- attempts-two-courses: stub-check (two counted failures, the newest at 15:45) first, then the three rows of attempts. -->
+        <ul class="item-group" aria-labelledby="weak-checks-heading" data-state="attempts-two-courses">
+          <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">Пробная проверка<span class="sr-only-inline">. </span></span><span class="item-description">Пробный урок<span class="sr-only-inline">. </span></span><span class="item-description">Пробный курс<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 2</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">ИИ для разработчиков<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 9 из 10</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">Правила разрешений в .claude/settings.json и Makefile против политики<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">ИИ для разработчиков<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 3</span></span></a></li>
+          <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">ИИ для разработчиков<span class="sr-only-inline">. </span></span><span class="item-description">Закрыта: не пройдено</span></span></a></li>
+        </ul>
+      </section>
 
-          <div class="empty" data-state="attempts-first-run attempts-running-first attempts-mixed attempts-weak-none cost-first-run"><p class="empty-description">Пока нет проверок, которые не удаются</p></div>
-
-          <ul class="item-group" aria-labelledby="weak-checks-heading" data-state="attempts cost cost-at-least cost-no-data">
-            <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">PreToolUse-хук блокирует правки в generated/ и зарегистрирован так, что Claude Code его запустит<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 9 из 10</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">Правила разрешений в .claude/settings.json и Makefile против политики<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">Неудачных попыток: 3</span></span></a></li>
-            <li><a class="item" href="../lesson/prototype.html?tab=checks#state-checks-weak"><span class="item-content"><span class="item-title">Цикл агента: результаты в контекст, max_turns, неизвестный инструмент, MCP-образный сервер, разрешения<span class="sr-only-inline">. </span></span><span class="item-description">Устройство агента: цикл, харнесс, инструменты, MCP<span class="sr-only-inline">. </span></span><span class="item-description">Закрыта: не пройдено</span></span></a></li>
-          </ul>
-        </section>
-
-        <!-- F18.5 (from #37): the total by ADR-0007 item 11, "$0.00" included (A72-13). The section has no
-             accessible name, so it is no region landmark (its h2 is a figure); nothing in it is focusable.
-             Sample terms: cost №4's R1 $0.04 + R2 $0.04 + P's reviews $1.16; cost-at-least R2 unreported;
-             cost-no-data nothing reported. -->
-        <section class="progress-part stack" data-gap="2" data-step="F18.5" data-state="cost-first-run cost cost-at-least cost-no-data">
-          <h2>
-            <span data-state="cost-first-run">Потрачено на проверки и разборы: $0.00</span>
-            <span data-state="cost">Потрачено на проверки и разборы: $1.24</span>
-            <span data-state="cost-at-least">Потрачено на проверки и разборы: не меньше $1.20</span>
-            <span data-state="cost-no-data">Потрачено на проверки и разборы: нет данных</span>
-          </h2>
-          <p class="text-sm muted">Расход агента в терминале сюда не входит</p>
-        </section>
+      <!-- F18.5 (from #37): the total by ADR-0007 item 11, "$0.00" included (A72-13). The section has no
+           accessible name, so it is no region landmark (its h2 is a figure); nothing in it is focusable.
+           Sample terms: cost №4's R1 $0.04 + R2 $0.04 + P's reviews $1.16; cost-at-least R2 unreported;
+           cost-no-data nothing reported. -->
+      <section class="progress-part stack" data-gap="2" data-step="F18.5" data-state="cost-first-run cost cost-at-least cost-no-data">
+        <h2>
+          <span data-state="cost-first-run">Потрачено на проверки и разборы: $0.00</span>
+          <span data-state="cost">Потрачено на проверки и разборы: $1.24</span>
+          <span data-state="cost-at-least">Потрачено на проверки и разборы: не меньше $1.20</span>
+          <span data-state="cost-no-data">Потрачено на проверки и разборы: нет данных</span>
+        </h2>
+        <p class="text-sm muted">Расход агента в терминале сюда не входит</p>
       </section>
     </div>
   </main>
@@ -258,33 +506,40 @@
     <span>Prototype states:</span>
     <nav data-state-index aria-label="Prototype states" class="row"></nav>
     <button class="button" type="button" data-variant="outline" data-size="sm" data-theme-toggle aria-pressed="false">Dark theme</button>
-    <span hidden data-state="first-run" data-state-label="first run"></span>
-    <span hidden data-state="in-progress" data-state-label="in progress"></span>
-    <span hidden data-state="all-passed" data-state-label="all passed"></span>
-    <span hidden data-state="no-ready-lessons" data-state-label="no ready lessons"></span>
-    <span hidden data-state="loading" data-state-label="loading"></span>
-    <span hidden data-state="course-error" data-state-label="course load error"></span>
-    <span hidden data-state="course-error-fails-again" data-state-label="course load error, Повторить fails again"></span>
-    <span hidden data-state="progress-unavailable" data-state-label="progress unavailable"></span>
-    <span hidden data-state="session-expired" data-state-label="session expired (F2.1)"></span>
-    <span hidden data-state="user-menu" data-state-label="user menu open (F3.1)"></span>
+    <span hidden data-state="courses-two" data-state-label="#220, two courses, Card in course 2 (sample data)"></span>
+    <span hidden data-state="courses-one-empty" data-state-label="#220, two courses, course 2 without ready lessons (sample data)"></span>
+    <span hidden data-state="courses-all-passed" data-state-label="#220, two courses, all ready lessons passed (sample data)"></span>
+    <span hidden data-state="attempts-two-courses" data-state-label="#220, #35 two courses, recent attempts and weak checks (sample data)"></span>
+    <span hidden data-state="all-finished" data-state-label="#220, all ready lessons finished, one not passed (sample data)"></span>
+    <span hidden data-state="first-run" data-state-label="#220, first run"></span>
+    <span hidden data-state="in-progress" data-state-label="#220, in progress"></span>
+    <span hidden data-state="all-passed" data-state-label="#220, all passed"></span>
+    <span hidden data-state="no-ready-lessons" data-state-label="#220, no ready lessons"></span>
+    <span hidden data-state="loading" data-state-label="#220, loading"></span>
+    <span hidden data-state="session-expired" data-state-label="#220, session expired (F2.1)"></span>
+    <span hidden data-state="user-menu" data-state-label="#220, user menu open (F3.1)"></span>
+    <span hidden data-state="attempts-first-run" data-state-label="#220, #35 first run (F18.3, F18.4 empty)"></span>
+    <span hidden data-state="attempts-running-first" data-state-label="#220, #35 first attempt running (sample data)"></span>
+    <span hidden data-state="attempts-mixed" data-state-label="#220, #35 three attempts (sample data)"></span>
+    <span hidden data-state="attempts" data-state-label="#220, #35 recent attempts and weak checks (sample data)"></span>
+    <span hidden data-state="attempts-weak-none" data-state-label="#220, #35 attempts, no weak checks (sample data)"></span>
+    <span hidden data-state="attempts-loading" data-state-label="#220, #35 loading"></span>
+    <span hidden data-state="cost-first-run" data-state-label="#220, #37 first run, $0.00"></span>
+    <span hidden data-state="cost" data-state-label="#220, #37 cost, every term known (sample data)"></span>
+    <span hidden data-state="cost-at-least" data-state-label="#220, #37 cost at least (sample data)"></span>
+    <span hidden data-state="cost-no-data" data-state-label="#220, #37 cost no data (sample data)"></span>
+    <span hidden data-state="course-error" data-state-label="course load error, until #220"></span>
+    <span hidden data-state="course-error-fails-again" data-state-label="course load error, Повторить fails again, until #220"></span>
+    <span hidden data-state="progress-unavailable" data-state-label="progress unavailable, until #220"></span>
+    <span hidden data-state="first-run-until-220" data-state-label="first run, until #220"></span>
+    <span hidden data-state="in-progress-until-220" data-state-label="in progress, until #220"></span>
     <span hidden data-state="before-catalog" data-state-label="before #30 (no catalog)"></span>
-    <span hidden data-state="attempts-first-run" data-state-label="#35 first run (F18.3, F18.4 empty)"></span>
-    <span hidden data-state="attempts-running-first" data-state-label="#35 first attempt running (sample data)"></span>
-    <span hidden data-state="attempts-mixed" data-state-label="#35 three attempts (sample data)"></span>
-    <span hidden data-state="attempts" data-state-label="#35 recent attempts and weak checks (sample data)"></span>
-    <span hidden data-state="attempts-weak-none" data-state-label="#35 attempts, no weak checks (sample data)"></span>
-    <span hidden data-state="attempts-loading" data-state-label="#35 loading"></span>
-    <span hidden data-state="cost-first-run" data-state-label="#37 first run, $0.00"></span>
-    <span hidden data-state="cost" data-state-label="#37 cost, every term known (sample data)"></span>
-    <span hidden data-state="cost-at-least" data-state-label="#37 cost at least (sample data)"></span>
-    <span hidden data-state="cost-no-data" data-state-label="#37 cost no data (sample data)"></span>
   </div>
 </div>
 
 <script src="../../system/proto.js"></script>
 <script>
-  /* Page-only behaviour: the card button's target per state (F4.3). "Повторить" uses proto.js
+  /* Page-only behaviour: the Card button's target per state (F4.3). "Повторить" uses proto.js
      data-goto-state + data-focus (ia.md R2). */
   (function () {
     "use strict";
@@ -292,13 +547,15 @@
     var nextButton = document.getElementById("next-lesson-button");
     // R5: the next lesson is started (an attempt or terminal input), so the button reads "Продолжить".
     var STARTED_STATES = [
-      "in-progress", "session-expired", "user-menu", "attempts-running-first", "attempts-mixed", "attempts",
-      "attempts-weak-none", "cost", "cost-at-least", "cost-no-data",
+      "attempts-running-first", "in-progress", "session-expired", "user-menu", "attempts-mixed", "attempts", "attempts-weak-none", "cost", "cost-at-least", "cost-no-data", "courses-one-empty", "attempts-two-courses", "in-progress-until-220",
     ];
+    // The kept states (until #220) open the lesson prototype's M0 state, the lesson page of that release (L4).
+    var UNTIL_220_STATES = ["progress-unavailable", "first-run-until-220", "in-progress-until-220"];
 
     function syncNextButton(state) {
       var isStarted = STARTED_STATES.indexOf(state) >= 0;
-      nextButton.href = nextButton.getAttribute(isStarted ? "data-href-continue" : "data-href-start");
+      var suffix = UNTIL_220_STATES.indexOf(state) >= 0 ? "-until-220" : "";
+      nextButton.href = nextButton.getAttribute((isStarted ? "data-href-continue" : "data-href-start") + suffix);
     }
 
     document.addEventListener("proto:statechange", function (event) { syncNextButton(event.detail.state); });

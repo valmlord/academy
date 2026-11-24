@@ -249,9 +249,9 @@
     <h3>Breadcrumb</h3>
     <nav class="breadcrumb" aria-label="Навигация" lang="ru">
       <ol>
-        <li><a href="#g-course">Курс</a></li>
-        <li><a href="#g-module">Основы работы с агентом</a></li>
-        <li><span aria-current="page">Как устроен агент</span></li>
+        <li><a href="#g-course">ИИ для разработчиков</a></li>
+        <li><a href="#g-module">Введение в разработку с ИИ</a></li>
+        <li><span aria-current="page">Модель, уровень ризонинга и локальные модели</span></li>
       </ol>
     </nav>
   </div>
@@ -288,6 +288,19 @@
         <p class="item-note">Сначала пройдите: <a href="#g-lesson-1">Как устроен агент</a></p></li>
     </ul>
     <p class="gallery-note">.item-note sits under the row, a sibling of the row link in the same li (catalog prerequisite note F6.1).</p>
+  </div>
+
+  <div class="gallery-section">
+    <h3>Heading link</h3>
+    <div class="stack" data-gap="2" lang="ru">
+      <h4 class="heading-link gallery-h2"><a href="#g-course">ИИ для разработчиков</a></h4>
+    </div>
+    <div class="demo-narrow" lang="ru">
+      <div class="page">
+        <h4 class="heading-link gallery-h2"><a href="#g-course">ИИ для разработчиков: длинное название курса, которое переносится на несколько строк</a></h4>
+      </div>
+    </div>
+    <p class="gallery-note">.heading-link on a heading whose whole text is one link: the dashboard course block h2 (h4 here in the gallery outline, at the proto.css h2 size; a page that sets its own h2 size keeps it, the link inherits it). The link keeps the underline and hover of every a, takes the heading's colour and is an inline-block, so a long name wraps inside it and the focus ring is one rectangle around the whole name. Second sample: a long name in a 320px box.</p>
   </div>
 
   <div class="gallery-section">
@@ -345,7 +358,7 @@
     <div class="demo-layout demo-layout-short" lang="ru">
       <header class="topbar" data-region>
         <a class="topbar-brand" href="#g-home">Академия</a>
-        <nav class="topbar-nav"><a href="#g-home" aria-current="page">Главная</a><a href="#g-course">Курс</a></nav>
+        <nav class="topbar-nav"><a href="#g-home" aria-current="page">Главная</a></nav>
         <div class="topbar-end">
           <div class="dropdown">
             <button class="button" type="button" data-variant="ghost" data-size="sm" id="g-topbar-user-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="g-topbar-user-menu"><span class="user-email">learner@example.com</span></button>
@@ -375,7 +388,7 @@
     <div class="demo-narrow" lang="ru">
       <header class="topbar" data-region>
         <a class="topbar-brand" href="#g-home">Академия</a>
-        <nav class="topbar-nav"><a href="#g-home" aria-current="page">Главная</a><a href="#g-course">Курс</a></nav>
+        <nav class="topbar-nav"><a href="#g-home" aria-current="page">Главная</a></nav>
         <div class="topbar-end">
           <div class="dropdown">
             <button class="button" type="button" data-variant="ghost" data-size="sm" id="g-narrow-user-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="g-narrow-user-menu"><span class="user-email">a.very.long.learner.address@example.com</span></button>

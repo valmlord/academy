@@ -116,6 +116,9 @@ p { margin: 0; }
 
 a { color: var(--foreground); text-decoration: underline; text-underline-offset: var(--underline-offset); }
 a:hover { text-decoration-thickness: var(--underline-hover-width); }
+/* A heading whose whole text is one link (the dashboard course block h2). inline-block makes the target
+   the whole wrapped box, at least one heading line tall, and the focus ring one rectangle around it. */
+.heading-link > a { display: inline-block; max-width: 100%; color: inherit; }
 
 :focus { outline: none; }
 :focus-visible {
