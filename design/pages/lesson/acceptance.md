@@ -99,21 +99,21 @@ from shows except the button and the lock (`quiz.md` "Sending"), so each attempt
    finishes the lesson not passed (S3, AC39, AC40); the close with the limit unknown (AC38); the check bar
    rows of "Check bar after a quiz send" other than empty, P7 and P8 (a run going, summary 4, summary 7 left
    true, the line at 5 or 6 with a refusal: AC40, AC43); a 401 on load (AC54).
-6. Mentor states (#71, from #37). (a) A mentor control has a simulated outcome only where a drawn state
+8. Mentor states (#71, from #37). (a) A mentor control has a simulated outcome only where a drawn state
    holds every other fact of the state it is pressed in: "Разобрать с ментором" and "Попросить подсказку"
    in `#state-mentor-offer`, "Повторить" in `#state-mentor-review-failed` and `-review-budget` (both to
    `#state-mentor-review-pending`), "Попросить подсказку" in `#state-mentor-hint-failed` and `-hint-budget`
    (to `#state-mentor-hint-pending`). Every other enabled mentor control does nothing in the prototype; its
-   outcome is the same kind of state with that check's facts (AC76-AC86). (b) A call's end is a background
+   outcome is the same kind of state with that check's facts (AC77-AC87). (b) A call's end is a background
    change: it is reached by its `#state-` hash or by `window.proto.setState` from the pending state, which
    puts focus where A71-8 says (`STATE_FOCUS` in the page script). (c) "Проверить" in `#state-mentor-rubric`
    and `-rubric-gated` does nothing: a run there opens the budget confirmation (#69), not drawn for these
    rows. (d) The #69 and #72 states tagged "from #37" or "from #37 / #39" (`#state-budget-*`,
    `#state-statuses-agent`, `#state-passed-paid-only`, `#state-history-cost*`) were drawn before #71 and
    show no mentor control, review block, ladder or score line; from #37 their rows and attempt panels follow
-   the `#state-mentor-*` states (AC76, AC78, AC80, AC85): for example the passed rubric row of
+   the `#state-mentor-*` states (AC77, AC79, AC81, AC86): for example the passed rubric row of
    `#state-statuses-agent` with its score line, and its budget-spent row with "Разобрать с ментором" and the
-   ladder. (e) The prototype never writes the mentor status container (AC84), and draws it only in the 20
+   ladder. (e) The prototype never writes the mentor status container (AC85), and draws it only in the 20
    `#state-mentor-*` states.
 
 Limit known and limit unknown are both drawn (Stepan's decision B0, `ia.md` R7): the states marked "limit
@@ -229,7 +229,7 @@ The course error (the course cannot be read) is not drawn in this prototype: it 
 F13.6 (mentor, D3) is drawn only in the 20 `#state-mentor-*` states, from #37 (`ia.md` A71-12; the F16
 and F17 rows above). No other state draws a mentor or hint control, a review block, a score line or a
 mentor reason: the states before #37 by release (R6), and the #69 and #72 states tagged "from #37" by
-Prototype limitation 6 (d). Before #36 no quiz control either; from #36 the quiz controls of F15 are drawn
+Prototype limitation 8 (d). Before #36 no quiz control either; from #36 the quiz controls of F15 are drawn
 only in the `#state-quiz-*` states and in the two quiz states of the attempt history (`#state-history-quiz`,
 `#state-history-quiz-open`); "Разобрать с ментором" in the closed quiz block from #37, in
 `#state-mentor-quiz-closed` and `-quiz-review` (`quiz.md` "Release scope", A71-1). The mentor review in an
@@ -574,9 +574,9 @@ outline sm Button followed by "до $0.05" (its `aria-describedby`); the mentor 
 | `#state-mentor-history` (from #37; sample) | `#state-history-cost` with "№ 4. 5 ноября, 14:20. Пройдено проверок: 2 из 5. Потрачено: $0.12" expanded: A "Не пройдено", "2 из 6 карточек неверны.", then the done review of that result (h4 "Разбор ментора" with no tabindex, the text, "Стоимость разбора: $0.04", no control), then B, C, R1 and R2 as in `#state-history-cost-deep-link-4`; no hint (A71-11); "Проверить" starts `#state-history-cost-deep-link-running`; focus not moved |
 
 Not drawn, each specified by its AC: a pending review on a closed check or in the quiz block (the same block
-as `#state-mentor-review-pending`, "Проверить" unchanged, AC79, AC81); a call's end with focus elsewhere and
-the mentor status container's texts (AC82, AC84); a refused press (AC83); a call found pending on return
-after leaving the page or a session expiry (AC81).
+as `#state-mentor-review-pending`, "Проверить" unchanged, AC80, AC82); a call's end with focus elsewhere and
+the mentor status container's texts (AC83, AC85); a refused press (AC84); a call found pending on return
+after leaving the page or a session expiry (AC82).
 
 ## Interactions and keyboard
 
@@ -960,7 +960,7 @@ after leaving the page or a session expiry (AC81).
     | "Разобрать с ментором" or the review's "Повторить" pressed | the h4 "Разбор ментора" of the pending block (`tabindex="-1"`) | `#state-mentor-review-pending` |
     | a ladder control pressed | the busy display "Ментор готовит подсказку" (`role="group"`, `tabindex="-1"`) | `#state-mentor-hint-pending` |
     | a call ends, focus on `body` or inside that row panel or closed quiz block, and the outcome shown | a done review: its text; a failed or spent review: its Alert title; a done hint: its level item; a failed or spent hint: its Alert title (each `tabindex="-1"`); nothing is written | `#state-mentor-review-done`, `-review-no-transcript`, `-review-failed`, `-review-budget`, `-hint-one`, `-closed-direct`, `-hint-failed`, `-hint-budget`, `-quiz-review` |
-    | a call ends otherwise (focus elsewhere, the row collapsed, its tab or pane not shown) | focus stays; the mentor status container says the outcome once | not drawn (AC84) |
+    | a call ends otherwise (focus elsewhere, the row collapsed, its tab or pane not shown) | focus stays; the mentor status container says the outcome once | not drawn (AC85) |
     | a background change removes a focused mentor element (a run that includes the check found by a re-read, a refused press's re-read) | R2 "Focus after a background change": in a row panel (place 2) that row's disclosure button; in the closed quiz block (place 1) the quiz result block | `window.proto.setState("limit-known-running")` from a mentor state |
 
   - **"Проверить" during a call** on a check that is not closed: `aria-disabled` with "Дождитесь ответа
@@ -1373,7 +1373,7 @@ mentor reasons of the set "disabled reason" and the action labels "ask for a rev
     the ladder it takes focus and is `role="group"` named by its words (`aria-labelledby`), so the ticking
     time is not its name; in the review block the h4 holds focus and the display has no role. The failed
     review and hint Alerts have no live role; their titles are focus targets. The only mentor live element
-    is the mentor status container (AC84).
+    is the mentor status container (AC85).
   - **Focus is never pulled back.** A call's end moves focus only from `body` or from inside the row panel or
     closed quiz block that shows the outcome (A71-8), so a learner who went to the terminal or another tab
     keeps their place and hears the outcome once from the mentor status container.
@@ -1568,8 +1568,8 @@ mentor reasons of the set "disabled reason" and the action labels "ask for a rev
   with the counter: "Неудачных попыток: N" when the server reports no limit for the check, "Неудачных
   попыток: N из M" when it reports one. "Осталась 1 попытка" shows only with a known limit and exactly one
   counted attempt left, never with "Пройдено" or "Закрыта: не пройдено"; "лимит M:SS" only with a "Время
-  вышло" word; the running time only with "Идёт". Before #37 no mentor or hint control (from #37: AC76 to
-  AC86). Before #36 quiz checks are
+  вышло" word; the running time only with "Идёт". Before #37 no mentor or hint control (from #37: AC77 to
+  AC87). Before #36 quiz checks are
   neither listed nor counted; from #36 the quiz check is a row of its own (AC41) and is counted in "Пройдено:
   N из M". No row shows a check kind.
 - AC10: The split handle has a hit box at least 24 px wide; a click cycles 50 / 35 / 65 %; arrows move 5 %;
@@ -1674,7 +1674,7 @@ From #36, the quiz (`quiz.md`; each AC names its source):
   the quiz check row, "Пройти квиз", the quiz notice container or "Открыть квиз", and the quiz check is not
   counted; from #36 a lesson with a quiz check shows the Квиз tab last in the tab list and the quiz check
   row in Проверки and counts the quiz; a lesson without one shows neither; "Разобрать с ментором" shows in
-  no state until #37 (from #37 in the closed quiz block only, AC76).
+  no state until #37 (from #37 in the closed quiz block only, AC77).
 - AC32, header (F15.1, "Limit known and limit unknown", "Quiz panel, in DOM order"): the panel heading
   `h2` (`tabindex="-1"`) is the check `title`; the header reads "Нужно K из Q", then "Попытка A из M" with a
   known limit or "Попытка A" without; "Осталась 1 попытка" with the warning icon follows only with a known
@@ -1878,7 +1878,7 @@ Attempt history (#72). Each check names its release; "from #35" holds in every l
   with "Этой проверки больше нет в уроке" (`#state-history-open`: "№ 3", `cost-estimate`), each with its own
   word and #69's icon, its grader message verbatim, and for a runner error "Подробности" collapsed; a
   failure after a pass shows its own word ("№ 6": A "Не пройдено" while A's check row reads "Пройдено");
-  no hint; no mentor review before #37 (from #37: AC85); a quiz result (from #36) as AC72.
+  no hint; no mentor review before #37 (from #37: AC86); a quiz result (from #36) as AC72.
 - AC62, empty forms (from #35): with no finished attempt the h3 is followed by "Попыток пока нет. Нажмите
   "Проверить", когда будете готовы." (`#state-history-empty`) and no `ul`; once the first run makes
   "Проверить" `aria-disabled` ("Дождитесь окончания проверки" or "Результат проверки ещё не получен") by
@@ -2015,30 +2015,30 @@ quiz load status container #36's (`quiz.md` "Requirements for #36", item 9).
 
 From #37, the mentor review and the hint ladder (#71; `mentor.md` F16, F17; `ia.md` A71-1 to A71-13; each AC
 names its rule). The dev tester of #37 asserts them in the `#state-mentor-*` states and, from #37, in the
-rows of the #69 and #72 states tagged "from #37" (Prototype limitation 6 (d)):
+rows of the #69 and #72 states tagged "from #37" (Prototype limitation 8 (d)):
 
-- AC76, offer (A71-1): "Разобрать с ментором" shows in the open panel of a check row whose check has a
+- AC77, offer (A71-1): "Разобрать с ментором" shows in the open panel of a check row whose check has a
   result, is not passed and whose latest result is not a runner error, from the first failure, as the last
   item after the counter, and after the closed quiz block's result block; never in the quiz check row, never
   on "Пройдено" (also not with the sticky-pass note), "Не запускалась", "В очереди", "Идёт" or a runner error;
   once the latest result has a review block it is gone for that result, and a newer result offers it again.
-- AC77, consent and cost (A71-2): no mentor control opens a dialog; each shows "до $N" next to it, $N the
+- AC78, consent and cost (A71-2): no mentor control opens a dialog; each shows "до $N" next to it, $N the
   per-call budget the server reports, and lists it in its `aria-describedby` (after its reason when it is
   `aria-disabled`); the budget confirmation still opens only for a run (#69, F13.1). A review's cost adds to
   its attempt's cost and the total ("№ 4 ... Потрачено: $0.12" in `#state-mentor-history`).
-- AC78, score line (A71-4): in the open panel of a rubric check row, right before the grader message,
+- AC79, score line (A71-4): in the open panel of a rubric check row, right before the grader message,
   "Оценка S%, нужно P%", S the latest result's `score` rounded down to a whole percent, P `passScore` in
   percent; only when the result passed with S >= P or failed with S < P (`#state-mentor-rubric`: 60 / 70
   failed, 80 / 70 passed); none for a fail with S >= P (`#state-mentor-rubric-gated`) or a pass with S < P;
   never in an attempt panel. A unit test with S 0.699 and P 0.7 shows "Оценка 69%, нужно 70%".
-- AC79, review block (A71-5): after a press the block takes the button's place (or its own failed form's):
+- AC80, review block (A71-5): after a press the block takes the button's place (or its own failed form's):
   h4 "Разбор ментора" (`tabindex="-1"`) and the busy display "Ментор читает попытку" with the time; done:
   the text verbatim in `pre`, "Ментор не видел транскрипт работы с агентом" only when the reviewed attempt has
   no transcript, "Стоимость разбора: $N" when a cost is reported (money as `checks.md` "Money"); failed or
   timed out: the destructive Alert "Ментор не ответил" with "Повторить" inside it; budget spent: the Alert "Бюджет на
   разбор исчерпан" with the cost line and "Повторить" inside it, no partial text; no reply field; only the latest result's
   review is shown in the row.
-- AC80, ladder (A71-6): in a check row (not the quiz's) whose check is not passed and has a result, after the review block or its
+- AC81, ladder (A71-6): in a check row (not the quiz's) whose check is not passed and has a result, after the review block or its
   button, or after the counter when the panel has neither (A71-6; the last case is the
   runner-error row, where A71-1 offers no review; not drawn): h4 "Подсказки", the `ol` of the four levels in order, each received level with
   its hint verbatim; then "Попросить подсказку" (nothing received) or "Следующая подсказка" (asks one level
@@ -2049,7 +2049,7 @@ rows of the #69 and #72 states tagged "from #37" (Prototype limitation 6 (d)):
   закрыта" after the row (`#state-mentor-offer`, `-hint-locked`); with no limit reported or on a closed check
   none is locked. A failed call shows "Ментор не ответил" or "Бюджет на подсказку исчерпан" after the controls
   until the next press, the controls stay and a press asks again. A newer result starts an empty ladder.
-- AC81, calls and runs (A71-7): during a run that includes the check none of its mentor controls, review
+- AC82, calls and runs (A71-7): during a run that includes the check none of its mentor controls, review
   block or ladder is rendered (`#state-limit-known-running` after a press of "Проверить" in a mentor state);
   while a call runs on a check that is not closed, "Проверить" is `aria-disabled` with "Дождитесь ответа
   ментора" (after "Результат проверки ещё не получен" in R1's order, over the environment reasons) and every
@@ -2059,20 +2059,20 @@ rows of the #69 and #72 states tagged "from #37" (Prototype limitation 6 (d)):
   reason at a time: the key, the call, the lock. The busy time counts from the server's request time, so two
   browser tabs and a reload show the same time; the call goes on when the page is left or the session expires
   and shows pending on return; it needs no running environment and does not reset the idle timer.
-- AC82, focus (A71-5, A71-6, A71-8): a review press moves focus to the h4; a hint press to the busy display
+- AC83, focus (A71-5, A71-6, A71-8): a review press moves focus to the h4; a hint press to the busy display
   (`role="group"`, `tabindex="-1"`, named "Ментор готовит подсказку"); at a call's end with focus on `body`
   or inside that row panel or closed quiz block and the outcome shown, focus moves to the done review's text,
   the failed or spent review's Alert title, the done hint's level item or the failed hint's Alert title
   (each `tabindex="-1"`) and nothing is written; otherwise focus stays where it is (also with the row
   collapsed or its tab not shown). "Проверить" drops "Дождитесь ответа ментора" silently. Never to `body`.
-  Prototype: the press transitions of Prototype limitation 6 (a) and the `#state-` arrivals of the call ends
+  Prototype: the press transitions of Prototype limitation 8 (a) and the `#state-` arrivals of the call ends
   land on these targets at 1280 and 375 px, and `?tab=checks` stays (measured headless in Chromium).
-- AC83, refused press (A71-8, A71-13 item 3): a mentor press or a run the server refuses with 409 re-reads
+- AC84, refused press (A71-8, A71-13 item 3): a mentor press or a run the server refuses with 409 re-reads
   the check states as a visibility re-read does (`checks.md` B8-B11); a focused control the re-read removes
   moves focus by R2 "Focus after a background change" (`ia.md`), as the Interactions focus table's last mentor
   row says; what
   each refusal says is #37's (`mentor.md` "Not designed in #71").
-- AC84, mentor status container (A71-9): one `div[role="status"][aria-live="polite"]`, visually hidden,
+- AC85, mentor status container (A71-9): one `div[role="status"][aria-live="polite"]`, visually hidden,
   inside "Проверка" right after `.check-bar-status`, present and empty from page load in every state with the
   check bar (the prototype: the 20 `#state-mentor-*` states only, A71-12), never inserted with its text, no live role
   inside it; written only at a call's end that A71-8 leaves unannounced by focus, with "Разбор готов: <check
@@ -2080,10 +2080,10 @@ rows of the #69 and #72 states tagged "from #37" (Prototype limitation 6 (d)):
   <check title>" or "Бюджет на подсказку исчерпан: <check title>", no sooner than `CHECK_STATUS_TEXT_GAP_MS`
   after the status line's or its own last text; emptied silently when a call starts. "Уведомления" never
   holds a mentor text, so it gains no landmark and no `F6` stop. The test fails if the gap is removed.
-- AC85, history (A71-10, A71-11): an open attempt panel shows a done review of a result after that result's
+- AC86, history (A71-10, A71-11): an open attempt panel shows a done review of a result after that result's
   items in the done form (h4, text, transcript note when it applies, cost), with no control and no
   `tabindex`; a pending or failed review is not shown there; no hint in any attempt panel.
-- AC86, release and structure (A71-12, R6): before #37 no state shows a mentor control, review block,
+- AC87, release and structure (A71-12, R6): before #37 no state shows a mentor control, review block,
   ladder, score line, mentor reason or mentor status container; from #37 all of them. The h4 "Разбор
   ментора" and "Подсказки" are the only mentor headings (Accessibility notes, "Headings"); `ol.hint-levels`
   keeps `role="list"`; at 320 px the control pairs wrap as whole pairs (a cost moves under its Button only
