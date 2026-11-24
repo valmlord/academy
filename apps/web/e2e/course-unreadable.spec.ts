@@ -21,8 +21,8 @@ import {
 import { repoCatalog, repoLessons } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
-// The lesson and catalog pages while course.yaml cannot be read, so the course id is unknown, and the retry
-// after it became readable again (#96). Each test makes the file unreadable inside the stack's web container
+// The lesson and catalog pages while course.yaml of every course cannot be read, so no course reads, and the
+// retry after it became readable again (#96). Each test makes the file unreadable inside the stack's web container
 // with `docker exec -u 0`, so besides the switch it needs the destructive decision to allow the base URL and
 // E2E_COMPOSE_PROJECT to name the stack's compose project, as CI and isolated-stack.sh --e2e set it. With the
 // switch on, a gate that refuses fails every test with its reason.
@@ -130,7 +130,7 @@ test("L1 a lesson whose course cannot be read shows only the course error, statu
   expect((await main.innerText()).replace(/\s/g, "")).toBe(
     `${courseErrorTitle}${retryLabel}`.replace(/\s/g, ""),
   );
-  // AC19: with the course id unknown the top bar has no Курс link and marks no page as current.
+  // AC19: with no course that reads the top bar has no Курс link and marks no page as current.
   const banner = page.getByRole("banner");
   await expect(banner.getByRole("link", { name: courseLinkLabel, exact: true })).toHaveCount(0);
   await expect(banner.getByRole("link", { name: homeTitle, exact: true })).not.toHaveAttribute(
@@ -221,27 +221,34 @@ test("U1 an unmatched path while the course id is unknown answers 404 without К
   await expect(main).toBeFocused();
 });
 
-test("U2 catalog Повторить on an unknown course after the course became readable focuses the not-found h1", async ({
+test("U2 an unknown course while every course is unreadable answers 404 with the not-found page", async ({
   page,
 }) => {
-  await retryAfterReadable(page, unknownCoursePath);
+  await makeCourseUnreadable();
 
-  await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).toBeFocused();
+  const response = await page.goto(unknownCoursePath);
+
+  // The id names no directory of the root, so no course file is read and no course error is shown.
+  expect(response?.status(), "status of the not-found response").toBe(404);
+  await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("button", { name: retryLabel })).toHaveCount(0);
 });
 
-test("U2t catalog Повторить on an unknown course after the course became readable leaves <title> Страница не найдена", async ({
+test("U2t an unknown course while every course is unreadable has <title> Страница не найдена", async ({
   page,
 }) => {
-  await retryAfterReadable(page, unknownCoursePath);
+  await makeCourseUnreadable();
+
+  await page.goto(unknownCoursePath);
 
   await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).toBeVisible();
   await expect(page).toHaveTitle(notFoundTitle);
 });
 
-test("U3 Открыть курс after that retry opens the catalog without focusing its h1", async ({
+test("U3 Открыть курс after the retry on an unknown lesson opens the catalog without focusing its h1", async ({
   page,
 }) => {
-  await retryAfterReadable(page, unknownCoursePath);
+  await retryAfterReadable(page, unknownLessonPath);
   await expect(page.getByRole("heading", { level: 1, name: notFoundTitle })).toBeFocused();
 
   await page.getByRole("main").getByRole("link", { name: openCourseLabel }).click();

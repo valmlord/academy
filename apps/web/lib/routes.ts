@@ -15,3 +15,12 @@ export function moduleAnchorPath(courseId: string, moduleId: string): string {
 export function lessonPath(courseId: string, lessonId: string): string {
   return `${catalogPath(courseId)}/lessons/${lessonId}`;
 }
+
+// Exactly `/courses/<c>/lessons/<l>`: two non-empty segments and nothing after them.
+const LESSON_PATH = /^\/courses\/([^/]+)\/lessons\/[^/]+$/;
+
+/** The course segment of a lesson path, raw as Next passes it in params, or undefined for any other path. */
+export function lessonPathCourseId(pathname: string | null): string | undefined {
+  if (pathname === null) return undefined;
+  return LESSON_PATH.exec(pathname)?.[1];
+}

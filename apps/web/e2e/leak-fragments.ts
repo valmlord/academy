@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { REPO_COURSE_ROOT, repoCourse } from "./course";
+import { REPO_COURSE_ROOT, repoCourses } from "./course";
 
 // Layer 2 of the leak defence (design 7.2): forbidden fragments are taken from the grader material of
 // the repository's course/ (files under checks/ and starter/, quiz.yaml, and the check and workspace
@@ -75,39 +75,45 @@ export interface ForbiddenFragments {
 }
 
 export async function forbiddenFragments(): Promise<ForbiddenFragments> {
-  const tree = await repoCourse();
   const forbidden = new Set<string>();
   for (const file of await graderFiles(REPO_COURSE_ROOT)) {
     const bytes = await readFile(file);
     if (bytes.length < MIN_GRADER_FILE_BYTES) continue;
     for (const fragment of fragmentsOf(bytes.toString("utf8"))) forbidden.add(fragment);
   }
-  const allowed: string[] = [tree.id, tree.title, tree.description];
+  // Every course's learner text joins one corpus, so a check title of one course also allows a fragment of
+  // another course's grader file (ADR-0009, #148 entry as amended by #219).
+  const allowed: string[] = [];
   const theoryFragments = new Map<string, string[]>();
-  for (const module of tree.modules) {
-    const { id, title, summary, outcomes } = module.module;
-    allowed.push(id, title, summary, ...outcomes);
-    for (const node of module.lessons) {
-      const { lesson } = node;
-      for (const check of lesson.checks) {
-        // Titles are learner text and join the allowed corpus: a forbidden fragment of any lesson
-        // that one title contains leaves the fragment list, so the scan reports no body for it,
-        // not even one carrying its grader file. Never quote grader material in a title (ADR-0009).
-        allowed.push(check.title);
-        for (const [key, value] of Object.entries(check)) {
-          if (!CHECK_FIELDS.includes(key)) continue;
-          for (const text of stringsOf(value)) for (const f of fragmentsOf(text)) forbidden.add(f);
+  for (const tree of await repoCourses()) {
+    allowed.push(tree.id, tree.title, tree.description);
+    for (const module of tree.modules) {
+      const { id, title, summary, outcomes } = module.module;
+      allowed.push(id, title, summary, ...outcomes);
+      for (const node of module.lessons) {
+        const { lesson } = node;
+        for (const check of lesson.checks) {
+          // Titles are learner text and join the allowed corpus: a forbidden fragment of any lesson
+          // that one title contains leaves the fragment list, so the scan reports no body for it,
+          // not even one carrying its grader file. Never quote grader material in a title (ADR-0009).
+          allowed.push(check.title);
+          for (const [key, value] of Object.entries(check)) {
+            if (!CHECK_FIELDS.includes(key)) continue;
+            for (const text of stringsOf(value))
+              for (const f of fragmentsOf(text)) forbidden.add(f);
+          }
         }
+        for (const fragment of fragmentsOf(JSON.stringify(lesson.workspace ?? null))) {
+          forbidden.add(fragment);
+        }
+        allowed.push(lesson.id, lesson.title, ...lesson.outcomes);
+        for (const source of lesson.sources)
+          allowed.push(source.title, source.url, source.checkedAt);
+        const lessonDir = path.join(REPO_COURSE_ROOT, node.dir);
+        const theory = await readOptional(path.join(lessonDir, "theory.md"));
+        allowed.push(theory, await readOptional(path.join(lessonDir, "task.md")));
+        theoryFragments.set(lesson.id, fragmentsOf(theory));
       }
-      for (const fragment of fragmentsOf(JSON.stringify(lesson.workspace ?? null))) {
-        forbidden.add(fragment);
-      }
-      allowed.push(lesson.id, lesson.title, ...lesson.outcomes);
-      for (const source of lesson.sources) allowed.push(source.title, source.url, source.checkedAt);
-      const lessonDir = path.join(REPO_COURSE_ROOT, node.dir);
-      const theory = await readOptional(path.join(lessonDir, "theory.md"));
-      allowed.push(theory, await readOptional(path.join(lessonDir, "task.md")));
-      theoryFragments.set(lesson.id, fragmentsOf(theory));
     }
   }
   const corpus = allowed.join("\n");

@@ -1,3 +1,5 @@
+import { Course } from "@academy/lesson-schema/schema";
+
 // One internal file error, mapped to a separate type per caller (ADR-0009 item 7). Every `file` is relative
 // to the course root and every `reason` comes from a closed set, so no message carries file contents or a
 // system error's text (which would hold the absolute path).
@@ -21,20 +23,54 @@ export class CourseFileError extends Error {
   }
 }
 
-/** The course structure cannot be read: the whole course is unavailable. */
-export class CourseReadError extends Error {
+/** The course root cannot be resolved or listed, or it holds no course: every course is unavailable. */
+export class CourseRootReadError extends Error {
   readonly file: string;
   readonly reason: string;
-  /** Set once `course.yaml` itself parsed, so the top bar can still link the catalog. */
-  readonly courseId: string | undefined;
 
-  constructor(file: string, reason: string, courseId?: string) {
+  constructor(file: string, reason: string) {
     super(`${file}: ${reason}`);
-    this.name = "CourseReadError";
+    this.name = "CourseRootReadError";
     this.file = file;
     this.reason = reason;
-    this.courseId = courseId;
   }
+}
+
+/** One course's structure cannot be read: that course is unavailable, the others are not. */
+export class CourseReadError extends Error {
+  /** The failing course's directory name, known before any file is opened. */
+  readonly courseId: string;
+  readonly file: string;
+  readonly reason: string;
+
+  constructor(courseId: string, file: string, reason: string) {
+    super(`${file}: ${reason}`);
+    this.name = "CourseReadError";
+    this.courseId = courseId;
+    this.file = file;
+    this.reason = reason;
+  }
+}
+
+/** A root that lists no real directory: the repository ships `course/`, so it is a misconfiguration. */
+export const NO_COURSE = "no course";
+/** `course.yaml`'s `id` differs from its directory's name, which is the course id. */
+export const ID_IS_NOT_THE_DIRECTORY_NAME = "id is not the directory name";
+/** A listed directory whose name no URL can reach, so no file of it is opened. */
+export const DIRECTORY_NAME_IS_NOT_A_COURSE_ID = "directory name is not a course id";
+
+/**
+ * A course id as an operator line prints it: as-is in the lesson schema's id form, else JSON-quoted, so a
+ * directory name can neither break the line nor pass for the `root:` prefix.
+ */
+export function describeCourseId(courseId: string): string {
+  return Course.shape.id.safeParse(courseId).success ? courseId : JSON.stringify(courseId);
+}
+
+/** `course <id>: <file>: <reason>` or `root: <file>: <reason>`, the one form of every operator line. */
+export function describeCourseFailure(error: CourseReadError | CourseRootReadError): string {
+  if (error instanceof CourseRootReadError) return `root: ${error.file}: ${error.reason}`;
+  return `course ${describeCourseId(error.courseId)}: ${error.file}: ${error.reason}`;
 }
 
 /** One lesson's theory.md or task.md cannot be read: only that tab shows the error. */
@@ -50,15 +86,10 @@ export class LessonTextReadError extends Error {
   }
 }
 
-/** The image build's export of the learner-visible files failed. */
+/** The image build's export of the learner-visible files failed, for the root or for one course. */
 export class CourseExportError extends Error {
-  readonly file: string;
-  readonly reason: string;
-
-  constructor(file: string, reason: string) {
-    super(`${file}: ${reason}`);
+  constructor(failure: CourseReadError | CourseRootReadError) {
+    super(describeCourseFailure(failure));
     this.name = "CourseExportError";
-    this.file = file;
-    this.reason = reason;
   }
 }

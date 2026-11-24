@@ -31,3 +31,19 @@ export function signInPath(returnPath: string): string {
 export function isPublicPath(pathname: string): boolean {
   return pathname === SIGN_IN_PATH || pathname.startsWith(AUTH_API_PREFIX);
 }
+
+/**
+ * The request header that carries the pathname to the not-found page, which gets no route parameters. The
+ * proxy sets it on every request it passes through, replacing any value the client sent.
+ */
+export const PATHNAME_HEADER = "x-academy-pathname";
+
+/** The request's headers with PATHNAME_HEADER set to its own pathname, for `NextResponse.next`. */
+export function forwardedRequestHeaders(request: {
+  headers: Headers;
+  nextUrl: { pathname: string };
+}): Headers {
+  const headers = new Headers(request.headers);
+  headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
+  return headers;
+}

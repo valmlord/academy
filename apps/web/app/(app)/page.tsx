@@ -6,8 +6,7 @@ import { NEXT_LESSON_HEADING_ID, NextLessonCard } from "@/components/dashboard/n
 import { FocusOnMount } from "@/components/focus-on-mount";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { homeTitle, noReadyLessonsMessage } from "@/lib/copy";
-import { loadOrError } from "@/lib/course/page-error";
-import { getCourse } from "@/lib/course/server";
+import { getFirstReadableCourse } from "@/lib/course/server";
 import { type DashboardView, toDashboardView } from "@/lib/course/view";
 import { requireSession } from "@/lib/session";
 
@@ -19,16 +18,17 @@ const MAIN_ID = "main";
 
 // design/pages/dashboard from #30: the Card and the progress section in the first-run state (no progress
 // is read before #35), the course error with a retry that focuses the Card heading (AC8), or, with no
-// ready lesson, the Empty state and nothing focusable, so F6 lands on main itself (AC7).
+// ready lesson, the Empty state and nothing focusable, so F6 lands on main itself (AC7). One course, the first
+// that reads, until #241 shows every course (ADR-0009 item 8).
 export default async function DashboardPage(): Promise<ReactElement> {
   await requireSession("/");
-  const course = await loadOrError(getCourse);
+  const course = await getFirstReadableCourse();
   return (
     <main id={MAIN_ID} tabIndex={-1} data-region className="mx-auto w-full max-w-6xl px-4 py-6">
       <div className="flex max-w-3xl flex-col gap-8">
         <h1 className="text-2xl font-semibold">{homeTitle}</h1>
-        {course.ok ? (
-          <DashboardContent view={toDashboardView(course.value)} />
+        {course.kind === "course" ? (
+          <DashboardContent view={toDashboardView(course.tree)} />
         ) : (
           <CourseError isPageHeading={false} successTargetId={NEXT_LESSON_HEADING_ID} />
         )}

@@ -1,8 +1,12 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { type CourseFixture, createCourseFixture, FIXTURE_COURSE_ID } from "@/test/course-fixture";
-import { nodeCourseFs } from "./node-fs";
-import { type CourseTree, readCourse } from "./read";
+import {
+  type CourseFixture,
+  createCourseFixture,
+  FIXTURE_COURSE_ID,
+  readFixtureTree,
+} from "@/test/course-fixture";
+import type { CourseTree } from "./read";
 import {
   type DashboardView,
   findLesson,
@@ -21,7 +25,7 @@ afterEach(() => {
   fixture.remove();
 });
 
-const read = (): Promise<CourseTree> => readCourse(nodeCourseFs, fixture.root);
+const read = (): Promise<CourseTree> => readFixtureTree(fixture.root);
 
 describe("toCatalogView", () => {
   it("shows only ready lessons of ready modules, and a module without one as not available", async () => {
@@ -35,7 +39,7 @@ describe("toCatalogView", () => {
 
   it("keeps a ready module with no ready lesson as not available", async () => {
     fixture.write(
-      "course/00-basics/module.yaml",
+      "fixture-course/00-basics/module.yaml",
       "id: basics\ntitle: Basics\nsummary: S.\nstatus: ready\nlessons:\n  - 03-draft\n",
     );
 
@@ -62,7 +66,7 @@ describe("toDashboardView", () => {
   // second-lesson keeps only its quiz check, whose kind has not shipped, so no visible lesson is counted.
   const writeSecondLessonWithQuizOnly = (): void => {
     fixture.write(
-      "course/00-basics/02-second/lesson.yaml",
+      "fixture-course/00-basics/02-second/lesson.yaml",
       `id: second-lesson
 title: Second lesson
 type: artifact
@@ -128,7 +132,7 @@ checks:
 
   it("has no next lesson when nothing is visible", async () => {
     fixture.write(
-      "course/00-basics/module.yaml",
+      "fixture-course/00-basics/module.yaml",
       "id: basics\ntitle: Basics\nsummary: S.\nstatus: planned\nlessons:\n  - 01-first\n",
     );
 
@@ -150,7 +154,7 @@ describe("findLesson and toLessonView", () => {
 
   it("keeps only http and https sources", async () => {
     fixture.write(
-      "course/00-basics/01-first/lesson.yaml",
+      "fixture-course/00-basics/01-first/lesson.yaml",
       `id: first-lesson
 title: First lesson
 type: theory

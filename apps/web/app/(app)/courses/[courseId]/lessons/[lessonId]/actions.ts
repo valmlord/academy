@@ -1,7 +1,7 @@
 "use server";
 
 import { getDb } from "@/lib/auth";
-import { getCourse } from "@/lib/course/server";
+import { getCourseById } from "@/lib/course/server";
 import {
   readLessonStarted,
   recordLessonStarted as writeLessonStarted,
@@ -22,7 +22,7 @@ import {
 // read in, which the logic calls first; the arguments are typed unknown because a browser can send anything.
 
 const environment = createEnvironmentActions({
-  getCourse,
+  getCourseById,
   client: workspaceClient,
   mintTicket: mintForSession,
   now: () => Date.now(),

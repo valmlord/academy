@@ -1,14 +1,25 @@
 // @vitest-environment node
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
+import { PATHNAME_HEADER } from "./lib/next-path";
 import { proxy } from "./proxy";
 
 const ORIGIN = "http://127.0.0.1:3080";
 
-function request(path: string, cookie?: string, host = "127.0.0.1:3080"): NextRequest {
-  const headers: Record<string, string> = { host };
+function request(
+  path: string,
+  cookie?: string,
+  host = "127.0.0.1:3080",
+  extra: Record<string, string> = {},
+): NextRequest {
+  const headers: Record<string, string> = { host, ...extra };
   if (cookie !== undefined) headers.cookie = cookie;
   return new NextRequest(`${ORIGIN}${path}`, { headers });
+}
+
+// NextResponse.next({ request: { headers } }) hands each forwarded request header to Next under this prefix.
+function forwardedPathname(response: Response): string | null {
+  return response.headers.get(`x-middleware-request-${PATHNAME_HEADER}`);
 }
 
 // NextResponse.next() marks a pass-through with this header.
@@ -44,5 +55,23 @@ describe("proxy", () => {
 
   it.each(["/sign-in", "/api/auth/get-session"])("lets %s through without a cookie", (path) => {
     expect(passesThrough(proxy(request(path)))).toBe(true);
+  });
+
+  it("forwards the request's pathname to the pages", () => {
+    const response = proxy(
+      request("/courses/a/lessons/b?tab=task", "better-auth.session_token=x.y"),
+    );
+
+    expect(forwardedPathname(response)).toBe("/courses/a/lessons/b");
+  });
+
+  it("replaces a pathname header the client sent", () => {
+    const response = proxy(
+      request("/no/such/path", "better-auth.session_token=x.y", undefined, {
+        [PATHNAME_HEADER]: "/courses/fixture-course/lessons/x",
+      }),
+    );
+
+    expect(forwardedPathname(response)).toBe("/no/such/path");
   });
 });

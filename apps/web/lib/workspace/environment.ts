@@ -1,4 +1,4 @@
-import type { CourseTree } from "../course/read";
+import type { CourseLookup } from "../course/courses";
 import { findLesson } from "../course/view";
 import { describeDbError } from "../db-error";
 import type { StartedLesson } from "../progress/lesson-started";
@@ -67,7 +67,8 @@ export type ActivityResult =
   | { kind: "failed" };
 
 export interface EnvironmentDeps {
-  getCourse: () => Promise<CourseTree>;
+  /** The per-course read (ADR-0009 item 8); it alone checks the browser-sent course id. */
+  getCourseById: (courseId: unknown) => Promise<CourseLookup>;
   client: WorkspaceClient;
   mintTicket: (request: TicketRequest) => TerminalTicket;
   now: () => number;
@@ -93,11 +94,12 @@ export type KeyLookup =
 
 /**
  * The workspace key of the signed-in user for a visible lesson with a `workspace` section, read in this
- * order: session (DAL), user id rule, course, lesson. A course that cannot be read is `failed`.
+ * order: session (DAL), user id rule, lesson id type, course, lesson. A course id that names no course and a
+ * course that cannot be read are both `failed`; the read logs the latter itself (lib/course/reads.ts).
  */
 export async function lookupWorkspaceKey(
   readSession: ReadSession,
-  getCourse: () => Promise<CourseTree>,
+  getCourseById: (courseId: unknown) => Promise<CourseLookup>,
   courseId: unknown,
   lessonId: unknown,
 ): Promise<KeyLookup> {
@@ -105,20 +107,15 @@ export async function lookupWorkspaceKey(
   if (session === null) return { kind: "unauthenticated" };
   const userId = session.user.id;
   if (!USER_ID.test(userId)) return { kind: "failed" };
-  if (typeof courseId !== "string" || typeof lessonId !== "string") return { kind: "failed" };
-  let course: CourseTree;
-  try {
-    course = await getCourse();
-  } catch {
-    // getCourse logs the failed file itself (lib/course/server.ts).
-    return { kind: "failed" };
-  }
-  if (course.id !== courseId) return { kind: "failed" };
-  const found = findLesson(course, lessonId);
+  if (typeof lessonId !== "string") return { kind: "failed" };
+  const lookup = await getCourseById(courseId);
+  if (lookup.kind !== "course") return { kind: "failed" };
+  const found = findLesson(lookup.tree, lessonId);
   if (found === undefined || found.node.lesson.workspace === undefined) return { kind: "failed" };
   return {
     kind: "key",
-    key: { userId, courseId: course.id, lessonId: found.node.lesson.id },
+    // From the tree, never from the argument: the key names the listed course.
+    key: { userId, courseId: lookup.tree.id, lessonId: found.node.lesson.id },
     session,
   };
 }
@@ -248,7 +245,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
 
   return {
     async peekEnvironment(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       const answer = await deps.client.get(lookup.key);
       if (answer.kind === "not-found") return { kind: "absent" };
@@ -261,14 +258,14 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
     },
 
     async startEnvironment(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       const isStartedBefore = await wasStarted(lookup.key);
       return ensureRunning(lookup.key, isStartedBefore);
     },
 
     async openTerminal(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       const now = deps.now();
       const sessionExpiresAt = sessionExpiry(lookup.session, now);
@@ -291,7 +288,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
     },
 
     async recordLessonStarted(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       try {
         await deps.recordStarted(lookup.key);
@@ -304,7 +301,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
     },
 
     async restartEnvironment(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       const isStartedBefore = await wasStarted(lookup.key);
       const stopped = await deps.client.stop(lookup.key);
@@ -318,7 +315,7 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
     },
 
     async resetEnvironment(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       const removed = await removeWithRetries(lookup.key);
       // A PUT after a failed DELETE would start the old volume and report a reset that did not happen.
@@ -328,13 +325,13 @@ export function createEnvironmentActions(deps: EnvironmentDeps): EnvironmentActi
     },
 
     async readEnvironmentIdle(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       return idleOf(await deps.client.get(lookup.key), deps.now());
     },
 
     async recordEnvironmentActivity(readSession, courseId, lessonId) {
-      const lookup = await lookupWorkspaceKey(readSession, deps.getCourse, courseId, lessonId);
+      const lookup = await lookupWorkspaceKey(readSession, deps.getCourseById, courseId, lessonId);
       if (lookup.kind !== "key") return { kind: lookup.kind };
       const answer = await deps.client.activity(lookup.key);
       if (answer.kind === "recorded" || answer.kind === "not-running") return answer;

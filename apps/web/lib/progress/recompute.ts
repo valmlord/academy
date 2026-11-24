@@ -1,6 +1,7 @@
 import { createDb, type DbHandle, lessonProgress } from "@academy/db";
 import { sql } from "drizzle-orm";
-import { CourseReadError } from "../course/errors";
+import type { EveryCourse } from "../course/courses";
+import { describeCourseFailure, describeCourseId } from "../course/errors";
 import type { CourseTree } from "../course/read";
 import { findLesson } from "../course/view";
 import { describeDbError } from "../db-error";
@@ -21,7 +22,7 @@ export const STARTUP_ROW_LOCK_TIMEOUT_MS = 2000;
 
 export interface RecomputeDeps {
   databaseUrl: string;
-  readTree: () => Promise<CourseTree>;
+  readCourses: () => Promise<EveryCourse>;
   logInfo: (line: string) => void;
   logError: (line: string) => void;
   shippedKinds?: ReadonlySet<CheckKind>;
@@ -38,18 +39,45 @@ function isWriteChange(write: OutcomeWrite): boolean {
   return write.isChanged || write.closedCheckIds.length > 0;
 }
 
-async function readTreeOrLog(deps: RecomputeDeps): Promise<CourseTree | undefined> {
+const SKIPPED = "web: lesson outcome recompute skipped:";
+
+interface ReadableCourses {
+  trees: Map<string, CourseTree>;
+  failingCourseIds: Set<string>;
+}
+
+/** The readable trees and the failing course ids; logs each failing course once, or the root failure. */
+async function readCoursesOrLog(deps: RecomputeDeps): Promise<ReadableCourses | undefined> {
+  let every: EveryCourse;
   try {
-    return await deps.readTree();
+    every = await deps.readCourses();
   } catch (error: unknown) {
-    if (error instanceof CourseReadError) {
-      deps.logError(
-        `web: lesson outcome recompute skipped: course unreadable (${error.file}: ${error.reason})`,
-      );
-    } else {
-      deps.logError(`web: lesson outcome recompute failed: ${describeDbError(error)}`);
-    }
+    deps.logError(`web: lesson outcome recompute failed: ${describeDbError(error)}`);
     return undefined;
+  }
+  if (every.kind === "root-failure") {
+    deps.logError(`${SKIPPED} ${describeCourseFailure(every.error)}`);
+    return undefined;
+  }
+  const courses: ReadableCourses = { trees: new Map(), failingCourseIds: new Set() };
+  for (const course of every.courses) {
+    if (course.kind === "course") {
+      courses.trees.set(course.tree.id, course.tree);
+    } else {
+      courses.failingCourseIds.add(course.error.courseId);
+      deps.logError(`${SKIPPED} ${describeCourseFailure(course.error)}`);
+    }
+  }
+  return courses;
+}
+
+// Progress of a course id with no directory, e.g. a renamed course (ADR-0009 Consequences); renaming the
+// directory back restores it. Ascending ids, so the lines are stable from one start to the next.
+function logUnlistedCourses(deps: RecomputeDeps, rowsByCourseId: Map<string, number>): void {
+  for (const courseId of [...rowsByCourseId.keys()].sort()) {
+    deps.logError(
+      `${SKIPPED} course ${describeCourseId(courseId)}: no course directory, rows: ${rowsByCourseId.get(courseId)}`,
+    );
   }
 }
 
@@ -75,8 +103,8 @@ async function selectRowsOrLog(
 
 export async function recomputeOutcomesOnStartup(deps: RecomputeDeps): Promise<void> {
   const startedAt = performance.now();
-  const tree = await readTreeOrLog(deps);
-  if (tree === undefined) return;
+  const courses = await readCoursesOrLog(deps);
+  if (courses === undefined) return;
   const shippedKinds = deps.shippedKinds ?? SHIPPED_CHECK_KINDS;
   let handle: DbHandle;
   try {
@@ -91,9 +119,15 @@ export async function recomputeOutcomesOnStartup(deps: RecomputeDeps): Promise<v
     let changed = 0;
     let skipped = 0;
     let failed = 0;
+    const unlistedRows = new Map<string, number>();
     for (const row of rows) {
-      // Rows of other courses or of lessons not visible are left alone (ADR-0009 item 5).
-      const found = row.courseId === tree.id ? findLesson(tree, row.lessonId) : undefined;
+      // Rows of a failing course, of a course id with no directory or of a lesson not visible are left alone
+      // (ADR-0009 items 5 and 8).
+      const tree = courses.trees.get(row.courseId);
+      if (tree === undefined && !courses.failingCourseIds.has(row.courseId)) {
+        unlistedRows.set(row.courseId, (unlistedRows.get(row.courseId) ?? 0) + 1);
+      }
+      const found = tree === undefined ? undefined : findLesson(tree, row.lessonId);
       if (found === undefined) {
         skipped += 1;
         continue;
@@ -120,6 +154,7 @@ export async function recomputeOutcomesOnStartup(deps: RecomputeDeps): Promise<v
         );
       }
     }
+    logUnlistedCourses(deps, unlistedRows);
     const elapsedMs = Math.round(performance.now() - startedAt);
     deps.logInfo(
       `web: lesson outcomes recomputed: ${rows.length} rows, ${changed} changed, ${skipped} skipped, ${failed} failed in ${elapsedMs} ms`,

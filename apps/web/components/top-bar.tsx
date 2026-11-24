@@ -7,7 +7,7 @@ import { UserMenu } from "./user-menu";
 export interface TopBarProps {
   email: string;
   signOut: () => Promise<never>;
-  /** The course of `course.yaml`, or undefined when even its id could not be read. */
+  /** The course the course link opens (the first that reads until #241), or undefined when none reads. */
   courseId: string | undefined;
 }
 

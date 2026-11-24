@@ -1,6 +1,6 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
-import { isPublicPath, signInPath } from "./lib/next-path";
+import { forwardedRequestHeaders, isPublicPath, signInPath } from "./lib/next-path";
 
 // Default deny, optimistic only (ADR-0008 item 8): a request without a session cookie goes to sign-in
 // with its path and query as `next`. A forged cookie passes here; the data access layer in every page,
@@ -10,7 +10,9 @@ const TEMPORARY_REDIRECT = 307;
 
 export function proxy(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl;
-  if (isPublicPath(pathname) || getSessionCookie(request) !== null) return NextResponse.next();
+  if (isPublicPath(pathname) || getSessionCookie(request) !== null) {
+    return NextResponse.next({ request: { headers: forwardedRequestHeaders(request) } });
+  }
   return NextResponse.redirect(
     signInUrl(request, signInPath(pathname + search)),
     TEMPORARY_REDIRECT,
