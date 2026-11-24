@@ -100,7 +100,12 @@ uses 1px. Fixed sizes: status icon 1.25rem (`space-5`, one `text-sm` line), in a
 
 Links: underline offset `--underline-offset` (0.2em, so it scales with the text and clears descenders),
 hover thickens the underline to `--underline-hover-width` (2px, the stroke width above); both in
-`proto.css`, used by `a` and the link Button. Page column `--column-max` (48rem, Tailwind `max-w-3xl`).
+`proto.css`, used by `a` and the link Button. Heading link `.heading-link`: on an `h2` whose whole
+text is one `a` (the dashboard course block heading, `ia.md` "Rules (#218)" row "course
+block"). The heading keeps its level, size and weight; the link inherits them and the heading's colour,
+keeps the underline and hover of every `a`, and is an `inline-block` with `max-width: 100%`, so a long name
+wraps inside it and the target is the whole box, at least one heading line tall. Focus: the global ring ("Focus ring"), outside
+the link. Page column `--column-max` (48rem, Tailwind `max-w-3xl`).
 
 ## Radius
 
@@ -558,7 +563,7 @@ the bar's gaps tighten to `space-2`): the trigger's accessible name stays the fu
 `.dropdown-label` shows it in full, wrapping. When the row still does not fit (320px, 400 % zoom) the bar
 wraps and `.topbar-end` moves to a second row, right-aligned. Pages add no top bar overrides. The nav's links
 follow the release, the same on every page (`ia.md` R6, "Before the catalog ships"): "Главная" before #30,
-"Главная" and "Курс" from #30.
+"Главная" and "Курс" from #30 until #220; from #220 the nav is `ia.md` A218-3 (R6 "Top bar by release").
 
 ### Scrollable code
 

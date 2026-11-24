@@ -191,7 +191,7 @@ export interface KillExecCreateBody {
   WorkingDir: "/";
 }
 
-/** `Tty` must match the kill exec's create body. */
+/** `Tty` must match the kill and cleanup exec create bodies. */
 export interface DetachedExecStartBody {
   Detach: true;
   Tty: false;
@@ -315,4 +315,63 @@ export function checkExecCreateBody(uid: number, run: string): CheckExecCreateBo
 
 export function checkExecStartBody(): CheckExecStartBody {
   return { Detach: false, Tty: false };
+}
+
+// The cleanup exec of a check: a fourth exact allowlist, pinned by U-exec-check. Nothing attached and no TTY; it is
+// started detached and its exit code is the whole report.
+
+/** The cleanup script's `$0`: what `ps` and sh's error messages show for it. */
+const CHECK_CLEANUP_SCRIPT_NAME = "academy-cleanup";
+
+/**
+ * The cleanup of a check's slot, run as the slot uid with `$1` the uid. `kill -9 -1` as that uid in up to five rounds,
+ * each followed by a scan of `/proc` made of builtins only, so the scan forks nothing and skips the script itself;
+ * zombies are not counted. Then it empties the slot dir and reports by exit code: 0 clean, 4 processes left, 5 files
+ * left, 7 both, 6 when it cannot read its own `/proc` entry, so a count of 0 would mean nothing.
+ */
+export const CHECK_CLEANUP_SCRIPT = `u="$1"
+s="/workspace/.academy-grader/$u"
+for r in 1 2 3 4 5; do
+  kill -9 -1 2>/dev/null
+  n=0
+  for f in /proc/[0-9]*/status; do
+    k= z=; [ "$f" = "/proc/$$/status" ] && continue
+    while read -r k v w; do
+      case "$k" in State:) z="$v" ;; Uid:) break ;; esac
+    done 2>/dev/null < "$f"
+    [ "$k" = Uid: ] && [ "$v" = "$u" ] && [ "$z" != Z ] && n=$((n + 1))
+  done
+  [ "$n" -eq 0 ] || [ "$r" = 5 ] && break
+  sleep 1
+done
+rm -rf "$s"/* "$s"/.[!.]* "$s"/..?* 2>/dev/null
+m=$(ls -A "$s") && [ -z "$m" ] && q=0 || q=1
+[ -r "/proc/$$/status" ] || exit 6
+case "$n:$q" in 0:0) exit 0 ;; 0:1) exit 5 ;; *:0) exit 4 ;; *) exit 7 ;; esac`;
+
+export interface CheckCleanupExecCreateBody {
+  AttachStdin: false;
+  AttachStdout: false;
+  AttachStderr: false;
+  Tty: false;
+  /** The cleanup script, then its $0 and the uid ($1). */
+  Cmd: [typeof EXEC_SHELL, "-c", string, typeof CHECK_CLEANUP_SCRIPT_NAME, string];
+  User: string;
+  WorkingDir: "/";
+}
+
+/**
+ * No `Env` and no key parameter, as for the check itself: the container's `HOME` and the image's `PATH` are all the
+ * script needs. `WorkingDir /` because the learner may have removed or replaced the work dir.
+ */
+export function checkCleanupExecCreateBody(uid: number): CheckCleanupExecCreateBody {
+  return {
+    AttachStdin: false,
+    AttachStdout: false,
+    AttachStderr: false,
+    Tty: false,
+    Cmd: [EXEC_SHELL, "-c", CHECK_CLEANUP_SCRIPT, CHECK_CLEANUP_SCRIPT_NAME, String(uid)],
+    User: `${uid}:${uid}`,
+    WorkingDir: "/",
+  };
 }

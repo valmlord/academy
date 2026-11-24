@@ -35,130 +35,130 @@
   </style>
 </head>
 <body class="proto-page">
-<template data-state="theory" data-state-label="v1: Theory tab, environment running, before any run (default)"></template>
-<template data-state="task" data-state-label="F7.4 Task tab"></template>
-<template data-state="outcomes-collapsed" data-state-label="F7.1 outcomes collapsed (sample data)"></template>
-<template data-state="outcomes-expanded" data-state-label="F7.1 outcomes expanded (sample data)"></template>
-<template data-state="text-error" data-state-label="F7 error: text load error"></template>
-<template data-state="text-error-fails-again" data-state-label="F7 error: text load error, Повторить fails again"></template>
-<template data-state="copy-denied" data-state-label="F7 error: copy denied"></template>
-<template data-state="no-theory" data-state-label="F7 empty: no theory, opens on Task"></template>
-<template data-state="no-sources" data-state-label="F7 empty: no sources"></template>
-<template data-state="prerequisite" data-state-label="F6.2 prerequisite alert (sample data)"></template>
-<template data-state="session-expired" data-state-label="F2.1 session expired"></template>
-<template data-state="user-menu" data-state-label="F3.1 user menu open"></template>
+<template data-state="theory" data-state-label="#220, v1: Theory tab, environment running, before any run (default)"></template>
+<template data-state="task" data-state-label="#220, F7.4 Task tab"></template>
+<template data-state="outcomes-collapsed" data-state-label="#220, F7.1 outcomes collapsed (sample data)"></template>
+<template data-state="outcomes-expanded" data-state-label="#220, F7.1 outcomes expanded (sample data)"></template>
+<template data-state="text-error" data-state-label="#220, F7 error: text load error"></template>
+<template data-state="text-error-fails-again" data-state-label="#220, F7 error: text load error, Повторить fails again"></template>
+<template data-state="copy-denied" data-state-label="#220, F7 error: copy denied"></template>
+<template data-state="no-theory" data-state-label="#220, F7 empty: no theory, opens on Task"></template>
+<template data-state="no-sources" data-state-label="#220, F7 empty: no sources"></template>
+<template data-state="prerequisite" data-state-label="#220, F6.2 prerequisite alert (sample data)"></template>
+<template data-state="session-expired" data-state-label="#220, F2.1 session expired"></template>
+<template data-state="user-menu" data-state-label="#220, F3.1 user menu open"></template>
 <template data-state="m0" data-state-label="M0 lesson"></template>
-<template data-state="env-creating" data-state-label="F8.1 creating"></template>
-<template data-state="env-starting" data-state-label="F8.1 starting"></template>
-<template data-state="env-slow" data-state-label="F8 slow start"></template>
-<template data-state="api-key" data-state-label="F8.3 API key missing"></template>
-<template data-state="docker-down" data-state-label="F8 error: Docker not running"></template>
-<template data-state="image-missing" data-state-label="F8 error: image missing"></template>
-<template data-state="limits" data-state-label="F8 error: limits hit"></template>
-<template data-state="rejected" data-state-label="F8 error: environment rejected"></template>
-<template data-state="no-workspace" data-state-label="F8 empty: lesson without workspace (sample)"></template>
-<template data-state="terminal-focused" data-state-label="F9.1 terminal focused"></template>
-<template data-state="reconnecting" data-state-label="F9 error: reconnecting"></template>
-<template data-state="reconnect-failed" data-state-label="F9 error: reconnect failed"></template>
-<template data-state="shell-exited" data-state-label="F9 error: shell exited"></template>
-<template data-state="idle-warning" data-state-label="F10.1 idle warning"></template>
-<template data-state="stopped" data-state-label="F10.3 stopped"></template>
-<template data-state="volume-recreated" data-state-label="F10 error: working folder recreated"></template>
-<template data-state="actions-open" data-state-label="F11.1 Actions open"></template>
-<template data-state="actions-check-running" data-state-label="F11 disabled: check running"></template>
-<template data-state="actions-not-running" data-state-label="F11 disabled: environment not running"></template>
-<template data-state="reset-dialog" data-state-label="F11.3 reset dialog"></template>
-<template data-state="reset-done" data-state-label="F11.4 working folder reset"></template>
-<template data-state="checks-before" data-state-label="F13 empty: Checks tab before any run"></template>
-<template data-state="check-running" data-state-label="F13.2 check running"></template>
-<template data-state="results" data-state-label="F13.4-F13.5 results, row open"></template>
-<template data-state="statuses" data-state-label="F13.3 every v1 check status (sample data)"></template>
-<template data-state="lesson-passed" data-state-label="F13 success: lesson passed"></template>
-<template data-state="after-run-stopped" data-state-label="F13.4 after a run, environment stopped"></template>
-<template data-state="after-run-starting" data-state-label="F13.4 after a run, environment restarting"></template>
-<template data-state="no-checks" data-state-label="F13 empty: no check the platform runs (sample)"></template>
-<template data-state="results-limit-known" data-state-label="F13.5 results, limit known (from #68)"></template>
-<template data-state="limit-warning" data-state-label="F14.1 one attempt left, limit known (from #68)"></template>
-<template data-state="limit-known-running" data-state-label="F13.2 run from the limit-known results (from #68)"></template>
-<template data-state="limit-warning-running" data-state-label="F14.2 the run on the last attempt (from #68)"></template>
-<template data-state="closed" data-state-label="F14.3-F14.4 check closed, lesson finished, not passed (limit known)"></template>
-<template data-state="closed-limit-unknown" data-state-label="F14 closed, limit unknown, a later visit"></template>
-<template data-state="mixed" data-state-label="F14.4 mixed results (sample data)"></template>
-<template data-state="mixed-running" data-state-label="F13.3 run with a closed check (sample data)"></template>
-<template data-state="passed-last-failed" data-state-label="F13 success, a re-run failed after a pass (S1)"></template>
-<template data-state="runner-error" data-state-label="F13 error: runner error"></template>
-<template data-state="stream-lost" data-state-label="F13 error: result stream lost, reconnecting (also the manual reconnect cycle)"></template>
-<template data-state="stream-failed" data-state-label="F13 error: result not received"></template>
-<template data-state="budget-lesson" data-state-label="F13.1 checks that spend tokens (sample data, from #37 / #39)"></template>
-<template data-state="budget-dialog" data-state-label="F13.1 budget confirmation, two checks (sample data, from #37 / #39)"></template>
-<template data-state="budget-dialog-one" data-state-label="F13.1 budget confirmation, one check; the passed rubric check is not listed (S11) (sample data)"></template>
-<template data-state="budget-running-one" data-state-label="F13.3 run without the passed rubric check (S11; sample data)"></template>
-<template data-state="budget-running" data-state-label="F13.2 run that spends tokens (sample data)"></template>
-<template data-state="statuses-agent" data-state-label="F13 results of checks that spend tokens (sample data, from #37 / #39)"></template>
-<template data-state="passed-paid-only" data-state-label="Nothing to run: a passed lesson whose only check spends tokens (S12; sample data, from #37)"></template>
-<template data-state="history-empty" data-state-label="F19 empty: before the first run (from #35)"></template>
-<template data-state="history-empty-running" data-state-label="F19 empty: the first run going (from #35)"></template>
-<template data-state="history-first" data-state-label="F19.1 the first run ended, one attempt (from #35)"></template>
-<template data-state="history-error-after-run" data-state-label="F19 error: the re-read after the first run failed (from #35)"></template>
-<template data-state="history" data-state-label="F19.1 seven attempts, collapsed (from #35; sample data)"></template>
-<template data-state="history-open" data-state-label="F19.2-F19.3 attempt No 3 open, a removed check (from #35)"></template>
-<template data-state="history-deep-link" data-state-label="F19 deep link row 1: No 3, read at 4 Nov 14:10 (from #35)"></template>
-<template data-state="history-deep-link-1" data-state-label="F19 deep link row 1: No 1 (from #35)"></template>
-<template data-state="history-deep-link-plain" data-state-label="F19 deep link row 2: No 2, no check result (from #35)"></template>
-<template data-state="history-deep-link-4" data-state-label="F19 deep link row 1: No 4 while No 8 runs (from #35)"></template>
-<template data-state="history-deep-link-5" data-state-label="F19 deep link row 1: No 5 while No 8 runs (from #35)"></template>
-<template data-state="history-deep-link-6" data-state-label="F19 deep link row 1: No 6 while No 8 runs (from #35)"></template>
-<template data-state="history-deep-link-7" data-state-label="F19 deep link row 1: No 7 while No 8 runs (from #35)"></template>
-<template data-state="history-deep-link-running" data-state-label="F19 deep link row 3: No 8 still running (from #35)"></template>
-<template data-state="history-deep-link-running-empty" data-state-label="F19 deep link row 3: the first run, empty history (from #35)"></template>
-<template data-state="history-deep-link-error" data-state-label="F19 deep link row 4: the history cannot be read (from #35)"></template>
-<template data-state="history-error" data-state-label="F19 error: the history cannot be read on load (from #35)"></template>
-<template data-state="checks-weak" data-state-label="F18.4 arrival from a &quot;Где трудно&quot; row (from #35; sample data)"></template>
-<template data-state="history-cost" data-state-label="F19.1 with costs (from #37; sample data)"></template>
-<template data-state="history-cost-deep-link-4" data-state-label="F19 deep link row 1: No 4 with costs (from #37)"></template>
-<template data-state="history-cost-deep-link-5" data-state-label="F19 deep link row 1: No 5, costs in the list (from #37)"></template>
-<template data-state="history-cost-deep-link-6" data-state-label="F19 deep link row 1: No 6, costs in the list (from #37)"></template>
-<template data-state="history-cost-deep-link-7" data-state-label="F19 deep link row 1: No 7, costs in the list (from #37)"></template>
-<template data-state="history-cost-deep-link-running" data-state-label="F19 deep link row 3 with costs (from #37)"></template>
-<template data-state="history-cost-at-least-deep-link-4" data-state-label="F19 deep link row 1: No 4, a cost not reported (from #37)"></template>
-<template data-state="history-cost-no-data-deep-link-4" data-state-label="F19 deep link row 1: No 4, no cost reported (from #37)"></template>
-<template data-state="history-cost-budget" data-state-label="F19.2 a budget-spent result (from #39; sample data)"></template>
-<template data-state="history-quiz" data-state-label="F19.1 a quiz attempt record, No 9, while No 8 runs (from #36)"></template>
-<template data-state="history-quiz-open" data-state-label="F19.2 the quiz attempt record No 9 open (from #36)"></template>
-<template data-state="one-pane-env" data-state-label="Environment running, new terminal session, Environment shown (one pane below 1024px)"></template>
-<template data-state="split-focused" data-state-label="F9.3 split handle focused, tooltip"></template>
-<template data-state="split-cycled" data-state-label="F9.3 split handle cycled to 35 %"></template>
-<template data-state="quiz-loading" data-state-label="F15 loading: the quiz is being read (from #36)"></template>
-<template data-state="quiz" data-state-label="F15.1-F15.3 quiz before the first attempt (from #36)"></template>
-<template data-state="quiz-partial" data-state-label="F15.2 some questions answered"></template>
-<template data-state="quiz-blocked" data-state-label="F15.3 send blocked: two questions unanswered"></template>
-<template data-state="quiz-blocked-one" data-state-label="F15.3 after a blocked send, question 4 answered"></template>
-<template data-state="quiz-sending" data-state-label="F15.3 sending, answers locked"></template>
-<template data-state="quiz-sending-failed" data-state-label="F15.3 sending attempt 2 after a failure"></template>
-<template data-state="quiz-sending-last" data-state-label="F15.3 sending the last attempt"></template>
-<template data-state="quiz-sending-refused" data-state-label="F15.3 sending after a refusal"></template>
-<template data-state="quiz-sending-limit-unknown" data-state-label="F15.3 sending attempt 2, limit unknown (R7)"></template>
-<template data-state="quiz-failed" data-state-label="F15.4 failed attempt (also the return visit)"></template>
-<template data-state="quiz-last-attempt" data-state-label="F15.4 failed, one attempt left"></template>
-<template data-state="quiz-passed" data-state-label="F15.5 passed: review (lesson passed by it)"></template>
-<template data-state="quiz-closed" data-state-label="F15.5 closed after the last failure: review"></template>
-<template data-state="quiz-row" data-state-label="F15 entry: quiz check row in Checks, before any attempt"></template>
-<template data-state="quiz-row-closed" data-state-label="F15.6 quiz check row closed"></template>
-<template data-state="quiz-send-error" data-state-label="F15 error: answers not sent"></template>
-<template data-state="quiz-load-error" data-state-label="F15 error: quiz load error"></template>
-<template data-state="quiz-load-error-fails-again" data-state-label="F15 error: quiz load error, Повторить fails again"></template>
-<template data-state="quiz-session-expired" data-state-label="F15 error: session expired while answering (F2.1)"></template>
-<template data-state="quiz-restored" data-state-label="F15 error: answers restored after sign-in (?tab=quiz)"></template>
-<template data-state="quiz-limit-unknown" data-state-label="F15.4 failed, limit unknown (R7)"></template>
-<template data-state="quiz-code" data-state-label="F15.2 question with code that overflows at 320px (sample data, lesson 05)"></template>
-<template data-state="quiz-passed-after-run" data-state-label="F15.5 pass after a run on this page view: status line emptied, P7 (sample data)"></template>
-<template data-state="quiz-closed-finished" data-state-label="F15.6 close that finishes the lesson, not passed: P8 (sample data)"></template>
-<template data-state="quiz-answered-away" data-state-label="F15 away: failed result while on Checks, quiz notice, P9 (sample data)"></template>
-<template data-state="quiz-notice-env" data-state-label="F15 away: close answered with Environment shown, S3 (sample data)"></template>
-<template data-state="quiz-notice-send-error" data-state-label="F15 away: send failed while on Theory (sample data)"></template>
-<template data-state="quiz-notice-two-pane" data-state-label="F15 away: result while in the terminal, two panes (sample data)"></template>
-<template data-state="quiz-refused" data-state-label="F15 error: send refused, the quiz changed in another tab (sample data)"></template>
-<template data-state="quiz-refused-closed" data-state-label="F15 error: send refused, another tab closed the quiz (sample data)"></template>
+<template data-state="env-creating" data-state-label="#220, F8.1 creating"></template>
+<template data-state="env-starting" data-state-label="#220, F8.1 starting"></template>
+<template data-state="env-slow" data-state-label="#220, F8 slow start"></template>
+<template data-state="api-key" data-state-label="#220, F8.3 API key missing"></template>
+<template data-state="docker-down" data-state-label="#220, F8 error: Docker not running"></template>
+<template data-state="image-missing" data-state-label="#220, F8 error: image missing"></template>
+<template data-state="limits" data-state-label="#220, F8 error: limits hit"></template>
+<template data-state="rejected" data-state-label="#220, F8 error: environment rejected"></template>
+<template data-state="no-workspace" data-state-label="#220, F8 empty: lesson without workspace (sample)"></template>
+<template data-state="terminal-focused" data-state-label="#220, F9.1 terminal focused"></template>
+<template data-state="reconnecting" data-state-label="#220, F9 error: reconnecting"></template>
+<template data-state="reconnect-failed" data-state-label="#220, F9 error: reconnect failed"></template>
+<template data-state="shell-exited" data-state-label="#220, F9 error: shell exited"></template>
+<template data-state="idle-warning" data-state-label="#220, F10.1 idle warning"></template>
+<template data-state="stopped" data-state-label="#220, F10.3 stopped"></template>
+<template data-state="volume-recreated" data-state-label="#220, F10 error: working folder recreated"></template>
+<template data-state="actions-open" data-state-label="#220, F11.1 Actions open"></template>
+<template data-state="actions-check-running" data-state-label="#220, F11 disabled: check running"></template>
+<template data-state="actions-not-running" data-state-label="#220, F11 disabled: environment not running"></template>
+<template data-state="reset-dialog" data-state-label="#220, F11.3 reset dialog"></template>
+<template data-state="reset-done" data-state-label="#220, F11.4 working folder reset"></template>
+<template data-state="checks-before" data-state-label="#220, F13 empty: Checks tab before any run"></template>
+<template data-state="check-running" data-state-label="#220, F13.2 check running"></template>
+<template data-state="results" data-state-label="#220, F13.4-F13.5 results, row open"></template>
+<template data-state="statuses" data-state-label="#220, F13.3 every v1 check status (sample data)"></template>
+<template data-state="lesson-passed" data-state-label="#220, F13 success: lesson passed"></template>
+<template data-state="after-run-stopped" data-state-label="#220, F13.4 after a run, environment stopped"></template>
+<template data-state="after-run-starting" data-state-label="#220, F13.4 after a run, environment restarting"></template>
+<template data-state="no-checks" data-state-label="#220, F13 empty: no check the platform runs (sample)"></template>
+<template data-state="results-limit-known" data-state-label="#220, F13.5 results, limit known (from #68)"></template>
+<template data-state="limit-warning" data-state-label="#220, F14.1 one attempt left, limit known (from #68)"></template>
+<template data-state="limit-known-running" data-state-label="#220, F13.2 run from the limit-known results (from #68)"></template>
+<template data-state="limit-warning-running" data-state-label="#220, F14.2 the run on the last attempt (from #68)"></template>
+<template data-state="closed" data-state-label="#220, F14.3-F14.4 check closed, lesson finished, not passed (limit known)"></template>
+<template data-state="closed-limit-unknown" data-state-label="#220, F14 closed, limit unknown, a later visit"></template>
+<template data-state="mixed" data-state-label="#220, F14.4 mixed results (sample data)"></template>
+<template data-state="mixed-running" data-state-label="#220, F13.3 run with a closed check (sample data)"></template>
+<template data-state="passed-last-failed" data-state-label="#220, F13 success, a re-run failed after a pass (S1)"></template>
+<template data-state="runner-error" data-state-label="#220, F13 error: runner error"></template>
+<template data-state="stream-lost" data-state-label="#220, F13 error: result stream lost, reconnecting (also the manual reconnect cycle)"></template>
+<template data-state="stream-failed" data-state-label="#220, F13 error: result not received"></template>
+<template data-state="budget-lesson" data-state-label="#220, F13.1 checks that spend tokens (sample data, from #37 / #39)"></template>
+<template data-state="budget-dialog" data-state-label="#220, F13.1 budget confirmation, two checks (sample data, from #37 / #39)"></template>
+<template data-state="budget-dialog-one" data-state-label="#220, F13.1 budget confirmation, one check; the passed rubric check is not listed (S11) (sample data)"></template>
+<template data-state="budget-running-one" data-state-label="#220, F13.3 run without the passed rubric check (S11; sample data)"></template>
+<template data-state="budget-running" data-state-label="#220, F13.2 run that spends tokens (sample data)"></template>
+<template data-state="statuses-agent" data-state-label="#220, F13 results of checks that spend tokens (sample data, from #37 / #39)"></template>
+<template data-state="passed-paid-only" data-state-label="#220, Nothing to run: a passed lesson whose only check spends tokens (S12; sample data, from #37)"></template>
+<template data-state="history-empty" data-state-label="#220, F19 empty: before the first run (from #35)"></template>
+<template data-state="history-empty-running" data-state-label="#220, F19 empty: the first run going (from #35)"></template>
+<template data-state="history-first" data-state-label="#220, F19.1 the first run ended, one attempt (from #35)"></template>
+<template data-state="history-error-after-run" data-state-label="#220, F19 error: the re-read after the first run failed (from #35)"></template>
+<template data-state="history" data-state-label="#220, F19.1 seven attempts, collapsed (from #35; sample data)"></template>
+<template data-state="history-open" data-state-label="#220, F19.2-F19.3 attempt No 3 open, a removed check (from #35)"></template>
+<template data-state="history-deep-link" data-state-label="#220, F19 deep link row 1: No 3, read at 4 Nov 14:10 (from #35)"></template>
+<template data-state="history-deep-link-1" data-state-label="#220, F19 deep link row 1: No 1 (from #35)"></template>
+<template data-state="history-deep-link-plain" data-state-label="#220, F19 deep link row 2: No 2, no check result (from #35)"></template>
+<template data-state="history-deep-link-4" data-state-label="#220, F19 deep link row 1: No 4 while No 8 runs (from #35)"></template>
+<template data-state="history-deep-link-5" data-state-label="#220, F19 deep link row 1: No 5 while No 8 runs (from #35)"></template>
+<template data-state="history-deep-link-6" data-state-label="#220, F19 deep link row 1: No 6 while No 8 runs (from #35)"></template>
+<template data-state="history-deep-link-7" data-state-label="#220, F19 deep link row 1: No 7 while No 8 runs (from #35)"></template>
+<template data-state="history-deep-link-running" data-state-label="#220, F19 deep link row 3: No 8 still running (from #35)"></template>
+<template data-state="history-deep-link-running-empty" data-state-label="#220, F19 deep link row 3: the first run, empty history (from #35)"></template>
+<template data-state="history-deep-link-error" data-state-label="#220, F19 deep link row 4: the history cannot be read (from #35)"></template>
+<template data-state="history-error" data-state-label="#220, F19 error: the history cannot be read on load (from #35)"></template>
+<template data-state="checks-weak" data-state-label="#220, F18.4 arrival from a &quot;Где трудно&quot; row (from #35; sample data)"></template>
+<template data-state="history-cost" data-state-label="#220, F19.1 with costs (from #37; sample data)"></template>
+<template data-state="history-cost-deep-link-4" data-state-label="#220, F19 deep link row 1: No 4 with costs (from #37)"></template>
+<template data-state="history-cost-deep-link-5" data-state-label="#220, F19 deep link row 1: No 5, costs in the list (from #37)"></template>
+<template data-state="history-cost-deep-link-6" data-state-label="#220, F19 deep link row 1: No 6, costs in the list (from #37)"></template>
+<template data-state="history-cost-deep-link-7" data-state-label="#220, F19 deep link row 1: No 7, costs in the list (from #37)"></template>
+<template data-state="history-cost-deep-link-running" data-state-label="#220, F19 deep link row 3 with costs (from #37)"></template>
+<template data-state="history-cost-at-least-deep-link-4" data-state-label="#220, F19 deep link row 1: No 4, a cost not reported (from #37)"></template>
+<template data-state="history-cost-no-data-deep-link-4" data-state-label="#220, F19 deep link row 1: No 4, no cost reported (from #37)"></template>
+<template data-state="history-cost-budget" data-state-label="#220, F19.2 a budget-spent result (from #39; sample data)"></template>
+<template data-state="history-quiz" data-state-label="#220, F19.1 a quiz attempt record, No 9, while No 8 runs (from #36)"></template>
+<template data-state="history-quiz-open" data-state-label="#220, F19.2 the quiz attempt record No 9 open (from #36)"></template>
+<template data-state="one-pane-env" data-state-label="#220, Environment running, new terminal session, Environment shown (one pane below 1024px)"></template>
+<template data-state="split-focused" data-state-label="#220, F9.3 split handle focused, tooltip"></template>
+<template data-state="split-cycled" data-state-label="#220, F9.3 split handle cycled to 35 %"></template>
+<template data-state="quiz-loading" data-state-label="#220, F15 loading: the quiz is being read (from #36)"></template>
+<template data-state="quiz" data-state-label="#220, F15.1-F15.3 quiz before the first attempt (from #36)"></template>
+<template data-state="quiz-partial" data-state-label="#220, F15.2 some questions answered"></template>
+<template data-state="quiz-blocked" data-state-label="#220, F15.3 send blocked: two questions unanswered"></template>
+<template data-state="quiz-blocked-one" data-state-label="#220, F15.3 after a blocked send, question 4 answered"></template>
+<template data-state="quiz-sending" data-state-label="#220, F15.3 sending, answers locked"></template>
+<template data-state="quiz-sending-failed" data-state-label="#220, F15.3 sending attempt 2 after a failure"></template>
+<template data-state="quiz-sending-last" data-state-label="#220, F15.3 sending the last attempt"></template>
+<template data-state="quiz-sending-refused" data-state-label="#220, F15.3 sending after a refusal"></template>
+<template data-state="quiz-sending-limit-unknown" data-state-label="#220, F15.3 sending attempt 2, limit unknown (R7)"></template>
+<template data-state="quiz-failed" data-state-label="#220, F15.4 failed attempt (also the return visit)"></template>
+<template data-state="quiz-last-attempt" data-state-label="#220, F15.4 failed, one attempt left"></template>
+<template data-state="quiz-passed" data-state-label="#220, F15.5 passed: review (lesson passed by it)"></template>
+<template data-state="quiz-closed" data-state-label="#220, F15.5 closed after the last failure: review"></template>
+<template data-state="quiz-row" data-state-label="#220, F15 entry: quiz check row in Checks, before any attempt"></template>
+<template data-state="quiz-row-closed" data-state-label="#220, F15.6 quiz check row closed"></template>
+<template data-state="quiz-send-error" data-state-label="#220, F15 error: answers not sent"></template>
+<template data-state="quiz-load-error" data-state-label="#220, F15 error: quiz load error"></template>
+<template data-state="quiz-load-error-fails-again" data-state-label="#220, F15 error: quiz load error, Повторить fails again"></template>
+<template data-state="quiz-session-expired" data-state-label="#220, F15 error: session expired while answering (F2.1)"></template>
+<template data-state="quiz-restored" data-state-label="#220, F15 error: answers restored after sign-in (?tab=quiz)"></template>
+<template data-state="quiz-limit-unknown" data-state-label="#220, F15.4 failed, limit unknown (R7)"></template>
+<template data-state="quiz-code" data-state-label="#220, F15.2 question with code that overflows at 320px (sample data, lesson 05)"></template>
+<template data-state="quiz-passed-after-run" data-state-label="#220, F15.5 pass after a run on this page view: status line emptied, P7 (sample data)"></template>
+<template data-state="quiz-closed-finished" data-state-label="#220, F15.6 close that finishes the lesson, not passed: P8 (sample data)"></template>
+<template data-state="quiz-answered-away" data-state-label="#220, F15 away: failed result while on Checks, quiz notice, P9 (sample data)"></template>
+<template data-state="quiz-notice-env" data-state-label="#220, F15 away: close answered with Environment shown, S3 (sample data)"></template>
+<template data-state="quiz-notice-send-error" data-state-label="#220, F15 away: send failed while on Theory (sample data)"></template>
+<template data-state="quiz-notice-two-pane" data-state-label="#220, F15 away: result while in the terminal, two panes (sample data)"></template>
+<template data-state="quiz-refused" data-state-label="#220, F15 error: send refused, the quiz changed in another tab (sample data)"></template>
+<template data-state="quiz-refused-closed" data-state-label="#220, F15 error: send refused, another tab closed the quiz (sample data)"></template>
 <template data-state="mentor-offer" data-state-label="F16.1, F17.1 review offered, empty ladder, levels locked (limit known; from #37)"></template>
 <template data-state="mentor-offer-open" data-state-label="F16.1, F17.1 review offered, every level open (limit unknown; from #37)"></template>
 <template data-state="mentor-review-pending" data-state-label="F16.2 review pending: busy display, every mentor control waits (from #37)"></template>
@@ -184,11 +184,11 @@
 <div class="app" data-layout="lesson">
 
   <header class="topbar" data-region>
-    <a class="topbar-brand" href="../dashboard/prototype.html">Академия</a>
-    <nav class="topbar-nav">
-      <a href="../dashboard/prototype.html">Главная</a>
-      <a href="../catalog/prototype.html">Курс</a>
-    </nav>
+    <!-- From #220 the bar is ia.md A218-3, no "Курс"; the M0 lesson (#state-m0) keeps the bar of its release
+         (R6 "Top bar by release"), so each link has an m0 variant with that release's targets. -->
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-courses-two" data-state="theory task outcomes-collapsed outcomes-expanded text-error text-error-fails-again copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks results-limit-known limit-warning limit-known-running limit-warning-running closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only history-empty history-empty-running history-first history-error-after-run history history-open history-deep-link history-deep-link-1 history-deep-link-plain history-deep-link-4 history-deep-link-5 history-deep-link-6 history-deep-link-7 history-deep-link-running history-deep-link-running-empty history-deep-link-error history-error checks-weak history-cost history-cost-deep-link-4 history-cost-deep-link-5 history-cost-deep-link-6 history-cost-deep-link-7 history-cost-deep-link-running history-cost-at-least-deep-link-4 history-cost-no-data-deep-link-4 history-cost-budget history-quiz history-quiz-open one-pane-env split-focused split-cycled quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-sending-failed quiz-sending-last quiz-sending-refused quiz-sending-limit-unknown quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-load-error-fails-again quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-refused-closed">Академия</a>
+    <a class="topbar-brand" href="../dashboard/prototype.html#state-first-run-until-220" data-state="m0">Академия</a>
+    <nav class="topbar-nav"><a href="../dashboard/prototype.html#state-courses-two" data-state="theory task outcomes-collapsed outcomes-expanded text-error text-error-fails-again copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks results-limit-known limit-warning limit-known-running limit-warning-running closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only history-empty history-empty-running history-first history-error-after-run history history-open history-deep-link history-deep-link-1 history-deep-link-plain history-deep-link-4 history-deep-link-5 history-deep-link-6 history-deep-link-7 history-deep-link-running history-deep-link-running-empty history-deep-link-error history-error checks-weak history-cost history-cost-deep-link-4 history-cost-deep-link-5 history-cost-deep-link-6 history-cost-deep-link-7 history-cost-deep-link-running history-cost-at-least-deep-link-4 history-cost-no-data-deep-link-4 history-cost-budget history-quiz history-quiz-open one-pane-env split-focused split-cycled quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-sending-failed quiz-sending-last quiz-sending-refused quiz-sending-limit-unknown quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-load-error-fails-again quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-refused-closed">Главная</a><a href="../dashboard/prototype.html#state-first-run-until-220" data-state="m0">Главная</a><a href="../catalog/prototype.html#state-default-until-220" data-state="m0">Курс</a></nav>
     <div class="topbar-end">
       <div class="dropdown">
         <button class="button" type="button" data-variant="ghost" data-size="sm" id="user-menu-trigger" data-menu-trigger aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" data-open-in-states="user-menu" data-step="F3.1"><span class="user-email">learner@example.com</span></button>
@@ -267,9 +267,11 @@
         </div>
       </div>
       <div class="scroll-area">
-        <nav class="breadcrumb" aria-label="Навигация">
+        <!-- #crumb-course is the from-#220 course crumb (A218-8) and stays on one element (idle-warning data-focus);
+             the M0 lesson shows its release's "Курс" crumb instead, with no id. -->
+        <nav class="breadcrumb" aria-label="Навигация" data-step="F22.1">
           <ol>
-            <li><a id="crumb-course" href="../catalog/prototype.html">Курс</a></li>
+            <li><a id="crumb-course" href="../catalog/prototype.html" data-state="theory task outcomes-collapsed outcomes-expanded text-error text-error-fails-again copy-denied no-theory no-sources prerequisite session-expired user-menu env-creating env-starting env-slow api-key docker-down image-missing limits rejected no-workspace terminal-focused reconnecting reconnect-failed shell-exited idle-warning stopped volume-recreated actions-open actions-check-running actions-not-running reset-dialog reset-done checks-before check-running results statuses lesson-passed after-run-stopped after-run-starting no-checks results-limit-known limit-warning limit-known-running limit-warning-running closed closed-limit-unknown mixed mixed-running passed-last-failed runner-error stream-lost stream-failed budget-lesson budget-dialog budget-dialog-one budget-running-one budget-running statuses-agent passed-paid-only history-empty history-empty-running history-first history-error-after-run history history-open history-deep-link history-deep-link-1 history-deep-link-plain history-deep-link-4 history-deep-link-5 history-deep-link-6 history-deep-link-7 history-deep-link-running history-deep-link-running-empty history-deep-link-error history-error checks-weak history-cost history-cost-deep-link-4 history-cost-deep-link-5 history-cost-deep-link-6 history-cost-deep-link-7 history-cost-deep-link-running history-cost-at-least-deep-link-4 history-cost-no-data-deep-link-4 history-cost-budget history-quiz history-quiz-open one-pane-env split-focused split-cycled quiz-loading quiz quiz-partial quiz-blocked quiz-blocked-one quiz-sending quiz-sending-failed quiz-sending-last quiz-sending-refused quiz-sending-limit-unknown quiz-failed quiz-last-attempt quiz-passed quiz-closed quiz-row quiz-row-closed quiz-send-error quiz-load-error quiz-load-error-fails-again quiz-session-expired quiz-restored quiz-limit-unknown quiz-code quiz-passed-after-run quiz-closed-finished quiz-answered-away quiz-notice-env quiz-notice-send-error quiz-notice-two-pane quiz-refused quiz-refused-closed" data-step="F22.2">ИИ для разработчиков</a><a href="../catalog/prototype.html#state-default-until-220" data-state="m0">Курс</a></li>
             <li><a href="../catalog/prototype.html#introduction">Введение в разработку с ИИ</a></li>
             <li><span aria-current="page">Модель, уровень ризонинга и локальные модели</span></li>
           </ol>

@@ -1,7 +1,16 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { z } from "zod";
-import { Check, Course, HIDDEN_DIR, Lesson, Module, REQUIRED_LESSON_FILES } from "./schema.js";
+import {
+  Check,
+  Course,
+  HIDDEN_DIR,
+  Lesson,
+  Module,
+  REQUIRED_LESSON_FILES,
+  requiredCorrect,
+} from "./schema.js";
+import { type QuizThresholdStatement, quizThresholdStatements } from "./task-threshold.js";
 import { courseYamlReason, parseCourseYaml } from "./yaml.js";
 
 export interface ValidationIssue {
@@ -133,6 +142,179 @@ function unknownCheckKeys(rawLesson: unknown): string[] {
   if (!Array.isArray(checks)) return ["checks: not a list; check keys were not checked"];
   const elements: readonly unknown[] = checks;
   return elements.flatMap((element, index) => unknownKeysOfCheck(element, index));
+}
+
+type QuizCheck = Extract<Check, { kind: "quiz" }>;
+
+interface QuizQuestions {
+  readonly check: QuizCheck;
+  // Undefined when the quiz file gives no usable count; no required count is then printed.
+  readonly questionCount: number | undefined;
+}
+
+type QuestionCountRead =
+  | { readonly ok: true; readonly questionCount: number }
+  | { readonly ok: false; readonly reason: string | undefined };
+
+/**
+ * The question count of a quiz check: the length of its file's top-level `questions` list. A
+ * missing file gives no reason, because the referenced-file check already reports it. Nothing else
+ * in the file is read: its shape is the quiz server's (#36).
+ */
+function readQuestionCount(lessonDir: string, check: QuizCheck): QuestionCountRead {
+  const file = join(lessonDir, check.file);
+  if (!existsSync(file)) return { ok: false, reason: undefined };
+  const read = readYaml(file);
+  const label = `check "${check.id}" (quiz)`;
+  if (!read.ok) {
+    return {
+      ok: false,
+      reason: `${read.reason}; ${label}: question count unknown, so task.md's threshold was not compared`,
+    };
+  }
+  const questions = isRecord(read.value) ? read.value.questions : undefined;
+  if (!Array.isArray(questions)) {
+    return {
+      ok: false,
+      reason: `${label}: no top-level "questions" list; question count unknown, so task.md's threshold was not compared`,
+    };
+  }
+  if (questions.length === 0) {
+    return {
+      ok: false,
+      reason: `${label}: "questions" is an empty list, and a quiz needs at least one question; task.md's threshold was not compared`,
+    };
+  }
+  return { ok: true, questionCount: questions.length };
+}
+
+function requirementText(check: QuizCheck, questionCount: number): string {
+  const correct = requiredCorrect(check.passScore, questionCount);
+  return `${check.file} has ${questionCount} questions, and passScore ${String(check.passScore)} requires ${correct} correct`;
+}
+
+/**
+ * What the quiz file and passScore require, when the stated numbers differ from it. Undefined when
+ * they agree, and when the question count is unknown, so no required count is printed without one.
+ */
+function unmetRequirement(
+  quiz: QuizQuestions,
+  statedQuestions: number,
+  statedCorrect: number,
+): string | undefined {
+  if (quiz.questionCount === undefined) return undefined;
+  const correct = requiredCorrect(quiz.check.passScore, quiz.questionCount);
+  if (statedQuestions === quiz.questionCount && statedCorrect === correct) return undefined;
+  return requirementText(quiz.check, quiz.questionCount);
+}
+
+const THRESHOLD_FORM_EXAMPLES =
+  '"`<check id>` (квиз): Q вопросов, нужно K верных." or "Квиз: не меньше K из Q."';
+
+/** Issue messages for one task.md statement, compared with the lesson's quiz checks. */
+function statementIssues(
+  statement: QuizThresholdStatement,
+  quizzes: readonly QuizQuestions[],
+): string[] {
+  const at = `line ${statement.line}:`;
+  const messages: string[] = [];
+  if (statement.kind === "unreadable") {
+    messages.push(
+      `${at} this sentence counts as a quiz threshold statement (it begins "\`<id>\` (квиз):", or it contains "квиз" and a count; see ADR-0001 item 6 and the fixture table it names) but has neither threshold form (for example ${THRESHOLD_FORM_EXAMPLES}), so it was not compared`,
+    );
+  }
+  if (statement.kind === "restated") {
+    messages.push(...restatementIssues(statement, quizzes));
+    return messages;
+  }
+  const { checkId } = statement;
+  if (checkId === undefined) return messages;
+  const quiz = quizzes.find((q) => q.check.id === checkId);
+  if (quiz === undefined) {
+    const quizIds = quizzes.length === 0 ? "none" : quizzes.map((q) => q.check.id).join(", ");
+    messages.push(
+      `${at} the sentence names "${checkId}" as a quiz check ("\`${checkId}\` (квиз):"), but "${checkId}" is not a quiz check of lesson.yaml (quiz checks: ${quizIds})`,
+    );
+    return messages;
+  }
+  if (statement.kind !== "anchored") return messages;
+  const unmet = unmetRequirement(quiz, statement.statedQuestions, statement.statedCorrect);
+  if (unmet !== undefined) {
+    messages.push(
+      `${at} check "${checkId}" (quiz) states ${statement.statedQuestions} questions and ${statement.statedCorrect} correct required; ${unmet}`,
+    );
+  }
+  return messages;
+}
+
+/** A restatement names no check, so it is compared only when the lesson has exactly one quiz. */
+function restatementIssues(
+  statement: Extract<QuizThresholdStatement, { kind: "restated" }>,
+  quizzes: readonly QuizQuestions[],
+): string[] {
+  const at = `line ${statement.line}:`;
+  const [quiz, ...otherQuizzes] = quizzes;
+  if (quiz === undefined) return [`${at} "Квиз:" restatement, but lesson.yaml has no quiz check`];
+  if (otherQuizzes.length > 0) {
+    const quizIds = quizzes.map((q) => q.check.id).join(", ");
+    return [
+      `${at} "Квиз:" restatement names no check, and lesson.yaml has ${quizzes.length} quiz checks (${quizIds}); state each threshold in its "\`<check id>\` (квиз):" sentence`,
+    ];
+  }
+  const unmet = unmetRequirement(quiz, statement.statedQuestions, statement.statedCorrect);
+  if (unmet === undefined) return [];
+  return [
+    `${at} "Квиз:" restatement states ${statement.statedCorrect} correct of ${statement.statedQuestions}; check "${quiz.check.id}" (quiz): ${unmet}`,
+  ];
+}
+
+function missingSentenceIssue(quiz: QuizQuestions): string {
+  const { id } = quiz.check;
+  const missing = `check "${id}" (quiz): task.md has no sentence that begins with "\`${id}\` (квиз):", bold or not, the threshold sentence of this check (see ADR-0001 item 6 and the fixture table it names; for example "\`${id}\` (квиз): Q вопросов, нужно K верных.")`;
+  if (quiz.questionCount === undefined) return missing;
+  return `${missing}; ${requirementText(quiz.check, quiz.questionCount)}`;
+}
+
+/**
+ * Issues for the quiz thresholds of a ready lesson (ADR-0001 item 6): quiz files without a usable
+ * question count (check order), then each task.md statement that disagrees with the server's
+ * required count or cannot be read (text order), then each quiz check without its own sentence.
+ */
+function quizThresholdIssues(
+  lessonDir: string,
+  lesson: Lesson,
+  taskText: string,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const quizzes: QuizQuestions[] = [];
+  for (const check of lesson.checks) {
+    if (check.kind !== "quiz") continue;
+    const read = readQuestionCount(lessonDir, check);
+    if (!read.ok && read.reason !== undefined) {
+      issues.push({ file: join(lessonDir, check.file), message: read.reason });
+    }
+    quizzes.push({ check, questionCount: read.ok ? read.questionCount : undefined });
+  }
+
+  const taskFile = join(lessonDir, "task.md");
+  const idsWithSentence = new Set<string>();
+  for (const statement of quizThresholdStatements(taskText)) {
+    // An unreadable sentence that starts with the check's anchor is its sentence, reported once
+    // for being unreadable rather than a second time for being missing.
+    if (statement.kind !== "restated" && statement.checkId !== undefined) {
+      idsWithSentence.add(statement.checkId);
+    }
+    for (const message of statementIssues(statement, quizzes)) {
+      issues.push({ file: taskFile, message });
+    }
+  }
+
+  for (const quiz of quizzes) {
+    if (!idsWithSentence.has(quiz.check.id)) {
+      issues.push({ file: taskFile, message: missingSentenceIssue(quiz) });
+    }
+  }
+  return issues;
 }
 
 /** Files under dir. With includeLinks, symlinks are returned (not followed) so callers can reject them. */
@@ -295,6 +477,7 @@ export function validateCourses(root: string): ValidationResult {
               issue(f, "starter contains a checks/ directory (leak)");
           }
         }
+        let taskText: string | undefined;
         for (const visible of ["theory.md", "task.md"]) {
           const p = join(lessonDir, visible);
           if (!existsSync(p)) continue;
@@ -306,6 +489,11 @@ export function validateCourses(root: string): ValidationResult {
           if (read.text.includes(`${HIDDEN_DIR}/`)) {
             issue(p, `learner-visible file references ${HIDDEN_DIR}/ (leak)`);
           }
+          if (visible === "task.md") taskText = read.text;
+        }
+        // Ready only: the learner sees no other lesson, and the flip to ready runs this check.
+        if (l.status === "ready" && taskText !== undefined) {
+          for (const i of quizThresholdIssues(lessonDir, l, taskText)) issue(i.file, i.message);
         }
       }
     }

@@ -84,6 +84,50 @@ export const Check = z.discriminatedUnion("kind", [
 ]);
 export type Check = z.infer<typeof Check>;
 
+/** An input that `requiredCorrect` cannot turn into a required count. */
+export class InvalidQuizThresholdInputError extends Error {
+  readonly field: "passScore" | "questionCount";
+  readonly value: number;
+
+  constructor(field: "passScore" | "questionCount", value: number) {
+    super(
+      field === "questionCount"
+        ? `questionCount must be a positive safe integer, got ${String(value)}`
+        : `passScore must be a finite number from 0 to 1, got ${String(value)}`,
+    );
+    this.name = "InvalidQuizThresholdInputError";
+    this.field = field;
+    this.value = value;
+  }
+}
+
+/**
+ * The number of correct answers a quiz check requires: the smallest integer K from 0 to
+ * `questionCount` with `K / questionCount >= passScore`, evaluated with exactly that comparison.
+ *
+ * This is the server's own rule. The quiz server (#36) imports this function, and content:validate
+ * compares the count task.md states with it, so the page header and the lesson text cannot drift.
+ *
+ * K is found by walking upward, never by rounding `passScore * questionCount`: the product carries
+ * the rounding error of doubles. 0.28 * 25 is 7.000000000000001, so ceil asks for 8, while
+ * 7 / 25 >= 0.28 already holds.
+ *
+ * @throws InvalidQuizThresholdInputError when `questionCount` is not a positive safe integer, or
+ * `passScore` is not a finite number from 0 to 1. A quiz without questions has no required count;
+ * the caller reports that state itself.
+ */
+export function requiredCorrect(passScore: number, questionCount: number): number {
+  if (!Number.isSafeInteger(questionCount) || questionCount < 1)
+    throw new InvalidQuizThresholdInputError("questionCount", questionCount);
+  if (!Number.isFinite(passScore) || passScore < 0 || passScore > 1)
+    throw new InvalidQuizThresholdInputError("passScore", passScore);
+  for (let correct = 0; correct < questionCount; correct++) {
+    if (correct / questionCount >= passScore) return correct;
+  }
+  // At K = questionCount the share is exactly 1, which every passScore in [0, 1] reaches.
+  return questionCount;
+}
+
 export const LessonType = z.enum([
   "theory",
   "quiz",

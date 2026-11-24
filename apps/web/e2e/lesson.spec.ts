@@ -5,6 +5,8 @@ import {
   actionsMenuLabel,
   brandName,
   breadcrumbLabel,
+  cancelLabel,
+  codeBlockLabel,
   copyDeniedLabel,
   copyLabel,
   courseLinkLabel,
@@ -18,6 +20,8 @@ import {
   m0LessonNote,
   paneSwitchLabel,
   prerequisiteNotePrefix,
+  resetDialogTitle,
+  resetWorkspaceLabel,
   sessionExpiredMessage,
   signInAgainLabel,
   splitHandleLabel,
@@ -31,7 +35,9 @@ import { IDLE_WARNING_EVENT } from "../lib/environment/idle";
 import { catalogPath, lessonPath } from "../lib/routes";
 import { SESSION_EXPIRED_EVENT } from "../lib/terminal/state";
 import { type RepoLesson, repoCatalog, repoLessons } from "./course";
+import { installDialogClickGuard, readDialogClickGuard } from "./dialog-click-guard";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
+import { ENVIRONMENT_START_TIMEOUT_MS } from "./terminal-page";
 
 // Every page load reads /api/auth/get-session; with its own rate-limit bucket per test the suite never
 // exhausts the shared loopback bucket that the request-fixture specs use (Better Auth limiter, always on).
@@ -296,6 +302,161 @@ test("a refused clipboard renames the copy button and keeps focus (AC14)", async
   const denied = page.getByRole("button", { name: copyDeniedLabel });
   await expect(denied).toHaveCount(1);
   await expect(denied).toBeFocused();
+});
+
+// The local models block AC75 names (course/ai-for-developers/00-introduction/01-models-and-effort/theory.md);
+// looked up by its line so a course edit fails here instead of testing another block.
+const AC75_LINE = "export ANTHROPIC_BASE_URL=http://localhost:11434";
+const lessonWithAc75Block = lessonWith(
+  (lesson) => lesson.theory.includes(AC75_LINE),
+  "with AC75's local models block",
+);
+
+// A code line this long is far wider than the code pane at 320px; whether it overflows in the app is
+// asserted by each test's premise, not assumed from the length.
+const LONG_CODE_LINE_CHARS = 60;
+
+/** The first line of at least LONG_CODE_LINE_CHARS inside a ``` fence, trimmed. */
+function longFenceLine(markdown: string): string | undefined {
+  let isInFence = false;
+  for (const line of markdown.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) {
+      isInFence = !isInFence;
+      continue;
+    }
+    if (isInFence && trimmed.length >= LONG_CODE_LINE_CHARS) return trimmed;
+  }
+  return undefined;
+}
+
+const taskLessonWithLongCode = lessonWith(
+  (lesson) => longFenceLine(lesson.task) !== undefined,
+  `with a task code line of at least ${LONG_CODE_LINE_CHARS} characters`,
+);
+const taskFenceLine = longFenceLine(taskLessonWithLongCode.task);
+if (taskFenceLine === undefined) throw new Error("unreachable: the lesson was picked by this line");
+
+function codeBlock(page: Page, line: string): { pre: Locator; copyButton: Locator } {
+  const block = page.locator(".code-block", { hasText: line });
+  return { pre: block.locator("pre"), copyButton: block.getByRole("button", { name: copyLabel }) };
+}
+
+function overflowOf(pre: Locator): Promise<{ scrollWidth: number; clientWidth: number }> {
+  return pre.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+}
+
+async function isOverflowing(pre: Locator): Promise<boolean> {
+  const { scrollWidth, clientWidth } = await overflowOf(pre);
+  return scrollWidth > clientWidth;
+}
+
+/**
+ * Two animation frames and a task, so a ResizeObserver delivery and React's commit of its update have had
+ * their frame. Only "none" and "kept" asserts need it: they would pass before the decision ran.
+ */
+function afterRendering(page: Page): Promise<void> {
+  return page.evaluate(
+    () =>
+      new Promise<void>((done) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 0)));
+      }),
+  );
+}
+
+async function expectScrollStop(pre: Locator): Promise<void> {
+  await expect(pre).toHaveAttribute("tabindex", "0");
+  await expect(pre).toHaveAttribute("role", "group");
+  await expect(pre).toHaveAttribute("aria-label", codeBlockLabel);
+}
+
+async function expectNoScrollStop(pre: Locator): Promise<void> {
+  await expect(pre).not.toHaveAttribute("tabindex");
+  await expect(pre).not.toHaveAttribute("role");
+  await expect(pre).not.toHaveAttribute("aria-label");
+}
+
+test("an overflowing theory code block takes Tab, scrolls by arrow key and returns focus (AC75)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 500 });
+  await page.goto(`${pathOf(lessonWithAc75Block)}?tab=theory`);
+  const { pre, copyButton } = codeBlock(page, AC75_LINE);
+  await expect.poll(() => isOverflowing(pre), "overflows at 320").toBe(true);
+
+  await expectScrollStop(pre);
+  expect(await scrollWidthOf(page), "page scrollWidth at 320").toBe(320);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(pre).toBeFocused();
+  const ring = await ringOf(page);
+  const borderRadius = await pre.evaluate((el) => getComputedStyle(el).borderRadius);
+  expect({ ...ring, borderRadius }).toEqual({
+    isFocusVisible: true,
+    outlineStyle: "solid",
+    outlineWidth: "2px",
+    outlineOffset: "-2px",
+    borderRadius: "0px 0px 7px 7px",
+  });
+  await page.keyboard.press("ArrowRight");
+  // Smooth scrolling: scrollLeft is still 0 right after the key press.
+  await expect.poll(() => pre.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  await page.keyboard.press("Shift+Tab");
+  await expect(copyButton).toBeFocused();
+
+  await page.setViewportSize({ width: 375, height: 667 });
+  await expect.poll(() => isOverflowing(pre), "overflows at 375").toBe(true);
+  await expectScrollStop(pre);
+});
+
+test("a theory code block that fits is no Tab stop (AC75)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`${pathOf(lessonWithAc75Block)}?tab=theory`);
+  const { pre, copyButton } = codeBlock(page, AC75_LINE);
+  await waitForHydration(copyButton, "hydrated before the fit check");
+  await afterRendering(page);
+  expect(await isOverflowing(pre), "fits at 1280").toBe(false);
+
+  await expectNoScrollStop(pre);
+  expect(await scrollWidthOf(page), "page scrollWidth at 1280").toBe(1280);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(copyButton).not.toBeFocused();
+  await expect(pre).not.toBeFocused();
+});
+
+test("a focused code block keeps its stop through a resize until focus leaves (AC75)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 500 });
+  await page.goto(`${pathOf(lessonWithAc75Block)}?tab=theory`);
+  const { pre, copyButton } = codeBlock(page, AC75_LINE);
+  await expect.poll(() => isOverflowing(pre), "overflows at 320").toBe(true);
+
+  await expectScrollStop(pre);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(pre).toBeFocused();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(() => isOverflowing(pre), "fits at 1280").toBe(false);
+  await afterRendering(page);
+  await expect(pre).toBeFocused();
+  await expectScrollStop(pre);
+  await page.keyboard.press("Tab");
+  await expect(pre).not.toBeFocused();
+  await expectNoScrollStop(pre);
+});
+
+test("an overflowing task code block takes the same stop (AC75)", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 500 });
+  await page.goto(`${pathOf(taskLessonWithLongCode)}?tab=task`);
+  const { pre, copyButton } = codeBlock(page, taskFenceLine);
+  await expect.poll(() => isOverflowing(pre), "overflows at 320").toBe(true);
+
+  await expectScrollStop(pre);
+  await copyButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(pre).toBeFocused();
 });
 
 test("a prerequisite shows the warning Alert with links that open the lesson (F6.2, F6.3)", async ({
@@ -775,6 +936,40 @@ interface LiveContainers {
 // warning never passes for this one.
 const syntheticWarningMinutes = 7;
 
+const noticeTexts: [string, string] = [
+  sessionExpiredMessage,
+  idleWarningMessage(syntheticWarningMinutes),
+];
+const withoutNotices: LiveContainers = {
+  live: ["assertive", "polite", "polite"],
+  isUnhidden: [true, true, true],
+  lessonPaneHidden: "true",
+  liveDescendants: [0, 0, 0],
+  hasText: [false, false],
+};
+const withNotices: LiveContainers = { ...withoutNotices, hasText: [true, true] };
+
+/** The events the producers dispatch, so the notices arrive while a menu or the dialog is open, as in the real case. */
+async function showNotices(page: Page): Promise<void> {
+  await page.evaluate(
+    ({ warningEvent, expiredEvent, minutes }) => {
+      window.dispatchEvent(new CustomEvent(warningEvent, { detail: { minutes } }));
+      window.dispatchEvent(new Event(expiredEvent));
+    },
+    {
+      warningEvent: IDLE_WARNING_EVENT,
+      expiredEvent: SESSION_EXPIRED_EVENT,
+      minutes: syntheticWarningMinutes,
+    },
+  );
+  await expect(page.locator('[data-notifications] > [role="alert"]')).toContainText(
+    sessionExpiredMessage,
+  );
+  await expect(page.locator('[data-notifications] > [role="status"]')).toContainText(
+    idleWarningMessage(syntheticWarningMinutes),
+  );
+}
+
 /** The two notification containers and the environment status: what a modal leaves announced (ia.md R2). */
 function liveContainers(page: Page, texts: [string, string]): Promise<LiveContainers> {
   return page.evaluate((notices) => {
@@ -804,44 +999,15 @@ test("E-live: the live containers stay announced under the user menu and the mod
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(pathOf(firstLesson));
-  const expected: LiveContainers = {
-    live: ["assertive", "polite", "polite"],
-    isUnhidden: [true, true, true],
-    lessonPaneHidden: "true",
-    liveDescendants: [0, 0, 0],
-    hasText: [false, false],
-  };
-  const withNotices: LiveContainers = { ...expected, hasText: [true, true] };
-  const texts: [string, string] = [
-    sessionExpiredMessage,
-    idleWarningMessage(syntheticWarningMinutes),
-  ];
 
   const userMenu = page.locator('header [aria-haspopup="menu"]');
   await waitForHydration(userMenu, "hydrated before the user menu");
   await userMenu.click();
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page, texts), "under the user menu").toEqual(expected);
-  // The events the producers dispatch, so the notices arrive while the menu is open, as in the real case.
-  await page.evaluate(
-    ({ warningEvent, expiredEvent, minutes }) => {
-      window.dispatchEvent(new CustomEvent(warningEvent, { detail: { minutes } }));
-      window.dispatchEvent(new Event(expiredEvent));
-    },
-    {
-      warningEvent: IDLE_WARNING_EVENT,
-      expiredEvent: SESSION_EXPIRED_EVENT,
-      minutes: syntheticWarningMinutes,
-    },
-  );
-  await expect(page.locator('[data-notifications] > [role="alert"]')).toContainText(
-    sessionExpiredMessage,
-  );
-  await expect(page.locator('[data-notifications] > [role="status"]')).toContainText(
-    idleWarningMessage(syntheticWarningMinutes),
-  );
+  expect(await liveContainers(page, noticeTexts), "under the user menu").toEqual(withoutNotices);
+  await showNotices(page);
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page, texts), "under the user menu, notices shown").toEqual(
+  expect(await liveContainers(page, noticeTexts), "under the user menu, notices shown").toEqual(
     withNotices,
   );
   await page.keyboard.press("Escape");
@@ -851,7 +1017,7 @@ test("E-live: the live containers stay announced under the user menu and the mod
   await page.getByRole("button", { name: actionsMenuLabel }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toBeVisible();
-  expect(await liveContainers(page, texts), "under the actions menu").toEqual(withNotices);
+  expect(await liveContainers(page, noticeTexts), "under the actions menu").toEqual(withNotices);
   await expect(page.getByRole("menuitem").first()).toBeFocused();
   await page.keyboard.press("Tab");
   expect(
@@ -859,4 +1025,52 @@ test("E-live: the live containers stay announced under the user menu and the mod
     "Tab stays in the modal menu",
   ).toBe(true);
   await page.keyboard.press("Escape");
+});
+
+test("E-live-reset: the live containers stay announced under the reset dialog (AC51)", async ({
+  page,
+}) => {
+  // A start may take the service's whole PUT timeout.
+  test.setTimeout(ENVIRONMENT_START_TIMEOUT_MS + 30_000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await installDialogClickGuard(page);
+  await page.goto(pathOf(firstLesson));
+
+  const trigger = page.getByRole("button", { name: actionsMenuLabel });
+  await waitForHydration(trigger, "hydrated before the actions menu");
+  await trigger.click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  const item = page.getByRole("menuitem", { name: resetWorkspaceLabel, exact: true });
+  await expect(item).toBeVisible();
+  // Enabled exactly while the environment runs (actionsDisabledReason), a taken-over session included; another
+  // spec's page on this lesson can take the session over, so the running status text may never show.
+  await expect(item).not.toHaveAttribute("aria-disabled", "true", {
+    timeout: ENVIRONMENT_START_TIMEOUT_MS,
+  });
+  await item.click();
+
+  const dialog = page.getByRole("alertdialog", { name: resetDialogTitle });
+  await expect(dialog).toBeVisible();
+  // getByRole skips aria-hidden elements, and the dialog hides the rest of the page.
+  await expect(page.locator('[role="menu"]')).toHaveCount(0);
+  const cancel = dialog.getByRole("button", { name: cancelLabel, exact: true });
+  // Focus reaches Cancel only after the dialog's mount effect hid the rest of the page (react-dialog
+  // DialogContentModal, react-focus-scope), so the reads below see the dialog's hide.
+  await expect(cancel).toBeFocused();
+  expect(await liveContainers(page, noticeTexts), "under the reset dialog").toEqual(withoutNotices);
+  await showNotices(page);
+  await expect(dialog).toBeVisible();
+  expect(await liveContainers(page, noticeTexts), "under the reset dialog, notices shown").toEqual(
+    withNotices,
+  );
+
+  // A guard that stops Cancel stops Reset: both are Radix Dialog.Close with an onClick.
+  await cancel.dispatchEvent("click");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  expect(await readDialogClickGuard(page), "the dialog click guard").toEqual({
+    blocked: [cancelLabel],
+    reachedDocument: [],
+  });
 });
