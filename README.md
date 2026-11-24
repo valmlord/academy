@@ -14,7 +14,8 @@ while the agents design and review.
 docs/learning-process.md  how learning works (start here)
 docs/architecture.md      platform components
 docs/adr/                 architecture decisions
-docs/course-reference.md  reference course program
+docs/courses/<course-id>/ reference program of each course (reference.md)
+docs/check-exit-codes.md  how a command check's grader ends, for every course
 packages/lesson-schema/   lesson contract between the teams + validator
 course/                   course content (written by the methodologists)
 design/                   flows, design system and page prototypes (written by the design team, ADR-0006)

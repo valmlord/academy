@@ -353,7 +353,7 @@ in a record (`check_results`). `attemptLimit`, `failedCount` and `lastAttemptCou
 
    The exit-code contract lives here and not in ADR-0001: ADR-0001 item 7 requires migrating every lesson in the
    same PR, while the two module 00 scripts that still exit 1 on a format error are fixed by a content follow-up
-   (decision D3 of #101), which also documents the codes in `docs/course-reference.md`.
+   (decision D3 of #101), which also documents the codes in `docs/check-exit-codes.md`.
 4. **Lesson outcome and stickiness** (with rule 1 replaces "Completion", amends "Sticky", S7, S9). The stored outcome
    is `lesson_progress.status`. Derived over counted checks: `completed` when the lesson has at least one counted
    check and every counted check has passed; `not-passed` when no counted check is open (open = counted, not passed,
