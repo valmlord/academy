@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { headers } from "next/headers";
 import { type ReactElement, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CourseError } from "@/components/course-error";
@@ -6,9 +7,15 @@ import { FocusOnMount } from "@/components/focus-on-mount";
 import { LESSON_TITLE_ID } from "@/components/lesson/lesson-header";
 import { takeAnyRetryFocus } from "@/components/retry-button";
 import { notFoundSentence, notFoundTitle, openCourseLabel, retryLabel } from "@/lib/copy";
-import { CourseReadError } from "@/lib/course/errors";
-import { getFirstReadableCourse } from "@/lib/course/server";
+import { PATHNAME_HEADER } from "@/lib/next-path";
 import { getSession } from "@/lib/session";
+import {
+  BROKEN_COURSE_ID,
+  type CourseFixture,
+  createCourseFixture,
+  FIXTURE_COURSE_ID,
+} from "@/test/course-fixture";
+import { fsCalls, useCourseRoot } from "@/test/course-server-fake";
 import NotFound from "./not-found";
 
 // router.refresh re-renders the page from the server inside the button's transition; the mock does the
@@ -17,17 +24,34 @@ let refreshOutcome: () => void = () => undefined;
 const refresh = vi.fn(() => refreshOutcome());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/lib/session", () => ({ getSession: vi.fn() }));
-vi.mock("@/lib/course/server", () => ({ getFirstReadableCourse: vi.fn() }));
+vi.mock(
+  "@/lib/course/server",
+  async () => (await import("@/test/course-server-fake")).courseServerFake,
+);
+vi.mock("next/headers", () => ({ headers: vi.fn() }));
 
-const COURSE_ID = "ai-for-developers";
+const COURSE_ID = FIXTURE_COURSE_ID;
 // The catalog page's h1 id (app/(app)/courses/[courseId]/page.tsx): a page file cannot export it.
 const CATALOG_TITLE_ID = "course-title";
 
+let fixture: CourseFixture;
+
+/** The request as the proxy forwards it: with the pathname header, or without one where it did not run. */
+function requestPath(pathname: string | undefined): void {
+  vi.mocked(headers).mockResolvedValue(
+    new Headers(pathname === undefined ? {} : { [PATHNAME_HEADER]: pathname }),
+  );
+}
+
 beforeEach(() => {
   window.history.replaceState(null, "", "/");
+  fixture = createCourseFixture();
+  useCourseRoot(fixture.root);
+  requestPath(undefined);
 });
 afterEach(() => {
   cleanup();
+  fixture.remove();
   if (vi.isFakeTimers()) {
     vi.runOnlyPendingTimers();
     vi.useRealTimers();
@@ -40,10 +64,6 @@ beforeEach(() => {
   vi.mocked(getSession).mockResolvedValue({
     user: { id: "user-1", email: "learner@example.com" },
     session: { expiresAt: new Date("2030-01-01T00:00:00Z") },
-  });
-  vi.mocked(getFirstReadableCourse).mockResolvedValue({
-    kind: "course",
-    tree: { id: COURSE_ID, title: "Course", description: "About", dir: COURSE_ID, modules: [] },
   });
 });
 
@@ -85,7 +105,9 @@ async function pressRetry(): Promise<void> {
 }
 
 describe("NotFound", () => {
-  it("renders the sentence and Открыть курс under a script-focusable h1 while the course id is known", async () => {
+  it("renders the sentence and Открыть курс under a script-focusable h1 for an unknown lesson of a readable course", async () => {
+    requestPath(`/courses/${COURSE_ID}/lessons/no-such-lesson`);
+
     render(await NotFound());
 
     const heading = screen.getByRole("heading", { level: 1, name: notFoundTitle });
@@ -100,18 +122,43 @@ describe("NotFound", () => {
     );
   });
 
-  it("renders only the h1 and the sentence while the course id is unknown", async () => {
-    vi.mocked(getFirstReadableCourse).mockResolvedValue({
-      kind: "course-failure",
-      error: new CourseReadError(COURSE_ID, `${COURSE_ID}/course.yaml`, "unreadable (EACCES)"),
-    });
+  // The page cannot tell the proxy's header from a client's, so each row is also a spoofed header on a path
+  // the proxy skips.
+  it.each<[string, string | undefined, string[]]>([
+    ["a course id outside the id form", "/courses/A%20B/lessons/x", []],
+    ["an encoded traversal", "/courses/..%2Fcourse-b/lessons/x", []],
+    ["an unlisted course", "/courses/no-such-course/lessons/x", ['listDirs ""']],
+    [
+      "a failing course",
+      `/courses/${BROKEN_COURSE_ID}/lessons/x`,
+      ['listDirs ""', 'readText "broken-course/course.yaml"'],
+    ],
+    ["a catalog path", `/courses/${COURSE_ID}`, []],
+    ["an unmatched path", "/no/such/path", []],
+    ["no pathname header", undefined, []],
+  ])(
+    "renders only the h1 and the sentence for %s, opening only %o",
+    async (_case, pathname, files) => {
+      requestPath(pathname);
+
+      render(await NotFound());
+
+      const main = screen.getByRole("main");
+      expect(within(main).getByText(notFoundSentence)).toBeInTheDocument();
+      expect(within(main).queryByRole("link")).toBeNull();
+      expect(within(main).queryByRole("button")).toBeNull();
+      expect(fsCalls).toEqual(files);
+    },
+  );
+
+  it("reads no course without a session", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+    requestPath(`/courses/${COURSE_ID}/lessons/no-such-lesson`);
 
     render(await NotFound());
 
-    const main = screen.getByRole("main");
-    expect(within(main).getByText(notFoundSentence)).toBeInTheDocument();
-    expect(within(main).queryByRole("link")).toBeNull();
-    expect(within(main).queryByRole("button")).toBeNull();
+    expect(within(screen.getByRole("main")).queryByRole("link")).toBeNull();
+    expect(fsCalls).toEqual([]);
   });
 
   it.each([

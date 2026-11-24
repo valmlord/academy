@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import {
   brandName,
   courseLinkLabel,
@@ -19,48 +19,82 @@ test.beforeEach(async ({ page }) => {
 });
 
 // U-2, U-3: an unknown course, an unknown lesson and any unmatched path render (app)/not-found.tsx inside
-// the signed-in shell with status 404 (design 4.Q5, D1).
+// the signed-in shell with status 404 (design 4.Q5, D1). Only an unknown lesson of a readable course, way (4)
+// of ia.md A218-12, offers "Открыть курс"; the proxy's pathname header is what tells the page which course.
 const UNKNOWN_PATHS = [
   {
     kind: "unknown lesson",
     path: (courseId: string) => `${catalogPath(courseId)}/lessons/no-such-lesson`,
+    hasOpenCourse: true,
   },
-  { kind: "unknown course", path: () => catalogPath("no-such-course") },
-  { kind: "unmatched path", path: () => "/no/such/path" },
+  {
+    kind: "unknown course's lesson",
+    path: () => `${catalogPath("no-such-course")}/lessons/no-such-lesson`,
+    hasOpenCourse: false,
+  },
+  { kind: "unknown course", path: () => catalogPath("no-such-course"), hasOpenCourse: false },
+  { kind: "unmatched path", path: () => "/no/such/path", hasOpenCourse: false },
 ];
 
-for (const { kind, path } of UNKNOWN_PATHS) {
-  test(`an ${kind} shows the not-found page with status 404`, async ({ page }) => {
+async function expectNotFoundPage(page: Page): Promise<void> {
+  await expect(page).toHaveTitle(notFoundTitle);
+  const heading = page.getByRole("heading", { level: 1, name: notFoundTitle });
+  await expect(heading).toBeVisible();
+  await expect(heading).toHaveAttribute("tabindex", "-1");
+  // AC2: the h1, the one sentence and at most "Открыть курс", nothing else in main.
+  const main = page.getByRole("main");
+  await expect(main.locator("p")).toHaveText([notFoundSentence]);
+  await expect(main.getByRole("alert")).toHaveCount(0);
+  await expect(main.locator("svg, img")).toHaveCount(0);
+  const banner = page.getByRole("banner");
+  for (const name of [homeTitle, courseLinkLabel]) {
+    await expect(banner.getByRole("link", { name, exact: true })).not.toHaveAttribute(
+      "aria-current",
+      /.*/,
+    );
+  }
+}
+
+for (const { kind, path, hasOpenCourse } of UNKNOWN_PATHS) {
+  test(`an ${kind} shows the not-found page with status 404, ${hasOpenCourse ? "with" : "without"} Открыть курс`, async ({
+    page,
+  }) => {
     const catalog = await repoCatalog();
 
     const response = await page.goto(path(catalog.id));
 
     expect(response?.status(), "status of the not-found response").toBe(404);
-    await expect(page).toHaveTitle(notFoundTitle);
-    const heading = page.getByRole("heading", { level: 1, name: notFoundTitle });
-    await expect(heading).toBeVisible();
-    await expect(heading).toHaveAttribute("tabindex", "-1");
-    // AC2: the h1, the one sentence and "Открыть курс", nothing else in main.
+    await expectNotFoundPage(page);
     const main = page.getByRole("main");
-    await expect(main.locator("p")).toHaveText([notFoundSentence]);
-    await expect(main.getByRole("alert")).toHaveCount(0);
-    await expect(main.locator("svg, img")).toHaveCount(0);
-    const banner = page.getByRole("banner");
-    for (const name of [homeTitle, courseLinkLabel]) {
-      await expect(banner.getByRole("link", { name, exact: true })).not.toHaveAttribute(
-        "aria-current",
-        /.*/,
-      );
-    }
+    const openCourse = main.getByRole("link", { name: openCourseLabel });
     await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
     await page.keyboard.press("F6");
     await expect(page.getByRole("link", { name: brandName })).toBeFocused();
     await page.keyboard.press("F6");
-    const openCourse = page.getByRole("main").getByRole("link", { name: openCourseLabel });
+    if (!hasOpenCourse) {
+      // AC4: with nothing focusable in main, the second F6 focuses main itself.
+      await expect(openCourse).toHaveCount(0);
+      await expect(main).toBeFocused();
+      return;
+    }
     await expect(openCourse).toBeFocused();
     await openCourse.click();
     await expect(page.getByRole("heading", { level: 1, name: catalog.title })).toBeVisible();
     expect(new URL(page.url()).pathname).toBe(catalogPath(catalog.id));
+  });
+}
+
+for (const courseId of ["A%20B", "..%2Fcourse-b"]) {
+  test(`a course id ${courseId} outside the id form answers 404 without Открыть курс`, async ({
+    page,
+  }) => {
+    const response = await page.goto(catalogPath(courseId));
+
+    expect(response?.status(), "status of the not-found response").toBe(404);
+    await expectNotFoundPage(page);
+    await expect(page.getByRole("main").getByRole("link", { name: openCourseLabel })).toHaveCount(
+      0,
+    );
   });
 }
 
@@ -80,7 +114,8 @@ test("an ordinary arrival at the not-found page leaves focus where the browser p
 test("the sentence sits 16px between the h1 and Открыть курс, with no horizontal scroll", async ({
   page,
 }) => {
-  await page.goto("/no/such/path");
+  const catalog = await repoCatalog();
+  await page.goto(`${catalogPath(catalog.id)}/lessons/no-such-lesson`);
   const main = page.getByRole("main");
   const heading = main.getByRole("heading", { level: 1, name: notFoundTitle });
   const sentence = main.locator("p");
