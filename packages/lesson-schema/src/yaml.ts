@@ -1,6 +1,7 @@
 // ADR-0009 item 7's YAML rules for course.yaml, module.yaml and lesson.yaml, shared by content:validate and the
-// course loaders of the web and the workspace service. Imports only `yaml`, so the web can use it without reaching
-// validate.js and its node:fs walks (ADR-0009 item 4).
+// course loaders of the web and the workspace service; content:validate also reads each quiz check's file through
+// them (ADR-0001 item 6). Imports only `yaml`, so the web can use it without reaching validate.js and its node:fs
+// walks (ADR-0009 item 4).
 import { type ErrorCode, LineCounter, parseDocument } from "yaml";
 
 export type CourseYamlParse =

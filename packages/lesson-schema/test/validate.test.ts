@@ -181,6 +181,15 @@ ${attempts}`;
 
 const limitBlock = (limit: number) => `    attempts:\n      limit: ${limit}\n`;
 
+/** Writes quiz.yaml with `questionCount` questions; the threshold check reads only the list's length. */
+function writeQuizFile(questionCount: number): void {
+  const items = Array.from({ length: questionCount }, (_, i) => `  - { id: q${i + 1} }\n`).join("");
+  write(`${L}/quiz.yaml`, `version: 1\nquestions:\n${items}`);
+}
+
+// The threshold sentence of quizCheck for 5 questions at passScore 0.8.
+const Q_TASK = "# Task\n\n**`q`** (квиз): 5 вопросов, нужно 4 верных.\n";
+
 const baseLesson = {
   id: "agents-md",
   title: "AGENTS.md",
@@ -308,13 +317,14 @@ describe("check attempts", () => {
 
   it("caps the limit of ready quiz and bug-hunt checks at 3", () => {
     validCourse();
-    write(`${L}/quiz.yaml`, "q: 1\n");
+    writeQuizFile(5);
     write(`${L}/checks/answers.yaml`, "a: 1\n");
     const cases = [
-      { check: quizCheck, id: "q", kind: "quiz" },
-      { check: bugHuntCheck, id: "hunt", kind: "bug-hunt" },
+      { check: quizCheck, id: "q", kind: "quiz", task: Q_TASK },
+      { check: bugHuntCheck, id: "hunt", kind: "bug-hunt", task: "# Task\n" },
     ];
-    for (const { check, id, kind } of cases) {
+    for (const { check, id, kind, task } of cases) {
+      write(`${L}/task.md`, task);
       withChecks(check(limitBlock(3)));
       expect(validateCourses(root).issues).toEqual([]);
 
@@ -351,7 +361,8 @@ describe("unknown check keys in ready lessons", () => {
 
   it("reports nothing for a check of every kind that uses only its own keys", () => {
     validCourse();
-    write(`${L}/quiz.yaml`, "q: 1\n");
+    writeQuizFile(5);
+    write(`${L}/task.md`, Q_TASK);
     write(`${L}/checks/rubric.md`, "rubric\n");
     write(`${L}/checks/answers.yaml`, "a: 1\n");
 
@@ -387,7 +398,8 @@ ${bugHuntCheck(limitBlock(2))}`);
 
   it("checks keys against the member of the check's own kind", () => {
     validCourse();
-    write(`${L}/quiz.yaml`, "q: 1\n");
+    writeQuizFile(5);
+    write(`${L}/task.md`, Q_TASK);
 
     withChecks(quizCheck(`${limitBlock(3)}    run: "pytest"\n`));
 
@@ -663,3 +675,365 @@ describe("files that cannot be read", () => {
 function readLesson() {
   return readFileSync(join(root, `${L}/lesson.yaml`), "utf8");
 }
+
+const TF = `${L}/task.md`;
+const QF = `${L}/quiz.yaml`;
+
+/** Replaces the lesson's checks with one ready quiz check `q` at `passScore`. */
+function quizLesson(passScore = "0.8"): void {
+  withChecks(quizCheck(limitBlock(3)).replace("passScore: 0.8", `passScore: ${passScore}`));
+}
+
+const UNREADABLE =
+  'this sentence counts as a quiz threshold statement (it begins "`<id>` (квиз):", or it contains "квиз" and a count; see ADR-0001 item 6 and the fixture table it names) but has neither threshold form (for example "`<check id>` (квиз): Q вопросов, нужно K верных." or "Квиз: не меньше K из Q."), so it was not compared';
+const MISSING_Q_SENTENCE =
+  'check "q" (quiz): task.md has no sentence that begins with "`q` (квиз):", bold or not, the threshold sentence of this check (see ADR-0001 item 6 and the fixture table it names; for example "`q` (квиз): Q вопросов, нужно K верных.")';
+const SIX_QUESTIONS_REQUIRE_FIVE =
+  "quiz.yaml has 6 questions, and passScore 0.8 requires 5 correct";
+const NO_QUESTIONS_LIST =
+  'check "q" (quiz): no top-level "questions" list; question count unknown, so task.md\'s threshold was not compared';
+const Q_SENTENCE_6_5 = "**`q`** (квиз): 6 вопросов, нужно 5 верных.\n";
+
+describe("quiz threshold in task.md", () => {
+  it("accepts a ready quiz whose task.md states the server's threshold in both forms", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, `# Task\n\n${Q_SENTENCE_6_5}\n1. Квиз: не меньше 5 из 6.\n`);
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([]);
+  });
+
+  it("reports a sentence whose numbers disagree with the question count and passScore", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, "# Task\n\n**`q`** (квиз): 5 вопросов, нужно 4 верных.\n");
+    quizLesson();
+
+    const issues = validateCourses(root).issues;
+
+    expect(issues).toEqual([
+      {
+        file: TF,
+        message: `line 3: check "q" (quiz) states 5 questions and 4 correct required; ${SIX_QUESTIONS_REQUIRE_FIVE}`,
+      },
+    ]);
+  });
+
+  it("reports a restatement whose numbers disagree", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, `${Q_SENTENCE_6_5}\nКвиз: не меньше 4 верных из 6.\n`);
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([
+      `line 3: "Квиз:" restatement states 4 correct of 6; check "q" (quiz): ${SIX_QUESTIONS_REQUIRE_FIVE}`,
+    ]);
+  });
+
+  it("requires the count the server computes, 7 of 25 at passScore 0.28", () => {
+    validCourse();
+    writeQuizFile(25);
+    quizLesson("0.28");
+
+    write(TF, "**`q`** (квиз): 25 вопросов, нужно 7 верных.\n");
+    const atServerCount = issueMessages();
+    write(TF, "**`q`** (квиз): 25 вопросов, нужно 8 верных.\n");
+    const atCeilCount = issueMessages();
+
+    expect(atServerCount).toEqual([]);
+    expect(atCeilCount).toEqual([
+      'line 1: check "q" (quiz) states 25 questions and 8 correct required; quiz.yaml has 25 questions, and passScore 0.28 requires 7 correct',
+    ]);
+  });
+
+  it("reports a ready quiz check with no threshold sentence, with the numbers it needs", () => {
+    validCourse();
+    writeQuizFile(6);
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([`${MISSING_Q_SENTENCE}; ${SIX_QUESTIONS_REQUIRE_FIVE}`]);
+  });
+
+  it("reports a threshold sentence for an id that is not a quiz check, and the check's missing sentence", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, "**`qq`** (квиз): 6 вопросов, нужно 5 верных.\n");
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([
+      'line 1: the sentence names "qq" as a quiz check ("`qq` (квиз):"), but "qq" is not a quiz check of lesson.yaml (quiz checks: q)',
+      `${MISSING_Q_SENTENCE}; ${SIX_QUESTIONS_REQUIRE_FIVE}`,
+    ]);
+  });
+
+  it("reports a quiz sentence it cannot read instead of skipping it, and an unreadable sentence of another id before its id", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, `${Q_SENTENCE_6_5}\nКвиз: нужно 80% верных.\n\n**\`qq\`** (квиз): 6 вопросов.\n`);
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([
+      `line 3: ${UNREADABLE}`,
+      `line 5: ${UNREADABLE}`,
+      'line 5: the sentence names "qq" as a quiz check ("`qq` (квиз):"), but "qq" is not a quiz check of lesson.yaml (quiz checks: q)',
+    ]);
+  });
+
+  it("reports a restatement in a lesson without a quiz check", () => {
+    validCourse();
+    write(TF, "Квиз: не меньше 5 из 6.\n");
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual(['line 1: "Квиз:" restatement, but lesson.yaml has no quiz check']);
+  });
+
+  it("names the quiz checks when a restatement cannot be matched to one", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(
+      TF,
+      `${Q_SENTENCE_6_5}\n**\`q2\`** (квиз): 6 вопросов, нужно 5 верных.\n\nКвиз: не меньше 5 из 6.\n`,
+    );
+    const secondQuiz = quizCheck(limitBlock(3)).replace("id: q", "id: q2");
+    withChecks(`${quizCheck(limitBlock(3))}${secondQuiz}`);
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([
+      'line 5: "Квиз:" restatement names no check, and lesson.yaml has 2 quiz checks (q, q2); state each threshold in its "`<check id>` (квиз):" sentence',
+    ]);
+  });
+
+  it("reports a quiz file without a questions list once and prints no required count", () => {
+    validCourse();
+    write(QF, "version: 1\n");
+    write(TF, Q_SENTENCE_6_5);
+    quizLesson();
+
+    const issues = validateCourses(root).issues;
+
+    expect(issues).toEqual([{ file: QF, message: NO_QUESTIONS_LIST }]);
+  });
+
+  it("reports the missing sentence without a required count when the question count is unknown", () => {
+    validCourse();
+    write(QF, "version: 1\n");
+    write(TF, "# Task\n\nКвиз: не меньше 5 из 6.\n");
+    quizLesson();
+
+    const issues = validateCourses(root).issues;
+
+    expect(issues).toEqual([
+      { file: QF, message: NO_QUESTIONS_LIST },
+      { file: TF, message: MISSING_Q_SENTENCE },
+    ]);
+  });
+
+  it("reports a quiz file that is not valid YAML with the YAML reason", () => {
+    validCourse();
+    write(QF, "version: 1\nquestions: [unclosed\n");
+    write(TF, Q_SENTENCE_6_5);
+    quizLesson();
+
+    const issues = validateCourses(root).issues;
+
+    expect(issues).toEqual([
+      {
+        file: QF,
+        message:
+          'invalid YAML at line 3 (BAD_INDENT); check "q" (quiz): question count unknown, so task.md\'s threshold was not compared',
+      },
+    ]);
+  });
+
+  it("reports an empty questions list", () => {
+    validCourse();
+    write(QF, "version: 1\nquestions: []\n");
+    write(TF, Q_SENTENCE_6_5);
+    quizLesson();
+
+    const issues = validateCourses(root).issues;
+
+    expect(issues).toEqual([
+      {
+        file: QF,
+        message:
+          'check "q" (quiz): "questions" is an empty list, and a quiz needs at least one question; task.md\'s threshold was not compared',
+      },
+    ]);
+  });
+
+  it("reports a missing quiz file only as a missing referenced file", () => {
+    validCourse();
+    write(TF, Q_SENTENCE_6_5);
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual(["referenced file not found: quiz.yaml"]);
+  });
+
+  it("does not check the quiz threshold of a draft lesson", () => {
+    validCourse();
+    asDraft();
+    write(QF, "version: 1\n");
+    write(TF, "**`q`** (квиз): 5 вопросов, нужно 1 верных.\n\nКвиз: нужно 80% верных.\n");
+    withChecks(quizCheck(""));
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([]);
+  });
+
+  it("reports a sentence whose only wrong number is the required count", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, "**`q`** (квиз): 6 вопросов, нужно 4 верных.\n");
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([
+      `line 1: check "q" (quiz) states 6 questions and 4 correct required; ${SIX_QUESTIONS_REQUIRE_FIVE}`,
+    ]);
+  });
+
+  it("reports a sentence whose only wrong number is the question count", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, "**`q`** (квиз): 5 вопросов, нужно 5 верных.\n");
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([
+      `line 1: check "q" (quiz) states 5 questions and 5 correct required; ${SIX_QUESTIONS_REQUIRE_FIVE}`,
+    ]);
+  });
+
+  it("accepts a quiz of one question", () => {
+    validCourse();
+    writeQuizFile(1);
+    write(TF, "**`q`** (квиз): 1 вопрос, нужно 1 верный.\n");
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([]);
+  });
+
+  it("counts an unreadable sentence that begins with the check's id as the check's sentence", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, "**`q`** (квиз): шесть вопросов.\n");
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([`line 1: ${UNREADABLE}`]);
+  });
+
+  it("reads the check's sentence inside a quote and a list item", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, `> - ${Q_SENTENCE_6_5}`);
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([]);
+  });
+
+  it("does not take a table row as the check's sentence", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(TF, "| **`q`** (квиз): 6 вопросов, нужно 5 верных. |\n");
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([
+      `line 1: ${UNREADABLE}`,
+      `${MISSING_Q_SENTENCE}; ${SIX_QUESTIONS_REQUIRE_FIVE}`,
+    ]);
+  });
+
+  it("reports nothing for quiz sentences without a count", () => {
+    validCourse();
+    writeQuizFile(6);
+    write(
+      TF,
+      `${Q_SENTENCE_6_5}\n- Квиз: не больше 3 попыток. После неудачи откроется разбор.\n6. Квиз пройден.\n`,
+    );
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([]);
+  });
+
+  it.each([
+    ["a scalar", "42\n"],
+    ["a list", "- a\n"],
+    ["a number for questions", "version: 1\nquestions: 3\n"],
+    ["a mapping for questions", "version: 1\nquestions: { a: 1 }\n"],
+  ])("reports a quiz file whose top level gives no questions list: %s", (_shape, quizYaml) => {
+    validCourse();
+    write(QF, quizYaml);
+    write(TF, Q_SENTENCE_6_5);
+    quizLesson();
+
+    const issues = validateCourses(root).issues;
+
+    expect(issues).toEqual([{ file: QF, message: NO_QUESTIONS_LIST }]);
+  });
+
+  it("reports a missing task.md only as a missing required file", () => {
+    validCourse();
+    writeQuizFile(6);
+    rmSync(join(root, TF));
+    quizLesson();
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual(["status ready requires task.md"]);
+  });
+
+  it("reports an unreadable task.md only as unreadable", () => {
+    // Root reads a mode-000 file, so the case would prove nothing: fail rather than skip.
+    expect(process.getuid?.()).not.toBe(0);
+    validCourse();
+    writeQuizFile(6);
+    quizLesson();
+    chmodSync(join(root, TF), 0o000);
+
+    const issues = validateCourses(root).issues;
+
+    expect(issues).toEqual([{ file: TF, message: "unreadable (EACCES)" }]);
+  });
+
+  it("does not check the quiz threshold of a planned lesson", () => {
+    validCourse();
+    asDraft();
+    write(`${L}/lesson.yaml`, readLesson().replace("status: draft", "status: planned"));
+    write(QF, "version: 1\n");
+    write(TF, "**`q`** (квиз): 5 вопросов, нужно 1 верных.\n\nКвиз: нужно 80% верных.\n");
+    withChecks(quizCheck(""));
+
+    const messages = issueMessages();
+
+    expect(messages).toEqual([]);
+  });
+});
