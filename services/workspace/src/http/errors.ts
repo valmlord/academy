@@ -1,7 +1,9 @@
 import type { FastifyBaseLogger, FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   ContainerNameUnresolvedError,
+  CourseFileError,
   CourseReadError,
+  CourseRootReadError,
   DockerApiError,
   DockerResponseShapeError,
   DockerUnavailableError,
@@ -45,7 +47,10 @@ const CLASS_MAP: ReadonlyArray<readonly [ErrorClass, number, string]> = [
   [LessonHasNoWorkspaceError, 422, "lesson-has-no-workspace"],
   [StarterRefusedError, 500, "starter-invalid"],
   [StarterTooLargeError, 500, "starter-invalid"],
+  [CourseRootReadError, 500, "course-unreadable"],
   [CourseReadError, 500, "course-unreadable"],
+  // A file-layer error that escaped its catch on the PUT path still answers as an unreadable course.
+  [CourseFileError, 500, "course-unreadable"],
   [WorkspaceIdentityMismatchError, 500, "workspace-identity-mismatch"],
   [DockerApiError, 502, "docker-error"],
   // Docker answered, but contradicted itself (name taken, no container); a retry of the ensure converges.

@@ -220,3 +220,16 @@ contract between them is costly to change once #32 builds its client on it, so i
   without the workspace labels; the window runs from the volume ensure until the daemon's create takes its
   reference on the volume, after it has created the container layer, so under load it can last hundreds of
   milliseconds or more."
+- #240 (Proposed), 2026-11-25. Several courses (ADR-0009 item 6 as amended by #219). In item 3, the sentence
+  "Only `PUT` reads the course: `GET`, `stop`, `DELETE` and `activity` work from Docker objects and the validated
+  key alone, so a workspace whose lesson left the course stays stoppable and deletable." reads: "Only `PUT` reads
+  course files: the course root's listing and its own course, never another course, so another course failing does
+  not affect it. Its course id is untrusted: after the key rule above, the service's one per-course read function
+  looks it up among the directory names the root lists and builds every path from the listed name, so an id the
+  root does not list opens no file. `GET`, `stop`, `DELETE` and `activity` work from Docker objects and the
+  validated key alone, so a workspace whose lesson left its course stays stoppable and deletable." In item 6, the
+  `lesson-not-found` row's "the course has no such lesson" reads "the root lists no course of that id (item 3), or
+  that course has no such lesson", and the `course-unreadable` row's "any course file is missing, a symlink,
+  invalid YAML or schema, or a duplicate id: the whole course is unreadable, as in the web (ADR-0009 item 7)" reads
+  "the course root or the request's course fails to read (ADR-0009 item 7 as amended by #219); the message tells a
+  root failure from a course failure". No route, field or error code changes.

@@ -6,7 +6,7 @@ import { inspect } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readCourseFile } from "../../../src/course/files.js";
 import { parseYamlFile } from "../../../src/course/yaml.js";
-import { CourseReadError } from "../../../src/errors.js";
+import { CourseFileError } from "../../../src/errors.js";
 
 let root: string;
 
@@ -20,11 +20,11 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-async function refusal(rel: string, base: string = root): Promise<CourseReadError> {
+async function refusal(rel: string, base: string = root): Promise<CourseFileError> {
   try {
     await readCourseFile(base, rel);
   } catch (error) {
-    if (error instanceof CourseReadError) return error;
+    if (error instanceof CourseFileError) return error;
     throw error;
   }
   throw new Error(`readCourseFile accepted ${rel}`);
@@ -32,11 +32,11 @@ async function refusal(rel: string, base: string = root): Promise<CourseReadErro
 
 const ALIAS_REASON = "invalid YAML: alias cannot be resolved (unknown anchor or too many aliases)";
 
-function yamlRefusal(text: string): CourseReadError {
+function yamlRefusal(text: string): CourseFileError {
   try {
     parseYamlFile(text, "x.yaml");
   } catch (error: unknown) {
-    if (error instanceof CourseReadError) return error;
+    if (error instanceof CourseFileError) return error;
     throw error;
   }
   throw new Error("parseYamlFile accepted the text");
@@ -123,12 +123,12 @@ describe("parseYamlFile", () => {
     const text = "id: one\nsecret-canary: !unknown-tag value\n";
 
     expect(() => parseYamlFile(text, "x.yaml")).toThrow(
-      new CourseReadError("x.yaml", "invalid YAML at line 2"),
+      new CourseFileError("x.yaml", "invalid YAML at line 2"),
     );
   });
 
   it("fails on a second document", () => {
-    expect(() => parseYamlFile("id: one\n---\nid: two\n", "x.yaml")).toThrow(CourseReadError);
+    expect(() => parseYamlFile("id: one\n---\nid: two\n", "x.yaml")).toThrow(CourseFileError);
   });
 
   it("refuses an alias without an anchor with a fixed reason and no library text", () => {

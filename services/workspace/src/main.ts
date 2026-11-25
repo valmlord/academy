@@ -1,5 +1,5 @@
 import { type Config, loadConfig } from "./config.js";
-import { readCourseLessons } from "./course/lessons.js";
+import { readCourseById, readEveryCourse } from "./course/lessons.js";
 import { DockerEngine } from "./docker/engine.js";
 import { DockerRuntime } from "./docker/runtime.js";
 import { InvalidConfigError } from "./errors.js";
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
     now: Date.now,
   });
   const mutex = new KeyedMutex();
-  const readCourse = () => readCourseLessons(config.courseRoot);
+  const readCourse = (courseId: string) => readCourseById(config.courseRoot, courseId);
   // The manager and reconcile log through Fastify's logger, which exists only once the app is built.
   const logTarget: { current: ServiceLog } = { current: console };
   const log: ServiceLog = {
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
   });
   const reconciler = new Reconciler({
     runtime,
-    readCourse,
+    readCourses: () => readEveryCourse(config.courseRoot),
     instance: config.instance,
     tracker,
     mutex,

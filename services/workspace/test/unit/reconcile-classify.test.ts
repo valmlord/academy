@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CourseLessons } from "../../src/course/lessons.js";
+import { CourseReadError } from "../../src/errors.js";
 import {
   LABEL,
   type WorkspaceKey,
@@ -7,7 +8,7 @@ import {
   workspaceLabels,
   workspaceNames,
 } from "../../src/identity.js";
-import { classifyContainer } from "../../src/reconcile.js";
+import { type CourseStates, classifyContainer } from "../../src/reconcile.js";
 import type { ManagedContainer } from "../../src/runtime.js";
 
 // U-reconcile, classification (design 6.5 step 3): the pure table, one row per case.
@@ -16,8 +17,10 @@ const INSTANCE = "local";
 const KEY: WorkspaceKey = { userId: "user-1", courseId: "course-a", lessonId: "with-workspace" };
 const GONE_KEY: WorkspaceKey = { ...KEY, lessonId: "removed-lesson" };
 const THEORY_KEY: WorkspaceKey = { ...KEY, lessonId: "theory-only" };
+const FAILING_KEY: WorkspaceKey = { ...KEY, courseId: "course-b" };
+const UNLISTED_KEY: WorkspaceKey = { ...KEY, courseId: "course-z" };
 
-const COURSE = new CourseLessons([
+const LESSONS = new CourseLessons([
   {
     courseId: "course-a",
     lessonId: "with-workspace",
@@ -32,6 +35,15 @@ const COURSE = new CourseLessons([
     workspace: null,
     commandChecks: [],
   },
+]);
+
+/** A root listing one readable course. */
+const COURSE: CourseStates = new Map([["course-a", LESSONS]]);
+
+/** A root listing `course-a` and `course-b`, which fails. */
+const ONE_FAILING: CourseStates = new Map<string, CourseLessons | CourseReadError>([
+  ["course-a", LESSONS],
+  ["course-b", new CourseReadError("course-b", "course-b/course.yaml", "missing")],
 ]);
 
 function container(key: WorkspaceKey, state: string): ManagedContainer {
@@ -133,7 +145,7 @@ describe("classifyContainer", () => {
     expect(classifyContainer(container(KEY, "exited"), INSTANCE, COURSE)).toEqual({ kind: "keep" });
   });
 
-  it("removes nothing when the course is unreadable, but still adopts and stops", () => {
+  it("removes nothing when the root fails, but still adopts and stops", () => {
     const results = [
       classifyContainer(invalidContainer("exited"), INSTANCE, null),
       classifyContainer(container(GONE_KEY, "exited"), INSTANCE, null),
@@ -143,5 +155,65 @@ describe("classifyContainer", () => {
     ];
 
     expect(results.map((result) => result.kind)).toEqual(["keep", "keep", "keep", "adopt", "stop"]);
+  });
+
+  it("keeps every stopped container of a failing course, dead included", () => {
+    const results = [
+      classifyContainer(container(FAILING_KEY, "exited"), INSTANCE, ONE_FAILING),
+      classifyContainer(
+        container({ ...FAILING_KEY, lessonId: "removed-lesson" }, "exited"),
+        INSTANCE,
+        ONE_FAILING,
+      ),
+      classifyContainer(container(FAILING_KEY, "dead"), INSTANCE, ONE_FAILING),
+    ];
+
+    expect(results.map((result) => result.kind)).toEqual(["keep", "keep", "keep"]);
+  });
+
+  it("still adopts and stops running containers of a failing course", () => {
+    const moved = { ...container(FAILING_KEY, "running"), name: "wks-local-ffffffffffffffffffff" };
+
+    expect(classifyContainer(container(FAILING_KEY, "running"), INSTANCE, ONE_FAILING)).toEqual({
+      kind: "adopt",
+      id: workspaceId(INSTANCE, FAILING_KEY),
+      key: FAILING_KEY,
+    });
+    expect(classifyContainer(moved, INSTANCE, ONE_FAILING)).toEqual({ kind: "stop" });
+  });
+
+  it("removes a stopped container with invalid labels when the root reads, even with a course failing", () => {
+    expect(classifyContainer(invalidContainer("exited"), INSTANCE, ONE_FAILING)).toEqual({
+      kind: "remove",
+      why: "invalid-labels",
+    });
+  });
+
+  it("removes a stopped container whose valid labels name the failing course but not the container's name as invalid-labels", () => {
+    const moved = { ...container(FAILING_KEY, "exited"), name: "wks-local-ffffffffffffffffffff" };
+
+    expect(classifyContainer(moved, INSTANCE, ONE_FAILING)).toEqual({
+      kind: "remove",
+      why: "invalid-labels",
+    });
+  });
+
+  it("removes a stopped container of an unlisted course as lesson-gone and adopts a running one", () => {
+    expect(classifyContainer(container(UNLISTED_KEY, "exited"), INSTANCE, ONE_FAILING)).toEqual({
+      kind: "remove",
+      why: "lesson-gone",
+    });
+    expect(classifyContainer(container(UNLISTED_KEY, "running"), INSTANCE, ONE_FAILING)).toEqual({
+      kind: "adopt",
+      id: workspaceId(INSTANCE, UNLISTED_KEY),
+      key: UNLISTED_KEY,
+    });
+  });
+
+  it("removes a dead container of an unlisted course as dead", () => {
+    expect(classifyContainer(container(UNLISTED_KEY, "dead"), INSTANCE, ONE_FAILING)).toEqual({
+      kind: "remove",
+      why: "dead",
+    });
   });
 });

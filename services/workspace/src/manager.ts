@@ -2,6 +2,7 @@ import type { CourseLessons } from "./course/lessons.js";
 import {
   DockerUnavailableError,
   LessonHasNoWorkspaceError,
+  LessonNotFoundError,
   WorkspaceNotFoundError,
   WorkspaceNotRunningError,
 } from "./errors.js";
@@ -43,8 +44,11 @@ const NO_STOP_HOOKS: StopHooks = { onStopping: () => undefined, onStopRejected: 
 
 export interface ManagerOptions {
   runtime: WorkspaceRuntime;
-  /** Reads the whole course; only an ensure calls it, so a lesson that left the course stays stoppable. */
-  readCourse: () => Promise<CourseLessons>;
+  /**
+   * The one course of the id, or `null` for no such course; only an ensure
+   * calls it, so a lesson that left its course stays stoppable.
+   */
+  readCourse: (courseId: string) => Promise<CourseLessons | null>;
   instance: string;
   /** `WORKSPACE_IMAGE`: replaces every lesson's image when set. */
   imageOverride: string | null;
@@ -77,7 +81,9 @@ export class WorkspaceManager {
   async ensure(key: WorkspaceKey): Promise<EnsureView> {
     const { runtime, readCourse, imageOverride, tracker, mutex } = this.#options;
     return mutex.run(this.lockKey(key), async () => {
-      const lesson = (await readCourse()).lesson(key.courseId, key.lessonId);
+      const course = await readCourse(key.courseId);
+      if (course === null) throw new LessonNotFoundError(key.courseId, key.lessonId);
+      const lesson = course.lesson(key.courseId, key.lessonId);
       if (lesson.workspace === null) {
         throw new LessonHasNoWorkspaceError(key.courseId, key.lessonId);
       }

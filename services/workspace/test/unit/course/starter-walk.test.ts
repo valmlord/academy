@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { readCourseLessons } from "../../../src/course/lessons.js";
+import { readEveryCourse } from "../../../src/course/lessons.js";
 import {
   MAX_STARTER_BYTES,
   MAX_STARTER_ENTRIES,
@@ -140,9 +140,16 @@ describe("walkStarter", () => {
 });
 
 describe("real course guard", () => {
-  it("walks every starter of the course without a refusal", async () => {
-    const course = await readCourseLessons(REAL_COURSE);
-    const withWorkspace = course.all().filter((lesson) => lesson.workspace !== null);
+  it("reads every course of the root and walks every starter without a refusal", async () => {
+    const every = await readEveryCourse(REAL_COURSE);
+    if (every.kind === "root-failure") throw every.error;
+    const failures = every.courses.flatMap((listed) =>
+      listed.kind === "course-failure" ? [listed.error.message] : [],
+    );
+    expect(failures).toEqual([]);
+    const withWorkspace = every.courses
+      .flatMap((listed) => (listed.kind === "course" ? listed.lessons.all() : []))
+      .filter((lesson) => lesson.workspace !== null);
 
     expect(withWorkspace.length).toBeGreaterThan(0);
     for (const lesson of withWorkspace) {

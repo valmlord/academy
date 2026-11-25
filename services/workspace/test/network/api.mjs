@@ -6,8 +6,9 @@
 //                    the service cannot use the Docker socket (P7, design 8.4 "workspace service reaches Docker").
 //   ensure <user>    PUT the workspace of <user> for the first lesson with a workspace; prints its container name.
 //   delete <user>    DELETE that workspace; exit 0 on 204, or on 404 when it is already gone.
-// The lesson comes from the service's own course reader, so the probe uses a lesson the service accepts.
-import { readCourseLessons } from "/app/dist/course/lessons.js";
+// The lesson comes from the service's own course reader, so the probe uses a lesson the service accepts: the
+// first lesson with a workspace of the readable courses, in the reader's course order.
+import { readEveryCourse } from "/app/dist/course/lessons.js";
 import { workspaceNames } from "/app/dist/identity.js";
 
 const SERVICE_URL = "http://127.0.0.1:4100";
@@ -16,10 +17,18 @@ const REQUEST_TIMEOUT_MS = 60_000;
 
 const [mode, user = "ci-missing"] = process.argv.slice(2);
 const secret = process.env.WORKSPACE_SERVICE_SECRET ?? "";
-const course = await readCourseLessons(process.env.COURSE_ROOT ?? "/course");
-const lesson = course.all().find((candidate) => candidate.workspace !== null);
+const every = await readEveryCourse(process.env.COURSE_ROOT ?? "/course");
+if (every.kind === "root-failure") {
+  console.error(`API FAIL ${every.error.message}`);
+  process.exit(1);
+}
+const lesson = every.courses
+  .flatMap((listed) => (listed.kind === "course" ? listed.lessons.all() : []))
+  .find((candidate) => candidate.workspace !== null);
 if (lesson === undefined) {
-  console.error("API FAIL no lesson with a workspace in the course");
+  const failures = every.courses.filter((listed) => listed.kind === "course-failure");
+  for (const failure of failures) console.error(`API FAIL ${failure.error.message}`);
+  if (failures.length === 0) console.error("API FAIL no lesson with a workspace in the course");
   process.exit(1);
 }
 const path = `/v1/users/${user}/courses/${lesson.courseId}/lessons/${lesson.lessonId}/workspace`;

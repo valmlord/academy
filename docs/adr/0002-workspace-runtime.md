@@ -1,6 +1,6 @@
 # ADR-0002: Workspaces: local Docker, one container per lesson
 
-- Status: Proposed (refined by #31; becomes Accepted when Stepan accepts it in the PR); amended by #115 (Proposed)
+- Status: Proposed (refined by #31; becomes Accepted when Stepan accepts it in the PR); amended by #115 (Proposed), #240 (Proposed)
 - Date: 2026-10-27, refined 2026-11-03
 - Issue: (bootstrap), refined by #31
 
@@ -327,3 +327,17 @@ The numbered items are what the code, compose files and comments cite as "ADR-00
   keep the key until a graceful stop of the old service ends them (ADR-0011 item 4); shells left by a killed service,
   and processes detached with `setsid`, keep it until their container stops. The `/v1/settings` field disappears; no
   client reads it yet.
+
+## Amendments
+- #240 (Proposed), 2026-11-25. Several courses (ADR-0009 item 6 as amended by #219). Proposed until Stepan
+  accepts it in the #240 PR; the text above stays, and the text here wins once accepted. In item 8, the sentence
+  "Never stops or removes a running container on derived state (a lesson that left the course is adopted into idle
+  tracking, so idle stop ends it); never removes a volume; removes nothing in a pass when the course is unreadable;
+  keeps containers of another label schema, running or not." reads: "Never stops or removes a running container on
+  derived state (a lesson that left its course is adopted into idle tracking, so idle stop ends it); never removes a
+  volume; keeps containers of another label schema, running or not. Each pass reads the course root and every
+  course of it, each course all or nothing, because a reader that skipped a bad lesson would let reconcile treat
+  that lesson's workspaces as orphans. A pass in which the root fails (ADR-0009 item 7) removes nothing. Otherwise
+  it keeps every stopped container of a failing course, dead ones included, but not one whose labels are invalid
+  or name another workspace than the container's name, because its classification reads no course data; and treats
+  a container whose course id names no course of the root as one whose lesson left the course (`lesson-gone`)."

@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { readCourseLessons } from "../../src/course/lessons.js";
+import { readCourseById, readEveryCourse } from "../../src/course/lessons.js";
 import { DockerEngine } from "../../src/docker/engine.js";
 import { DockerRuntime } from "../../src/docker/runtime.js";
 import {
@@ -36,38 +36,21 @@ const { runId, instance, decoyInstance } = useTestInstance("reconcile.int.test.t
 
 const MINUTE = 60_000;
 const T0 = Date.parse("2026-11-03T10:00:00Z");
-const THEORY_LESSON = "sample-course/01-basics/02-theory-only/lesson.yaml";
 const ID_BYTES = 10;
 
 function key(userId: string, lessonId = "with-workspace"): WorkspaceKey {
   return { userId, courseId: "sample-course", lessonId };
 }
 
-/** A copy of the fixture course whose theory lesson breaks the schema: the course is unreadable as a whole. */
-let brokenCourseRoot = "";
+/** A course root that lists no course: every pass over it is a root failure. */
+let emptyRoot = "";
 
 beforeAll(async () => {
-  brokenCourseRoot = await mkdtemp(join(tmpdir(), "reconcile-int-course-"));
-  await cp(FIXTURE_COURSE_ROOT, brokenCourseRoot, { recursive: true });
-  await writeFile(
-    join(brokenCourseRoot, THEORY_LESSON),
-    [
-      "id: theory-only",
-      "title: Invalid",
-      "type: theory",
-      "outcomes: [x]",
-      "estimatedMinutes: 5",
-      "status: draft",
-      "checks:",
-      "  - { id: dup, title: a, kind: bug-hunt, answers: a.yaml, minFound: 1 }",
-      "  - { id: dup, title: b, kind: bug-hunt, answers: b.yaml, minFound: 1 }",
-      "",
-    ].join("\n"),
-  );
+  emptyRoot = await mkdtemp(join(tmpdir(), "reconcile-int-root-"));
 });
 
 afterAll(async () => {
-  await rm(brokenCourseRoot, { recursive: true, force: true });
+  await rm(emptyRoot, { recursive: true, force: true });
 });
 
 interface Service {
@@ -91,7 +74,8 @@ function startService(courseRoot: string = FIXTURE_COURSE_ROOT): Service {
   const tracker = new IdleTracker({ stopMinutes: 30, warningMinutes: 5, now });
   const mutex = new KeyedMutex();
   const log: ServiceLog = { info: () => {}, warn: () => {} };
-  const readCourse = () => readCourseLessons(courseRoot);
+  const readCourse = (courseId: string) => readCourseById(courseRoot, courseId);
+  const readCourses = () => readEveryCourse(courseRoot);
   const manager = new WorkspaceManager({
     runtime,
     readCourse,
@@ -102,7 +86,7 @@ function startService(courseRoot: string = FIXTURE_COURSE_ROOT): Service {
     log,
     now,
   });
-  const reconciler = new Reconciler({ runtime, readCourse, instance, tracker, mutex, log });
+  const reconciler = new Reconciler({ runtime, readCourses, instance, tracker, mutex, log });
   return { manager, reconciler, tracker, clock };
 }
 
@@ -197,8 +181,8 @@ describe("reconcile after a restart", () => {
     expect(afterSecond).toEqual([null, "running"]);
   });
 
-  it("I-reconcile-invalid (unreadable course): stops the running invalid container and removes nothing", async () => {
-    const service = startService(brokenCourseRoot);
+  it("I-reconcile-invalid (root failure): stops the running invalid container and removes nothing", async () => {
+    const service = startService(emptyRoot);
     const running = await runIdleContainer(randomName(), invalidLabels(instance));
     const neverStarted = await createIdleContainer(randomName(), invalidLabels(instance));
 
