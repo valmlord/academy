@@ -15,10 +15,11 @@ module link to its section.
 
 **Entry:** "Курс" in the top bar; "Открыть курс" on the dashboard or on the not-found page (the top-bar
 "Курс" and the not-found "Открыть курс" only while the course id is known, `ia.md` R6 "Course id
-unknown"); a dashboard module row (`progress.md` F18.2) or the module crumb on a lesson page (lands on
-that module's section); the lesson page's "Открыть курс" (environment rejected, `lesson-environment.md`
-F8). From #220: no top-bar "Курс" (`ia.md` A218-3), the not-found "Открыть курс" by A218-12, and also a
-dashboard block heading (F20.4), the course crumb (F22.2) and a "Другие курсы" link (A218-14).
+unknown"); a dashboard module row (`progress.md` F18.2); on a lesson page the breadcrumb "Курс" or the
+module crumb (the module crumb lands on that module's section); the lesson page's "Открыть курс"
+(environment rejected, `lesson-environment.md` F8). From #220: the top-bar "Курс" by `ia.md` A218-3, the
+breadcrumb "Курс" by A218-8, the not-found "Открыть курс" by A218-12, and also a dashboard block heading
+(F20.4), the course crumb (F22.2) and a "Другие курсы" link (A218-14).
 
 **Steps (4):**
 
@@ -71,7 +72,7 @@ course (`ia.md` A218-14).
 
 **Keyboard path:** Tab through the module links (Enter moves focus to that module's section heading),
 then through lesson links in order; each lesson row is one link, so one Tab per lesson. From #220 the
-"Другие курсы" links follow (`ia.md` A218-14); in the course error: `ia.md` [ES12](ia.md#ES12).
+"Другие курсы" links: `ia.md` A218-14; in the course error: `ia.md` [ES12](ia.md#ES12).
 
 **Time limits:** none.
 

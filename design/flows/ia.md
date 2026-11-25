@@ -6,7 +6,7 @@ machine and not published.
 
 Several courses (#218, built by #220): section "Several courses (#218)" below, which says which rules
 of this file it replaces from #220. Error and focus states from #220: section
-[Error and focus states (#222)](#errors-222).
+[Error and focus states (#222)](#errors-222), except `courses.md` "Requirements for #220" item 9.
 
 Notation: `F6` in backticks is the keyboard key; F6 without backticks is the flow "Open a lesson whose
 prerequisites are not passed". R1-R7 are the interaction rules below; flows refer to them by id instead
@@ -24,7 +24,7 @@ One term per concept, in docs and in UI copy. Sources: `course/`, `docs/learning
 
 | Concept | English (docs, ids) | Russian (UI) | Note |
 |---------|---------------------|--------------|------|
-| course | course | курс | from #220 named by its title ([A218-7](#A218-7)) |
+| course | course | курс | from #220: [A218-7](#A218-7) |
 | course block (#218) | course block | - | [A218-1](#A218-1); its readable and empty forms: "Rules (#218)"; its error form: [ES1](#ES1) |
 | Card course (#218) | Card course | - | [A218-2](#A218-2) |
 | Card heading (#222) | Card heading | "Следующий урок"; "Все доступные уроки пройдены", "Все доступные уроки завершены" (end Card) | the h2 of the Card or of the end Card, `tabindex="-1"`; a focus target of R2, [RO3](#RO3), [RO6](#RO6) and [FB5](#FB5) |
@@ -126,7 +126,7 @@ whether the control is shown in v1; a hidden control appears only when its issue
 | Action | Label | Flows | v1 |
 |--------|-------|-------|----|
 | skip to the content | "К содержимому" | every page | yes |
-| open the dashboard (top bar) | "Академия" (brand link), "Главная" (nav link) | F4; from #220 F20, F22 | yes, every page with the top bar |
+| open the dashboard (top bar) | "Академия" (brand link), "Главная" (nav link) | F4; from #220 F20, F21, F22 | yes, every page with the top bar |
 | open the catalog (top bar, lesson breadcrumb) | "Курс" | F5 | yes, from #30 (R6, "Before the catalog ships"); not while the course id is unknown (R6, "Course id unknown"); until #220 |
 | open a course's catalog (block heading, course crumb, "Другие курсы" link) | the course name (data) | F20, F22, F5 | from #220 (#218) |
 | open a course's next lesson (course block) | "Следующий урок: <lesson title>" | F20 | from #220 ([A218-4](#A218-4)) |
@@ -542,7 +542,7 @@ The one exception is a course state, not a page: "Course id unknown" below.
 |---------|------------------------|---------------------------------------------|------------------------|
 | before #30 (as #29 shipped) | dashboard | "Академия", "Главная", user menu | "Верхняя панель" ("Академия"); "Уведомления" ("Войти снова", only with the alert); `main` (`main` itself, nothing focusable) |
 | from #30 until #220 | dashboard, catalog, lesson, not-found | "Академия", "Главная", "Курс" (left out on all four while the course id is unknown), user menu | R3: lesson page regions; other pages "Верхняя панель" ("Академия"), "Уведомления", `main` |
-| from #220 (#218) | dashboard, catalog, lesson, not-found | "Академия", "Главная", user menu ([A218-3](#A218-3)) | as from #30 |
+| from #220 (#218) | dashboard, catalog, lesson, not-found | [A218-3](#A218-3) | as from #30 |
 
 "Главная" carries `aria-current="page"` on the dashboard, "Курс" on the catalog; the lesson page and
 not-found put `aria-current` on neither top-bar link. `F6` lands on "Академия" in "Верхняя панель" in
@@ -742,7 +742,8 @@ depends on the course, so "Several courses (#218)" is unchanged.
 ## Several courses (#218)
 
 From #220 (FU20). The normal states with several courses and the root error; the error and focus states
-and F21: [Error and focus states (#222)](#errors-222). From #220 the decisions and rules below replace
+and F21: [Error and focus states (#222)](#errors-222), except `courses.md` "Requirements for #220" item 9.
+From #220 the decisions and rules below replace
 what this file and the other flow files state for the one-course app about the top-bar and breadcrumb
 "Курс" and R6 "Course id unknown", the dashboard's Tab order and `F6` landing, the not-found action, its
 landing and its way on, where F18.1-F18.2 sit ("Rules (#218)" row "course block", A218-6), and the
@@ -890,8 +891,7 @@ flowchart TD
   catalog --> dash
 ```
 
-The sitemap is the one from #30; from #220 a catalog also links to the other catalogs
-([A218-14](#A218-14)). Before #30 only sign-in and the dashboard exist, and no link leads to a
+The sitemap is the one from #30; from #220 also [A218-14](#A218-14). Before #30 only sign-in and the dashboard exist, and no link leads to a
 `/courses/...` route (R6, "Before the catalog ships").
 
 Module pages are sections of their course's catalog (`/courses/[courseId]#[moduleId]`), not routes
@@ -918,13 +918,13 @@ and `mentor.md`).
   the catalog anchor of that module; the lesson crumb is the current page (`aria-current="page"`, not a
   link). Not shown when the course cannot be read (F7 error states). No breadcrumb on the not-found page: it names
   no place in a course (GOV.UK page-not-found pattern, #83 research §5).
-- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson, from #220 of the Card
-  course, [A218-2](#A218-2); from #30, before it the dashboard has no primary action, R6 "Before the
+- **Primary action per page**: dashboard "Продолжить" / "Начать" (the next lesson, from #220
+  [A218-2](#A218-2); from #30, before it the dashboard has no primary action, R6 "Before the
   catalog ships"); catalog: a lesson row; lesson page:
   "Проверить"; not-found page: "Открыть курс" (none while the course id is unknown, R6 "Course id
   unknown"). While the course cannot be read, the dashboard, catalog and lesson page show the course error
   instead and its "Повторить" is the only action in `main` (until #220; from #220 [ES1](#ES1),
-  [ES12](#ES12)).
+  "Rules (#218)" row "root error", [ES7](#ES7), [ES8](#ES8), [ES9](#ES9), [ES12](#ES12)).
 - **Skip link** "К содержимому": R4.
 - **Return after sign-in**: any protected route redirects to `/sign-in?next=<path>`; after sign-in the
   learner lands on `next` (only same-origin paths) or on the dashboard.
@@ -978,8 +978,7 @@ Flows column: every flow whose Entry line or steps happen on the page.
 | lesson | `/courses/[courseId]/lessons/[lessonId]` | lesson title; "Не удалось загрузить курс" while the course cannot be read | theory, task, checks, quiz, mentor review on the left; the environment on the right | F1 (F1.4 with `next`), F2, F3, F4 (F4.3), F5 (entries: `catalog.md` F5 Entry), F6, F7-F17, F19, F20, F22 | yes: the states listed in the #50 design notes; F19 ("История попыток") is drawn in #72's author phase, on #69's Проверки panel |
 | not-found | the ways into the not-found page, each HTTP 404, stated only here: (1) a path no route matches; (2) a catalog URL whose course id is not the course's; (3) a lesson URL whose course id is not the course's; (4) a lesson URL whose lesson id names no `ready` lesson of the course (unknown, or not `ready`). (2)-(4) need the course read: while it cannot be read, those URLs show the course error (HTTP 200), so only (1) remains. From #220 (#218): (2) a catalog URL and (3) a lesson URL whose course id names no course of the root; (4) a lesson URL of a readable course whose lesson id names no `ready` lesson of it; (2) and (3) need the root read and (4) also that course; while they cannot be read: [ES7](#ES7), [ES8](#ES8), [ES9](#ES9) (HTTP 200) | "Страница не найдена" | says in one sentence that the address leads nowhere; while the course id is known it links to the catalog ("Открыть курс"), while it is unknown it shows only the sentence and the top bar's "Главная" is the way on (R6, "Course id unknown"); from #220 [A218-12](#A218-12) | F2, F3, F5, F7, F22 | yes, in #83: `design/pages/not-found/`, states default, no-course, session-expired, user-menu |
 
-Every page is reachable from a catalog: each catalog links to every `ready` lesson of its course and,
-from #220, to the other catalogs ([A218-14](#A218-14)), and through the top bar to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
+Every page is reachable from a catalog: each catalog links to every `ready` lesson of its course and through the top bar to the dashboard; sign-in is the entry before any page and is reached by sign-out (F3) or an
 expired session (F2). Release: sign-in and the dashboard from #29; catalog, lesson and not-found from #30.
 Before #30 the dashboard is in its "before #30" state (R6, "Before the catalog ships").
 
