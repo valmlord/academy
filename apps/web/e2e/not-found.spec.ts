@@ -82,6 +82,27 @@ for (const { kind, path, hasOpenCourse } of UNKNOWN_PATHS) {
   });
 }
 
+test.describe("dark system", () => {
+  test.use({ colorScheme: "dark" });
+
+  // The not-found document is the one the client renders from scratch (components/system-theme.tsx), so the
+  // head's theme script alone leaves it light.
+  for (const { kind, path } of UNKNOWN_PATHS) {
+    test(`an ${kind} follows the system colour scheme`, async ({ page }) => {
+      const catalog = await repoCatalog();
+
+      const response = await page.goto(path(catalog.id));
+
+      expect(response?.status(), "status of the not-found response").toBe(404);
+      await expectNotFoundPage(page);
+      const html = page.locator("html");
+      await expect(html).toHaveClass(/(^|\s)dark(\s|$)/);
+      await page.emulateMedia({ colorScheme: "light" });
+      await expect(html).not.toHaveClass(/(^|\s)dark(\s|$)/);
+    });
+  }
+});
+
 for (const courseId of ["A%20B", "..%2Fcourse-b"]) {
   test(`a course id ${courseId} outside the id form answers 404 without Открыть курс`, async ({
     page,
