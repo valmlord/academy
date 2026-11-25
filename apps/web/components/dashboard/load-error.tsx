@@ -5,7 +5,6 @@ import { Alert, AlertTitle } from "@/components/ui/alert";
 import { NEXT_LESSON_HEADING_ID } from "./next-lesson-card";
 
 export interface LoadErrorAlertProps {
-  /** The id of the title heading, which a retry that fails again focuses. */
   titleId: string;
   titleLevel: 2 | 3;
   title: string;

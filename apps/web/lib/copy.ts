@@ -68,8 +68,7 @@ export const openCourseLabel = "Открыть курс";
 // (catalog AC8, dashboard AC8).
 export const courseErrorTitle = "Не удалось загрузить курс";
 
-// design/flows/ia.md ES2; design/pages/dashboard/acceptance.md, Copy "root error": the dashboard's Alert title
-// when the course root cannot be read or holds no course.
+// design/flows/ia.md ES2; design/pages/dashboard/acceptance.md, Copy "root error".
 export const rootErrorTitle = "Не удалось загрузить курсы";
 
 // design/flows/ia.md, copy register "not-found (F5, F7)": the title and h1, and the one sentence under the h1 in

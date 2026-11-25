@@ -262,7 +262,7 @@ interface WrapMeasure {
   link: { isOneTextNode: boolean; lines: number };
   pageOverflow: number;
   navOverflow: number | undefined;
-  /** Whether `html` has the `dark` class the theme script sets, so a dark run that did not apply shows. */
+  /** Whether `html` has the `dark` class, so a dark run that did not apply shows. */
   isDark: boolean;
 }
 

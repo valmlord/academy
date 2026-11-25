@@ -51,8 +51,7 @@ vi.mock("next/navigation", async (importOriginal) => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
 
-// The course blocks of every form only: each is a section labelled by its course-...-heading h2, the Card's
-// section is labelled by the Card heading, and the root error is a div.
+// The course blocks of every form only: each is a section labelled by its course-...-heading h2.
 const BLOCK = 'section[aria-labelledby^="course-"]';
 const THEORY_COURSE_ID = "a-theory-course";
 
@@ -64,7 +63,6 @@ beforeEach(() => {
 
 afterEach(() => {
   fixture.remove();
-  // A retry's focus flag is module state; drop one no test took.
   takeAnyRetryFocus();
 });
 

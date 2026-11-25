@@ -95,10 +95,7 @@ export type CourseBlockView =
   | {
       form: "error";
       courseId: string;
-      /**
-       * The course's title when its `course.yaml` parsed with a matching id and a module or lesson file failed
-       * after it (`CourseReadError.title`); the course id when the failure carries no title.
-       */
+      /** `CourseReadError.title`, or the course id when the failure carries no title. */
       courseName: string;
     };
 

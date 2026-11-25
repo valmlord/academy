@@ -16,9 +16,8 @@ export const metadata: Metadata = {
 const MAIN_ID = "main";
 const ROOT_ERROR_TITLE_ID = "root-error-title";
 
-// design/pages/dashboard: when the root cannot be read or holds no course, the root error (ES2) stands alone in the
-// Card's place. Otherwise every listed course of getEveryCourse renders a block in list order, a failing one in the
-// error form, and the Card comes from the readable courses.
+// design/pages/dashboard: on a root failure of getEveryCourse the root error (ES2) stands alone in the Card's
+// place; otherwise the dashboard content is built from every listed course.
 export default async function DashboardPage(): Promise<ReactElement> {
   await requireSession("/");
   const every = await getEveryCourse();
