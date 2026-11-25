@@ -59,22 +59,26 @@ export default async function CatalogPage({
     );
   }
   const view = toCatalogView(course.tree);
+  // The other-courses section is the column's second child in both branches, so a retry that loads keeps its
+  // DOM nodes and a focused link in it (catalog AC18). The Fragment's children stay flex items of the column.
   return (
     <main id="main" tabIndex={-1} data-region className={MAIN_CLASS_NAME}>
       <div className={COLUMN_CLASS_NAME}>
-        <div className="flex flex-col gap-2">
-          <h1 id={TITLE_ID} tabIndex={-1} className="text-2xl font-semibold">
-            {view.title}
-          </h1>
-          <FocusOnMount id={TITLE_ID} />
-          <p className="text-muted-foreground">{view.description}</p>
-        </div>
-        <ModuleList modules={view.modules} />
-        <div>
-          {view.modules.map((module) => (
-            <ModuleSection key={module.id} courseId={view.id} module={module} />
-          ))}
-        </div>
+        <>
+          <div className="flex flex-col gap-2">
+            <h1 id={TITLE_ID} tabIndex={-1} className="text-2xl font-semibold">
+              {view.title}
+            </h1>
+            <FocusOnMount id={TITLE_ID} />
+            <p className="text-muted-foreground">{view.description}</p>
+          </div>
+          <ModuleList modules={view.modules} />
+          <div>
+            {view.modules.map((module) => (
+              <ModuleSection key={module.id} courseId={view.id} module={module} />
+            ))}
+          </div>
+        </>
         {await otherCoursesOf(courseId)}
       </div>
       <FragmentFocus />

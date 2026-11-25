@@ -2,6 +2,12 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { type ReactElement, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { retryLabel } from "@/lib/copy";
+import {
+  queueRetryAnswer,
+  RetriedPage,
+  refreshRetriedPage,
+  releaseRetryAnswer,
+} from "@/test/retried-page";
 import { FocusOnMount } from "./focus-on-mount";
 import { RetryButton, takeAnyRetryFocus } from "./retry-button";
 
@@ -186,11 +192,176 @@ describe("the retry flag outside its own page", () => {
 
     await pressRetry();
 
-    expect(document.activeElement).toBe(document.body);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: retryLabel }));
 
     window.history.replaceState(null, "", "/courses/a");
     await act(async () => showPhase("target"));
 
     expect(document.activeElement).toBe(document.body);
+  });
+});
+
+describe("the retry focus guard", () => {
+  const errorView = (
+    <>
+      <h1 id="error-target" tabIndex={-1}>
+        error
+      </h1>
+      <RetryButton successTargetId="success-target" errorTargetId="error-target" />
+    </>
+  );
+  const successView = (
+    <>
+      <h1 id="success-target" tabIndex={-1}>
+        loaded
+      </h1>
+      <FocusOnMount id="success-target" />
+    </>
+  );
+  const alertErrorView = (
+    <div data-slot="alert">
+      <h1 id="error-target" tabIndex={-1}>
+        error
+      </h1>
+      <a href="#inside">inside</a>
+      <RetryButton successTargetId="success-target" errorTargetId="error-target" />
+    </div>
+  );
+
+  beforeEach(() => {
+    refreshOutcome = refreshRetriedPage;
+  });
+
+  function retryButton(): HTMLElement {
+    return screen.getByRole("button", { name: retryLabel });
+  }
+
+  function link(name: string): HTMLElement {
+    return screen.getByRole("link", { name });
+  }
+
+  function renderRetried(view: ReactElement): void {
+    render(
+      <>
+        <a href="#outside">outside</a>
+        <RetriedPage initial={view} />
+      </>,
+    );
+  }
+
+  it("lets focus fall to body when the focused element is removed (jsdom focus fixup, which the guard tests rely on)", () => {
+    const { rerender } = render(<button type="button">removed</button>);
+    screen.getByRole("button", { name: "removed" }).focus();
+
+    rerender(<p>other view</p>);
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it("focuses Повторить on a press that did not, so a retry that loads still moves focus (Safari)", async () => {
+    renderRetried(errorView);
+    link("outside").focus();
+    queueRetryAnswer(successView);
+
+    await pressRetry();
+
+    expect(document.activeElement).toBe(retryButton());
+    await releaseRetryAnswer();
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "loaded" }));
+  });
+
+  it("focuses Повторить on a press that did not, so a retry that fails again still moves focus (Safari)", async () => {
+    renderRetried(errorView);
+    link("outside").focus();
+    queueRetryAnswer(errorView);
+
+    await pressRetry();
+
+    expect(document.activeElement).toBe(retryButton());
+    await releaseRetryAnswer();
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "error" }));
+  });
+
+  it("keeps focus on an element outside the block when the retry loads", async () => {
+    renderRetried(alertErrorView);
+    queueRetryAnswer(successView);
+    await pressRetry();
+
+    link("outside").focus();
+    await releaseRetryAnswer();
+
+    expect(document.activeElement).toBe(link("outside"));
+  });
+
+  it("keeps focus on an element outside the block when the retry fails again", async () => {
+    renderRetried(alertErrorView);
+    queueRetryAnswer(alertErrorView);
+    await pressRetry();
+
+    link("outside").focus();
+    await releaseRetryAnswer();
+
+    expect(document.activeElement).toBe(link("outside"));
+  });
+
+  it("moves focus to the error target when focus moved to another element inside the block", async () => {
+    renderRetried(alertErrorView);
+    queueRetryAnswer(alertErrorView);
+    await pressRetry();
+
+    link("inside").focus();
+    await releaseRetryAnswer();
+
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "error" }));
+  });
+
+  it("counts an element marked outside the guard as outside its block", async () => {
+    const markedView = (
+      <div id="guard-block">
+        <h1 id="error-target" tabIndex={-1}>
+          error
+        </h1>
+        <RetryButton
+          successTargetId="success-target"
+          errorTargetId="error-target"
+          guardBlockSelector="#guard-block"
+        />
+        <section data-retry-guard-outside="">
+          <a href="#marked">marked</a>
+        </section>
+      </div>
+    );
+    renderRetried(markedView);
+    queueRetryAnswer(markedView);
+    await pressRetry();
+
+    link("marked").focus();
+    await releaseRetryAnswer();
+
+    expect(document.activeElement).toBe(link("marked"));
+  });
+
+  it("guards with the button alone when no ancestor matches the block selector", async () => {
+    renderRetried(errorView);
+    queueRetryAnswer(errorView);
+    await pressRetry();
+
+    link("outside").focus();
+    await releaseRetryAnswer();
+
+    expect(document.activeElement).toBe(link("outside"));
+  });
+
+  it("holds the old view until the queued answer is released", async () => {
+    renderRetried(errorView);
+    queueRetryAnswer(successView);
+
+    await pressRetry();
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading", { name: "error" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "loaded" })).toBeNull();
+    await releaseRetryAnswer();
+    expect(screen.getByRole("heading", { name: "loaded" })).toBeInTheDocument();
   });
 });
