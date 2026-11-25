@@ -4,8 +4,9 @@
 - Date: 2026-10-27
 - Issue: (bootstrap)
 - Amended: 2026-11-04, #68 (Decision 8: per-check attempt limits and mentor threshold; Decision 6:
-  unknown check keys); 2026-11-21, #135 (Decision 6: the quiz threshold in task.md). Status stays
-  Proposed until Stepan accepts.
+  unknown check keys); 2026-11-21, #135 (Decision 6: the quiz threshold in task.md); 2026-11-24,
+  #239 (Decision 2: several courses and the course id; Decision 6: id uniqueness per course). Status
+  stays Proposed until Stepan accepts.
 
 ## Context
 The methodologists produce lessons; the platform displays and checks them. If the format is not
@@ -18,12 +19,17 @@ agreement must be checked by a machine, not by text.
    imports its types from the same place and defines no lesson types of its own.
 2. Structure: `course/<course>/course.yaml` -> `<NN-module>/module.yaml` -> `<NN-lesson>/`
    with `lesson.yaml`, `theory.md`, `task.md`, `starter/`, `checks/`, `quiz.yaml`.
+   The course root holds one or more courses; what a course is, and when one fails, are ADR-0009
+   items 6 and 7. A course directory's name equals the `id` in its `course.yaml`, and a course id is
+   permanent once a learner has progress in it (amended 2026-11-24, #239; a format change whose
+   migration is empty, because the one course complies).
 3. Check types: `quiz`, `command`, `rubric`, `hidden-task`, `bug-hunt`.
 4. Statuses: `planned`, `draft`, `ready`. The learner sees only `ready`.
 5. Everything for the grader lives in `checks/` and never gets into `starter/`, `theory.md`, `task.md`
    or the browser.
-6. `pnpm content:validate` checks the schema, the presence of files, the order, id uniqueness, sources
-   of `ready` lessons and leaks of `checks/`. It is a required CI check.
+6. `pnpm content:validate` checks the schema, the presence of files, the order, id uniqueness (a
+   lesson id is unique within its course; two courses may use the same lesson id), sources of
+   `ready` lessons and leaks of `checks/`. It is a required CI check.
    In `ready` lessons it also reports any key of a check that the check's kind does not define, and
    any check whose keys it cannot compare (a missing kind or one no check member defines, a check
    that is not an object, or a `checks` value that is present but not a list); an absent `checks`
@@ -47,6 +53,11 @@ agreement must be checked by a machine, not by text.
      `packages/lesson-schema/src/task-threshold.ts` and the fixture table in
      `packages/lesson-schema/test/task-threshold.test.ts`. Where this text and the code seem to
      differ, the code and the table decide, and changing either of them is a change of this item.
+   What it reports for the course root and for each course is defined by `validateCourses` in
+   `packages/lesson-schema/src/validate.ts` and its tests in
+   `packages/lesson-schema/test/validate.test.ts` (amended 2026-11-24, #239). Where this text and the
+   code seem to differ, the code and the tests decide, and changing either of them is a change of
+   this item.
 7. Changing the format: a dev team task that updates this ADR and migrates all lessons
    in the same PR. Owner (CODEOWNERS): Stepan.
 8. Attempt limits (amended 2026-11-04, #68). Any check may carry an optional `attempts` object holding
