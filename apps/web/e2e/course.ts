@@ -25,11 +25,19 @@ export const FIXTURE_COURSE_ROOT = path.join(
   "../../../tests/fixtures/course-root",
 );
 
-/** A course root of the repository does not read, or lacks the course a spec asked for. */
+/** A course root of the repository, or one of its courses, does not read. */
 export class RepoCourseReadError extends Error {
   constructor(root: string, detail: string) {
     super(`the repository's course root ${root} does not read: ${detail}`);
     this.name = "RepoCourseReadError";
+  }
+}
+
+/** A course root of the repository reads in full but lacks the course a spec asked for. */
+export class RepoCourseMissingError extends Error {
+  constructor(root: string, wanted: string) {
+    super(`the repository's course root ${root} reads, but holds no ${wanted}`);
+    this.name = "RepoCourseMissingError";
   }
 }
 
@@ -68,7 +76,7 @@ export function fixtureCourses(): Promise<CourseTree[]> {
 export async function fixtureCourse(id: string): Promise<CourseTree> {
   const found = (await fixtureCourses()).find((tree) => tree.id === id);
   if (found === undefined) {
-    throw new RepoCourseReadError("tests/fixtures/course-root", `no course ${id}`);
+    throw new RepoCourseMissingError("tests/fixtures/course-root", `course ${id}`);
   }
   return found;
 }
@@ -76,7 +84,7 @@ export async function fixtureCourse(id: string): Promise<CourseTree> {
 /** The first course of course/; the one-course dashboard shows it until #247. */
 export async function repoCourse(): Promise<CourseTree> {
   const [first] = await repoCourses();
-  if (first === undefined) throw new RepoCourseReadError("course/", "no course");
+  if (first === undefined) throw new RepoCourseMissingError("course/", "course at all");
   return first;
 }
 
