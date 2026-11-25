@@ -176,5 +176,6 @@ sources:
       { title: "Web", url: "https://example.com/web", checkedAt: "2026-10-02" },
     ]);
     expect(view.module).toEqual({ id: "basics", title: "Basics" });
+    expect(view.courseTitle).toBe("Fixture course");
   });
 });

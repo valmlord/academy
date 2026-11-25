@@ -1,0 +1,5 @@
+id: zzz-empty-course
+title: Курс без готовых уроков
+description: Курс, в котором нет ни одного готового урока.
+modules:
+  - 00-planned-module

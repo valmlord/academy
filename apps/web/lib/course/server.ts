@@ -5,6 +5,7 @@ import {
   type CourseLookup,
   type CourseRead,
   firstReadableCourse,
+  type OtherCourseList,
 } from "./courses";
 import { LessonTextReadError } from "./errors";
 import { nodeCourseFs } from "./node-fs";
@@ -27,7 +28,11 @@ export const getCourseById = cache(
 
 export const getCourseNames = cache((): Promise<CourseList> => reads.listNames());
 
-// The one-course dashboard and top bar until #241.
+export const getOtherCourses = cache(
+  (courseId: string): Promise<OtherCourseList> => reads.otherCourses(courseId),
+);
+
+// The one-course dashboard until #247.
 export const getFirstReadableCourse = cache(
   (): Promise<CourseRead> => firstReadableCourse(getCourseNames, getCourseById),
 );

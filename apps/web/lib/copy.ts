@@ -61,9 +61,7 @@ export const copyDeniedLabel = "Не скопировано, выделите т
 // after it fits.
 export const codeBlockLabel = "Блок кода";
 
-// design/flows/ia.md, table "Action labels": the two "open the catalog" labels, "Курс" in the top bar and
-// the lesson breadcrumb, "Открыть курс" on the dashboard and the not-found page.
-export const courseLinkLabel = "Курс";
+// design/flows/ia.md, table "Action labels": "Открыть курс" on the dashboard and the not-found page.
 export const openCourseLabel = "Открыть курс";
 
 // design/flows/ia.md, copy register "catalog (F5, F6)" and "dashboard (F4, F18)": the course read error
@@ -99,6 +97,9 @@ export const modulePreparingLabel = "Готовится";
 
 // design/flows/ia.md, copy register "catalog (F5, F6)": a module without ready lessons (catalog AC4).
 export const noModuleLessonsMessage = "Уроки модуля готовятся";
+
+// design/pages/catalog/acceptance.md, Copy "other courses heading" (A218-14).
+export const otherCoursesHeading = "Другие курсы";
 
 // design/pages/catalog/acceptance.md, Copy "lesson row meta": "<lesson type>, около N мин".
 export function lessonRowMeta(typeLabel: string, minutes: number): string {

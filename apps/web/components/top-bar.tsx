@@ -7,14 +7,11 @@ import { UserMenu } from "./user-menu";
 export interface TopBarProps {
   email: string;
   signOut: () => Promise<never>;
-  /** The course the course link opens (the first that reads until #241), or undefined when none reads. */
-  courseId: string | undefined;
 }
 
-// The top bar of every signed-in page (the banner, first F6 stop), "from #30" in ia.md R6: brand, home
-// link, course link, user menu. One row down to 375px; below that the user menu wraps to a second row,
-// right-aligned.
-export function TopBar({ email, signOut, courseId }: TopBarProps): ReactElement {
+// The top bar of every signed-in page (the banner, first F6 stop), A218-3 in ia.md: brand, home link, user
+// menu. One row down to 375px; below that the user menu wraps to a second row, right-aligned.
+export function TopBar({ email, signOut }: TopBarProps): ReactElement {
   return (
     <header
       data-region
@@ -23,7 +20,7 @@ export function TopBar({ email, signOut, courseId }: TopBarProps): ReactElement 
       <Link href="/" className="font-semibold text-foreground no-underline">
         {brandName}
       </Link>
-      <TopBarNav courseId={courseId} />
+      <TopBarNav />
       <div className="ml-auto flex items-center gap-2">
         <UserMenu email={email} signOut={signOut} />
       </div>

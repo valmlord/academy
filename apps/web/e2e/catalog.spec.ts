@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
   brandName,
-  courseLinkLabel,
   homeTitle,
   lessonNotStartedLabel,
   lessonRowMeta,
@@ -127,7 +126,7 @@ test("a prerequisite note follows its row in the Tab order (AC5)", async ({ page
   ).toHaveAttribute("href", `${catalogPath(catalog.id)}/lessons/${firstPrerequisite.id}`);
 });
 
-test("the course link is the current page, F6 reaches the first module link, no horizontal scroll (AC11, AC12)", async ({
+test("the top bar marks no link current, F6 reaches the first module link, no horizontal scroll (AC11, AC12, AC13)", async ({
   page,
 }) => {
   const catalog = await repoCatalog();
@@ -137,11 +136,8 @@ test("the course link is the current page, F6 reaches the first module link, no 
   await page.goto(catalogPath(catalog.id));
 
   const banner = page.getByRole("banner");
-  await expect(banner.getByRole("link", { name: courseLinkLabel })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-  await expect(banner.getByRole("link", { name: homeTitle })).not.toHaveAttribute(
+  await expect(banner.getByRole("link")).toHaveText([brandName, homeTitle]);
+  await expect(banner.getByRole("link", { name: homeTitle, exact: true })).not.toHaveAttribute(
     "aria-current",
     /.*/,
   );

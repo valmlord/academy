@@ -190,6 +190,36 @@ describe("docker-compose.yml, the agent API key (U-compose-key)", () => {
   });
 });
 
+// U6 (#241): web reads the image's course unless a stack names the fixture override.
+describe("the course root of web (U6)", () => {
+  it("gives web in docker-compose.yml no volumes and no COURSE_ROOT", () => {
+    const web = service("web");
+
+    expect(web.volumes).toBeUndefined();
+    expect(web.environment ?? {}).not.toHaveProperty("COURSE_ROOT");
+  });
+
+  it("sets COURSE_ROOT in compose.fixture-course-root.yaml to a read-only bind of the export only", () => {
+    expect(readYaml("compose.fixture-course-root.yaml")).toEqual({
+      services: {
+        web: {
+          environment: { COURSE_ROOT: "/fixture-course-root" },
+          volumes: [
+            {
+              type: "bind",
+              source:
+                "${FIXTURE_COURSE_ROOT_EXPORT:?set FIXTURE_COURSE_ROOT_EXPORT to an export of tests/fixtures/course-root}",
+              target: "/fixture-course-root",
+              read_only: true,
+              bind: { create_host_path: false },
+            },
+          ],
+        },
+      },
+    });
+  });
+});
+
 describe("compose.db-port.yaml (U-compose)", () => {
   it("adds only the loopback db port", () => {
     expect(readYaml("compose.db-port.yaml")).toEqual({

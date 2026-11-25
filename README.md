@@ -164,6 +164,10 @@ against your own stack. `E2E_DISPOSABLE_STACK=1` is set only by CI and `isolated
 `E2E_COURSE_UNREADABLE=1` is set only by CI and `isolated-stack.sh --e2e`, together with `E2E_DISPOSABLE_STACK=1`
 and `E2E_COMPOSE_PROJECT` naming that stack's compose project; it runs `course-unreadable.spec.ts`, which makes
 `course.yaml` unreadable inside that stack's web container.
+`E2E_FIXTURE_COURSE_ROOT=1` runs `several-courses.spec.ts` and, when `E2E_DESIGN_SHOTS_DIR` is an absolute path,
+`design-shots.spec.ts`, which writes its screenshots under that directory. Both expect a stack whose web serves an
+export of `tests/fixtures/course-root` (`compose.fixture-course-root.yaml`); CI sets the switch for the several-course
+spec only, `isolated-stack.sh --e2e` for its fixture-root stage.
 `E2E_WEBKIT=1` adds the region-key spec in WebKit (once:
 `pnpm --filter @academy/web exec playwright install chromium webkit`); `E2E_FIREFOX=1` adds it in Firefox as the last
 project (`playwright install firefox`), which does not launch on macOS 27 with Playwright's Firefox build 1555. Each switch is `1` or unset
@@ -207,13 +211,20 @@ publishes db on the host again and running workspaces would reach it. Then `dock
 removes the orphaned `workspace` container. It leaves the network `academy_workspace-api` behind; remove it with
 `docker network rm academy_workspace-api`. The workspaces' volumes stay for a later return.
 
-`services/workspace/test/manual/isolated-stack.sh [t31|t32] [--e2e]` runs a throwaway compose stack next to
+`services/workspace/test/manual/isolated-stack.sh [t31|t32] [--e2e [--design-shots=<dir>]]` runs a throwaway compose stack next to
 yours. The run name (`t31`, the default, or `t32`) picks the project `academy-<run>`, the image tag, the
 workspace instance and the host ports (`t31`: 55432 and 53080, `t32`: 55433 and 53081). A preflight stops the
 script before anything starts, and so removes nothing, when objects of that project, instance or images are left
 over from an earlier run, or when a Docker listing fails. `--e2e` adds the seed, the whole e2e suite with the
 terminal specs (the region keys in Chromium and WebKit; Firefox is checked by hand), the course-unreadable spec
-with a check that the web user can read `course.yaml` again, and the service-down spec.
+with a check that the web user can read `course.yaml` again, the service-down spec and the fixture-root stage.
+That stage exports `tests/fixtures/course-root` and recreates web from the same image over the export, keeping db,
+the seeded user and the stopped workspace service. It runs `several-courses.spec.ts` (line `fixture-root`) and, with
+`--design-shots=<dir>`, `design-shots.spec.ts`, which writes its screenshots under `<dir>` (line `design-shots`); each
+fails unless its JSON report counts no unexpected and no skipped test and more passed tests than the one setup
+test. It then checks the recreated web's log for a
+server error (line `web-log-fixture`) and recreates web with the run's own file set (line `fixture-restore`).
+`--design-shots` needs `--e2e` and the absolute path of an existing directory.
 The last line is `T32 RESULT OK` (the prefix is the run name), or `RESULT FAIL (run rc=..., check status=...,
 teardown failed=...)`, where `check status` covers the probes, the red runs and the e2e stages.
 

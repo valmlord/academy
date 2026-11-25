@@ -3,7 +3,9 @@ import {
   type CourseLookup,
   type CourseSource,
   listCourseNames,
+  type OtherCourseList,
   readCourseById,
+  readOtherCourses,
 } from "./courses";
 import { type CourseReadError, type CourseRootReadError, describeCourseFailure } from "./errors";
 
@@ -15,6 +17,11 @@ export interface CourseReads {
   courseById(courseId: unknown): Promise<CourseLookup>;
   /** Logs a root failure as `web: course read failed: root: ...`. */
   listNames(): Promise<CourseList>;
+  /**
+   * Logs a root failure as `listNames` does, and no line for a failing other course: its entry carries only
+   * its id and no title, none of its error.
+   */
+  otherCourses(courseId: string): Promise<OtherCourseList>;
 }
 
 export function createCourseReads(deps: {
@@ -36,6 +43,11 @@ export function createCourseReads(deps: {
       const list = await listCourseNames(deps.source);
       if (list.kind === "root-failure") logFailure(list.error);
       return list;
+    },
+    async otherCourses(courseId) {
+      const others = await readOtherCourses(deps.source, courseId);
+      if (others.kind === "root-failure") logFailure(others.error);
+      return others;
     },
   };
 }

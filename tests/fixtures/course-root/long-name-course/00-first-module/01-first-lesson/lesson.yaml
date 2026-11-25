@@ -1,0 +1,11 @@
+id: first-lesson
+title: Первый урок
+type: theory
+outcomes:
+  - "Открыть урок курса с длинным названием."
+estimatedMinutes: 10
+status: ready
+sources:
+  - title: "Example source"
+    url: https://example.com/first-lesson
+    checkedAt: "2026-11-25"

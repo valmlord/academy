@@ -1,5 +1,5 @@
 import { expect, type Page, type Response, type Route, test } from "@playwright/test";
-import { breadcrumbLabel, courseLinkLabel, notFoundTitle, taskTabLabel } from "../lib/copy";
+import { breadcrumbLabel, notFoundTitle, taskTabLabel } from "../lib/copy";
 import { catalogPath, lessonPath } from "../lib/routes";
 import { repoCatalog, repoDashboard } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
@@ -217,7 +217,7 @@ test("a client navigation's RSC payloads serve no grader fragment", async ({ pag
   await capture.settle(page);
   await page
     .getByRole("navigation", { name: breadcrumbLabel })
-    .getByRole("link", { name: courseLinkLabel })
+    .getByRole("link", { name: catalogForTests.title, exact: true })
     .click();
   await expect(page.getByRole("heading", { level: 1, name: catalogForTests.title })).toBeVisible();
   await capture.settle(page);

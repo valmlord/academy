@@ -1,0 +1,11 @@
+id: stub-lesson
+title: Пробный урок
+type: theory
+outcomes:
+  - "Открыть урок второго курса."
+estimatedMinutes: 15
+status: ready
+sources:
+  - title: "Example source"
+    url: https://example.com/stub-lesson
+    checkedAt: "2026-11-25"

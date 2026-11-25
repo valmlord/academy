@@ -81,6 +81,7 @@ export interface SourceView {
 
 export interface LessonView {
   courseId: string;
+  courseTitle: string;
   id: string;
   title: string;
   type: LessonType;
@@ -219,6 +220,7 @@ export function toLessonView(tree: CourseTree, { module, node }: FoundLesson): L
   const { lesson } = node;
   return {
     courseId: tree.id,
+    courseTitle: tree.title,
     id: lesson.id,
     title: lesson.title,
     type: lesson.type,

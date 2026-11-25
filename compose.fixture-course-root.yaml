@@ -1,0 +1,13 @@
+# Test stacks only (#241): web reads an export of tests/fixtures/course-root instead of the image's /app/course.
+# Never part of the owner's file set; CI and isolated-stack.sh name it for one stage.
+services:
+  web:
+    environment:
+      COURSE_ROOT: /fixture-course-root
+    volumes:
+      - type: bind
+        source: "${FIXTURE_COURSE_ROOT_EXPORT:?set FIXTURE_COURSE_ROOT_EXPORT to an export of tests/fixtures/course-root}"
+        target: /fixture-course-root
+        read_only: true
+        bind:
+          create_host_path: false

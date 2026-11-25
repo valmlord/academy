@@ -1,7 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
   brandName,
-  courseLinkLabel,
   homeTitle,
   notFoundSentence,
   notFoundTitle,
@@ -47,12 +46,11 @@ async function expectNotFoundPage(page: Page): Promise<void> {
   await expect(main.getByRole("alert")).toHaveCount(0);
   await expect(main.locator("svg, img")).toHaveCount(0);
   const banner = page.getByRole("banner");
-  for (const name of [homeTitle, courseLinkLabel]) {
-    await expect(banner.getByRole("link", { name, exact: true })).not.toHaveAttribute(
-      "aria-current",
-      /.*/,
-    );
-  }
+  await expect(banner.getByRole("link")).toHaveText([brandName, homeTitle]);
+  await expect(banner.getByRole("link", { name: homeTitle, exact: true })).not.toHaveAttribute(
+    "aria-current",
+    /.*/,
+  );
 }
 
 for (const { kind, path, hasOpenCourse } of UNKNOWN_PATHS) {
@@ -83,6 +81,27 @@ for (const { kind, path, hasOpenCourse } of UNKNOWN_PATHS) {
     expect(new URL(page.url()).pathname).toBe(catalogPath(catalog.id));
   });
 }
+
+test.describe("dark system", () => {
+  test.use({ colorScheme: "dark" });
+
+  // The not-found document is the one the client renders from scratch (components/system-theme.tsx), so the
+  // head's theme script alone leaves it light.
+  for (const { kind, path } of UNKNOWN_PATHS) {
+    test(`an ${kind} follows the system colour scheme`, async ({ page }) => {
+      const catalog = await repoCatalog();
+
+      const response = await page.goto(path(catalog.id));
+
+      expect(response?.status(), "status of the not-found response").toBe(404);
+      await expectNotFoundPage(page);
+      const html = page.locator("html");
+      await expect(html).toHaveClass(/(^|\s)dark(\s|$)/);
+      await page.emulateMedia({ colorScheme: "light" });
+      await expect(html).not.toHaveClass(/(^|\s)dark(\s|$)/);
+    });
+  }
+});
 
 for (const courseId of ["A%20B", "..%2Fcourse-b"]) {
   test(`a course id ${courseId} outside the id form answers 404 without Открыть курс`, async ({

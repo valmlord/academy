@@ -18,6 +18,7 @@ import {
   listCourseNames,
   readCourseById,
   readEveryCourse,
+  readOtherCourses,
 } from "./courses";
 import { CourseReadError, CourseRootReadError, describeCourseFailure } from "./errors";
 import { nodeCourseFs } from "./node-fs";
@@ -149,6 +150,32 @@ describe("readEveryCourse", () => {
       `course ${FIXTURE_COURSE_ID}`,
     ]);
     expect(calls.filter((call) => call === LISTING)).toEqual([LISTING]);
+  });
+});
+
+describe("readOtherCourses", () => {
+  it("names the other courses in list order by their course.yaml alone, a failing one by its id", async () => {
+    // A course.yaml whose one module does not exist: a read of its modules would fail this course.
+    fixture.write(
+      "aaa-course/course.yaml",
+      "id: aaa-course\ntitle: Aaa course\ndescription: A course with no module directory.\nmodules:\n  - 00-missing\n",
+    );
+    const { fs, calls } = recordingCourseFs();
+
+    const others = await readOtherCourses(fixtureSource(fixture.root, fs), FIXTURE_COURSE_ID);
+
+    expect(others).toEqual({
+      kind: "courses",
+      courses: [
+        { id: "aaa-course", title: "Aaa course" },
+        { id: BROKEN_COURSE_ID, title: undefined },
+      ],
+    });
+    expect(calls).toEqual([
+      LISTING,
+      'readText "aaa-course/course.yaml"',
+      'readText "broken-course/course.yaml"',
+    ]);
   });
 });
 

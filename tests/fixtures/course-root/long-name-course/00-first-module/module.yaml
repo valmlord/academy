@@ -1,0 +1,8 @@
+id: first-module
+title: Первый модуль
+summary: Один урок курса с длинным названием.
+outcomes:
+  - "Открыть урок курса с длинным названием."
+status: ready
+lessons:
+  - 01-first-lesson

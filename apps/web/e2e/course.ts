@@ -18,41 +18,73 @@ import {
 // so no count or title is written into a spec. Deliberately not COURSE_ROOT: the image under test was
 // built from this course/, whatever a shell variable says.
 export const REPO_COURSE_ROOT = path.join(import.meta.dirname, "../../../course");
+// The several-course specs read the committed fixture root the same way, for a stack whose web serves an
+// export of it (compose.fixture-course-root.yaml).
+export const FIXTURE_COURSE_ROOT = path.join(
+  import.meta.dirname,
+  "../../../tests/fixtures/course-root",
+);
 
-/** The repository's course/ does not read; the image built from it would not build either. */
+/** A course root of the repository, or one of its courses, does not read. */
 export class RepoCourseReadError extends Error {
-  constructor(detail: string) {
-    super(`the repository's course root does not read: ${detail}`);
+  constructor(root: string, detail: string) {
+    super(`the repository's course root ${root} does not read: ${detail}`);
     this.name = "RepoCourseReadError";
   }
 }
 
-let trees: Promise<CourseTree[]> | undefined;
+/** A course root of the repository reads in full but lacks the course a spec asked for. */
+export class RepoCourseMissingError extends Error {
+  constructor(root: string, wanted: string) {
+    super(`the repository's course root ${root} reads, but holds no ${wanted}`);
+    this.name = "RepoCourseMissingError";
+  }
+}
 
-async function readRepoCourses(): Promise<CourseTree[]> {
-  const every = await readEveryCourse({ fs: nodeCourseFs, root: () => REPO_COURSE_ROOT });
-  if (every.kind === "root-failure")
-    throw new RepoCourseReadError(describeCourseFailure(every.error));
+/** Every course of `root`, in list order; `label` names the root in the error. */
+async function readCourses(root: string, label: string): Promise<CourseTree[]> {
+  const every = await readEveryCourse({ fs: nodeCourseFs, root: () => root });
+  if (every.kind === "root-failure") {
+    throw new RepoCourseReadError(label, describeCourseFailure(every.error));
+  }
   const read: CourseTree[] = [];
   for (const course of every.courses) {
     if (course.kind === "course-failure") {
-      throw new RepoCourseReadError(describeCourseFailure(course.error));
+      throw new RepoCourseReadError(label, describeCourseFailure(course.error));
     }
     read.push(course.tree);
   }
   return read;
 }
 
+let trees: Promise<CourseTree[]> | undefined;
+let fixtureTrees: Promise<CourseTree[]> | undefined;
+
 /** Every course of the repository, in list order. */
 export function repoCourses(): Promise<CourseTree[]> {
-  trees ??= readRepoCourses();
+  trees ??= readCourses(REPO_COURSE_ROOT, "course/");
   return trees;
 }
 
-/** The first course: what the one-course dashboard, top bar and specs show until #241. */
+/** Every course of tests/fixtures/course-root, in list order. */
+export function fixtureCourses(): Promise<CourseTree[]> {
+  fixtureTrees ??= readCourses(FIXTURE_COURSE_ROOT, "tests/fixtures/course-root");
+  return fixtureTrees;
+}
+
+/** The course `id` of tests/fixtures/course-root. */
+export async function fixtureCourse(id: string): Promise<CourseTree> {
+  const found = (await fixtureCourses()).find((tree) => tree.id === id);
+  if (found === undefined) {
+    throw new RepoCourseMissingError("tests/fixtures/course-root", `course ${id}`);
+  }
+  return found;
+}
+
+/** The first course of course/; the one-course dashboard shows it until #247. */
 export async function repoCourse(): Promise<CourseTree> {
   const [first] = await repoCourses();
-  if (first === undefined) throw new RepoCourseReadError("no course");
+  if (first === undefined) throw new RepoCourseMissingError("course/", "course at all");
   return first;
 }
 

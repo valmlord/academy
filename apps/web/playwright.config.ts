@@ -40,7 +40,8 @@ export function isSwitchOn(
     | "E2E_FIREFOX"
     | "E2E_SERVICE_DOWN"
     | "E2E_DISPOSABLE_STACK"
-    | "E2E_COURSE_UNREADABLE",
+    | "E2E_COURSE_UNREADABLE"
+    | "E2E_FIXTURE_COURSE_ROOT",
 ): boolean {
   const value = process.env[name];
   if (value === undefined || value === "") return false;
@@ -65,6 +66,7 @@ isSwitchOn("E2E_COURSE_UNREADABLE");
 const isWebkit = isSwitchOn("E2E_WEBKIT");
 const isFirefox = isSwitchOn("E2E_FIREFOX");
 isSwitchOn("E2E_DISPOSABLE_STACK");
+isSwitchOn("E2E_FIXTURE_COURSE_ROOT");
 
 // #106 design 2.8: e2e/environment-actions.spec.ts resets a working folder, so it runs only on a disposable stack
 // (isolated-stack.sh --e2e, CI) and skips with this decision's reason anywhere else. The root .env's names are

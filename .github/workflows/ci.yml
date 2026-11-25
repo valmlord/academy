@@ -52,6 +52,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm content:validate
+      # The fixture root the several-course e2e serves (#241) passes the same validation as course/.
+      - run: pnpm --filter @academy/lesson-schema run validate ../../tests/fixtures/course-root
 
   # No path filter: a lesson-schema PR that adds a check kind must turn the drift step red (ADR-0007).
   db:
@@ -252,6 +254,39 @@ jobs:
         env:
           E2E_BASE_URL: http://127.0.0.1:53082
           E2E_SERVICE_DOWN: "1"
+      # #241: the catalog and lesson pages over a root of several courses. The same image, only web recreated with
+      # COURSE_ROOT on an export of the committed fixture root; db and the seeded user stay.
+      - name: export the fixture course root
+        run: pnpm --filter @academy/web exec tsx scripts/export-course.ts export ../../tests/fixtures/course-root "$RUNNER_TEMP/fixture-course-root"
+      - name: web serves the fixture course root
+        run: docker compose up -d --no-deps --no-build --wait --wait-timeout 120 web
+        env:
+          COMPOSE_FILE: docker-compose.yml:compose.db-port.yaml:compose.fixture-course-root.yaml
+          FIXTURE_COURSE_ROOT_EXPORT: ${{ runner.temp }}/fixture-course-root
+      - id: several_courses
+        name: several-course e2e
+        run: pnpm --filter @academy/web exec playwright test e2e/several-courses.spec.ts --project=chromium --output test-results/several-courses --reporter=github,json
+        env:
+          E2E_BASE_URL: http://127.0.0.1:53082
+          E2E_FIXTURE_COURSE_ROOT: "1"
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/several-courses.json
+      # Fails unless the report counts no unexpected and no skipped test and more expected (passed) tests than the
+      # one setup test: with the switch lost, every spec test skips and Playwright exits 0.
+      - name: several-course report ran every test
+        if: always() && steps.several_courses.outcome != 'skipped'
+        run: |
+          node -e 'const s=JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).stats; console.log("several-courses stats: expected="+s.expected+" unexpected="+s.unexpected+" skipped="+s.skipped); process.exit(s.unexpected===0&&s.skipped===0&&s.expected>1?0:1)' apps/web/test-results/several-courses.json
+      - name: web logged no server error on the fixture root
+        run: |
+          docker compose logs --no-color web > "$RUNNER_TEMP/web-fixture.log"
+          if ! grep -qF 'web: database migrations applied' "$RUNNER_TEMP/web-fixture.log"; then
+            echo "web log lacks \"web: database migrations applied\"; the guard did not read the fixture stack's web log"
+            exit 1
+          fi
+          if grep -nF -e '⨯' -e 'Error [' "$RUNNER_TEMP/web-fixture.log"; then
+            echo "web logged a server error on the fixture root (matching lines above)"
+            exit 1
+          fi
       - name: no interface address changed while Playwright ran
         if: always() && steps.netlink_guard.outcome == 'success'
         run: bash scripts/netlink-guard.sh check netlink.log "$RUNNER_TEMP/netlink.pid"
