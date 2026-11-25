@@ -49,7 +49,7 @@ export function repoCourses(): Promise<CourseTree[]> {
   return trees;
 }
 
-/** The first course: what the one-course dashboard, top bar and specs show until #241. */
+/** The first course of course/; the one-course dashboard shows it until #247. */
 export async function repoCourse(): Promise<CourseTree> {
   const [first] = await repoCourses();
   if (first === undefined) throw new RepoCourseReadError("no course");

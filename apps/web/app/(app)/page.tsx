@@ -19,7 +19,7 @@ const MAIN_ID = "main";
 // design/pages/dashboard from #30: the Card and the progress section in the first-run state (no progress
 // is read before #35), the course error with a retry that focuses the Card heading (AC8), or, with no
 // ready lesson, the Empty state and nothing focusable, so F6 lands on main itself (AC7). One course, the first
-// that reads, until #241 shows every course (ADR-0009 item 8).
+// that reads, until #247 shows every course (ADR-0009 item 8).
 export default async function DashboardPage(): Promise<ReactElement> {
   await requireSession("/");
   const course = await getFirstReadableCourse();

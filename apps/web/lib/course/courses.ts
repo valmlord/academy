@@ -195,8 +195,8 @@ export async function readOtherCourses(
 
 /**
  * The first listed course that reads, else the first failure in list order. A seam for the one-course
- * dashboard and top bar, which #241 replaces (ADR-0009 item 8 binds it there). `courseById` is the request's
- * cached read, so no course is read twice in a request.
+ * dashboard until #247 (ADR-0009 item 8 binds it there). `courseById` is the request's cached read, so no
+ * course is read twice in a request.
  *
  * The failure of a non-slug name and the `.: no course` result are built here, not by `courseById`, so neither
  * logs a per-request line.

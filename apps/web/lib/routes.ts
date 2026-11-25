@@ -1,4 +1,4 @@
-// The course routes, built in one place for the top bar, the pages and the e2e specs. A plain module:
+// The course routes, built in one place for the pages and the e2e specs. A plain module:
 // a function exported from a "use client" file reaches a server component as a client reference, not a
 // function. Ids are slugs (lesson-schema), so they need no encoding. The pages also build sign-in return
 // paths from route params, which Next hands over still percent-encoded (`/courses/a%3Fb` gives `a%3Fb`), so

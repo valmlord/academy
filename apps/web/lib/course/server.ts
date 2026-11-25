@@ -32,7 +32,7 @@ export const getOtherCourses = cache(
   (courseId: string): Promise<OtherCourseList> => reads.otherCourses(courseId),
 );
 
-// The one-course dashboard and top bar until #241.
+// The one-course dashboard until #247.
 export const getFirstReadableCourse = cache(
   (): Promise<CourseRead> => firstReadableCourse(getCourseNames, getCourseById),
 );

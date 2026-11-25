@@ -61,9 +61,7 @@ export const copyDeniedLabel = "Не скопировано, выделите т
 // after it fits.
 export const codeBlockLabel = "Блок кода";
 
-// design/flows/ia.md, table "Action labels": the two "open the catalog" labels, "Курс" in the top bar and
-// the lesson breadcrumb, "Открыть курс" on the dashboard and the not-found page.
-export const courseLinkLabel = "Курс";
+// design/flows/ia.md, table "Action labels": "Открыть курс" on the dashboard and the not-found page.
 export const openCourseLabel = "Открыть курс";
 
 // design/flows/ia.md, copy register "catalog (F5, F6)" and "dashboard (F4, F18)": the course read error

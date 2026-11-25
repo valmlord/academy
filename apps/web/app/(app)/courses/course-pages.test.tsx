@@ -1,8 +1,7 @@
-import { rmSync } from "node:fs";
 import { render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { breadcrumbLabel, courseErrorTitle, courseLinkLabel, notFoundTitle } from "@/lib/copy";
+import { brandName, breadcrumbLabel, courseErrorTitle, homeTitle, notFoundTitle } from "@/lib/copy";
 import type { SessionData } from "@/lib/session-reader";
 import {
   BROKEN_COURSE_ID,
@@ -19,7 +18,7 @@ import CatalogPage, { generateMetadata as catalogMetadata } from "./[courseId]/p
 
 // The catalog and lesson pages and their metadata over a two-course fixture root, through the real per-course
 // read (ADR-0009 item 8): an id that names no course is not found and opens no course file, a failing course
-// shows the course error, the readable course beside it renders. Then the layout's top bar for a failing course.
+// shows the course error, the readable course beside it renders. Then the layout's top bar, which reads no course.
 
 const SESSION: SessionData = {
   user: { id: "user-1", email: "learner@example.com" },
@@ -158,17 +157,14 @@ describe("the (app) layout", () => {
     return screen.getByRole("banner");
   }
 
-  it("links the course link to the first course that reads", async () => {
-    const link = within(await banner()).getByRole("link", { name: courseLinkLabel });
-
-    expect(link).toHaveAttribute("href", `/courses/${FIXTURE_COURSE_ID}`);
-  });
-
-  it("leaves the course link out when no course reads, although the failure names its course", async () => {
-    rmSync(fixture.path("fixture-course/00-basics/module.yaml"));
-
+  it("links the brand and the home page only, and opens no course file", async () => {
     const top = await banner();
 
-    expect(within(top).queryByRole("link", { name: courseLinkLabel })).toBeNull();
+    expect(
+      within(top)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual([brandName, homeTitle]);
+    expect(fsCalls).toEqual([]);
   });
 });

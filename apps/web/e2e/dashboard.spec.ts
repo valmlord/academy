@@ -1,7 +1,6 @@
 import { expect, type Response, type Route, test } from "@playwright/test";
 import {
   brandName,
-  courseLinkLabel,
   durationLabel,
   homeTitle,
   lessonTypeLabels,
@@ -113,7 +112,6 @@ test("Tab order runs through the top bar, the start button and the module rows",
     skipLinkLabel,
     brandName,
     homeTitle,
-    courseLinkLabel,
     credentials().email,
     startLessonLabel,
     ...dashboard.modules.map((module) => module.title),

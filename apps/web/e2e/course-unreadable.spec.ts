@@ -4,7 +4,6 @@ import { expect, type Page, test } from "@playwright/test";
 import {
   brandName,
   courseErrorTitle,
-  courseLinkLabel,
   homeTitle,
   notFoundTitle,
   openCourseLabel,
@@ -130,9 +129,9 @@ test("L1 a lesson whose course cannot be read shows only the course error, statu
   expect((await main.innerText()).replace(/\s/g, "")).toBe(
     `${courseErrorTitle}${retryLabel}`.replace(/\s/g, ""),
   );
-  // AC19: with no course that reads the top bar has no Курс link and marks no page as current.
+  // AC19: the top bar links the brand and the home page and marks no page as current.
   const banner = page.getByRole("banner");
-  await expect(banner.getByRole("link", { name: courseLinkLabel, exact: true })).toHaveCount(0);
+  await expect(banner.getByRole("link")).toHaveText([brandName, homeTitle]);
   await expect(banner.getByRole("link", { name: homeTitle, exact: true })).not.toHaveAttribute(
     "aria-current",
     /.*/,
@@ -210,9 +209,7 @@ test("U1 an unmatched path while the course id is unknown answers 404 without К
   expect(response?.status(), "status of the not-found response").toBe(404);
   const main = page.getByRole("main");
   await expect(main.getByRole("heading", { level: 1, name: notFoundTitle })).toBeVisible();
-  await expect(
-    page.getByRole("banner").getByRole("link", { name: courseLinkLabel, exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("banner").getByRole("link")).toHaveText([brandName, homeTitle]);
   await expect(main.getByRole("link", { name: openCourseLabel })).toHaveCount(0);
   // AC4: with nothing focusable in main, the second F6 focuses main itself.
   await page.keyboard.press("F6");
