@@ -30,7 +30,7 @@ export class InvalidWorkspaceKeyError extends Error {
 
 /**
  * A course file the file layer refused or could not read. `file` is relative to the course root (`.` for the
- * root itself) and `reason` is a closed reason, a schema issue's path and code, or a duplicated lesson id, so
+ * root itself) and `reason` is a reason, a schema issue's path and code, or a duplicated lesson id, so
  * the message never carries a system error's text, which would hold the absolute path.
  */
 export class CourseFileError extends Error {

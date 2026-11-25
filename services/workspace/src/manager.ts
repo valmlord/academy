@@ -45,7 +45,7 @@ const NO_STOP_HOOKS: StopHooks = { onStopping: () => undefined, onStopRejected: 
 export interface ManagerOptions {
   runtime: WorkspaceRuntime;
   /**
-   * Reads the root's listing and the one course of the id, `null` when the root does not list it; only an ensure
+   * The one course of the id, or `null` for no such course; only an ensure
    * calls it, so a lesson that left its course stays stoppable.
    */
   readCourse: (courseId: string) => Promise<CourseLessons | null>;
