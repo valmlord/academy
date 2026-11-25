@@ -2,7 +2,7 @@ import { rmSync } from "node:fs";
 import { render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { courseErrorTitle, courseLinkLabel, notFoundTitle } from "@/lib/copy";
+import { breadcrumbLabel, courseErrorTitle, courseLinkLabel, notFoundTitle } from "@/lib/copy";
 import type { SessionData } from "@/lib/session-reader";
 import {
   BROKEN_COURSE_ID,
@@ -133,6 +133,22 @@ describe.each([
 
     expect(screen.getByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
     expect((await title(FIXTURE_COURSE_ID)).title).toBe(heading);
+  });
+});
+
+describe("the lesson page's breadcrumb", () => {
+  it("names the course crumb by the course title and links both crumbs into the URL's course", async () => {
+    render(await LessonPage(lessonProps(FIXTURE_COURSE_ID)));
+
+    const crumbs = within(screen.getByRole("navigation", { name: breadcrumbLabel }));
+    expect(crumbs.getByRole("link", { name: "Fixture course" })).toHaveAttribute(
+      "href",
+      `/courses/${FIXTURE_COURSE_ID}`,
+    );
+    expect(crumbs.getByRole("link", { name: "Basics" })).toHaveAttribute(
+      "href",
+      `/courses/${FIXTURE_COURSE_ID}#basics`,
+    );
   });
 });
 

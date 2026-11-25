@@ -9,7 +9,6 @@ import {
   codeBlockLabel,
   copyDeniedLabel,
   copyLabel,
-  courseLinkLabel,
   environmentPaneTabLabel,
   environmentRegionHeading,
   environmentTabsLabel,
@@ -191,7 +190,7 @@ test("the lesson with its environment: two regions, F6 stops, no horizontal scro
   ).toHaveText([terminalTabLabel]);
   const crumb = page
     .getByRole("navigation", { name: breadcrumbLabel })
-    .getByRole("link", { name: courseLinkLabel });
+    .getByRole("link", { name: firstLesson.view.courseTitle, exact: true });
 
   await page.keyboard.press("F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
@@ -905,7 +904,7 @@ test("E-f6-handle: from the handle F6 goes on to the environment, Shift+F6 back 
   await expect(
     page
       .getByRole("navigation", { name: breadcrumbLabel })
-      .getByRole("link", { name: courseLinkLabel }),
+      .getByRole("link", { name: firstLesson.view.courseTitle, exact: true }),
   ).toBeFocused();
 });
 
@@ -922,6 +921,26 @@ test("E-f6-one-pane: F6 shows the hidden pane and lands on its switch tab", asyn
   await expect(switchTab(page, environmentPaneTabLabel)).toBeFocused();
   await page.keyboard.press("F6");
   await expect(page.getByRole("link", { name: brandName })).toBeFocused();
+});
+
+// Separate from E-f6-one-pane: its next F6 starts from the switch tab, which a Tab here would move.
+test("E-f6-one-pane-crumb: in one pane the course crumb is the next Tab after the lesson pane's switch tab (AC76)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(pathOf(firstLesson));
+  await waitForHydration(page.getByRole("link", { name: brandName }), "hydrated before F6");
+  await page.getByRole("link", { name: brandName }).focus();
+  await page.keyboard.press("F6");
+  await expect(switchTab(page, lessonPaneTabLabel)).toBeFocused();
+
+  await page.keyboard.press("Tab");
+
+  await expect(
+    page
+      .getByRole("navigation", { name: breadcrumbLabel })
+      .getByRole("link", { name: firstLesson.view.courseTitle, exact: true }),
+  ).toBeFocused();
 });
 
 interface LiveContainers {

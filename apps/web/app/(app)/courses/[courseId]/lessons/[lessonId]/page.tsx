@@ -24,7 +24,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   breadcrumbLabel,
   courseErrorTitle,
-  courseLinkLabel,
   lessonRegionHeading,
   m0LessonNote,
   notFoundTitle,
@@ -93,7 +92,7 @@ export default async function LessonPage(props: LessonPageProps): Promise<ReactE
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href={catalogPath(lesson.courseId)}>{courseLinkLabel}</Link>
+              <Link href={catalogPath(lesson.courseId)}>{lesson.courseTitle}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
