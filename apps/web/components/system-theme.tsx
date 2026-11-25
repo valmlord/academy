@@ -8,7 +8,7 @@ import { DARK_SCHEME_QUERY } from "@/lib/theme-script";
  * every Suspense boundary, the server's HTML render fails and Next sends `<html id="__next_error__">`, whose
  * head lacks the root layout's script; the client then mounts the root layout with createRoot. The <script>
  * React inserts there never runs, and mounting <html> removes every attribute it had. A layout effect runs
- * after that mount and before the browser paints it, so the rendered page is never painted without the class.
+ * after that mount and before the browser paints it.
  */
 export function SystemTheme(): null {
   useLayoutEffect(() => {
