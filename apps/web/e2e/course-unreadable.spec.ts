@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
+import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, type Request, test } from "@playwright/test";
 import {
   brandName,
   courseErrorTitle,
@@ -257,4 +258,144 @@ test("U3 Открыть курс after the retry on an unknown lesson opens the 
   await expect(page.getByRole("heading", { level: 1, name: catalog.title })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1, name: catalog.title })).not.toBeFocused();
   expect(new URL(page.url()).pathname).toBe(catalogPath(catalog.id));
+});
+
+// Longer than the move takes once the answer arrived, which the control test measures in the same run: a move
+// the guard should have stopped would land inside it too.
+const STAY_WINDOW_MS = 1000;
+const FOCUS_CHECK_INTERVAL_MS = 100;
+
+interface HeldRefresh {
+  heldCount(): number;
+  release(): void;
+}
+
+// The refresh's RSC fetch of `path`; a document load, a script or a POST server action is not it.
+function isRefreshOf(request: Request, path: string): boolean {
+  return (
+    new URL(request.url()).pathname === path &&
+    request.method() === "GET" &&
+    request.resourceType() === "fetch"
+  );
+}
+
+/** Holds every refresh fetch of `path` until release(); any other request of that path goes on at once. */
+async function holdRefresh(page: Page, path: string): Promise<HeldRefresh> {
+  let heldCount = 0;
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    (url) => url.pathname === path,
+    async (route) => {
+      if (!isRefreshOf(route.request(), path)) {
+        await route.fallback();
+        return;
+      }
+      heldCount += 1;
+      await gate;
+      await route.continue();
+    },
+  );
+  return { heldCount: () => heldCount, release };
+}
+
+// One check per interval, not toBeFocused: that retries until it passes, so it passes on the first poll that
+// sees focus there and cannot see a move later in the window; `{ timeout: 0 }` turns its timeout off rather than
+// making it a single check.
+async function expectFocusKept(locator: Locator, ms: number): Promise<void> {
+  for (let elapsed = 0; elapsed < ms; elapsed += FOCUS_CHECK_INTERVAL_MS) {
+    expect(await locator.evaluate((element) => element === document.activeElement)).toBe(true);
+    await sleep(FOCUS_CHECK_INTERVAL_MS);
+  }
+  expect(await locator.evaluate((element) => element === document.activeElement)).toBe(true);
+}
+
+/**
+ * Presses the retry button with the answer held and checks the hold caught exactly the refresh of `path`. `answerArrived`
+ * settles when the released refresh's status and headers arrive, not when its body ends: Playwright's body-end wait on
+ * the response does not reliably resolve after `route.continue()` of a held refresh, so waiting for it can hang the test.
+ */
+async function pressRetryHeld(
+  page: Page,
+  path: string,
+  hold: HeldRefresh,
+): Promise<{ answerArrived: Promise<void> }> {
+  const responseDone = page.waitForResponse((response) => isRefreshOf(response.request(), path));
+  await page.getByRole("main").getByRole("button", { name: retryLabel }).click();
+  await expect.poll(hold.heldCount).toBe(1);
+  const answerArrived = responseDone.then(() => undefined);
+  return { answerArrived };
+}
+
+/** Shift+Tab from the retry button, with the answer still held: focus reaches the top bar's user menu button. */
+async function shiftTabToTopBar(page: Page): Promise<Locator> {
+  await page.keyboard.press("Shift+Tab");
+  const userMenuButton = page.getByRole("banner").getByRole("button");
+  await expect(userMenuButton).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: courseErrorTitle })).toBeVisible();
+  return userMenuButton;
+}
+
+test("a Shift+Tab to the top bar while the answer is held keeps focus there when the lesson loads (AC19, RG1)", async ({
+  page,
+}) => {
+  await openCourseError(page, lessonPathOfFirst);
+  await chmodCourse("a+r");
+  const hold = await holdRefresh(page, lessonPathOfFirst);
+  try {
+    const { answerArrived } = await pressRetryHeld(page, lessonPathOfFirst, hold);
+    const userMenuButton = await shiftTabToTopBar(page);
+
+    hold.release();
+    await answerArrived;
+    await expect(
+      page.getByRole("heading", { level: 1, name: firstLesson.view.title }),
+    ).toBeVisible();
+
+    await expectFocusKept(userMenuButton, STAY_WINDOW_MS);
+  } finally {
+    hold.release();
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  }
+});
+
+test("a Shift+Tab to the top bar while the answer is held keeps focus there when the course fails again (AC19, RG1)", async ({
+  page,
+}) => {
+  await openCourseError(page, lessonPathOfFirst);
+  const hold = await holdRefresh(page, lessonPathOfFirst);
+  try {
+    const { answerArrived } = await pressRetryHeld(page, lessonPathOfFirst, hold);
+    const userMenuButton = await shiftTabToTopBar(page);
+
+    hold.release();
+    await answerArrived;
+
+    await expectFocusKept(userMenuButton, STAY_WINDOW_MS);
+  } finally {
+    hold.release();
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  }
+});
+
+test("control: with focus left on Повторить, a held answer that fails again moves focus to the error h1 within the stay window", async ({
+  page,
+}) => {
+  await openCourseError(page, lessonPathOfFirst);
+  const hold = await holdRefresh(page, lessonPathOfFirst);
+  try {
+    const { answerArrived } = await pressRetryHeld(page, lessonPathOfFirst, hold);
+
+    hold.release();
+    await answerArrived;
+
+    await expect(page.getByRole("heading", { level: 1, name: courseErrorTitle })).toBeFocused({
+      timeout: STAY_WINDOW_MS,
+    });
+  } finally {
+    hold.release();
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  }
 });
