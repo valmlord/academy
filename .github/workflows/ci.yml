@@ -52,6 +52,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm content:validate
+      # The fixture root the several-course e2e serves (#241) passes the same validation as course/.
+      - run: pnpm --filter @academy/lesson-schema run validate ../../tests/fixtures/course-root
 
   # No path filter: a lesson-schema PR that adds a check kind must turn the drift step red (ADR-0007).
   db:
