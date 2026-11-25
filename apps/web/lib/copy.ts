@@ -98,6 +98,9 @@ export const modulePreparingLabel = "Готовится";
 // design/flows/ia.md, copy register "catalog (F5, F6)": a module without ready lessons (catalog AC4).
 export const noModuleLessonsMessage = "Уроки модуля готовятся";
 
+// design/pages/catalog/acceptance.md, Copy "other courses heading" (A218-14).
+export const otherCoursesHeading = "Другие курсы";
+
 // design/pages/catalog/acceptance.md, Copy "lesson row meta": "<lesson type>, около N мин".
 export function lessonRowMeta(typeLabel: string, minutes: number): string {
   return `${typeLabel}, ${durationLabel(minutes)}`;

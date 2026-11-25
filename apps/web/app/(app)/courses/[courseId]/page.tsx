@@ -4,10 +4,11 @@ import type { ReactElement } from "react";
 import { FragmentFocus } from "@/components/catalog/fragment-focus";
 import { ModuleList } from "@/components/catalog/module-list";
 import { ModuleSection } from "@/components/catalog/module-section";
+import { OtherCourses } from "@/components/catalog/other-courses";
 import { CourseError } from "@/components/course-error";
 import { FocusOnMount } from "@/components/focus-on-mount";
 import { courseErrorTitle, notFoundTitle } from "@/lib/copy";
-import { getCourseById } from "@/lib/course/server";
+import { getCourseById, getOtherCourses } from "@/lib/course/server";
 import { toCatalogView } from "@/lib/course/view";
 import { catalogPath } from "@/lib/routes";
 import { requireSession } from "@/lib/session";
@@ -28,9 +29,18 @@ export async function generateMetadata({
   return { title: course.tree.title };
 }
 
-// design/pages/catalog: the course header, the module list, one section per module. A course id that names
-// no course of the root is not found; a course that cannot be read shows only the error Alert, whose title is
-// the h1 (`#state-course-error`, catalog AC8).
+// The other-courses section when the listing holds another course in the course id form (A218-14); none on a
+// root failure of that listing.
+async function otherCoursesOf(courseId: string): Promise<ReactElement | null> {
+  const others = await getOtherCourses(courseId);
+  if (others.kind === "root-failure" || others.courses.length === 0) return null;
+  return <OtherCourses courses={others.courses} />;
+}
+
+// design/pages/catalog: the course header, the module list, one section per module, then any other-courses
+// section. A course id that names no course of the root is not found; a course that cannot be read shows the
+// error Alert, whose title is the h1 (`#state-course-error`, catalog AC8), then any other-courses section
+// (ES7); a root that cannot be read shows the error Alert alone (ES8).
 export default async function CatalogPage({
   params,
 }: PageProps<"/courses/[courseId]">): Promise<ReactElement> {
@@ -43,6 +53,7 @@ export default async function CatalogPage({
       <main id="main" tabIndex={-1} data-region className={MAIN_CLASS_NAME}>
         <div className={COLUMN_CLASS_NAME}>
           <CourseError isPageHeading successTargetId={TITLE_ID} />
+          {course.kind === "course-failure" ? await otherCoursesOf(courseId) : null}
         </div>
       </main>
     );
@@ -64,6 +75,7 @@ export default async function CatalogPage({
             <ModuleSection key={module.id} courseId={view.id} module={module} />
           ))}
         </div>
+        {await otherCoursesOf(courseId)}
       </div>
       <FragmentFocus />
     </main>

@@ -1,15 +1,26 @@
+import { mkdirSync, rmSync } from "node:fs";
 import { render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { brandName, breadcrumbLabel, courseErrorTitle, homeTitle, notFoundTitle } from "@/lib/copy";
+import {
+  brandName,
+  breadcrumbLabel,
+  courseErrorTitle,
+  homeTitle,
+  notFoundTitle,
+  otherCoursesHeading,
+  retryLabel,
+} from "@/lib/copy";
+import { CourseRootReadError } from "@/lib/course/errors";
 import type { SessionData } from "@/lib/session-reader";
 import {
   BROKEN_COURSE_ID,
   type CourseFixture,
   createCourseFixture,
   FIXTURE_COURSE_ID,
+  makeBrokenCourseReadable,
 } from "@/test/course-fixture";
-import { fsCalls, useCourseRoot } from "@/test/course-server-fake";
+import { courseServerFake, fsCalls, useCourseRoot } from "@/test/course-server-fake";
 import AppLayout from "../layout";
 import LessonPage, {
   generateMetadata as lessonMetadata,
@@ -132,6 +143,104 @@ describe.each([
 
     expect(screen.getByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
     expect((await title(FIXTURE_COURSE_ID)).title).toBe(heading);
+  });
+});
+
+describe("the catalog's other courses", () => {
+  async function renderCatalog(courseId: string): Promise<void> {
+    render(await CatalogPage(catalogProps(courseId)));
+  }
+
+  function otherCourseLinks(): { name: string | null; href: string | null }[] {
+    const section = screen.getByRole("region", { name: otherCoursesHeading });
+    return within(section)
+      .getAllByRole("link")
+      .map((link) => ({ name: link.textContent, href: link.getAttribute("href") }));
+  }
+
+  it("ends the catalog with the other course, named by its id when its course.yaml claims another id", async () => {
+    await renderCatalog(FIXTURE_COURSE_ID);
+
+    expect(screen.getAllByRole("region").at(-1)).toHaveAccessibleName(otherCoursesHeading);
+    expect(otherCourseLinks()).toEqual([
+      { name: BROKEN_COURSE_ID, href: `/courses/${BROKEN_COURSE_ID}` },
+    ]);
+  });
+
+  it("names a readable other course by its title", async () => {
+    makeBrokenCourseReadable(fixture);
+
+    await renderCatalog(FIXTURE_COURSE_ID);
+
+    expect(otherCourseLinks()).toEqual([
+      { name: "Broken course", href: `/courses/${BROKEN_COURSE_ID}` },
+    ]);
+  });
+
+  it("opens only course.yaml of the other course, although it reads in full", async () => {
+    makeBrokenCourseReadable(fixture);
+
+    await renderCatalog(FIXTURE_COURSE_ID);
+
+    expect(fsCalls.filter((call) => call.includes('"broken-course'))).toEqual([
+      'readText "broken-course/course.yaml"',
+    ]);
+  });
+
+  it("names the other course by its id when its course.yaml is missing", async () => {
+    makeBrokenCourseReadable(fixture);
+    rmSync(fixture.path("broken-course/course.yaml"));
+
+    await renderCatalog(FIXTURE_COURSE_ID);
+
+    expect(otherCourseLinks()).toEqual([
+      { name: BROKEN_COURSE_ID, href: `/courses/${BROKEN_COURSE_ID}` },
+    ]);
+  });
+
+  it("follows the course error of a failing course, after its retry button", async () => {
+    await renderCatalog(BROKEN_COURSE_ID);
+
+    const main = screen.getByRole("main");
+    expect(
+      within(main)
+        .getAllByRole("heading")
+        .map((heading) => heading.textContent),
+    ).toEqual([courseErrorTitle, otherCoursesHeading]);
+    expect(
+      Array.from(main.querySelectorAll("a[href], button")).map((element) => element.textContent),
+    ).toEqual([retryLabel, "Fixture course"]);
+  });
+
+  it("is absent when the root cannot be read", async () => {
+    fixture.remove();
+
+    await renderCatalog(FIXTURE_COURSE_ID);
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(courseErrorTitle);
+    expect(screen.queryByRole("heading", { name: otherCoursesHeading })).toBeNull();
+  });
+
+  it("is absent when the other-course listing fails after the course read", async () => {
+    vi.spyOn(courseServerFake, "getOtherCourses").mockResolvedValueOnce({
+      kind: "root-failure",
+      error: new CourseRootReadError(".", "missing"),
+    });
+
+    await renderCatalog(FIXTURE_COURSE_ID);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Fixture course" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: otherCoursesHeading })).toBeNull();
+  });
+
+  it("is absent with one course, and a directory not in the course id form gets no link", async () => {
+    rmSync(fixture.path(BROKEN_COURSE_ID), { recursive: true });
+    mkdirSync(fixture.path("Not A Course"));
+
+    await renderCatalog(FIXTURE_COURSE_ID);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Fixture course" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: otherCoursesHeading })).toBeNull();
   });
 });
 
