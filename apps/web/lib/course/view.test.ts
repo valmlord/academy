@@ -5,11 +5,13 @@ import {
   type CourseFixture,
   createCourseFixture,
   FIXTURE_COURSE_ID,
+  fixtureSource,
   makeBrokenCourseReadable,
   readFixtureTree,
   THEORY_COURSE_TITLE,
   writeTheoryOnlyCourse,
 } from "@/test/course-fixture";
+import { readEveryCourse } from "./courses";
 import type { CourseTree } from "./read";
 import {
   type DashboardView,
@@ -31,6 +33,11 @@ afterEach(() => {
 });
 
 const read = (): Promise<CourseTree> => readFixtureTree(fixture.root);
+
+/** A module.yaml that does not parse, so `fixture-course` fails after its course.yaml read. */
+function breakFixtureModule(): void {
+  fixture.write(`${FIXTURE_COURSE_ID}/00-basics/module.yaml`, "id: [unclosed\n");
+}
 
 describe("toCatalogView", () => {
   it("shows only ready lessons of ready modules, and a module without one as not available", async () => {
@@ -153,13 +160,9 @@ describe("toDashboardPage", () => {
   it("takes the Card course as the first course in list order with a next lesson", async () => {
     makeBrokenCourseReadable(fixture);
     writeTheoryOnlyCourse(fixture, "a-theory-course");
-    const trees = await Promise.all(
-      ["a-theory-course", BROKEN_COURSE_ID, FIXTURE_COURSE_ID].map((id) =>
-        readFixtureTree(fixture.root, id),
-      ),
-    );
+    const every = await readEveryCourse(fixtureSource(fixture.root));
 
-    const page = toDashboardPage(trees);
+    const page = toDashboardPage(every.kind === "courses" ? every.courses : []);
 
     const brokenLesson = {
       id: "broken-lesson",
@@ -200,6 +203,21 @@ describe("toDashboardPage", () => {
           { id: "later", title: "Later", isAvailable: false, lessonCount: 0 },
         ],
       },
+    ]);
+  });
+
+  it("puts each failing course in its list place as an error block, named by its title or else its id", async () => {
+    breakFixtureModule();
+    writeTheoryOnlyCourse(fixture, "z-theory-course");
+    const every = await readEveryCourse(fixtureSource(fixture.root));
+
+    const page = toDashboardPage(every.kind === "courses" ? every.courses : []);
+
+    expect(page.card).toBeNull();
+    expect(page.blocks).toEqual([
+      { form: "error", courseId: BROKEN_COURSE_ID, courseName: BROKEN_COURSE_ID },
+      { form: "error", courseId: FIXTURE_COURSE_ID, courseName: "Fixture course" },
+      { form: "empty", courseId: "z-theory-course", courseTitle: THEORY_COURSE_TITLE },
     ]);
   });
 });

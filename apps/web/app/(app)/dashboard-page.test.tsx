@@ -1,7 +1,8 @@
-import { rmSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { takeAnyRetryFocus } from "@/components/retry-button";
 import {
   courseErrorTitle,
   modulePreparingLabel,
@@ -26,7 +27,8 @@ import { fsCalls, useCourseRoot } from "@/test/course-server-fake";
 import DashboardPage from "./page";
 
 // The dashboard page over fixture roots, through the real every-course read: the Card of the first course with
-// a next lesson, one block per readable course in list order, and the one course error when no course reads.
+// a next lesson, one block per listed course in list order (a failing course's block in the error form), and the
+// one course error when the root fails.
 
 const SESSION: SessionData = {
   user: { id: "user-1", email: "learner@example.com" },
@@ -48,7 +50,8 @@ vi.mock("next/navigation", async (importOriginal) => ({
   useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
 
-// The course blocks only: the Card's section is labelled by the Card heading, the course error is a div.
+// The course blocks of every form only: each is a section labelled by its course-...-heading h2, the Card's
+// section is labelled by the Card heading, and the root's course error is a div.
 const BLOCK = 'section[aria-labelledby^="course-"]';
 const THEORY_COURSE_ID = "a-theory-course";
 
@@ -60,6 +63,8 @@ beforeEach(() => {
 
 afterEach(() => {
   fixture.remove();
+  // A retry's focus flag is module state; drop one no test took.
+  takeAnyRetryFocus();
 });
 
 /** List order: the theory-only course, then both fixture courses, each read. */
@@ -72,6 +77,22 @@ function useThreeCourses(): void {
 async function renderDashboard(): Promise<HTMLElement> {
   render(await DashboardPage());
   return screen.getByRole("main");
+}
+
+/** A module.yaml that does not parse, so `fixture-course` fails after its course.yaml read (title known). */
+function breakFixtureModule(): void {
+  fixture.write(`${FIXTURE_COURSE_ID}/00-basics/module.yaml`, "id: [unclosed\n");
+}
+
+/** A course.yaml that does not parse, so `fixture-course` fails with no title read. */
+function breakFixtureCourseYaml(): void {
+  fixture.write(`${FIXTURE_COURSE_ID}/course.yaml`, "id: [unclosed\n");
+}
+
+/** main's links and buttons in DOM order, which is the Tab order while no element has a positive tabindex. */
+function tabOrder(main: HTMLElement): (string | null)[] {
+  expect(main.querySelector('[tabindex]:not([tabindex="-1"])')).toBeNull();
+  return Array.from(main.querySelectorAll("a[href], button")).map((element) => element.textContent);
 }
 
 function blocks(main: HTMLElement): HTMLElement[] {
@@ -213,15 +234,149 @@ describe("the dashboard page", () => {
     expect(found[0]?.querySelector('[role="progressbar"]')).toBeNull();
   });
 
-  it("renders the readable course beside a failing one without a course error", async () => {
+  it("renders a failing course's block in the error form beside the Card of a readable one", async () => {
+    makeBrokenCourseReadable(fixture);
+    breakFixtureModule();
     useCourseRoot(fixture.root);
 
     const main = await renderDashboard();
 
     const card = within(screen.getByRole("region", { name: nextLessonHeading }));
-    expect(card.getByText("Fixture course")).toBeInTheDocument();
-    expect(blocks(main)).toHaveLength(1);
-    expect(screen.queryByText(courseErrorTitle)).toBeNull();
+    expect(card.getByText("Broken course")).toBeInTheDocument();
+    const block = blockOf(main, FIXTURE_COURSE_ID);
+    const heading = within(block).getByRole("heading", { level: 2 });
+    expect(block).toHaveAttribute("aria-labelledby", heading.id);
+    expect(heading).toHaveAttribute("tabindex", "-1");
+    expect(heading).toHaveTextContent(/^Fixture course$/);
+    expect(within(heading).queryByRole("link")).toBeNull();
+    const title = within(block).getByRole("heading", { level: 3, name: courseErrorTitle });
+    expect(title).toHaveAttribute("id", `course-${FIXTURE_COURSE_ID}-error-title`);
+    expect(title).toHaveAttribute("tabindex", "-1");
+    const [button, ...otherButtons] = within(block).getAllByRole("button");
+    expect(otherButtons).toEqual([]);
+    expect(button).toHaveAccessibleName(retryLabel);
+    expect(button).toHaveAccessibleDescription("Fixture course");
+    expect(main.querySelector('[role="alert"]')).toBeNull();
+    expect(main.querySelector("[aria-live]")).toBeNull();
+  });
+
+  it("names a course whose title cannot be read by its id", async () => {
+    useCourseRoot(fixture.root);
+
+    const main = await renderDashboard();
+
+    const region = within(main).getByRole("region", { name: BROKEN_COURSE_ID });
+    expect(within(region).getByRole("heading", { level: 2 })).toHaveTextContent(
+      new RegExp(`^${BROKEN_COURSE_ID}$`),
+    );
+    expect(within(region).getByRole("button", { name: retryLabel })).toHaveAccessibleDescription(
+      BROKEN_COURSE_ID,
+    );
+  });
+
+  it("renders one error-form block per course and no Card when every course fails", async () => {
+    breakFixtureCourseYaml();
+    useCourseRoot(fixture.root);
+
+    const main = await renderDashboard();
+
+    const found = blocks(main);
+    expect(found).toHaveLength(2);
+    for (const block of found) {
+      expect(
+        within(block).getByRole("heading", { level: 3, name: courseErrorTitle }),
+      ).toBeVisible();
+      expect(within(block).getByRole("button", { name: retryLabel })).toBeVisible();
+    }
+    expect(screen.queryByRole("heading", { name: nextLessonHeading })).toBeNull();
+    expect(screen.queryByRole("region", { name: nextLessonHeading })).toBeNull();
+  });
+
+  it.each<[string, () => void, unknown[]]>([
+    [
+      "one-course-error",
+      () => {
+        rmSync(fixture.path(BROKEN_COURSE_ID), { recursive: true });
+        breakFixtureModule();
+      },
+      [retryLabel],
+    ],
+    [
+      "courses-no-card",
+      () => {
+        rmSync(fixture.path(FIXTURE_COURSE_ID), { recursive: true });
+        writeTheoryOnlyCourse(fixture, "z-theory-course");
+      },
+      [retryLabel, THEORY_COURSE_TITLE],
+    ],
+    [
+      "courses-one-broken",
+      () => {
+        makeBrokenCourseReadable(fixture);
+        breakFixtureModule();
+      },
+      [startLessonLabel, "Broken course", expect.stringContaining("Only module"), retryLabel],
+    ],
+    [
+      "courses-broken-no-title",
+      () => {
+        makeBrokenCourseReadable(fixture);
+        breakFixtureCourseYaml();
+      },
+      [startLessonLabel, "Broken course", expect.stringContaining("Only module"), retryLabel],
+    ],
+    [
+      "courses-other-broke",
+      () => undefined,
+      [
+        startLessonLabel,
+        retryLabel,
+        "Fixture course",
+        expect.stringContaining("Basics"),
+        expect.stringContaining("Later"),
+      ],
+    ],
+  ])("orders main's links and buttons for %s", async (_state, arrange, expected) => {
+    arrange();
+    useCourseRoot(fixture.root);
+
+    const main = await renderDashboard();
+
+    expect(tabOrder(main)).toEqual(expected);
+  });
+
+  it("names blocks of directories outside the id form by their name, with ids unique in main", async () => {
+    // fixture_course, not Fixture-Course: on a case-insensitive file system the latter is fixture-course itself.
+    // A token that lowercased the name and turned other characters into "-" would give it fixture-course's ids.
+    mkdirSync(fixture.path("My Course"));
+    mkdirSync(fixture.path("fixture_course"));
+    useCourseRoot(fixture.root);
+
+    const main = await renderDashboard();
+
+    for (const name of ["My Course", "fixture_course"]) {
+      const region = within(main).getByRole("region", { name });
+      expect(within(region).getByRole("button", { name: retryLabel })).toHaveAccessibleDescription(
+        name,
+      );
+    }
+    const ids = Array.from(main.querySelectorAll("[id]")).map((element) => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("focuses the error form's own heading when its retry renders the same error again", async () => {
+    rmSync(fixture.path(BROKEN_COURSE_ID), { recursive: true });
+    breakFixtureModule();
+    useCourseRoot(fixture.root);
+    const main = await renderDashboard();
+
+    await act(async () => {
+      fireEvent.click(within(main).getByRole("button", { name: retryLabel }));
+    });
+
+    expect(document.activeElement).toBe(
+      main.querySelector(`#course-${FIXTURE_COURSE_ID}-error-title`),
+    );
   });
 
   it.each([
@@ -231,13 +386,6 @@ describe("the dashboard page", () => {
       (): string => {
         rmSync(fixture.path(BROKEN_COURSE_ID), { recursive: true });
         rmSync(fixture.path(FIXTURE_COURSE_ID), { recursive: true });
-        return fixture.root;
-      },
-    ],
-    [
-      "a root whose every course fails",
-      (): string => {
-        fixture.write(`${FIXTURE_COURSE_ID}/course.yaml`, "id: [unclosed\n");
         return fixture.root;
       },
     ],

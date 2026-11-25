@@ -62,12 +62,15 @@ export interface RetryButtonProps {
   errorTargetId: string;
   /** The button's own id, for a composition whose error target is the button itself. */
   id?: string;
+  /** The id of the element whose text describes the button, as its `aria-describedby`. */
+  describedById?: string;
 }
 
 export function RetryButton({
   successTargetId,
   errorTargetId,
   id,
+  describedById,
 }: RetryButtonProps): ReactElement {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -107,7 +110,14 @@ export function RetryButton({
   }
 
   return (
-    <Button id={id} type="button" variant="secondary" size="sm" onClick={retry}>
+    <Button
+      id={id}
+      type="button"
+      variant="secondary"
+      size="sm"
+      aria-describedby={describedById}
+      onClick={retry}
+    >
       {retryLabel}
     </Button>
   );
