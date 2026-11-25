@@ -15,8 +15,8 @@ import { fixtureCourse } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
 // The catalog and lesson pages over tests/fixtures/course-root (#241), against a stack whose web serves an
-// export of that root (compose.fixture-course-root.yaml). Titles and ids come from the fixture through the
-// app's own loader and views.
+// export of that root (compose.fixture-course-root.yaml). Titles come from the fixture through the app's own
+// loader and views; the spec names its three courses by id.
 
 test.skip(
   !isSwitchOn("E2E_FIXTURE_COURSE_ROOT"),
@@ -32,7 +32,7 @@ const longName = await fixtureCourse("long-name-course");
 const stub = await fixtureCourse("zz-stub-course");
 const empty = await fixtureCourse("zzz-empty-course");
 
-// The catalog and lesson acceptance check the wrap with a course name of this length (catalog AC12, lesson AC76).
+// Lesson AC76 and the catalog acceptance's layout notes check the wrap with a course name of this length.
 const LONG_TITLE_LENGTH = 120;
 
 /** The first visible lesson of `course`, as the lesson page renders it. */
@@ -226,7 +226,7 @@ for (const viewport of [
   { width: 320, height: 800 },
   { width: 640, height: 400 },
 ]) {
-  test(`E6 a ${LONG_TITLE_LENGTH}-character course name wraps in the other-course link and the course crumb at ${viewport.width}x${viewport.height}, no horizontal scroll (catalog AC12, lesson AC76)`, async ({
+  test(`E6 a ${LONG_TITLE_LENGTH}-character course name wraps in the other-course link and the course crumb at ${viewport.width}x${viewport.height}, no horizontal scroll (catalog AC12, AC14, lesson AC76)`, async ({
     browser,
   }) => {
     expect(longName.title, "the fixture's long course name").toHaveLength(LONG_TITLE_LENGTH);
