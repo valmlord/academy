@@ -746,7 +746,7 @@ would score nothing (course rule "answers open after a pass"); this also matches
   announces, with the Квиз panel shown, is said by the quiz load status container ("Loading").
 - Session expired while answering (F2): a 401 on send or load shows the F2.1 session alert in "Уведомления",
   never the send error. Selected answers are kept in `sessionStorage` under the lesson id, the check id and the
-  attempt number (from #220 also the course id: `courses.md` "Requirements for #220" item 9) on every change, so the same-tab round trip through sign-in (F2.2-F2.4, back to
+  attempt number (from #220: `courses.md` "Requirements for #220" item 9) on every change, so the same-tab round trip through sign-in (F2.2-F2.4, back to
   `?tab=quiz`) restores them, with no message (the learner sees the answers where they left them, and a
   message would need focus or a live container). They are dropped when the server's attempt number differs
   or the quiz is passed or closed, and cleared after a successful send. A different browser tab or a closed

@@ -46,8 +46,8 @@ learning-process §4; #35; G5.
 **Entry:** the dashboard, below the "Следующий урок" card (F4), from #30. Before #30 the dashboard shows no
 progress section (`dashboard.md`, "Dashboard by release"; `ia.md` R6, "Before the catalog ships").
 
-From #220: F18.1-F18.2 per course block, F18.3-F18.5 across courses (`ia.md` A218-6, A218-13, "Rules
-(#218)"); error and focus states: `ia.md` [Error and focus states (#222)](ia.md#errors-222).
+From #220: F18.1-F18.2 by `ia.md` "Rules (#218)" row "course block" and A218-6, F18.3-F18.5 by A218-13
+and "Rules (#218)" row "dashboard order"; error and focus states: `ia.md` [Error and focus states (#222)](ia.md#errors-222).
 
 **Steps (5):**
 
@@ -315,7 +315,7 @@ their expanded state and focus. "Learns of a record" is:
 - from #36 an answered quiz send (failed, passed, closed, or refused, because a refusal means another
   browser tab sent one): the history is read in the same server read as the check states the send
   re-reads (A72-17); a send error re-reads nothing;
-- from #36 a visibility re-read (B9-B11, B27) whose `latestAttemptRecordId` differs from the history
+- from #36 a visibility re-read (B8-B11, B27) whose `latestAttemptRecordId` differs from the history
   baseline: a quiz send this page has not shown (B27: sent in another browser tab, or this page's own send
   that timed out and the server recorded) is such a record, which the run baseline does not see.
   Every visibility re-read reads the history in the same server read as the check states, so the quiz check

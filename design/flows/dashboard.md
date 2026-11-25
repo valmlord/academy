@@ -18,14 +18,13 @@ Progress sections of the dashboard are F18 in `progress.md`. From #220: `courses
 1. F4.1 Learner sees the "Следующий урок" card: lesson title, module title, lesson type, estimated time
    ("около 60 мин"), and one button: "Продолжить" when the lesson is started, "Начать" otherwise (rule R5
    in `ia.md`: an attempt exists or terminal input was recorded; opening the lesson or the automatic
-   environment start does not count). From #220 the lesson is the Card course's, and the Card names that
-   course (`ia.md` A218-2, A218-7).
+   environment start does not count). From #220: `ia.md` A218-2, A218-7.
 2. F4.2 Learner presses the button.
 3. F4.3 Learner lands on the lesson page: "Начать" opens tab Теория (Задание when the lesson has no
    theory), "Продолжить" opens tab Задание.
 
-**Rule for "next lesson":** the first `ready` lesson in catalog order that is not finished; from #220 within
-each course (`ia.md` A218-4), and the Card's course by A218-2. A lesson is passed when every one of its
+**Rule for "next lesson":** the first `ready` lesson in catalog order that is not finished; from #220 a block's
+by `ia.md` A218-4, the Card's by A218-2. A lesson is passed when every one of its
 checks is passed, and finished when every check is passed or closed (F14);
 a closed lesson does not block the queue (assumption A9 in the #50 design notes). Prerequisites do not
 change the order, because the catalog order already respects them in module 00
@@ -62,14 +61,14 @@ or #34 ships no lesson can be started, so the card always reads "Начать" (
 - Until #220, every `ready` lesson passed: the card reads "Все доступные уроки пройдены" and "Новые модули
   появятся в каталоге" with a link "Открыть курс"; from #220 the end Card: `ia.md` A218-2. Five of the six
   modules of `ai-for-developers` are `planned` today (research §3), so this state is reachable early.
-- No `ready` lesson at all: until #220 "В курсе пока нет готовых уроков" with no button; from #220 no Card
-  (`ia.md` A218-2) and each course a block in the empty form (`ia.md` "Rules (#218)", row "course block").
+- No `ready` lesson at all: until #220 "В курсе пока нет готовых уроков" with no button; from #220 the Card
+  by `ia.md` A218-2, the blocks by "Rules (#218)" row "course block".
 
 **Exit:** F4.3; or the catalog via the top bar (F5, from #30).
 
 **Keyboard path:** from #30, the skip link moves focus to `main` (R4); the next Tab, or `F6` to `main`
-(R3), reaches the card's button (or "Повторить" / "Открыть курс" in those states) until #220, and from #220
-the first element of `ia.md` "Rules (#218)" row "Tab order in `main`, `F6`"; Enter opens the lesson.
+(R3), reaches the card's button (or "Повторить" / "Открыть курс" in those states) until #220, and from #220:
+`ia.md` "Rules (#218)" row "Tab order in `main`, `F6`"; Enter opens the lesson.
 Before #30 (see "Dashboard by release"), the skip link and `F6` to `main` focus `main` itself
 (`tabindex="-1"`); `main` holds nothing focusable, so the next Tab leaves the page content.
 
@@ -101,4 +100,4 @@ Each release state is one named state (rule R6 in `ia.md`, "Before the catalog s
 - **From #37**: as from #35, plus the attempt cost in each "Последние попытки" row that can spend and the
   total F18.5 "Потрачено на проверки и разборы: $N" with its note (ADR-0007 item 11, Proposed). Every
   member each release renders: `ia.md` R6, "Progress by release (#72)".
-- **From #220**: the page of `ia.md` "Several courses (#218)"; #35 and #37 add F18.3-F18.5 there (FU21).
+- **From #220**: the page of `ia.md` "Several courses (#218)".

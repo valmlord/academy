@@ -1,14 +1,15 @@
 # Journey: several courses
 
 Pages: dashboard (F20, F21), lesson (F22). Issue #218 (parent epic #217); F21 and the error and focus
-states: #222. Sources: #218 scope items 1-5; #217 (a
+states: #222, except "Requirements for #220" item 9. Sources: #218 scope items 1-5; #217 (a
 stub second course with one `ready` lesson); #219 (the ADR-0009 amendment); `docs/learning-process.md` §4 and
 §6 item 1; `.claude/learner/profile.md` "Known weak spots"; "research §n" cites the #218 research
 (`plans/218-research.md`, a working note). The learner journal has no entry about courses.
 
-Scope: the normal states with several courses and the root error, from #220. The decisions A218-1 to
-A218-8 and A218-12 to A218-14 and the rules are in `ia.md` "Several courses (#218)". The error and focus
-states (#222): `ia.md` [Error and focus states (#222)](ia.md#errors-222), and F21 below.
+Scope: the normal states with several courses and the root error, from #220, and "Requirements for #220"
+item 9. The decisions A218-1 to A218-8 and A218-12 to A218-14 and the rules are in `ia.md` "Several
+courses (#218)". The error and focus states (#222), except "Requirements for #220" item 9: `ia.md`
+[Error and focus states (#222)](ia.md#errors-222), and F21 below.
 
 ## F20: Choose a course on the dashboard
 
@@ -134,10 +135,11 @@ a follow-up DESIGN task, which also checks `ia.md` [Error and focus states (#222
 7. e2e: two courses (one the #217 stub), a lesson opened in each; the dashboard `F6` landing with and without
    a Card; the course crumb landing in each layout; not-found with and without "Открыть курс"; a catalog
    without a `ready` lesson opened from its block and from "Другие курсы".
-8. The error and focus states: `ia.md` [Error and focus states (#222)](ia.md#errors-222) and F21. e2e: one
-   test for each id of that section that the #220 pages render.
+8. The error and focus states, except item 9: `ia.md` [Error and focus states (#222)](ia.md#errors-222)
+   and F21. e2e: one test for each id of that section that the #220 pages render.
 9. The quiz answer key in `sessionStorage` (`quiz.md` F15 error states, "Session expired while answering")
-   also holds the course id.
+   also holds the course id. This item is an error state with several courses that #218 designs, not #222,
+   and a change to the quiz.
 
 ## Not designed in #218
 
@@ -146,11 +148,11 @@ a follow-up DESIGN task, which also checks `ia.md` [Error and focus states (#222
 - A course `status`, `order` or short title in the lesson format (ADR-0001 item 7).
 - ADR text (#219), code (#220), the per-course reference program (#221, FU24).
 - Changes to the lesson regions, the `F6` cycle, checks, quiz, mentor, environment or history beyond the
-  top bar and the course crumb.
+  top bar, the course crumb and "Requirements for #220" item 9.
 - New tokens or components; the system changes are the `design/system/README.md` "Top bar rules" sentence,
   the top bar and breadcrumb samples and a heading-link style.
 - A second way to every lesson page (FU26).
-- Error and focus states, and F21: designed in #222 (`ia.md` [Error and focus states (#222)](ia.md#errors-222)).
+- Error and focus states, except "Requirements for #220" item 9, and F21: designed in #222 (`ia.md` [Error and focus states (#222)](ia.md#errors-222)).
 
 ## Not designed in #222
 

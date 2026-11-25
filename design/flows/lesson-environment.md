@@ -128,7 +128,7 @@ Rule R2 in `ia.md` names every live container on this page and how it is inserte
 page opens on Задание. A lesson with no sources: the "Источники" block is not shown.
 
 **Exit:** F7.5 into F9; F13 via "Проверить"; breadcrumbs to the catalog (from #220 F22). From the course error:
-"Повторить", or "Главная" / "Курс" in the top bar (R6) until #220; from #220 `ia.md` [ES9](ia.md#ES9).
+"Повторить", or "Главная" / "Курс" in the top bar (R6) until #220; from #220 `ia.md` [ES8](ia.md#ES8), [ES9](ia.md#ES9).
 
 **Keyboard path:** the tab list is one Tab stop, arrow keys switch tabs (WAI-ARIA tabs), Tab moves into
 the tab panel. "Содержание" links are in order; Enter moves focus to the heading. A code block is "Копировать", then
