@@ -44,7 +44,7 @@ interface Setup {
   manager: WorkspaceManager;
   runtime: FakeRuntime;
   clock: { now: number };
-  courseReads: { count: number };
+  courseReads: { count: number; courseIds: string[] };
   mutex: KeyedMutex;
   logged: string[];
 }
@@ -54,12 +54,14 @@ function setup(
     imageOverride?: string | null;
     courseThrows?: boolean;
     courseGate?: Promise<void>;
+    /** The root lists no course of the key. */
+    courseUnlisted?: boolean;
   } = {},
 ): Setup {
   const clock = { now: T0 };
   const now = (): number => clock.now;
   const runtime = new FakeRuntime(INSTANCE);
-  const courseReads = { count: 0 };
+  const courseReads: Setup["courseReads"] = { count: 0, courseIds: [] };
   const mutex = new KeyedMutex();
   const logged: string[] = [];
   const log: ServiceLog = {
@@ -68,11 +70,12 @@ function setup(
   };
   const manager = new WorkspaceManager({
     runtime,
-    readCourse: async () => {
+    readCourse: async (courseId) => {
       courseReads.count += 1;
+      courseReads.courseIds.push(courseId);
       if (options.courseGate !== undefined) await options.courseGate;
       if (options.courseThrows === true) throw new Error("the course must not be read here");
-      return COURSE;
+      return options.courseUnlisted === true ? null : COURSE;
     },
     instance: INSTANCE,
     imageOverride: options.imageOverride ?? null,
@@ -123,6 +126,23 @@ describe("WorkspaceManager.ensure and get", () => {
     const failure = await manager
       .ensure({ ...KEY, lessonId: "no-such-lesson" })
       .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(LessonNotFoundError);
+    expect(runtime.calls).toEqual([]);
+  });
+
+  it("reads only the key's course", async () => {
+    const { manager, courseReads } = setup();
+
+    await manager.ensure(KEY);
+
+    expect(courseReads.courseIds).toEqual(["course-a"]);
+  });
+
+  it("answers lesson-not-found when the root lists no such course, before any runtime call", async () => {
+    const { manager, runtime } = setup({ courseUnlisted: true });
+
+    const failure = await manager.ensure(KEY).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(LessonNotFoundError);
     expect(runtime.calls).toEqual([]);

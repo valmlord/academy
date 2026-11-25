@@ -2,7 +2,7 @@ import { Writable } from "node:stream";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { WebSocket } from "@fastify/websocket";
 import { describe, expect, it } from "vitest";
-import { readCourseLessons } from "../../src/course/lessons.js";
+import { readCourseById } from "../../src/course/lessons.js";
 import { DockerEngine } from "../../src/docker/engine.js";
 import { DockerRuntime } from "../../src/docker/runtime.js";
 import { buildApp } from "../../src/http/app.js";
@@ -91,7 +91,7 @@ async function startService(): Promise<Service> {
   };
   const manager = new WorkspaceManager({
     runtime,
-    readCourse: () => readCourseLessons(FIXTURE_COURSE_ROOT),
+    readCourse: (courseId) => readCourseById(FIXTURE_COURSE_ROOT, courseId),
     instance,
     imageOverride: TEST_IMAGE,
     tracker: new IdleTracker({ stopMinutes: 30, warningMinutes: 5, now: Date.now }),

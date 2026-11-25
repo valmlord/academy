@@ -1,6 +1,11 @@
 import { readdir } from "node:fs/promises";
 import { Course, Lesson, Module } from "@academy/lesson-schema/schema";
-import { CourseFileError, LessonNotFoundError } from "../errors.js";
+import {
+  CourseFileError,
+  CourseReadError,
+  CourseRootReadError,
+  LessonNotFoundError,
+} from "../errors.js";
 import {
   COURSE_ROOT_NAME,
   fsFailureReason,
@@ -136,17 +141,18 @@ async function findCourseDir(root: string): Promise<string> {
 }
 
 /**
- * The whole course, read once: `course.yaml`, every listed `module.yaml`, every listed `lesson.yaml`, with
- * the rules of design 5.4. All or nothing: any failure anywhere throws one `CourseFileError`, matching the
- * web, which puts the whole course into its error state; a reader that skipped a bad lesson would let
- * reconcile treat that lesson's workspaces as orphans.
+ * The lessons of every listed module of one course. `courseDir` starts every path; `courseId` is what each
+ * lesson is looked up by.
  */
-export async function readCourseLessons(root: string): Promise<CourseLessons> {
-  const courseDir = await findCourseDir(root);
-  const course = await parseFile(root, `${courseDir}/${COURSE_FILE}`, Course);
+async function readLessons(
+  root: string,
+  courseDir: string,
+  courseId: string,
+  modules: readonly string[],
+): Promise<CourseLessons> {
   const lessons: CourseLesson[] = [];
   const lessonIds = new Set<string>();
-  for (const moduleName of course.modules) {
+  for (const moduleName of modules) {
     const moduleDir = `${courseDir}/${moduleName}`;
     const module = await parseFile(root, `${moduleDir}/module.yaml`, Module);
     for (const lessonName of module.lessons) {
@@ -158,7 +164,7 @@ export async function readCourseLessons(root: string): Promise<CourseLessons> {
       lessonIds.add(lesson.id);
       const workspace = lesson.workspace ?? null;
       lessons.push({
-        courseId: course.id,
+        courseId,
         lessonId: lesson.id,
         lessonDir,
         workspace:
@@ -168,4 +174,114 @@ export async function readCourseLessons(root: string): Promise<CourseLessons> {
     }
   }
   return new CourseLessons(lessons);
+}
+
+/** The root's one course, read as `readListedCourse` reads a course but without its name and id checks. */
+export async function readCourseLessons(root: string): Promise<CourseLessons> {
+  const courseDir = await findCourseDir(root);
+  const course = await parseFile(root, `${courseDir}/${COURSE_FILE}`, Course);
+  return readLessons(root, courseDir, course.id, course.modules);
+}
+
+/** A root that lists no real directory. */
+const NO_COURSE = "no course";
+/** `course.yaml`'s `id` differs from its directory's name, which is the course id. */
+const ID_IS_NOT_THE_DIRECTORY_NAME = "id is not the directory name";
+/** A listed directory whose name no workspace key can carry, so no file of it is opened. */
+const DIRECTORY_NAME_IS_NOT_A_COURSE_ID = "directory name is not a course id";
+
+/** One listed course: its lessons, or why it cannot be read. */
+export type ListedCourse =
+  | { kind: "course"; courseId: string; lessons: CourseLessons }
+  | { kind: "course-failure"; courseId: string; error: CourseReadError };
+
+/** Every course of the root, or the root's failure. */
+export type EveryCourse =
+  | { kind: "courses"; courses: ListedCourse[] }
+  | { kind: "root-failure"; error: CourseRootReadError };
+
+function isCourseIdForm(value: string): boolean {
+  return Course.shape.id.safeParse(value).success;
+}
+
+function courseFailure(courseId: string, file: string, reason: string): ListedCourse {
+  return { kind: "course-failure", courseId, error: new CourseReadError(courseId, file, reason) };
+}
+
+/**
+ * The names of the real directories directly under the root, in plain string order (ADR-0009 item 6): a file or
+ * a symlink at the root is no course. Throws `CourseRootReadError` when the root cannot be listed or lists none.
+ */
+async function listRoot(root: string): Promise<string[]> {
+  let entries: { name: string; isDirectory(): boolean }[];
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch (error) {
+    const reason = fsFailureReason(error);
+    if (reason === undefined) throw error;
+    throw new CourseRootReadError(COURSE_ROOT_NAME, reason);
+  }
+  const names = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  if (names.length === 0) throw new CourseRootReadError(COURSE_ROOT_NAME, NO_COURSE);
+  return names;
+}
+
+/**
+ * `name` must be an element of the root's listing, never a caller's id: every path of a course is built from
+ * it. The course is read all or nothing: `course.yaml`, every listed `module.yaml`, every listed `lesson.yaml`,
+ * and any failure among them fails the whole course, matching the web, which puts the whole course into its
+ * error state; a reader that skipped a bad lesson would let reconcile treat that lesson's workspaces as orphans.
+ */
+async function readListedCourse(root: string, name: string): Promise<ListedCourse> {
+  if (!isCourseIdForm(name)) {
+    return courseFailure(name, COURSE_ROOT_NAME, DIRECTORY_NAME_IS_NOT_A_COURSE_ID);
+  }
+  try {
+    const file = `${name}/${COURSE_FILE}`;
+    const course = await parseFile(root, file, Course);
+    // Before any module.yaml is opened, so a course claiming another course's id reads no more of itself.
+    if (course.id !== name) return courseFailure(name, file, ID_IS_NOT_THE_DIRECTORY_NAME);
+    return {
+      kind: "course",
+      courseId: name,
+      lessons: await readLessons(root, name, name, course.modules),
+    };
+  } catch (error) {
+    if (error instanceof CourseFileError) return courseFailure(name, error.file, error.reason);
+    throw error;
+  }
+}
+
+/**
+ * The course a key names, or `null` when the root does not list it. An id not in the course id form opens
+ * nothing, not even the listing. Throws `CourseRootReadError` for the root and `CourseReadError` for this
+ * course, and opens no file of another course.
+ */
+export async function readCourseById(
+  root: string,
+  courseId: string,
+): Promise<CourseLessons | null> {
+  if (!isCourseIdForm(courseId)) return null;
+  const name = (await listRoot(root)).find((listed) => listed === courseId);
+  if (name === undefined) return null;
+  const listed = await readListedCourse(root, name);
+  if (listed.kind === "course-failure") throw listed.error;
+  return listed.lessons;
+}
+
+/** Every course of the root in name order from one listing, each failure kept beside the readable courses. */
+export async function readEveryCourse(root: string): Promise<EveryCourse> {
+  let names: string[];
+  try {
+    names = await listRoot(root);
+  } catch (error) {
+    if (error instanceof CourseRootReadError) return { kind: "root-failure", error };
+    throw error;
+  }
+  const courses: ListedCourse[] = [];
+  for (const name of names) courses.push(await readListedCourse(root, name));
+  return { kind: "courses", courses };
 }

@@ -3,7 +3,7 @@ import { CourseLessons } from "../../src/course/lessons.js";
 import { type AppDeps, type BuiltApp, buildApp } from "../../src/http/app.js";
 import { IdleTracker } from "../../src/idle.js";
 import { KeyedMutex } from "../../src/lock.js";
-import { WorkspaceManager } from "../../src/manager.js";
+import { type ManagerOptions, WorkspaceManager } from "../../src/manager.js";
 import { TerminalRegistry } from "../../src/terminal/registry.js";
 import { FakeRuntime } from "./fake-runtime.js";
 
@@ -42,7 +42,12 @@ export interface TestApp extends BuiltApp {
   logs: () => string;
 }
 
-export function testApp(overrides: Partial<Pick<AppDeps, "manager">> = {}): TestApp {
+export interface TestAppOverrides extends Partial<Pick<AppDeps, "manager">> {
+  /** The default manager's course read; ignored with `manager`. */
+  readCourse?: ManagerOptions["readCourse"];
+}
+
+export function testApp(overrides: TestAppOverrides = {}): TestApp {
   const runtime = new FakeRuntime(INSTANCE);
   const now = (): number => T0;
   const chunks: string[] = [];
@@ -63,7 +68,7 @@ export function testApp(overrides: Partial<Pick<AppDeps, "manager">> = {}): Test
     overrides.manager ??
     new WorkspaceManager({
       runtime,
-      readCourse: async () => TEST_COURSE,
+      readCourse: overrides.readCourse ?? (async () => TEST_COURSE),
       instance: INSTANCE,
       imageOverride: null,
       tracker: new IdleTracker({ stopMinutes: 30, warningMinutes: 5, now }),

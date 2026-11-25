@@ -1,5 +1,8 @@
+import { Course } from "@academy/lesson-schema/schema";
+
 // Every dedicated error of the service (design section 10). Messages name the entity and a closed rule or
-// reason, never a value read from the environment, a file or Docker, so they are safe to log and to answer.
+// reason. They never copy a system error's or Docker's message, and a value from a course file's text only
+// once the lesson schema has accepted it.
 
 /** An environment variable is missing or breaks its rule. The message never carries the value. */
 export class InvalidConfigError extends Error {
@@ -37,6 +40,49 @@ export class CourseFileError extends Error {
   constructor(relativeFile: string, reason: string) {
     super(`${relativeFile}: ${reason}`);
     this.name = "CourseFileError";
+    this.file = relativeFile;
+    this.reason = reason;
+  }
+}
+
+/**
+ * A course id as an operator line prints it: as-is in the lesson schema's id form, else JSON-quoted, so a
+ * directory name can neither break the line nor pass for the `root:` prefix.
+ */
+export function describeCourseId(courseId: string): string {
+  return Course.shape.id.safeParse(courseId).success ? courseId : JSON.stringify(courseId);
+}
+
+/**
+ * The course root cannot be listed or lists no course: every course is unavailable. The message is the
+ * operator form `root: <file>: <reason>`.
+ */
+export class CourseRootReadError extends Error {
+  readonly file: string;
+  readonly reason: string;
+
+  constructor(relativeFile: string, reason: string) {
+    super(`root: ${relativeFile}: ${reason}`);
+    this.name = "CourseRootReadError";
+    this.file = relativeFile;
+    this.reason = reason;
+  }
+}
+
+/**
+ * One course cannot be read; the other courses are not affected. The message is the operator form
+ * `course <id>: <file>: <reason>`, the id as `describeCourseId` prints it.
+ */
+export class CourseReadError extends Error {
+  /** The directory name, known before any file is opened. */
+  readonly courseId: string;
+  readonly file: string;
+  readonly reason: string;
+
+  constructor(courseId: string, relativeFile: string, reason: string) {
+    super(`course ${describeCourseId(courseId)}: ${relativeFile}: ${reason}`);
+    this.name = "CourseReadError";
+    this.courseId = courseId;
     this.file = relativeFile;
     this.reason = reason;
   }

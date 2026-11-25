@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   ContainerNameUnresolvedError,
   CourseFileError,
+  CourseReadError,
+  CourseRootReadError,
   DockerApiError,
   DockerResponseShapeError,
   DockerUnavailableError,
@@ -60,6 +62,12 @@ describe("error mapping", () => {
       code: "starter-invalid",
     },
     { error: new StarterTooLargeError("a/starter", "8 MiB"), status: 500, code: "starter-invalid" },
+    {
+      error: new CourseReadError("a", "a/lesson.yaml", "missing"),
+      status: 500,
+      code: "course-unreadable",
+    },
+    { error: new CourseRootReadError(".", "missing"), status: 500, code: "course-unreadable" },
     {
       error: new CourseFileError("a/lesson.yaml", "missing"),
       status: 500,
