@@ -12,6 +12,19 @@ const slugName = fc
   .map((runs) => runs.join("-"));
 /** Any well-formed string (no lone surrogate), mixed with slug names so both kinds of token meet. */
 const anyName = fc.oneof(slugName, fc.string({ unit: "binary" }));
+/**
+ * Short names over a few letters that differ in case and characters outside the id form, so two draws often
+ * differ only where a lossy token (case folding, other characters to "-") would merge them.
+ */
+const nearName = fc.string({
+  unit: fc.constantFrom("a", "A", "b", "-", "_", " ", "\u00e9"),
+  minLength: 1,
+  maxLength: 3,
+});
+const injectivityName = fc.oneof(
+  { arbitrary: nearName, weight: 3 },
+  { arbitrary: anyName, weight: 1 },
+);
 const part = fc.constantFrom(...PARTS);
 
 describe("courseElementId", () => {
@@ -25,10 +38,19 @@ describe("courseElementId", () => {
 
   it("never gives two different (name, part) pairs the same id", () => {
     fc.assert(
-      fc.property(anyName, part, anyName, part, (name, elementPart, otherName, otherPart) => {
-        fc.pre(name !== otherName || elementPart !== otherPart);
-        expect(courseElementId(name, elementPart)).not.toBe(courseElementId(otherName, otherPart));
-      }),
+      fc.property(
+        injectivityName,
+        part,
+        injectivityName,
+        part,
+        (name, elementPart, otherName, otherPart) => {
+          fc.pre(name !== otherName || elementPart !== otherPart);
+          expect(courseElementId(name, elementPart)).not.toBe(
+            courseElementId(otherName, otherPart),
+          );
+        },
+      ),
+      { numRuns: 1000 },
     );
   });
 
