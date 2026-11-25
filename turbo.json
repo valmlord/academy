@@ -51,6 +51,7 @@
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/course/**",
         "$TURBO_ROOT$/docker-compose.yml",
+        "$TURBO_ROOT$/compose.fixture-course-root.yaml",
         "$TURBO_ROOT$/compose.db-port.yaml",
         "$TURBO_ROOT$/.env.example",
         "$TURBO_ROOT$/images/workspace/test/smoke.sh"
