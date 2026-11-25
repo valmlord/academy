@@ -11,6 +11,7 @@ import {
   noPassedLessonsMessage,
   noReadyLessonsMessage,
   retryLabel,
+  rootErrorTitle,
   startLessonLabel,
 } from "@/lib/copy";
 import type { SessionData } from "@/lib/session-reader";
@@ -28,7 +29,7 @@ import DashboardPage from "./page";
 
 // The dashboard page over fixture roots, through the real every-course read: the Card of the first course with
 // a next lesson, one block per listed course in list order (a failing course's block in the error form), and the
-// one course error when the root fails.
+// root error alone when the root cannot be read or holds no course.
 
 const SESSION: SessionData = {
   user: { id: "user-1", email: "learner@example.com" },
@@ -51,7 +52,7 @@ vi.mock("next/navigation", async (importOriginal) => ({
 }));
 
 // The course blocks of every form only: each is a section labelled by its course-...-heading h2, the Card's
-// section is labelled by the Card heading, and the root's course error is a div.
+// section is labelled by the Card heading, and the root error is a div.
 const BLOCK = 'section[aria-labelledby^="course-"]';
 const THEORY_COURSE_ID = "a-theory-course";
 
@@ -82,6 +83,11 @@ async function renderDashboard(): Promise<HTMLElement> {
 /** A module.yaml that does not parse, so `fixture-course` fails after its course.yaml read (title known). */
 function breakFixtureModule(): void {
   fixture.write(`${FIXTURE_COURSE_ID}/00-basics/module.yaml`, "id: [unclosed\n");
+}
+
+/** A root directory that does not exist, so the root read fails. */
+function missingRoot(): string {
+  return path.join(fixture.root, "absent");
 }
 
 /** A course.yaml that does not parse, so `fixture-course` fails with no title read. */
@@ -292,20 +298,23 @@ describe("the dashboard page", () => {
     expect(screen.queryByRole("region", { name: nextLessonHeading })).toBeNull();
   });
 
-  it.each<[string, () => void, unknown[]]>([
+  it.each<[string, () => string | undefined, unknown[]]>([
     [
       "one-course-error",
       () => {
         rmSync(fixture.path(BROKEN_COURSE_ID), { recursive: true });
         breakFixtureModule();
+        return undefined;
       },
       [retryLabel],
     ],
+    ["root-error", missingRoot, [retryLabel]],
     [
       "courses-no-card",
       () => {
         rmSync(fixture.path(FIXTURE_COURSE_ID), { recursive: true });
         writeTheoryOnlyCourse(fixture, "z-theory-course");
+        return undefined;
       },
       [retryLabel, THEORY_COURSE_TITLE],
     ],
@@ -314,6 +323,7 @@ describe("the dashboard page", () => {
       () => {
         makeBrokenCourseReadable(fixture);
         breakFixtureModule();
+        return undefined;
       },
       [startLessonLabel, "Broken course", expect.stringContaining("Only module"), retryLabel],
     ],
@@ -322,6 +332,7 @@ describe("the dashboard page", () => {
       () => {
         makeBrokenCourseReadable(fixture);
         breakFixtureCourseYaml();
+        return undefined;
       },
       [startLessonLabel, "Broken course", expect.stringContaining("Only module"), retryLabel],
     ],
@@ -337,8 +348,8 @@ describe("the dashboard page", () => {
       ],
     ],
   ])("orders main's links and buttons for %s", async (_state, arrange, expected) => {
-    arrange();
-    useCourseRoot(fixture.root);
+    // An arrangement returns the root it needs when that is not the fixture root.
+    useCourseRoot(arrange() ?? fixture.root);
 
     const main = await renderDashboard();
 
@@ -364,23 +375,36 @@ describe("the dashboard page", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("focuses the error form's own heading when its retry renders the same error again", async () => {
-    rmSync(fixture.path(BROKEN_COURSE_ID), { recursive: true });
-    breakFixtureModule();
-    useCourseRoot(fixture.root);
-    const main = await renderDashboard();
+  // The mocked router.refresh renders nothing new, so the page after the press shows the same error.
+  it.each<[string, () => string, string]>([
+    [
+      "the block error form",
+      () => {
+        rmSync(fixture.path(BROKEN_COURSE_ID), { recursive: true });
+        breakFixtureModule();
+        return fixture.root;
+      },
+      `course-${FIXTURE_COURSE_ID}-error-title`,
+    ],
+    ["the root error", missingRoot, "root-error-title"],
+  ])(
+    "focuses %s's own heading when its retry renders the same error again",
+    async (_form, root, titleId) => {
+      useCourseRoot(root());
+      const main = await renderDashboard();
 
-    await act(async () => {
-      fireEvent.click(within(main).getByRole("button", { name: retryLabel }));
-    });
+      await act(async () => {
+        fireEvent.click(within(main).getByRole("button", { name: retryLabel }));
+      });
 
-    expect(document.activeElement).toBe(
-      main.querySelector(`#course-${FIXTURE_COURSE_ID}-error-title`),
-    );
-  });
+      const title = main.querySelector(`#${titleId}`);
+      expect(title).not.toBeNull();
+      expect(document.activeElement).toBe(title);
+    },
+  );
 
   it.each([
-    ["a missing root", (): string => path.join(fixture.root, "absent")],
+    ["a missing root", missingRoot],
     [
       "an empty root",
       (): string => {
@@ -389,15 +413,20 @@ describe("the dashboard page", () => {
         return fixture.root;
       },
     ],
-  ])("shows the one course error in the Card's place for %s", async (_label, root) => {
+  ])("shows the static root error alone in the Card's place for %s", async (_label, root) => {
     useCourseRoot(root());
 
     const main = await renderDashboard();
 
-    expect(screen.getByText(courseErrorTitle)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: retryLabel })).toBeInTheDocument();
+    const title = within(main).getByRole("heading", { level: 2, name: rootErrorTitle });
+    expect(title).toHaveAttribute("id", "root-error-title");
+    expect(title).toHaveAttribute("tabindex", "-1");
+    const [button, ...otherButtons] = within(main).getAllByRole("button");
+    expect(otherButtons).toEqual([]);
+    expect(button).toHaveAccessibleName(retryLabel);
     expect(screen.queryByRole("heading", { name: nextLessonHeading })).toBeNull();
     expect(blocks(main)).toHaveLength(0);
+    expect(main.querySelector('[role="alert"]')).toBeNull();
   });
 
   it("lists the root once and opens each course's course.yaml once (ADR-0009 item 8)", async () => {

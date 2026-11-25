@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import { CourseError } from "@/components/course-error";
 import { CourseBlock } from "@/components/dashboard/course-block";
+import { LoadErrorAlert } from "@/components/dashboard/load-error";
 import { NEXT_LESSON_HEADING_ID, NextLessonCard } from "@/components/dashboard/next-lesson-card";
 import { FocusOnMount } from "@/components/focus-on-mount";
-import { homeTitle } from "@/lib/copy";
+import { homeTitle, rootErrorTitle } from "@/lib/copy";
 import { getEveryCourse } from "@/lib/course/server";
 import { type DashboardPageView, toDashboardPage } from "@/lib/course/view";
 import { requireSession } from "@/lib/session";
@@ -14,10 +14,11 @@ export const metadata: Metadata = {
 };
 
 const MAIN_ID = "main";
+const ROOT_ERROR_TITLE_ID = "root-error-title";
 
-// design/pages/dashboard: when the root fails, the course error stands in the Card's place, its retry naming the
-// Card heading as the success target. Otherwise every listed course of getEveryCourse renders a block in list
-// order, a failing one in the error form, and the Card comes from the readable courses.
+// design/pages/dashboard: when the root cannot be read or holds no course, the root error (ES2) stands alone in the
+// Card's place. Otherwise every listed course of getEveryCourse renders a block in list order, a failing one in the
+// error form, and the Card comes from the readable courses.
 export default async function DashboardPage(): Promise<ReactElement> {
   await requireSession("/");
   const every = await getEveryCourse();
@@ -26,7 +27,7 @@ export default async function DashboardPage(): Promise<ReactElement> {
       <div className="flex max-w-3xl flex-col gap-8">
         <h1 className="text-2xl font-semibold">{homeTitle}</h1>
         {every.kind === "root-failure" ? (
-          <CourseError isPageHeading={false} successTargetId={NEXT_LESSON_HEADING_ID} />
+          <LoadErrorAlert titleId={ROOT_ERROR_TITLE_ID} titleLevel={2} title={rootErrorTitle} />
         ) : (
           <DashboardContent view={toDashboardPage(every.courses)} />
         )}
