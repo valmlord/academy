@@ -4,23 +4,32 @@
 # name: project academy-<run>, image tag <run>, workspace instance <run>, host ports per run (t31: 55432/53080,
 # t32: 55433/53081), and every compose call gets an explicit environment through `env -i`, so neither the root .env
 # nor the caller's shell can change the project, a tag or a port.
-#   bash services/workspace/test/manual/isolated-stack.sh [t31|t32] [--e2e]
+#   bash services/workspace/test/manual/isolated-stack.sh [t31|t32] [--e2e [--design-shots=<absolute dir>]]
 # A preflight stops the run before anything starts when objects of the run's project, instance or images are left
 # over, or when a Docker listing fails. Checks: web answers, the service reaches Docker (P7), I1-I3 of
-# check-image-migrations.sh, with --e2e the seed, the e2e suite, the course-unreadable spec with its restore and
-# the service-down spec, the network probe with and without compose.db-port.yaml (NP), and the red runs of design
-# 12.5 marked "Mac recipe", each between `<PREFIX> RED <name> BEGIN` and `<PREFIX> RED <name> END`. Teardown and a
-# final check always run once the preflight passed.
+# check-image-migrations.sh, with --e2e the seed, the e2e suite, the course-unreadable spec with its restore, the
+# service-down spec and the several-course spec on a web recreated over the fixture root (#241; with --design-shots
+# also the design-shots spec, writing into that directory), the network probe with and without compose.db-port.yaml
+# (NP), and the red runs of design 12.5 marked "Mac recipe", each between `<PREFIX> RED <name> BEGIN` and
+# `<PREFIX> RED <name> END`. Teardown and a final check always run once the preflight passed.
 # Exit 0 only when every check passed, every red run failed as expected and the teardown left nothing behind.
 set -euo pipefail
 
 # Arguments first: no docker call and no file before the run is known.
 run=""
 with_e2e=""
+design_shots=""
 for arg in "$@"; do
   case $arg in
     t31 | t32) run=$arg ;;
     --e2e) with_e2e=1 ;;
+    --design-shots=*)
+      design_shots=${arg#--design-shots=}
+      if [[ $design_shots != /* ]] || [ ! -d "$design_shots" ]; then
+        echo "--design-shots needs the absolute path of an existing directory: $arg"
+        exit 1
+      fi
+      ;;
     *)
       if [[ $arg =~ ^t[0-9]+$ ]]; then echo "unknown run $arg"; else echo "unknown argument $arg"; fi
       exit 1
@@ -28,6 +37,11 @@ for arg in "$@"; do
   esac
 done
 run=${run:-t31}
+# The shots are taken inside the e2e stages; without them the argument would do nothing.
+if [ -n "$design_shots" ] && [ -z "$with_e2e" ]; then
+  echo "--design-shots needs --e2e"
+  exit 1
+fi
 # Not the owner's 5432/3080, and one pair per run, so the owner's stack and both runs can live side by side.
 case $run in
   t31) db_port=55432 web_port=53080 ;;
@@ -48,6 +62,7 @@ readonly WEB_PORT_T31=$web_port
 readonly NODE_IMAGE=node:22.23.4-alpine
 readonly POSTGRES_IMAGE=postgres:17.6-alpine
 readonly OVERRIDE=compose.db-port.yaml
+readonly FIXTURE_OVERRIDE=compose.fixture-course-root.yaml
 readonly API=services/workspace/test/network/api.mjs
 readonly PROBE=services/workspace/test/network/probe-isolation.sh
 readonly PROBE_USER=probeuser
@@ -80,6 +95,8 @@ tmp=$(mktemp -d)
 stack_started=""
 status=0
 owner_containers=""
+# Under $tmp, so the teardown removes the export with it.
+readonly FIXTURE_EXPORT=$tmp/fixture-course-root
 
 # Throwaway secrets of a stack that lives minutes. They travel as `env -i` arguments, so they are briefly visible
 # in ps: accepted for these, never for the owner's .env values. Never echoed.
@@ -91,10 +108,12 @@ service_secret=$(openssl rand -hex 32)
 envv=(env -i "PATH=$PATH" "HOME=$HOME" COMPOSE_ENV_FILES=/dev/null "COMPOSE_PROJECT_NAME=$PROJECT"
   "WEB_IMAGE_TAG=$TAG" "WORKSPACE_SERVICE_IMAGE_TAG=$TAG" "WORKSPACE_INSTANCE=$INSTANCE"
   "DB_PORT=$DB_PORT_T31" "WEB_PORT=$WEB_PORT_T31" "WORKSPACE_IMAGE=$NODE_IMAGE" "TERMINAL_SHELL=/bin/sh"
-  "BETTER_AUTH_SECRET=$auth_secret" "WORKSPACE_SERVICE_SECRET=$service_secret")
+  "BETTER_AUTH_SECRET=$auth_secret" "WORKSPACE_SERVICE_SECRET=$service_secret"
+  "FIXTURE_COURSE_ROOT_EXPORT=$FIXTURE_EXPORT")
 base=("${envv[@]}" docker compose -p "$PROJECT" -f docker-compose.yml)
 with_port=("${base[@]}" -f "$OVERRIDE")
 no_socket=("${base[@]}" -f "$tmp/no-socket.yaml")
+fixture=("${with_port[@]}" -f "$FIXTURE_OVERRIDE")
 
 # The P7 red run: the service without the socket mount, course mount kept.
 cat >"$tmp/no-socket.yaml" <<'YAML'
@@ -108,7 +127,7 @@ YAML
 # the interpolated secrets.
 readonly GUARD_JS='
 import { z } from "zod";
-const [label, root, project, tag] = process.argv.slice(1);
+const [label, root, project, tag, fixtureExport] = process.argv.slice(1);
 let text = "";
 for await (const chunk of process.stdin) text += chunk;
 const named = z.looseObject({ name: z.string(), external: z.boolean().optional() });
@@ -119,7 +138,8 @@ const config = z.looseObject({
     container_name: z.string().optional(),
     ports: z.array(z.looseObject({ published: z.union([z.string(), z.number()]).optional() })).optional(),
     volumes: z.array(z.looseObject({ type: z.string(), source: z.string().optional(), target: z.string(),
-      read_only: z.boolean().optional() })).optional(),
+      read_only: z.boolean().optional(),
+      bind: z.looseObject({ create_host_path: z.boolean().optional() }).optional() })).optional(),
   })),
   networks: z.record(z.string(), named),
   volumes: z.record(z.string(), named),
@@ -155,6 +175,12 @@ if (label === "no-socket") {
   expect(mounts.length === 1 && mounts[0].type === "bind" && mounts[0].source === `${root}/course`
     && mounts[0].target === "/course" && mounts[0].read_only === true, "services.workspace.volumes");
 }
+if (label === "fixture-root") {
+  const mounts = services.web?.volumes ?? [];
+  expect(mounts.length === 1 && mounts[0].type === "bind" && mounts[0].source === fixtureExport
+    && mounts[0].target === "/fixture-course-root" && mounts[0].read_only === true
+    && mounts[0].bind?.create_host_path === false, "services.web.volumes");
+}
 if (issues.length > 0) {
   console.log(`wrong at: ${issues.join(", ")}`);
   process.exit(1);
@@ -165,7 +191,7 @@ guard() {
   local label=$1 config
   shift
   config=$("$@" config --format json 2>/dev/null) || { echo "$PREFIX FAIL guard $label: compose config failed"; exit 1; }
-  if ! printf '%s' "$config" | (cd services/workspace && node --input-type=module -e "$GUARD_JS" "$label" "$root" "$PROJECT" "$TAG"); then
+  if ! printf '%s' "$config" | (cd services/workspace && node --input-type=module -e "$GUARD_JS" "$label" "$root" "$PROJECT" "$TAG" "$FIXTURE_EXPORT"); then
     unset config
     echo "$PREFIX FAIL guard $label"
     exit 1
@@ -276,24 +302,45 @@ teardown() {
   exit 0
 }
 
-# web_log_clean: Delta 5. Fails when web's log since start has a Next-logged server error; called before service-down,
-# which makes web log errors on purpose. Called only as an if condition (set -e is off there), so it returns explicitly.
+# web_log_clean <label>: Delta 5. Fails when the log of web's current container has a Next-logged server error; called
+# before service-down, which makes web log errors on purpose, and after the fixture-root stage, whose recreate gives
+# web a new container and log. Called only as an if condition (set -e is off there), so it returns explicitly.
 web_log_clean() {
-  local log
-  log=$("${base[@]}" logs --no-color web) || { echo "$PREFIX FAIL web-log: docker compose logs web failed"; return 1; }
+  local label=$1 log
+  log=$("${base[@]}" logs --no-color web) || { echo "$PREFIX FAIL $label: docker compose logs web failed"; return 1; }
   if ! grep -qF 'web: database migrations applied' <<<"$log"; then
-    echo "$PREFIX FAIL web-log: web log lacks \"web: database migrations applied\"; the guard did not read this stack's web log"
+    echo "$PREFIX FAIL $label: web log lacks \"web: database migrations applied\"; the guard did not read this stack's web log"
     return 1
   fi
   if grep -nF -e '⨯' -e 'Error [' <<<"$log"; then
-    echo "$PREFIX FAIL web-log: web logged a server error during the e2e run (matching lines above)"
+    echo "$PREFIX FAIL $label: web logged a server error (matching lines above)"
     return 1
   fi
 }
 
-# run_e2e_stages: seed, the e2e suite, the course-unreadable spec and the service-down spec against this stack
-# (design 9, order 10). A failed stage sets status and the run goes on, so service-back always restores the service
-# before the probes. The seed password lives only in this function's arguments and is never echoed.
+# report_ran_every_test <name>: prints the stats of apps/web/test-results/<name>.json and fails unless they count no
+# unexpected and no skipped test and more expected (passed) tests than the one setup test: a spec whose switch is
+# lost skips every test, and Playwright exits 0.
+report_ran_every_test() {
+  node -e 'const [name, file] = process.argv.slice(1); const s = JSON.parse(require("node:fs").readFileSync(file, "utf8")).stats;
+console.log(name + " stats: expected=" + s.expected + " unexpected=" + s.unexpected + " skipped=" + s.skipped);
+process.exit(s.unexpected === 0 && s.skipped === 0 && s.expected > 1 ? 0 : 1)' "$1" "apps/web/test-results/$1.json"
+}
+
+# fixture_spec <name> <env...>: runs e2e/<name>.spec.ts in Chromium with the given environment and the JSON report,
+# after removing an earlier run's report, then report_ran_every_test on it.
+fixture_spec() {
+  local name=$1
+  shift
+  rm -f "apps/web/test-results/$name.json"
+  "$@" E2E_FIXTURE_COURSE_ROOT=1 "PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/$name.json" pnpm --filter @academy/web exec \
+    playwright test "e2e/$name.spec.ts" --project=chromium --output "test-results/$name" --reporter=list,json &&
+    report_ran_every_test "$name"
+}
+
+# run_e2e_stages: seed, the e2e suite, the course-unreadable spec, the service-down spec and the fixture-root stage
+# against this stack (design 9, order 10). A failed stage sets status and the run goes on, so fixture-restore and
+# service-back always run before the probes. The seed password lives only in this function's arguments and is never echoed.
 run_e2e_stages() {
   local seed_password ids
   seed_password=$(openssl rand -hex 24)
@@ -302,7 +349,7 @@ run_e2e_stages() {
     "SEED_PASSWORD=$seed_password" "E2E_BASE_URL=http://127.0.0.1:$WEB_PORT_T31" E2E_TERMINAL=1 E2E_WEBKIT=1 E2E_DISPOSABLE_STACK=1)
   if "${e2e_env[@]}" pnpm seed; then echo "$PREFIX OK seed"; else echo "$PREFIX FAIL seed"; status=1; fi
   if "${e2e_env[@]}" pnpm test:e2e; then echo "$PREFIX OK e2e"; else echo "$PREFIX FAIL e2e"; status=1; fi
-  if web_log_clean; then echo "$PREFIX OK web-log"; else status=1; fi
+  if web_log_clean web-log; then echo "$PREFIX OK web-log"; else status=1; fi
   # #96: the spec makes course.yaml unreadable in this run's web container only (E2E_COMPOSE_PROJECT), and the
   # restore after it runs whatever the spec did, so service-down gets a course the web user can read.
   if "${e2e_env[@]}" E2E_COURSE_UNREADABLE=1 "E2E_COMPOSE_PROJECT=$PROJECT" \
@@ -329,6 +376,42 @@ run_e2e_stages() {
     echo "$PREFIX FAIL service-down"
     status=1
   fi
+  # #241: web recreated from the same image with COURSE_ROOT on an export of tests/fixtures/course-root; db, the
+  # seeded user and the stopped workspace service stay. Then web is recreated with the run's own file set.
+  local is_fixture_web=""
+  if "${envv[@]}" pnpm --filter @academy/web exec tsx scripts/export-course.ts export ../../tests/fixtures/course-root \
+    "$FIXTURE_EXPORT" && "${fixture[@]}" up -d --no-deps --no-build --wait web; then
+    is_fixture_web=1
+  fi
+  if [ -n "$is_fixture_web" ] && fixture_spec several-courses "${e2e_env[@]}"; then
+    echo "$PREFIX OK fixture-root"
+  else
+    echo "$PREFIX FAIL fixture-root"
+    status=1
+  fi
+  if [ -n "$design_shots" ]; then
+    if [ -n "$is_fixture_web" ] && fixture_spec design-shots "${e2e_env[@]}" "E2E_DESIGN_SHOTS_DIR=$design_shots"; then
+      echo "$PREFIX OK design-shots"
+    else
+      echo "$PREFIX FAIL design-shots"
+      status=1
+    fi
+  fi
+  # Without the recreate, web's log is the one service-down filled with errors on purpose.
+  if [ -z "$is_fixture_web" ]; then
+    echo "$PREFIX FAIL web-log-fixture: web was not recreated over the fixture root"
+    status=1
+  elif web_log_clean web-log-fixture; then
+    echo "$PREFIX OK web-log-fixture"
+  else
+    status=1
+  fi
+  if "${with_port[@]}" up -d --no-deps --no-build --wait web; then
+    echo "$PREFIX OK fixture-restore"
+  else
+    echo "$PREFIX FAIL fixture-restore"
+    status=1
+  fi
   if "${base[@]}" up -d --wait workspace && api reach; then echo "$PREFIX OK service-back"; else echo "$PREFIX FAIL service-back"; status=1; fi
   # This run's e2e workspaces only (managed and instance labels); their volumes stay for the teardown.
   if ids=$(docker ps -aq "${MANAGED[@]}") && { [ -z "$ids" ] || docker rm -f $ids >/dev/null; }; then
@@ -345,6 +428,8 @@ guard base "${base[@]}"
 guard db-port "${with_port[@]}"
 guard db-port-env "${envv[@]}" "COMPOSE_FILE=docker-compose.yml:$OVERRIDE" docker compose
 guard no-socket "${no_socket[@]}"
+# Before the export exists: compose config renders the bind source without checking it (Compose 5.6.1).
+guard fixture-root "${fixture[@]}"
 
 owner_containers=$(snapshot) || { echo "$PREFIX FAIL owner snapshot ($OWNER_VOLUME, $OWNER_IMAGE, project academy)"; exit 1; }
 echo "$PREFIX OK owner snapshot taken"
