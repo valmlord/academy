@@ -118,6 +118,30 @@ describe("the catalog retry focus guard", () => {
     await renderRetried(catalogPath(BROKEN_COURSE_ID), await catalogPage(BROKEN_COURSE_ID));
   });
 
+  it("keeps focus on a Другие курсы link that remains when the course loads", async () => {
+    makeBrokenCourseReadable(fixture);
+    queueRetryAnswer(await catalogPage(BROKEN_COURSE_ID));
+    await pressRetry();
+
+    const linkBefore = fixtureCourseLink();
+    linkBefore.focus();
+    await releaseRetryAnswer();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Broken course" })).toBeInTheDocument();
+    expect(document.activeElement).toBe(linkBefore);
+  });
+
+  it("keeps focus on a Другие курсы link that remains when the course fails again", async () => {
+    queueRetryAnswer(await catalogPage(BROKEN_COURSE_ID));
+    await pressRetry();
+
+    const linkBefore = fixtureCourseLink();
+    linkBefore.focus();
+    await releaseRetryAnswer();
+
+    expect(document.activeElement).toBe(linkBefore);
+  });
+
   it("moves focus to the course h1 when the course loads and the focused Другие курсы link is gone", async () => {
     makeBrokenCourseReadable(fixture);
     rmSync(fixture.path(FIXTURE_COURSE_ID), { recursive: true });
