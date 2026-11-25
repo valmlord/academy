@@ -21,6 +21,26 @@ const labelsSchema = z
   .transform((labels) => labels ?? {});
 
 /**
+ * Stands in for a label key in an issue path. A label key is chosen by whoever created the Docker object, so it
+ * is Docker text, not ours; angle brackets keep it apart from schema field names, which are identifiers.
+ */
+const LABEL_KEY_PLACEHOLDER = "<key>";
+
+/**
+ * Docker-chosen keys (label keys) appear in a response issue path only right after a `Labels` segment. Replaces
+ * that segment with `<key>`, prints an array index with `String` and a symbol as `<key>`, and joins with `.`.
+ */
+export function describeIssuePath(path: readonly PropertyKey[]): string {
+  return path
+    .map((segment, index) => {
+      if (typeof segment === "number") return String(segment);
+      if (typeof segment === "symbol" || path[index - 1] === "Labels") return LABEL_KEY_PLACEHOLDER;
+      return segment;
+    })
+    .join(".");
+}
+
+/**
  * `State.StartedAt` of a container that has never been started: Go's zero time. The ensure algorithm
  * consults the starter marker only for such a container (design 6.1).
  */

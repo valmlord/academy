@@ -150,7 +150,9 @@ export class StarterTooLargeError extends Error {
 
 /**
  * A Docker Engine response does not have the shape the service relies on (HTTP 502 `docker-response-invalid`).
- * Names the operation and the path of the first failing field, never the value Docker sent.
+ * Names the operation and the path of the first failing field, built from schema field names and array indices
+ * with each label key replaced by `<key>` (`describeIssuePath`), so it holds nothing Docker sent. `issuePath` is
+ * printed as given: pass a path from `describeIssuePath` or a literal.
  */
 export class DockerResponseShapeError extends Error {
   readonly operation: string;
