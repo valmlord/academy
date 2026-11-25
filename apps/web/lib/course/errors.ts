@@ -45,7 +45,7 @@ export class CourseReadError extends Error {
   /**
    * The `title` of the course's own `course.yaml` when that file parsed with an id equal to the directory name
    * and a module or lesson file of the course failed; `undefined` when the failure came before or at `course.yaml`. Not
-   * part of the message, so no operator line carries it.
+   * part of the message.
    */
   readonly title: string | undefined;
 

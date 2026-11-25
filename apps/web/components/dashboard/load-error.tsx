@@ -14,9 +14,8 @@ export interface LoadErrorAlertProps {
 }
 
 // design/pages/dashboard ES1 and ES2: a destructive Alert with the read error's title as a heading and the retry
-// button. The Alert's default role="alert" is removed, so the form is static: only the two containers of the
-// notifications region are live (ia.md R2). The retry names the Card heading as its success target and this
-// title as its error target.
+// button. The Alert's default role="alert" is removed, so the form is static. The retry names the Card heading
+// as its success target and this title as its error target.
 export function LoadErrorAlert({
   titleId,
   titleLevel,
