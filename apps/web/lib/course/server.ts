@@ -4,6 +4,7 @@ import {
   type CourseList,
   type CourseLookup,
   type CourseRead,
+  type EveryCourse,
   firstReadableCourse,
   type OtherCourseList,
 } from "./courses";
@@ -13,9 +14,9 @@ import { createCourseReads } from "./reads";
 import { courseRoot } from "./root";
 import { type LessonTextKind, readLessonText } from "./text";
 
-// Wiring only (ADR-0009 item 8): each course at most once per request through React's cache(), keyed by the
-// course id, nothing process-wide, so the retry button and pnpm dev see the files as they are now. The failure
-// line is logged inside the cached read, so it too appears once per request and course.
+// Wiring only (ADR-0009 item 8): every getter is wrapped in React's cache(), so a repeated call with the same
+// arguments in one request reads nothing again, and nothing is kept across requests, so the retry button and
+// pnpm dev see the files as they are now. Failure lines are logged inside the cached reads.
 
 const reads = createCourseReads({
   source: { fs: nodeCourseFs, root: () => courseRoot(process.env, process.cwd()) },
@@ -27,6 +28,9 @@ export const getCourseById = cache(
 );
 
 export const getCourseNames = cache((): Promise<CourseList> => reads.listNames());
+
+// One listing and one read per listed course; cache() makes it once per request.
+export const getEveryCourse = cache((): Promise<EveryCourse> => reads.everyCourse());
 
 export const getOtherCourses = cache(
   (courseId: string): Promise<OtherCourseList> => reads.otherCourses(courseId),

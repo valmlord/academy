@@ -45,6 +45,7 @@ function now(): Current {
 export const courseServerFake: typeof courseServer = {
   getCourseById: (courseId) => now().reads.courseById(courseId),
   getCourseNames: () => now().reads.listNames(),
+  getEveryCourse: () => now().reads.everyCourse(),
   getOtherCourses: (courseId) => now().reads.otherCourses(courseId),
   getFirstReadableCourse: () =>
     firstReadableCourse(

@@ -56,6 +56,16 @@ describe("createCourseReads", () => {
     ]);
   });
 
+  it("logs one course line per failing course of the every-course read and none for a readable one", async () => {
+    const { reads, lines } = readsOver(fixtureSource(fixture.root));
+
+    await reads.everyCourse();
+
+    expect(lines).toEqual([
+      "web: course read failed: course broken-course: broken-course/course.yaml: id is not the directory name",
+    ]);
+  });
+
   it.each([
     ["an empty root", () => emptyRoot(), "root: .: no course"],
     ["a missing root", () => path.join(emptyRoot(), "absent"), "root: .: missing"],
