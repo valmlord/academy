@@ -1,5 +1,5 @@
-import type { CourseLessons } from "./course/lessons.js";
-import { CourseFileError } from "./errors.js";
+import type { CourseLessons, EveryCourse } from "./course/lessons.js";
+import { CourseReadError } from "./errors.js";
 import { parseWorkspaceLabels, type WorkspaceKey, workspaceNames } from "./identity.js";
 import type { IdleTracker } from "./idle.js";
 import type { KeyedMutex } from "./lock.js";
@@ -17,7 +17,7 @@ export type Classification =
   | { kind: "stop" }
   /** Not running and not wanted; never takes the volume. */
   | { kind: "remove"; why: "invalid-labels" | "lesson-gone" | "dead" }
-  /** Running and ours: idle stop takes care of it, whether or not its lesson is still in the course. */
+  /** Running and ours: idle stop takes care of it, whether or not its lesson is still in its course. */
   | { kind: "adopt"; id: string; key: WorkspaceKey }
   /** Another schema version owns it: never stopped or removed, so a rollback leaves the newer one alone. */
   | { kind: "other-schema"; schema: string }
@@ -27,14 +27,19 @@ export type Classification =
    */
   | { kind: "keep" };
 
+/** Each course the root lists, by its directory name: its lessons, or why it cannot be read. */
+export type CourseStates = ReadonlyMap<string, CourseLessons | CourseReadError>;
+
 /**
- * `course` is `null` when it could not be read in full: then nothing is removed, while running containers are
- * still adopted or stopped, because neither depends on the course.
+ * `courses` is `null` when the root failed or its read threw: nothing is removed, while running containers are
+ * still adopted or stopped, because neither depends on the course. A stopped container of a failing course is
+ * kept, unless its labels are invalid or name another workspace: that branch reads no course data, so a failing
+ * course does not keep it. A course id the root does not list counts as a course without that lesson.
  */
 export function classifyContainer(
   container: ManagedContainer,
   instance: string,
-  course: CourseLessons | null,
+  courses: CourseStates | null,
 ): Classification {
   const isRunning = container.state === "running";
   const parsed = parseWorkspaceLabels(container.labels, instance);
@@ -42,12 +47,15 @@ export function classifyContainer(
   // Labels that parse but name another workspace than the container's name are as good as invalid.
   if (parsed.kind !== "valid" || workspaceNames(instance, parsed.id).container !== container.name) {
     if (isRunning) return { kind: "stop" };
-    return course === null ? { kind: "keep" } : { kind: "remove", why: "invalid-labels" };
+    return courses === null ? { kind: "keep" } : { kind: "remove", why: "invalid-labels" };
   }
   if (isRunning) return { kind: "adopt", id: parsed.id, key: parsed.key };
-  if (course === null) return { kind: "keep" };
+  if (courses === null) return { kind: "keep" };
+  const course = courses.get(parsed.key.courseId);
+  // Before the dead check: a failing course keeps its dead containers too.
+  if (course instanceof CourseReadError) return { kind: "keep" };
   if (container.state === "dead") return { kind: "remove", why: "dead" };
-  const lesson = course.find(parsed.key.courseId, parsed.key.lessonId);
+  const lesson = course?.find(parsed.key.courseId, parsed.key.lessonId);
   if (lesson === undefined || lesson.workspace === null) {
     return { kind: "remove", why: "lesson-gone" };
   }
@@ -56,13 +64,16 @@ export function classifyContainer(
 
 export interface ReconcilerOptions {
   runtime: WorkspaceRuntime;
-  readCourse: () => Promise<CourseLessons>;
+  readCourses: () => Promise<EveryCourse>;
   instance: string;
   tracker: IdleTracker;
   /** The manager's mutex: every action takes the container name's lock, like ensure, stop and delete. */
   mutex: KeyedMutex;
   log: ServiceLog;
 }
+
+/** The web logs its course read failures with the same words after `web: `, so one search finds both. */
+const COURSE_READ_FAILED = "reconcile: course read failed: ";
 
 /** The volume a container of this name mounts (design 4.2). */
 function volumeOf(containerName: string): string {
@@ -89,10 +100,10 @@ export class Reconciler {
       log.warn(`reconcile: listing containers failed: ${errorKind(error)}`);
       return;
     }
-    const course = await this.#readCourse();
+    const courses = await this.#readCourses();
     for (const container of containers) {
       try {
-        await this.#apply(container, classifyContainer(container, instance, course));
+        await this.#apply(container, classifyContainer(container, instance, courses));
       } catch (error: unknown) {
         log.warn(`reconcile: ${container.containerId}: ${errorKind(error)}`);
       }
@@ -100,16 +111,33 @@ export class Reconciler {
     await this.#reportVolumesWithoutContainer(containers);
   }
 
-  /** `null` when any file of the course fails: this pass then removes nothing (design 6.5 step 2). */
-  async #readCourse(): Promise<CourseLessons | null> {
+  /**
+   * Logs one line for the root or for each failing course, on every pass: a course read live can fail again after
+   * it recovered. `null` when the root failed or the read threw: this pass then removes nothing.
+   */
+  async #readCourses(): Promise<CourseStates | null> {
+    const { log } = this.#options;
+    let every: EveryCourse;
     try {
-      return await this.#options.readCourse();
+      every = await this.#options.readCourses();
     } catch (error: unknown) {
-      const detail =
-        error instanceof CourseFileError ? `${error.file}: ${error.reason}` : errorKind(error);
-      this.#options.log.warn(`course unreadable: ${detail}`);
+      log.warn(`${COURSE_READ_FAILED}${errorKind(error)}`);
       return null;
     }
+    if (every.kind === "root-failure") {
+      log.warn(`${COURSE_READ_FAILED}${every.error.message}`);
+      return null;
+    }
+    const courses = new Map<string, CourseLessons | CourseReadError>();
+    for (const listed of every.courses) {
+      if (listed.kind === "course") {
+        courses.set(listed.courseId, listed.lessons);
+        continue;
+      }
+      log.warn(`${COURSE_READ_FAILED}${listed.error.message}`);
+      courses.set(listed.courseId, listed.error);
+    }
+    return courses;
   }
 
   async #apply(container: ManagedContainer, classification: Classification): Promise<void> {

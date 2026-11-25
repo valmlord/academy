@@ -6,13 +6,7 @@ import {
   CourseRootReadError,
   LessonNotFoundError,
 } from "../errors.js";
-import {
-  COURSE_ROOT_NAME,
-  fsFailureReason,
-  lstatBelowRoot,
-  MISSING,
-  readCourseFile,
-} from "./files.js";
+import { COURSE_ROOT_NAME, fsFailureReason, readCourseFile } from "./files.js";
 import { parseYamlFile } from "./yaml.js";
 
 /** What a lesson's `workspace` block gives the service: the image and the starter path inside the lesson. */
@@ -106,54 +100,19 @@ function commandChecksOf(lesson: Lesson): CommandCheck[] {
   return checks;
 }
 
-async function hasCourseFile(root: string, dir: string): Promise<boolean> {
-  try {
-    await lstatBelowRoot(root, `${dir}/${COURSE_FILE}`);
-    return true;
-  } catch (error) {
-    if (error instanceof CourseFileError && error.reason === MISSING) return false;
-    throw error;
-  }
-}
-
-/** ADR-0009 item 6: the root holds exactly one course. Symlinked directories are not listed as directories. */
-async function findCourseDir(root: string): Promise<string> {
-  let entries: { name: string; isDirectory(): boolean }[];
-  try {
-    entries = await readdir(root, { withFileTypes: true });
-  } catch (error) {
-    const reason = fsFailureReason(error);
-    if (reason === undefined) throw error;
-    throw new CourseFileError(COURSE_ROOT_NAME, reason);
-  }
-  const candidates: string[] = [];
-  for (const entry of entries) {
-    if (entry.isDirectory() && (await hasCourseFile(root, entry.name))) candidates.push(entry.name);
-  }
-  const [only] = candidates;
-  if (only === undefined || candidates.length !== 1) {
-    throw new CourseFileError(
-      COURSE_ROOT_NAME,
-      `expected exactly one course, found ${candidates.length}`,
-    );
-  }
-  return only;
-}
-
 /**
- * The lessons of every listed module of one course. `courseDir` starts every path; `courseId` is what each
- * lesson is looked up by.
+ * The lessons of every listed module of the listed course `name`, which starts every path and is each lesson's
+ * course id.
  */
 async function readLessons(
   root: string,
-  courseDir: string,
-  courseId: string,
+  name: string,
   modules: readonly string[],
 ): Promise<CourseLessons> {
   const lessons: CourseLesson[] = [];
   const lessonIds = new Set<string>();
   for (const moduleName of modules) {
-    const moduleDir = `${courseDir}/${moduleName}`;
+    const moduleDir = `${name}/${moduleName}`;
     const module = await parseFile(root, `${moduleDir}/module.yaml`, Module);
     for (const lessonName of module.lessons) {
       const lessonDir = `${moduleDir}/${lessonName}`;
@@ -164,7 +123,7 @@ async function readLessons(
       lessonIds.add(lesson.id);
       const workspace = lesson.workspace ?? null;
       lessons.push({
-        courseId,
+        courseId: name,
         lessonId: lesson.id,
         lessonDir,
         workspace:
@@ -174,13 +133,6 @@ async function readLessons(
     }
   }
   return new CourseLessons(lessons);
-}
-
-/** The root's one course, read as `readListedCourse` reads a course but without its name and id checks. */
-export async function readCourseLessons(root: string): Promise<CourseLessons> {
-  const courseDir = await findCourseDir(root);
-  const course = await parseFile(root, `${courseDir}/${COURSE_FILE}`, Course);
-  return readLessons(root, courseDir, course.id, course.modules);
 }
 
 /** A root that lists no real directory. */
@@ -247,7 +199,7 @@ async function readListedCourse(root: string, name: string): Promise<ListedCours
     return {
       kind: "course",
       courseId: name,
-      lessons: await readLessons(root, name, name, course.modules),
+      lessons: await readLessons(root, name, course.modules),
     };
   } catch (error) {
     if (error instanceof CourseFileError) return courseFailure(name, error.file, error.reason);

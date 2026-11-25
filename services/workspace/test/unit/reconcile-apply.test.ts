@@ -1,9 +1,7 @@
-import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { readCourseLessons } from "../../src/course/lessons.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { type EveryCourse, readEveryCourse } from "../../src/course/lessons.js";
 import { WorkspaceIdentityMismatchError } from "../../src/errors.js";
 import {
   LABEL,
@@ -17,14 +15,13 @@ import { KeyedMutex } from "../../src/lock.js";
 import type { ServiceLog } from "../../src/manager.js";
 import { Reconciler } from "../../src/reconcile.js";
 import type { ManagedContainer } from "../../src/runtime.js";
+import { FIXTURE_ROOT, twoCourseRoot } from "../support/course-root.js";
 import { FakeRuntime } from "../support/fake-runtime.js";
 
 // U-reconcile, apply (design 6.5): what one pass does through the GC primitives and the idle tracker, against
-// the in-memory runtime, with the real course reader on the fixture course.
+// the in-memory runtime, with the real course reader on the fixture course or a two-course copy of it.
 
 const INSTANCE = "local";
-const FIXTURE = fileURLToPath(new URL("../fixtures/course", import.meta.url));
-const THEORY_LESSON = "sample-course/01-basics/02-theory-only/lesson.yaml";
 const KEY: WorkspaceKey = {
   userId: "user-1",
   courseId: "sample-course",
@@ -32,31 +29,35 @@ const KEY: WorkspaceKey = {
 };
 const GONE_KEY: WorkspaceKey = { ...KEY, lessonId: "removed-lesson" };
 const OTHER_USER_KEY: WorkspaceKey = { ...KEY, userId: "user-2" };
+const OTHER_COURSE_KEY: WorkspaceKey = { ...KEY, courseId: "other-course" };
+const FAILED = "reconcile: course read failed: ";
 
-/** The fixture course with one lesson that breaks the schema: the whole course is unreadable (U-lessons). */
-let brokenCourseRoot = "";
+/** A lesson that breaks the schema with a duplicate check id: its whole course is unreadable (U-lessons). */
+const DUPLICATE_CHECK_IDS = [
+  "id: theory-only",
+  "title: Invalid",
+  "type: theory",
+  "outcomes: [x]",
+  "estimatedMinutes: 5",
+  "status: draft",
+  "checks:",
+  "  - { id: dup, title: a, kind: bug-hunt, answers: a.yaml, minFound: 1 }",
+  "  - { id: dup, title: b, kind: bug-hunt, answers: b.yaml, minFound: 1 }",
+  "",
+].join("\n");
 
-beforeAll(async () => {
-  brokenCourseRoot = await mkdtemp(join(tmpdir(), "reconcile-course-"));
-  await cp(FIXTURE, brokenCourseRoot, { recursive: true });
-  const duplicateCheckIds = [
-    "id: theory-only",
-    "title: Invalid",
-    "type: theory",
-    "outcomes: [x]",
-    "estimatedMinutes: 5",
-    "status: draft",
-    "checks:",
-    "  - { id: dup, title: a, kind: bug-hunt, answers: a.yaml, minFound: 1 }",
-    "  - { id: dup, title: b, kind: bug-hunt, answers: b.yaml, minFound: 1 }",
-    "",
-  ].join("\n");
-  await writeFile(join(brokenCourseRoot, THEORY_LESSON), duplicateCheckIds);
+/** Two-course roots made by a test, removed after it. */
+const roots: string[] = [];
+
+afterEach(async () => {
+  for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
 
-afterAll(async () => {
-  await rm(brokenCourseRoot, { recursive: true, force: true });
-});
+async function twoCourses(): Promise<string> {
+  const root = await twoCourseRoot();
+  roots.push(root);
+  return root;
+}
 
 function workspaceContainer(key: WorkspaceKey, state: string): ManagedContainer {
   const id = workspaceId(INSTANCE, key);
@@ -89,7 +90,10 @@ interface Setup {
   logged: string[];
 }
 
-function setup(containers: readonly ManagedContainer[], courseRoot: string = FIXTURE): Setup {
+function setup(
+  containers: readonly ManagedContainer[],
+  readCourses: () => Promise<EveryCourse> = () => readEveryCourse(FIXTURE_ROOT),
+): Setup {
   const runtime = new FakeRuntime(INSTANCE);
   runtime.setManaged(containers);
   const tracker = new IdleTracker({ stopMinutes: 30, warningMinutes: 5, now: () => 0 });
@@ -100,7 +104,7 @@ function setup(containers: readonly ManagedContainer[], courseRoot: string = FIX
   };
   const reconciler = new Reconciler({
     runtime,
-    readCourse: () => readCourseLessons(courseRoot),
+    readCourses,
     instance: INSTANCE,
     tracker,
     mutex: new KeyedMutex(),
@@ -186,26 +190,108 @@ describe("Reconciler.runPass", () => {
     expect(tracker.isTracked(workspaceId(INSTANCE, KEY))).toBe(true);
   });
 
-  it("with one invalid lesson in the course: removes nothing, still adopts running workspaces and stops invalid ones", async () => {
-    const { reconciler, runtime, tracker, logged } = setup(
+  it("with one course failing: keeps its stopped containers, removes another course's gone lesson", async () => {
+    const root = await twoCourses();
+    await writeFile(
+      join(root, "other-course/01-basics/02-theory-only/lesson.yaml"),
+      DUPLICATE_CHECK_IDS,
+    );
+    const gone = workspaceContainer(GONE_KEY, "exited");
+    const { reconciler, runtime } = setup(
       [
-        workspaceContainer(KEY, "running"),
-        workspaceContainer(GONE_KEY, "exited"),
-        invalidContainer("a", "exited"),
-        invalidContainer("b", "running"),
+        workspaceContainer(OTHER_COURSE_KEY, "exited"),
+        workspaceContainer({ ...OTHER_COURSE_KEY, userId: "user-2" }, "dead"),
+        gone,
       ],
-      brokenCourseRoot,
+      () => readEveryCourse(root),
     );
 
     await reconciler.runPass();
 
-    expect(tracker.isTracked(workspaceId(INSTANCE, KEY))).toBe(true);
-    expect(actions(runtime)).toEqual(["stopContainer docker-invalid-b"]);
-    expect(logged).toContainEqual(
-      expect.stringMatching(
-        /^course unreadable: sample-course\/01-basics\/02-theory-only\/lesson\.yaml: schema: /,
-      ),
+    expect(actions(runtime)).toEqual([`removeContainer ${gone.containerId}`]);
+  });
+
+  it("with one course failing: removes a stopped invalid container", async () => {
+    const root = await twoCourses();
+    await rm(join(root, "other-course/course.yaml"));
+    const { reconciler, runtime } = setup(
+      [invalidContainer("a", "exited"), invalidContainer("b", "running")],
+      () => readEveryCourse(root),
     );
+
+    await reconciler.runPass();
+
+    expect(actions(runtime)).toEqual([
+      "removeContainer docker-invalid-a",
+      "stopContainer docker-invalid-b",
+    ]);
+  });
+
+  it("logs one line per failing course on every pass, root failures and course failures apart", async () => {
+    const root = await twoCourses();
+    await rm(join(root, "other-course/course.yaml"));
+    await writeFile(
+      join(root, "sample-course/01-basics/02-theory-only/lesson.yaml"),
+      DUPLICATE_CHECK_IDS,
+    );
+    const { reconciler, logged } = setup([], () => readEveryCourse(root));
+
+    await reconciler.runPass();
+    await reconciler.runPass();
+
+    const other = `${FAILED}course other-course: other-course/course.yaml: missing`;
+    const sample = `${FAILED}course sample-course: sample-course/01-basics/02-theory-only/lesson.yaml: schema: checks custom`;
+    expect(logged.filter((line) => line.startsWith(FAILED))).toEqual([
+      other,
+      sample,
+      other,
+      sample,
+    ]);
+  });
+
+  it("a root failure removes nothing and logs the root line", async () => {
+    const root = await twoCourses();
+    await rm(root, { recursive: true, force: true });
+    const { reconciler, runtime, tracker, logged } = setup(
+      [
+        workspaceContainer(KEY, "running"),
+        workspaceContainer(GONE_KEY, "exited"),
+        workspaceContainer(OTHER_USER_KEY, "dead"),
+        invalidContainer("a", "exited"),
+        invalidContainer("b", "running"),
+      ],
+      () => readEveryCourse(root),
+    );
+
+    await reconciler.runPass();
+
+    expect(actions(runtime)).toEqual(["stopContainer docker-invalid-b"]);
+    expect(tracker.isTracked(workspaceId(INSTANCE, KEY))).toBe(true);
+    expect(logged.filter((line) => line.startsWith(FAILED))).toEqual([`${FAILED}root: .: missing`]);
+  });
+
+  it("a throw that is not a read error removes nothing and logs its kind", async () => {
+    const { reconciler, runtime, logged } = setup([invalidContainer("a", "exited")], () =>
+      Promise.reject(new Error("x INJECT")),
+    );
+
+    await expect(reconciler.runPass()).resolves.toBeUndefined();
+
+    expect(actions(runtime)).toEqual([]);
+    expect(logged).toContain(`${FAILED}Error`);
+    expect(logged.join("\n")).not.toContain("INJECT");
+  });
+
+  it("a non-slug directory is logged JSON-quoted", async () => {
+    const root = await twoCourses();
+    await mkdir(join(root, "Bad\nName"));
+    const { reconciler, logged } = setup([], () => readEveryCourse(root));
+
+    await reconciler.runPass();
+
+    expect(logged.filter((line) => line.startsWith(FAILED))).toEqual([
+      `${FAILED}course "Bad\\nName": .: directory name is not a course id`,
+    ]);
   });
 
   it("never removes a volume, and logs one without a container once across two passes", async () => {

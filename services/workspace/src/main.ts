@@ -1,5 +1,5 @@
 import { type Config, loadConfig } from "./config.js";
-import { readCourseById, readCourseLessons } from "./course/lessons.js";
+import { readCourseById, readEveryCourse } from "./course/lessons.js";
 import { DockerEngine } from "./docker/engine.js";
 import { DockerRuntime } from "./docker/runtime.js";
 import { InvalidConfigError } from "./errors.js";
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
   });
   const reconciler = new Reconciler({
     runtime,
-    readCourse: () => readCourseLessons(config.courseRoot),
+    readCourses: () => readEveryCourse(config.courseRoot),
     instance: config.instance,
     tracker,
     mutex,
