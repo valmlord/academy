@@ -1,16 +1,21 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  BROKEN_COURSE_ID,
   type CourseFixture,
   createCourseFixture,
   FIXTURE_COURSE_ID,
+  makeBrokenCourseReadable,
   readFixtureTree,
+  THEORY_COURSE_TITLE,
+  writeTheoryOnlyCourse,
 } from "@/test/course-fixture";
 import type { CourseTree } from "./read";
 import {
   type DashboardView,
   findLesson,
   toCatalogView,
+  toDashboardPage,
   toDashboardView,
   toLessonView,
 } from "./view";
@@ -141,6 +146,61 @@ checks:
     expect(view.next).toBeNull();
     expect(view.totalLessons).toBe(0);
     expectNextIffCounted(view);
+  });
+});
+
+describe("toDashboardPage", () => {
+  it("takes the Card course as the first course in list order with a next lesson", async () => {
+    makeBrokenCourseReadable(fixture);
+    writeTheoryOnlyCourse(fixture, "a-theory-course");
+    const trees = await Promise.all(
+      ["a-theory-course", BROKEN_COURSE_ID, FIXTURE_COURSE_ID].map((id) =>
+        readFixtureTree(fixture.root, id),
+      ),
+    );
+
+    const page = toDashboardPage(trees);
+
+    const brokenLesson = {
+      id: "broken-lesson",
+      title: "Broken lesson",
+      type: "artifact",
+      estimatedMinutes: 10,
+      moduleTitle: "Only module",
+    };
+    expect(page.card).toEqual({
+      courseId: BROKEN_COURSE_ID,
+      courseTitle: "Broken course",
+      lesson: brokenLesson,
+    });
+    expect(page.blocks).toEqual([
+      { form: "empty", courseId: "a-theory-course", courseTitle: THEORY_COURSE_TITLE },
+      {
+        form: "readable",
+        courseId: BROKEN_COURSE_ID,
+        courseTitle: "Broken course",
+        nextLesson: null,
+        totalLessons: 1,
+        modules: [{ id: "only", title: "Only module", isAvailable: true, lessonCount: 1 }],
+      },
+      {
+        form: "readable",
+        courseId: FIXTURE_COURSE_ID,
+        courseTitle: "Fixture course",
+        nextLesson: {
+          id: "second-lesson",
+          title: "Second lesson",
+          type: "artifact",
+          estimatedMinutes: 20,
+          moduleTitle: "Basics",
+        },
+        totalLessons: 1,
+        modules: [
+          { id: "basics", title: "Basics", isAvailable: true, lessonCount: 1 },
+          { id: "later", title: "Later", isAvailable: false, lessonCount: 0 },
+        ],
+      },
+    ]);
   });
 });
 

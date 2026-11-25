@@ -192,6 +192,47 @@ export function makeBrokenCourseReadable(fixture: CourseFixture): void {
   fixture.write("broken-course/course.yaml", brokenCourseYaml(BROKEN_COURSE_ID));
 }
 
+export const THEORY_COURSE_TITLE = "Theory course";
+
+/**
+ * Adds a course named `courseId` with one ready module holding one ready theory lesson and no check, so it has
+ * a visible lesson and counts none.
+ */
+export function writeTheoryOnlyCourse(fixture: CourseFixture, courseId: string): void {
+  fixture.write(
+    `${courseId}/course.yaml`,
+    `id: ${courseId}
+title: ${THEORY_COURSE_TITLE}
+description: A course with a theory lesson only.
+modules:
+  - 00-reading
+`,
+  );
+  fixture.write(
+    `${courseId}/00-reading/module.yaml`,
+    `id: reading
+title: Reading
+summary: The one module of the theory course.
+status: ready
+lessons:
+  - 01-theory
+`,
+  );
+  fixture.write(
+    `${courseId}/00-reading/01-theory/lesson.yaml`,
+    `id: theory-lesson
+title: Theory lesson
+type: theory
+outcomes:
+  - Reads the theory.
+estimatedMinutes: 10
+status: ready
+${SOURCES}`,
+  );
+  fixture.write(`${courseId}/00-reading/01-theory/theory.md`, "# Theory lesson\n\nTheory text.\n");
+  fixture.write(`${courseId}/00-reading/01-theory/task.md`, "# Task\n\nRead the theory.\n");
+}
+
 /** The fixture root read through the node file layer. */
 export function fixtureSource(root: string, fs: CourseFs = nodeCourseFs): CourseSource {
   return { fs, root: () => root };
