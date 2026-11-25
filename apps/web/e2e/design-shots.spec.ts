@@ -7,10 +7,11 @@ import { isSwitchOn, STORAGE_STATE } from "../playwright.config";
 import { fixtureCourse } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
-// Screenshots of the app pages #241 changes, for the design conformance check (ADR-0006 item 5), against a
-// stack whose web serves an export of tests/fixtures/course-root. A file of its own, so the several-course
-// run's report never counts these tests. Each shot comes from a fresh context created with its colour scheme
-// and viewport, after <html> was checked to carry the `dark` class in the dark scheme only.
+// Screenshots of the dashboard, catalog, lesson and not-found pages for the design conformance check
+// (ADR-0006 item 5), against a stack whose web serves an export of tests/fixtures/course-root. A file of its
+// own, so the several-course run's report never counts these tests. Each shot comes from a fresh context
+// created with its colour scheme and viewport, after <html> was checked to carry the `dark` class in the dark
+// scheme only.
 
 class NoShotsDirError extends Error {
   constructor() {

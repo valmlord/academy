@@ -14,7 +14,7 @@ import { isSwitchOn, STORAGE_STATE } from "../playwright.config";
 import { fixtureCourse } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
-// The catalog and lesson pages over tests/fixtures/course-root (#241), against a stack whose web serves an
+// The catalog and lesson pages over tests/fixtures/course-root, against a stack whose web serves an
 // export of that root (compose.fixture-course-root.yaml). Titles come from the fixture through the app's own
 // loader and views; the spec names its three courses by id.
 
