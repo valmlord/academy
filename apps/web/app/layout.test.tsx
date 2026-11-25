@@ -11,7 +11,7 @@ function containsType(node: ReactNode, type: unknown): boolean {
 
 describe("RootLayout", () => {
   // Without it a document the client renders from scratch (the not-found shell) never gets the class.
-  it("renders SystemTheme on every page, next to the head's theme script", () => {
+  it("renders SystemTheme on every page", () => {
     const tree = RootLayout({ children: null, params: Promise.resolve({}) });
 
     expect(containsType(tree, SystemTheme)).toBe(true);

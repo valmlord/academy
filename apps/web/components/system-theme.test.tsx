@@ -12,14 +12,16 @@ class UnexpectedQueryError extends Error {
 
 interface StubbedScheme {
   setDark: (isDark: boolean) => void;
-  listenerCount: () => number;
+  addedListeners: EventListener[];
+  removedListeners: EventListener[];
 }
 
 // jsdom has no matchMedia: a scheme the test flips, firing `change` the way the browser does.
 function stubScheme(isDark: boolean): StubbedScheme {
   const target = new EventTarget();
   let matches = isDark;
-  let listenerCount = 0;
+  const addedListeners: EventListener[] = [];
+  const removedListeners: EventListener[] = [];
   vi.stubGlobal("matchMedia", (query: string) => {
     if (query !== DARK_SCHEME_QUERY) throw new UnexpectedQueryError(query);
     return {
@@ -27,11 +29,11 @@ function stubScheme(isDark: boolean): StubbedScheme {
         return matches;
       },
       addEventListener: (type: string, listener: EventListener) => {
-        listenerCount += 1;
+        addedListeners.push(listener);
         target.addEventListener(type, listener);
       },
       removeEventListener: (type: string, listener: EventListener) => {
-        listenerCount -= 1;
+        removedListeners.push(listener);
         target.removeEventListener(type, listener);
       },
     };
@@ -43,7 +45,8 @@ function stubScheme(isDark: boolean): StubbedScheme {
         target.dispatchEvent(new Event("change"));
       });
     },
-    listenerCount: () => listenerCount,
+    addedListeners,
+    removedListeners,
   };
 }
 
@@ -87,12 +90,13 @@ describe("SystemTheme", () => {
     expect(html).toHaveClass("dark");
   });
 
-  it("stops listening when it unmounts", () => {
+  it("removes on unmount the same listener it added", () => {
     const scheme = stubScheme(true);
     const { unmount } = render(<SystemTheme />);
 
     unmount();
 
-    expect(scheme.listenerCount()).toBe(0);
+    expect(scheme.addedListeners).toHaveLength(1);
+    expect(scheme.removedListeners).toEqual(scheme.addedListeners);
   });
 });

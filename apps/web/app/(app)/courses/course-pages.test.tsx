@@ -212,8 +212,11 @@ describe("the catalog's other courses", () => {
     ).toEqual([retryLabel, "Fixture course"]);
   });
 
-  it("is absent when the root cannot be read", async () => {
-    fixture.remove();
+  it("is absent when the root cannot be read, although the listing holds another course", async () => {
+    vi.spyOn(courseServerFake, "getCourseById").mockResolvedValueOnce({
+      kind: "root-failure",
+      error: new CourseRootReadError(".", "missing"),
+    });
 
     await renderCatalog(FIXTURE_COURSE_ID);
 
