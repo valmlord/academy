@@ -1,8 +1,9 @@
 id: stub-module
 title: Пробный модуль
-summary: Один урок для проверки нескольких курсов.
+summary: Уроки для проверки нескольких курсов.
 outcomes:
   - "Открыть урок второго курса."
 status: ready
 lessons:
   - 01-stub-lesson
+  - 02-counted-lesson

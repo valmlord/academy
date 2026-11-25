@@ -1,0 +1,20 @@
+id: counted-lesson
+title: Урок с проверкой
+type: artifact
+outcomes:
+  - "Пройти проверку урока второго курса."
+estimatedMinutes: 20
+status: ready
+sources:
+  - title: "Example source"
+    url: https://example.com/counted-lesson
+    checkedAt: "2026-11-25"
+workspace:
+  image: academy-workspace:dev
+  starter: starter
+checks:
+  - id: counted-check
+    kind: command
+    title: Пробная проверка
+    run: "true"
+    timeoutSec: 30

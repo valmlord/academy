@@ -1,5 +1,5 @@
 id: zz-stub-course
 title: Пробный курс
-description: Курс-заглушка с одним уроком.
+description: Курс-заглушка для проверки нескольких курсов.
 modules:
   - 00-stub-module
