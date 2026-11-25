@@ -42,13 +42,20 @@ export class CourseReadError extends Error {
   readonly courseId: string;
   readonly file: string;
   readonly reason: string;
+  /**
+   * The `title` of the course's own `course.yaml` when that file parsed with an id equal to the directory name
+   * and a module or lesson file of the course failed; `undefined` when the failure came before or at `course.yaml`. Not
+   * part of the message.
+   */
+  readonly title: string | undefined;
 
-  constructor(courseId: string, file: string, reason: string) {
+  constructor(courseId: string, file: string, reason: string, title?: string) {
     super(`${file}: ${reason}`);
     this.name = "CourseReadError";
     this.courseId = courseId;
     this.file = file;
     this.reason = reason;
+    this.title = title;
   }
 }
 

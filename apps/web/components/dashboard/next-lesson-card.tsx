@@ -8,7 +8,6 @@ import { durationLabel, lessonTypeLabels, nextLessonHeading, startLessonLabel } 
 import type { NextLessonView } from "@/lib/course/view";
 import { lessonPath } from "@/lib/routes";
 
-/** The Card heading: the focus target of a course-error retry (dashboard AC8). */
 export const NEXT_LESSON_HEADING_ID = "next-lesson-heading";
 
 export interface NextLessonCardProps {

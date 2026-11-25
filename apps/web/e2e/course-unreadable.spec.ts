@@ -21,8 +21,8 @@ import {
 import { repoCatalog, repoLessons } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
-// The lesson and catalog pages while course.yaml of every course cannot be read, so no course reads, and the
-// retry after it became readable again (#96). Each test makes the file unreadable inside the stack's web container
+// The lesson and catalog pages and the dashboard while course.yaml of every course cannot be read, so no course
+// reads, and the retry after it became readable again (#96). Each test makes the file unreadable inside the stack's web container
 // with `docker exec -u 0`, so besides the switch it needs the destructive decision to allow the base URL and
 // E2E_COMPOSE_PROJECT to name the stack's compose project, as CI and isolated-stack.sh --e2e set it. With the
 // switch on, a gate that refuses fails every test with its reason.
@@ -56,6 +56,8 @@ const COURSE_FILES = "/app/course/*/course.yaml";
 const COURSE_ERROR_TITLE_ID = "course-error-title";
 const NOT_FOUND_TITLE_ID = "not-found-title";
 const CATALOG_TITLE_ID = "course-title";
+// The course blocks only: each is a section labelled by its course-...-heading h2.
+const BLOCK = 'section[aria-labelledby^="course-"]';
 
 const [firstLesson] = await repoLessons();
 if (firstLesson === undefined) throw new Error("the course needs a visible lesson");
@@ -258,6 +260,35 @@ test("U3 Открыть курс after the retry on an unknown lesson opens the 
   await expect(page.getByRole("heading", { level: 1, name: catalog.title })).toBeVisible();
   await expect(page.getByRole("heading", { level: 1, name: catalog.title })).not.toBeFocused();
   expect(new URL(page.url()).pathname).toBe(catalogPath(catalog.id));
+});
+
+test("E1 the dashboard while every course.yaml is unreadable shows one static error block named by the course id (dashboard ES1, ES10)", async ({
+  page,
+}) => {
+  await makeCourseUnreadable();
+
+  await page.goto("/");
+  await waitForHydration(
+    page.locator(`#course-${catalog.id}-error-title`),
+    "dashboard error block hydrated",
+  );
+
+  const main = page.getByRole("main");
+  await expect(main.locator("#next-lesson-heading")).toHaveCount(0);
+  await expect(main.locator(BLOCK)).toHaveCount(1);
+  const block = main.getByRole("region", { name: catalog.id, exact: true });
+  const heading = block.getByRole("heading", { level: 2 });
+  await expect(heading).toHaveText(catalog.id);
+  await expect(heading).not.toHaveText(catalog.title);
+  await expect(block.getByRole("link")).toHaveCount(0);
+  await expect(
+    block.getByRole("heading", { level: 3, name: courseErrorTitle, exact: true }),
+  ).toHaveAttribute("tabindex", "-1");
+  const button = block.getByRole("button");
+  await expect(button).toHaveText([retryLabel]);
+  await expect(button).toHaveAccessibleDescription(catalog.id);
+  await expect(main.locator('[role="alert"]')).toHaveCount(0);
+  await expect(main.locator("[aria-live]")).toHaveCount(0);
 });
 
 // Longer than the move takes once the answer arrived, which the control test measures in the same run: a move

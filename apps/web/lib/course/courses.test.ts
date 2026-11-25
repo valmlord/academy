@@ -86,6 +86,46 @@ describe("readCourseById", () => {
     expect(outcome(readable)).toBe(`course ${FIXTURE_COURSE_ID}`);
   });
 
+  it.each<[string, () => void, string, string | undefined]>([
+    [
+      "a directory name outside the id form",
+      () => mkdirSync(fixture.path("Zed")),
+      "Zed",
+      undefined,
+    ],
+    [
+      "a directory without course.yaml",
+      () => mkdirSync(fixture.path("plain-course")),
+      "plain-course",
+      undefined,
+    ],
+    ["a course.yaml whose id is not the directory name", () => {}, BROKEN_COURSE_ID, undefined],
+    [
+      "a module file that fails after course.yaml read",
+      () => fixture.write(`${FIXTURE_COURSE_ID}/00-basics/module.yaml`, "id: [unclosed\n"),
+      FIXTURE_COURSE_ID,
+      "Fixture course",
+    ],
+  ])(
+    "keeps the course.yaml title only for a failure after course.yaml read: %s",
+    async (_label, arrange, courseId, title) => {
+      arrange();
+
+      const every = await readEveryCourse(fixtureSource(fixture.root));
+
+      const failure =
+        every.kind === "courses"
+          ? every.courses.find(
+              (read) => read.kind === "course-failure" && read.error.courseId === courseId,
+            )
+          : undefined;
+      expect(failure?.kind === "course-failure" && failure.error).toMatchObject({
+        courseId,
+        title,
+      });
+    },
+  );
+
   it("opens only course.yaml of a course whose id is not its directory name", async () => {
     const { fs, calls } = recordingCourseFs();
 

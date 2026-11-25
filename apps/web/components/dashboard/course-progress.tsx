@@ -16,6 +16,7 @@ import {
   noPassedLessonsMessage,
   progressValueText,
 } from "@/lib/copy";
+import { courseElementId } from "@/lib/course/element-id";
 import type { CourseBlockView } from "@/lib/course/view";
 import { moduleAnchorPath } from "@/lib/routes";
 import { ModuleBar } from "./module-bar";
@@ -29,7 +30,7 @@ type ReadableCourseBlockView = Extract<CourseBlockView, { form: "readable" }>;
 // "N of M", then one row per module linking its catalog section: an available module with its count and a
 // decorative bar, a module being prepared with its Badge and no bar (dashboard AC5).
 export function CourseProgress({ block }: { block: ReadableCourseBlockView }): ReactElement {
-  const lineId = `course-${block.courseId}-line`;
+  const lineId = courseElementId(block.courseId, "line");
   return (
     <>
       <div className="flex flex-col gap-2">

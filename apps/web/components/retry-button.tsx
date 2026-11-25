@@ -85,6 +85,8 @@ export interface RetryButtonProps {
   errorTargetId: string;
   /** The button's own id, for a composition whose error target is the button itself. */
   id?: string;
+  /** The id of the element whose text describes the button, as its `aria-describedby`. */
+  describedById?: string;
   /**
    * The retry's block for the retry focus guard (ia.md R2): the nearest ancestor of the button matching it at
    * the press; the error's own Alert when omitted; the button alone when nothing matches.
@@ -96,6 +98,7 @@ export function RetryButton({
   successTargetId,
   errorTargetId,
   id,
+  describedById,
   guardBlockSelector,
 }: RetryButtonProps): ReactElement {
   const router = useRouter();
@@ -141,7 +144,14 @@ export function RetryButton({
   }
 
   return (
-    <Button id={id} type="button" variant="secondary" size="sm" onClick={retry}>
+    <Button
+      id={id}
+      type="button"
+      variant="secondary"
+      size="sm"
+      aria-describedby={describedById}
+      onClick={retry}
+    >
       {retryLabel}
     </Button>
   );

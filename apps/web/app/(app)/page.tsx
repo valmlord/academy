@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
-import { CourseError } from "@/components/course-error";
 import { CourseBlock } from "@/components/dashboard/course-block";
+import { LoadErrorAlert } from "@/components/dashboard/load-error";
 import { NEXT_LESSON_HEADING_ID, NextLessonCard } from "@/components/dashboard/next-lesson-card";
 import { FocusOnMount } from "@/components/focus-on-mount";
-import { homeTitle } from "@/lib/copy";
-import type { CourseTree } from "@/lib/course/read";
+import { homeTitle, rootErrorTitle } from "@/lib/copy";
 import { getEveryCourse } from "@/lib/course/server";
 import { type DashboardPageView, toDashboardPage } from "@/lib/course/view";
 import { requireSession } from "@/lib/session";
@@ -15,25 +14,21 @@ export const metadata: Metadata = {
 };
 
 const MAIN_ID = "main";
+const ROOT_ERROR_TITLE_ID = "root-error-title";
 
-// design/pages/dashboard: the Card and the course blocks from the readable courses of getEveryCourse, in list
-// order; a failing course beside a readable one renders nothing. When no course reads, the course error stands
-// in the Card's place, its retry focusing the Card heading (AC8).
+// design/pages/dashboard: on a root failure of getEveryCourse the root error (ES2) stands alone in the Card's
+// place; otherwise the dashboard content is built from every listed course.
 export default async function DashboardPage(): Promise<ReactElement> {
   await requireSession("/");
   const every = await getEveryCourse();
-  const trees: CourseTree[] =
-    every.kind === "courses"
-      ? every.courses.flatMap((read) => (read.kind === "course" ? [read.tree] : []))
-      : [];
   return (
     <main id={MAIN_ID} tabIndex={-1} data-region className="mx-auto w-full max-w-6xl px-4 py-6">
       <div className="flex max-w-3xl flex-col gap-8">
         <h1 className="text-2xl font-semibold">{homeTitle}</h1>
-        {trees.length === 0 ? (
-          <CourseError isPageHeading={false} successTargetId={NEXT_LESSON_HEADING_ID} />
+        {every.kind === "root-failure" ? (
+          <LoadErrorAlert titleId={ROOT_ERROR_TITLE_ID} titleLevel={2} title={rootErrorTitle} />
         ) : (
-          <DashboardContent view={toDashboardPage(trees)} />
+          <DashboardContent view={toDashboardPage(every.courses)} />
         )}
       </div>
     </main>

@@ -1,6 +1,7 @@
 import type { Lesson } from "@academy/lesson-schema/schema";
 import { countedCheckCount } from "../progress/rules";
 import { type CheckKind, SHIPPED_CHECK_KINDS } from "../progress/shipped-kinds";
+import type { ListedCourseRead } from "./courses";
 import type { CourseTree, LessonNode, ModuleNode } from "./read";
 
 // View models are built field by field from the parsed tree (ADR-0009 item 3): they never carry checks,
@@ -90,7 +91,13 @@ export type CourseBlockView =
       totalLessons: number;
       modules: DashboardModuleView[];
     }
-  | { form: "empty"; courseId: string; courseTitle: string };
+  | { form: "empty"; courseId: string; courseTitle: string }
+  | {
+      form: "error";
+      courseId: string;
+      /** `CourseReadError.title`, or the course id when the failure carries no title. */
+      courseName: string;
+    };
 
 export interface DashboardPageView {
   card: DashboardCardView | null;
@@ -224,15 +231,26 @@ export function toDashboardView(
 /**
  * The Card course is the first course in list order with a next lesson (A218-2 without an activity read). A
  * block is readable iff its course has a next lesson, which by the invariant of `toDashboardView` is iff it
- * counts a lesson. The Card course's block has no next-lesson link, because the Card holds it.
+ * counts a lesson. The Card course's block has no next-lesson link, because the Card holds it. A failing read
+ * is an error block in its list place and is never the Card course.
  */
 export function toDashboardPage(
-  trees: readonly CourseTree[],
+  reads: readonly ListedCourseRead[],
   shippedKinds: ReadonlySet<CheckKind> = SHIPPED_CHECK_KINDS,
 ): DashboardPageView {
   let card: DashboardCardView | null = null;
   const blocks: CourseBlockView[] = [];
-  for (const tree of trees) {
+  for (const read of reads) {
+    if (read.kind === "course-failure") {
+      const { error } = read;
+      blocks.push({
+        form: "error",
+        courseId: error.courseId,
+        courseName: error.title ?? error.courseId,
+      });
+      continue;
+    }
+    const { tree } = read;
     const view = toDashboardView(tree, shippedKinds);
     if (view.next === null) {
       blocks.push({ form: "empty", courseId: tree.id, courseTitle: tree.title });

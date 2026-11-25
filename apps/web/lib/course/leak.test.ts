@@ -64,7 +64,7 @@ async function scanEveryCourse(fs: CourseFs): Promise<Scan> {
       }
     }
   }
-  views.push(toDashboardPage(trees));
+  views.push(toDashboardPage(every.courses));
   return {
     rendered: inspect(views, { depth: Infinity }) + texts.join("\n"),
     trees,
