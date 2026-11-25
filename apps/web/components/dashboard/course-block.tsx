@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { headingLinkClassName, inlineLinkClassName } from "@/components/ui/link-styles";
 import { nextLessonLinkLabel, noReadyLessonsMessage } from "@/lib/copy";
+import { courseElementId } from "@/lib/course/element-id";
 import type { CourseBlockView } from "@/lib/course/view";
 import { catalogPath, lessonPath } from "@/lib/routes";
 import { CourseProgress } from "./course-progress";
@@ -11,7 +12,7 @@ import { CourseProgress } from "./course-progress";
 // course's catalog. The readable form adds the next-lesson link into this course (none in the Card course's
 // block), the course line and the module rows; the empty form only the Empty text.
 export function CourseBlock({ block }: { block: CourseBlockView }): ReactElement {
-  const headingId = `course-${block.courseId}-heading`;
+  const headingId = courseElementId(block.courseId, "heading");
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
       <h2 id={headingId} tabIndex={-1} className="text-lg font-semibold">
