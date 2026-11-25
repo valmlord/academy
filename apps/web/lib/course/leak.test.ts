@@ -16,7 +16,7 @@ import { learnerFiles } from "./files";
 import type { CourseFs } from "./node-fs";
 import type { CourseTree } from "./read";
 import { readLessonText } from "./text";
-import { findLesson, toCatalogView, toDashboardView, toLessonView } from "./view";
+import { findLesson, toCatalogView, toDashboardPage, toDashboardView, toLessonView } from "./view";
 
 // Layer 1 of the leak defence (design 7): grader material in the fixture carries "CANARY-"; nothing built
 // for a page may hold it, and the loader may request no file outside the learner listing. The root holds two
@@ -64,6 +64,7 @@ async function scanEveryCourse(fs: CourseFs): Promise<Scan> {
       }
     }
   }
+  views.push(toDashboardPage(trees));
   return {
     rendered: inspect(views, { depth: Infinity }) + texts.join("\n"),
     trees,

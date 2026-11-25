@@ -3,18 +3,30 @@ import {
   brandName,
   breadcrumbLabel,
   homeTitle,
+  nextLessonHeading,
+  nextLessonLinkLabel,
   noModuleLessonsMessage,
+  noReadyLessonsMessage,
   openCourseLabel,
   otherCoursesHeading,
+  progressValueText,
+  startLessonLabel,
 } from "../lib/copy";
-import type { CourseTree } from "../lib/course/read";
-import { findLesson, type LessonView, toCatalogView, toLessonView } from "../lib/course/view";
+import type { CourseTree, LessonNode } from "../lib/course/read";
+import {
+  findLesson,
+  isLessonVisible,
+  type LessonView,
+  toCatalogView,
+  toLessonView,
+} from "../lib/course/view";
+import { countedCheckCount } from "../lib/progress/rules";
 import { catalogPath, lessonPath, moduleAnchorPath } from "../lib/routes";
 import { isSwitchOn, STORAGE_STATE } from "../playwright.config";
 import { fixtureCourse } from "./course";
 import { trackLoadFailures, useOwnBucket, waitForHydration } from "./fixtures";
 
-// The catalog and lesson pages over tests/fixtures/course-root, against a stack whose web serves an
+// The dashboard, catalog and lesson pages over tests/fixtures/course-root, against a stack whose web serves an
 // export of that root (compose.fixture-course-root.yaml). Titles come from the fixture through the app's own
 // loader and views; the spec names its three courses by id.
 
@@ -45,6 +57,18 @@ function firstLessonOf(course: CourseTree): LessonView {
   return toLessonView(course, found);
 }
 
+// The course blocks only: the Card's section is labelled by the Card heading.
+const BLOCK = 'section[aria-labelledby^="course-"]';
+
+/** The visible lessons of `course` with a counted check, in course order. */
+function countedLessonsOf(course: CourseTree): LessonNode[] {
+  return course.modules.flatMap((module) =>
+    module.lessons.filter(
+      (node) => isLessonVisible(module, node) && countedCheckCount(node.lesson) >= 1,
+    ),
+  );
+}
+
 function otherCourses(page: Page): Locator {
   return page.getByRole("region", { name: otherCoursesHeading, exact: true });
 }
@@ -71,6 +95,51 @@ test("E1 the dashboard's top bar links the brand and the home page, the home pag
   await page.goto("/");
 
   await expectBannerLinks(page, true);
+});
+
+test("D1 the dashboard shows the Card of the first course with a next lesson and one block per course in list order, the courses without one in the empty form (dashboard AC61, AC62, AC63, AC69, AC72)", async ({
+  page,
+}) => {
+  const courses = [longName, stub, empty];
+  const cardCourse = courses.find((course) => countedLessonsOf(course).length > 0);
+  const [counted] = cardCourse === undefined ? [] : countedLessonsOf(cardCourse);
+  if (cardCourse === undefined || counted === undefined) {
+    throw new Error("the fixture root needs a course with a counted lesson");
+  }
+  await page.goto("/");
+
+  const card = page.getByRole("region", { name: nextLessonHeading, exact: true });
+  await expect(card.getByText(cardCourse.title, { exact: true })).toBeVisible();
+  await expect(card.getByText(counted.lesson.title, { exact: true })).toBeVisible();
+  await expect(card.getByRole("link", { name: startLessonLabel, exact: true })).toHaveAttribute(
+    "href",
+    lessonPath(cardCourse.id, counted.lesson.id),
+  );
+  const blocks = page.locator(`main ${BLOCK}`);
+  await expect(blocks.getByRole("heading", { level: 2 })).toHaveText(
+    courses.map((course) => course.title),
+  );
+  for (const [index, course] of courses.entries()) {
+    const block = blocks.nth(index);
+    const heading = block.getByRole("heading", { level: 2 });
+    await expect(heading).toHaveAttribute("tabindex", "-1");
+    await expect(heading.getByRole("link")).toHaveAttribute("href", catalogPath(course.id));
+    const lessonCount = countedLessonsOf(course).length;
+    if (lessonCount === 0) {
+      await expect(block.getByText(noReadyLessonsMessage, { exact: true })).toBeVisible();
+      await expect(block.getByRole("progressbar")).toHaveCount(0);
+    } else {
+      await expect(block.getByRole("progressbar")).toHaveAttribute(
+        "aria-valuetext",
+        progressValueText(0, lessonCount),
+      );
+    }
+  }
+  // The Card course is the only one that counts a lesson here, and its block leaves its next lesson to the Card.
+  expect(courses.filter((course) => countedLessonsOf(course).length > 0)).toEqual([cardCourse]);
+  await expect(
+    page.getByRole("link", { name: new RegExp(`^${nextLessonLinkLabel("")}`) }),
+  ).toHaveCount(0);
 });
 
 test("E2 a catalog ends with the other courses in list order and marks no top bar link current (catalog AC13, AC14)", async ({

@@ -16,36 +16,36 @@ import {
   noPassedLessonsMessage,
   progressValueText,
 } from "@/lib/copy";
-import type { DashboardView } from "@/lib/course/view";
+import type { CourseBlockView } from "@/lib/course/view";
 import { moduleAnchorPath } from "@/lib/routes";
 import { ModuleBar } from "./module-bar";
 
-const PROGRESS_HEADING_ID = "progress-heading";
 // No progress is read before #35 (Stepan, 2026-10-30): the first-run state, nothing passed.
 const PASSED_LESSONS = 0;
 
-// design/pages/dashboard F18.1-F18.2, `#state-first-run`: the course line with the course bar (named by
-// the line, valued "N of M"), then one row per module linking its catalog section: an available module
-// with its count and a decorative bar, a module being prepared with its Badge and no bar (dashboard AC5).
-export function CourseProgress({ view }: { view: DashboardView }): ReactElement {
+type ReadableCourseBlockView = Extract<CourseBlockView, { form: "readable" }>;
+
+// design/pages/dashboard F18.1-F18.2: the readable block's body, the course line naming the course bar valued
+// "N of M", then one row per module linking its catalog section: an available module with its count and a
+// decorative bar, a module being prepared with its Badge and no bar (dashboard AC5).
+export function CourseProgress({ block }: { block: ReadableCourseBlockView }): ReactElement {
+  const lineId = `course-${block.courseId}-line`;
   return (
-    <section className="flex flex-col gap-4">
+    <>
       <div className="flex flex-col gap-2">
-        <h2 id={PROGRESS_HEADING_ID} tabIndex={-1} className="text-lg font-semibold">
-          {noPassedLessonsMessage}
-        </h2>
+        <p id={lineId}>{noPassedLessonsMessage}</p>
         <Progress
           value={PASSED_LESSONS}
-          max={view.totalLessons}
-          valueText={progressValueText(PASSED_LESSONS, view.totalLessons)}
-          aria-labelledby={PROGRESS_HEADING_ID}
+          max={block.totalLessons}
+          valueText={progressValueText(PASSED_LESSONS, block.totalLessons)}
+          aria-labelledby={lineId}
         />
       </div>
       <ItemGroup>
-        {view.modules.map((module) => (
+        {block.modules.map((module) => (
           <li key={module.id}>
             <Item asChild>
-              <Link href={moduleAnchorPath(view.courseId, module.id)}>
+              <Link href={moduleAnchorPath(block.courseId, module.id)}>
                 <ItemContent>
                   <ItemTitle>{module.title}</ItemTitle>
                   {module.isAvailable ? (
@@ -69,6 +69,6 @@ export function CourseProgress({ view }: { view: DashboardView }): ReactElement 
           </li>
         ))}
       </ItemGroup>
-    </section>
+    </>
   );
 }

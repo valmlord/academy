@@ -29,10 +29,6 @@ export type CourseRead =
 
 export type CourseLookup = CourseRead | { kind: "not-found" };
 
-export type CourseList =
-  | { kind: "names"; names: string[] }
-  | { kind: "root-failure"; error: CourseRootReadError };
-
 /** One listed course as read: a tree or that course's failure. */
 export type ListedCourseRead = Exclude<CourseRead, { kind: "root-failure" }>;
 
@@ -138,13 +134,6 @@ async function readListedCourse(
   }
 }
 
-/** The names of the root's courses, or the root's failure. */
-export async function listCourseNames(source: CourseSource): Promise<CourseList> {
-  const listing = await listRoot(source);
-  if (listing.kind === "root-failure") return listing;
-  return { kind: "names", names: listing.names };
-}
-
 /**
  * The course a request's id names. An id not in the course id form opens nothing, not even the listing; an
  * id the root does not list is `not-found` after that one listing.
@@ -191,34 +180,4 @@ export async function readOtherCourses(
     courses.push({ id: name, title: read.kind === "course-file" ? read.course.title : undefined });
   }
   return { kind: "courses", courses };
-}
-
-/**
- * The first listed course that reads, else the first failure in list order. A seam for the one-course
- * dashboard until #247 (ADR-0009 item 8 binds it there). `courseById` is the request's cached read, so no
- * course is read twice in a request.
- *
- * The failure of a non-slug name and the `.: no course` result are built here, not by `courseById`, so neither
- * logs a per-request line.
- */
-export async function firstReadableCourse(
-  list: () => Promise<CourseList>,
-  courseById: (courseId: string) => Promise<CourseLookup>,
-): Promise<CourseRead> {
-  const listing = await list();
-  if (listing.kind === "root-failure") return listing;
-  let firstFailure: { kind: "course-failure"; error: CourseReadError } | undefined;
-  for (const name of listing.names) {
-    if (!isCourseIdForm(name)) {
-      // courseById would answer not-found for it; it is the same failing course readEveryCourse reports.
-      firstFailure ??= courseFailure(name, COURSE_ROOT_FILE, DIRECTORY_NAME_IS_NOT_A_COURSE_ID);
-      continue;
-    }
-    const lookup = await courseById(name);
-    // A root that changed after the listing (pnpm dev only) fails every later lookup alike.
-    if (lookup.kind === "course" || lookup.kind === "root-failure") return lookup;
-    // not-found: the directory went away after the listing (pnpm dev only), so it is no course any more.
-    if (lookup.kind === "course-failure") firstFailure ??= lookup;
-  }
-  return firstFailure ?? rootFailure(COURSE_ROOT_FILE, NO_COURSE);
 }

@@ -56,6 +56,16 @@ describe("createCourseReads", () => {
     ]);
   });
 
+  it("logs one course line per failing course of the every-course read and none for a readable one", async () => {
+    const { reads, lines } = readsOver(fixtureSource(fixture.root));
+
+    await reads.everyCourse();
+
+    expect(lines).toEqual([
+      "web: course read failed: course broken-course: broken-course/course.yaml: id is not the directory name",
+    ]);
+  });
+
   it.each([
     ["an empty root", () => emptyRoot(), "root: .: no course"],
     ["a missing root", () => path.join(emptyRoot(), "absent"), "root: .: missing"],
@@ -80,7 +90,7 @@ describe("createCourseReads", () => {
     const { reads, lines } = readsOver({ fs: nodeCourseFs, root });
 
     await reads.courseById(FIXTURE_COURSE_ID);
-    await reads.listNames();
+    await reads.everyCourse();
 
     expect(lines).toEqual([
       `web: course read failed: ${failure}`,
@@ -117,7 +127,6 @@ describe("createCourseReads", () => {
       const { reads, lines } = readsOver(fixtureSource(fixture.root));
 
       await reads.courseById(courseId);
-      await reads.listNames();
 
       expect(lines).toEqual([]);
     },

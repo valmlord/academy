@@ -1,10 +1,10 @@
 import {
-  type CourseList,
   type CourseLookup,
   type CourseSource,
-  listCourseNames,
+  type EveryCourse,
   type OtherCourseList,
   readCourseById,
+  readEveryCourse,
   readOtherCourses,
 } from "./courses";
 import { type CourseReadError, type CourseRootReadError, describeCourseFailure } from "./errors";
@@ -15,10 +15,10 @@ import { type CourseReadError, type CourseRootReadError, describeCourseFailure }
 export interface CourseReads {
   /** Logs a course failure or a root failure as `web: course read failed: ...`. */
   courseById(courseId: unknown): Promise<CourseLookup>;
-  /** Logs a root failure as `web: course read failed: root: ...`. */
-  listNames(): Promise<CourseList>;
+  /** Logs the root failure, or one line per failing course. */
+  everyCourse(): Promise<EveryCourse>;
   /**
-   * Logs a root failure as `listNames` does, and no line for a failing other course: its entry carries only
+   * Logs a root failure as `everyCourse` does, and no line for a failing other course: its entry carries only
    * its id and no title, none of its error.
    */
   otherCourses(courseId: string): Promise<OtherCourseList>;
@@ -39,10 +39,16 @@ export function createCourseReads(deps: {
       }
       return lookup;
     },
-    async listNames() {
-      const list = await listCourseNames(deps.source);
-      if (list.kind === "root-failure") logFailure(list.error);
-      return list;
+    async everyCourse() {
+      const every = await readEveryCourse(deps.source);
+      if (every.kind === "root-failure") {
+        logFailure(every.error);
+      } else {
+        for (const read of every.courses) {
+          if (read.kind === "course-failure") logFailure(read.error);
+        }
+      }
+      return every;
     },
     async otherCourses(courseId) {
       const others = await readOtherCourses(deps.source, courseId);

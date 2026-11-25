@@ -73,6 +73,31 @@ export interface DashboardView {
   modules: DashboardModuleView[];
 }
 
+/** The Card's course and its next lesson. */
+export interface DashboardCardView {
+  courseId: string;
+  courseTitle: string;
+  lesson: NextLessonView;
+}
+
+export type CourseBlockView =
+  | {
+      form: "readable";
+      courseId: string;
+      courseTitle: string;
+      /** Null exactly in the Card course's block. */
+      nextLesson: NextLessonView | null;
+      totalLessons: number;
+      modules: DashboardModuleView[];
+    }
+  | { form: "empty"; courseId: string; courseTitle: string };
+
+export interface DashboardPageView {
+  card: DashboardCardView | null;
+  /** One block per course, in list order. */
+  blocks: CourseBlockView[];
+}
+
 export interface SourceView {
   title: string;
   url: string;
@@ -194,6 +219,37 @@ export function toDashboardView(
     };
   });
   return { courseId: tree.id, next, totalLessons, modules };
+}
+
+/**
+ * The Card course is the first course in list order with a next lesson (A218-2 without an activity read). A
+ * block is readable iff its course has a next lesson, which by the invariant of `toDashboardView` is iff it
+ * counts a lesson. The Card course's block has no next-lesson link, because the Card holds it.
+ */
+export function toDashboardPage(
+  trees: readonly CourseTree[],
+  shippedKinds: ReadonlySet<CheckKind> = SHIPPED_CHECK_KINDS,
+): DashboardPageView {
+  let card: DashboardCardView | null = null;
+  const blocks: CourseBlockView[] = [];
+  for (const tree of trees) {
+    const view = toDashboardView(tree, shippedKinds);
+    if (view.next === null) {
+      blocks.push({ form: "empty", courseId: tree.id, courseTitle: tree.title });
+      continue;
+    }
+    const isCardCourse = card === null;
+    if (isCardCourse) card = { courseId: tree.id, courseTitle: tree.title, lesson: view.next };
+    blocks.push({
+      form: "readable",
+      courseId: tree.id,
+      courseTitle: tree.title,
+      nextLesson: isCardCourse ? null : view.next,
+      totalLessons: view.totalLessons,
+      modules: view.modules,
+    });
+  }
+  return { card, blocks };
 }
 
 /** A visible lesson by id; an invisible one does not exist for the learner (ADR-0009 item 5). */

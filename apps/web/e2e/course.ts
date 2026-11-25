@@ -81,7 +81,7 @@ export async function fixtureCourse(id: string): Promise<CourseTree> {
   return found;
 }
 
-/** The first course of course/; the one-course dashboard shows it until #247. */
+/** The first course of course/, whose Card the repository stack's dashboard shows. */
 export async function repoCourse(): Promise<CourseTree> {
   const [first] = await repoCourses();
   if (first === undefined) throw new RepoCourseMissingError("course/", "course at all");
