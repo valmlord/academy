@@ -42,7 +42,14 @@ export async function LessonText({
           <CircleXIcon aria-hidden />
           <AlertTitle>{lessonTextErrorTitle}</AlertTitle>
           <div className="col-start-2 mt-2">
-            <RetryButton id={retryId} successTargetId={panelId} errorTargetId={retryId} />
+            {/* The text load error's block is its tab panel: Radix TabsContent renders role="tabpanel" with
+                tabIndex 0, so a Shift+Tab from the retry button lands on the panel, inside the block. */}
+            <RetryButton
+              id={retryId}
+              successTargetId={panelId}
+              errorTargetId={retryId}
+              guardBlockSelector='[role="tabpanel"]'
+            />
           </div>
         </Alert>
         {footer}

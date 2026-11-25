@@ -13,7 +13,10 @@ export interface FocusOnMountProps {
   retryTargetId?: string;
 }
 
-/** Rendered next to a retry's success target: focuses it when a retry pressed on this pathname left its id in the flag. */
+/**
+ * Rendered next to a retry's success target: focuses it when a retry pressed on this pathname left its id in the
+ * flag and the retry focus guard allows it.
+ */
 export function FocusOnMount({ id, retryTargetId = id }: FocusOnMountProps): null {
   useEffect(() => {
     if (takeRetryFocus(retryTargetId)) document.getElementById(id)?.focus();

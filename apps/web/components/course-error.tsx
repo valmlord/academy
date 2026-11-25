@@ -35,6 +35,8 @@ export function CourseError({ isPageHeading, successTargetId }: CourseErrorProps
           id={isPageHeading ? undefined : RETRY_ID}
           successTargetId={successTargetId}
           errorTargetId={isPageHeading ? COURSE_ERROR_TITLE_ID : RETRY_ID}
+          // Catalog and lesson: the retry's block is `main`.
+          guardBlockSelector={isPageHeading ? "main" : undefined}
         />
       </div>
     </Alert>
