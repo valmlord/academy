@@ -254,22 +254,37 @@ async function overflowOf(target: Locator): Promise<number> {
   return target.evaluate((element) => element.scrollWidth - element.clientWidth);
 }
 
+type ColorScheme = "light" | "dark";
+
+const COLOR_SCHEMES: readonly ColorScheme[] = ["light", "dark"];
+
 interface WrapMeasure {
   link: { isOneTextNode: boolean; lines: number };
   pageOverflow: number;
   navOverflow: number | undefined;
+  /** Whether `html` has the `dark` class the theme script sets, so a dark run that did not apply shows. */
+  isDark: boolean;
 }
 
-/** Opens `path` in a fresh context of `viewport` and measures `link` there; the context is always closed. */
+async function isDarkThemeOn(page: Page): Promise<boolean> {
+  return page.evaluate(() => document.documentElement.classList.contains("dark"));
+}
+
+/**
+ * Opens `path` in a fresh context of `viewport` and `colorScheme` and measures `link` there; the context is
+ * always closed.
+ */
 async function measureWrap(
   browser: Browser,
   viewport: { width: number; height: number },
+  colorScheme: ColorScheme,
   path: string,
   linkOf: (page: Page) => Locator,
   hasCrumbs: boolean,
 ): Promise<WrapMeasure> {
   const context = await browser.newContext({
     viewport,
+    colorScheme,
     deviceScaleFactor: 2,
     storageState: STORAGE_STATE,
   });
@@ -284,6 +299,7 @@ async function measureWrap(
       link: await textLinesOf(link),
       pageOverflow: await overflowOf(page.locator("html")),
       navOverflow: hasCrumbs ? await overflowOf(crumbs(page)) : undefined,
+      isDark: await isDarkThemeOn(page),
     };
   } finally {
     await context.close();
@@ -291,10 +307,12 @@ async function measureWrap(
 }
 
 // 640 CSS px at device scale factor 2 stands for the 1280 px viewport at 200 % zoom of the acceptance.
-for (const viewport of [
+const WRAP_VIEWPORTS = [
   { width: 320, height: 800 },
   { width: 640, height: 400 },
-]) {
+] as const;
+
+for (const viewport of WRAP_VIEWPORTS) {
   test(`E6 a ${LONG_TITLE_LENGTH}-character course name wraps in the other-course link and the course crumb at ${viewport.width}x${viewport.height}, no horizontal scroll (catalog AC12, AC14, lesson AC76)`, async ({
     browser,
   }) => {
@@ -305,6 +323,7 @@ for (const viewport of [
     const catalog = await measureWrap(
       browser,
       viewport,
+      "light",
       catalogPath(stub.id),
       (page) => otherCourses(page).getByRole("link", byLongTitle),
       false,
@@ -312,6 +331,7 @@ for (const viewport of [
     const lessonPage = await measureWrap(
       browser,
       viewport,
+      "light",
       lessonPath(longName.id, lesson.id),
       (page) => crumbs(page).getByRole("link", byLongTitle),
       true,
@@ -324,6 +344,83 @@ for (const viewport of [
     expect(lessonPage.link.lines, "line boxes of the course crumb").toBeGreaterThan(1);
     expect(lessonPage.pageOverflow, "lesson scrollWidth - clientWidth").toBe(0);
     expect(lessonPage.navOverflow, "breadcrumb scrollWidth - clientWidth").toBe(0);
+  });
+}
+
+function blockHeadingLinkOf(page: Page, courseId: string): Locator {
+  return page.locator(`main #course-${courseId}-heading`).getByRole("link");
+}
+
+for (const viewport of WRAP_VIEWPORTS) {
+  for (const colorScheme of COLOR_SCHEMES) {
+    test(`D2 a ${LONG_TITLE_LENGTH}-character course name wraps in the block heading link at ${viewport.width}x${viewport.height}, ${colorScheme}, no horizontal scroll (dashboard AC70)`, async ({
+      browser,
+    }) => {
+      expect(longName.title, "the fixture's long course name").toHaveLength(LONG_TITLE_LENGTH);
+
+      const dashboard = await measureWrap(
+        browser,
+        viewport,
+        colorScheme,
+        "/",
+        (page) => blockHeadingLinkOf(page, longName.id),
+        false,
+      );
+
+      expect(dashboard.isDark, "html has the dark class").toBe(colorScheme === "dark");
+      expect(dashboard.link.isOneTextNode, "the block heading link holds one Text node").toBe(true);
+      expect(dashboard.link.lines, "line boxes of the block heading link").toBeGreaterThan(1);
+      expect(dashboard.pageOverflow, "dashboard scrollWidth - clientWidth").toBe(0);
+    });
+  }
+}
+
+for (const colorScheme of COLOR_SCHEMES) {
+  test(`D3 the block heading link is an underlined inline-block in the heading's colour and size, with the global focus ring on keyboard focus, ${colorScheme} (dashboard AC71)`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme });
+    await page.goto("/");
+    expect(await isDarkThemeOn(page), "html has the dark class").toBe(colorScheme === "dark");
+    const link = page.locator(`#course-${longName.id}-heading > a`);
+
+    const look = await link.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const heading = element.parentElement;
+      return {
+        display: style.display,
+        hasHeadingColor: heading !== null && style.color === getComputedStyle(heading).color,
+        fontSize: style.fontSize,
+        textDecorationLine: style.textDecorationLine,
+      };
+    });
+    expect(look.display).toBe("inline-block");
+    expect(look.hasHeadingColor, "the link's colour is its heading's").toBe(true);
+    expect(look.fontSize).toBe("18px");
+    expect(look.textDecorationLine).toContain("underline");
+
+    // On this root the next link in DOM order after the Card's start link is the first block's heading link.
+    await page
+      .getByRole("region", { name: nextLessonHeading, exact: true })
+      .getByRole("link", { name: startLessonLabel, exact: true })
+      .focus();
+    await page.keyboard.press("Tab");
+    await expect(link).toBeFocused();
+    const ring = await link.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        isFocusVisible: element.matches(":focus-visible"),
+        outlineStyle: style.outlineStyle,
+        outlineWidth: style.outlineWidth,
+        outlineOffset: style.outlineOffset,
+      };
+    });
+    expect(ring).toEqual({
+      isFocusVisible: true,
+      outlineStyle: "solid",
+      outlineWidth: "2px",
+      outlineOffset: "2px",
+    });
   });
 }
 
