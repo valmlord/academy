@@ -9,6 +9,7 @@ import {
   type ContainerSummary,
   containerInspectSchema,
   containerListSchema,
+  describeIssuePath,
   type EngineVersion,
   type ExecInspect,
   engineVersionSchema,
@@ -54,7 +55,7 @@ export interface EngineOptions {
 function parseResponse<T>(operation: string, schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
   if (result.success) return result.data;
-  const path = result.error.issues[0]?.path.join(".") ?? "";
+  const path = describeIssuePath(result.error.issues[0]?.path ?? []);
   throw new DockerResponseShapeError(operation, path);
 }
 
