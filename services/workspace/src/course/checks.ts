@@ -2,7 +2,7 @@ import type { BigIntStats } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { HIDDEN_DIR } from "@academy/lesson-schema/schema";
-import { ChecksRefusedError, CourseReadError } from "../errors.js";
+import { ChecksRefusedError, CourseFileError } from "../errors.js";
 import {
   fsFailureReason,
   lstatBelowRoot,
@@ -114,7 +114,7 @@ export async function loadChecks(
 ): Promise<ChecksItem[]> {
   const checksRel = `${lessonDir}/${HIDDEN_DIR}`;
   const top = await lstatBelowRoot(root, checksRel).catch((error: unknown) => {
-    if (error instanceof CourseReadError) throw new ChecksRefusedError(error.file, error.reason);
+    if (error instanceof CourseFileError) throw new ChecksRefusedError(error.file, error.reason);
     throw error;
   });
   if (!top.isDirectory()) throw new ChecksRefusedError(checksRel, NOT_A_DIRECTORY);

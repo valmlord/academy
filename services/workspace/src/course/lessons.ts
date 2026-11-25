@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { Course, Lesson, Module } from "@academy/lesson-schema/schema";
-import { CourseReadError, LessonNotFoundError } from "../errors.js";
+import { CourseFileError, LessonNotFoundError } from "../errors.js";
 import {
   COURSE_ROOT_NAME,
   fsFailureReason,
@@ -83,7 +83,7 @@ async function parseFile<T>(root: string, file: string, schema: Schema<T>): Prom
     const issue = result.error.issues[0];
     const reason =
       issue === undefined ? "schema" : `schema: ${issue.path.map(String).join(".")} ${issue.code}`;
-    throw new CourseReadError(file, reason);
+    throw new CourseFileError(file, reason);
   }
   return result.data;
 }
@@ -106,7 +106,7 @@ async function hasCourseFile(root: string, dir: string): Promise<boolean> {
     await lstatBelowRoot(root, `${dir}/${COURSE_FILE}`);
     return true;
   } catch (error) {
-    if (error instanceof CourseReadError && error.reason === MISSING) return false;
+    if (error instanceof CourseFileError && error.reason === MISSING) return false;
     throw error;
   }
 }
@@ -119,7 +119,7 @@ async function findCourseDir(root: string): Promise<string> {
   } catch (error) {
     const reason = fsFailureReason(error);
     if (reason === undefined) throw error;
-    throw new CourseReadError(COURSE_ROOT_NAME, reason);
+    throw new CourseFileError(COURSE_ROOT_NAME, reason);
   }
   const candidates: string[] = [];
   for (const entry of entries) {
@@ -127,7 +127,7 @@ async function findCourseDir(root: string): Promise<string> {
   }
   const [only] = candidates;
   if (only === undefined || candidates.length !== 1) {
-    throw new CourseReadError(
+    throw new CourseFileError(
       COURSE_ROOT_NAME,
       `expected exactly one course, found ${candidates.length}`,
     );
@@ -137,7 +137,7 @@ async function findCourseDir(root: string): Promise<string> {
 
 /**
  * The whole course, read once: `course.yaml`, every listed `module.yaml`, every listed `lesson.yaml`, with
- * the rules of design 5.4. All or nothing: any failure anywhere throws one `CourseReadError`, matching the
+ * the rules of design 5.4. All or nothing: any failure anywhere throws one `CourseFileError`, matching the
  * web, which puts the whole course into its error state; a reader that skipped a bad lesson would let
  * reconcile treat that lesson's workspaces as orphans.
  */
@@ -154,7 +154,7 @@ export async function readCourseLessons(root: string): Promise<CourseLessons> {
       const file = `${lessonDir}/lesson.yaml`;
       const lesson = await parseFile(root, file, Lesson);
       if (lessonIds.has(lesson.id))
-        throw new CourseReadError(file, `duplicate lesson id ${lesson.id}`);
+        throw new CourseFileError(file, `duplicate lesson id ${lesson.id}`);
       lessonIds.add(lesson.id);
       const workspace = lesson.workspace ?? null;
       lessons.push({

@@ -1,7 +1,7 @@
 import { constants, type Stats } from "node:fs";
 import { lstat, open, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { CourseReadError } from "../errors.js";
+import { CourseFileError } from "../errors.js";
 
 /** How messages name the course root itself, whose relative path is empty. */
 export const COURSE_ROOT_NAME = ".";
@@ -40,14 +40,14 @@ async function withReason<T>(rel: string, action: () => Promise<T>): Promise<T> 
   } catch (error) {
     const reason = fsFailureReason(error);
     if (reason === undefined) throw error;
-    throw new CourseReadError(rel === "" ? COURSE_ROOT_NAME : rel, reason);
+    throw new CourseFileError(rel === "" ? COURSE_ROOT_NAME : rel, reason);
   }
 }
 
 async function requireRootDirectory(root: string): Promise<void> {
   // The root itself may be reached through a link (a bind mount, macOS /tmp); only what is below it counts.
   const stats = await withReason("", () => stat(root));
-  if (!stats.isDirectory()) throw new CourseReadError(COURSE_ROOT_NAME, NOT_A_DIRECTORY);
+  if (!stats.isDirectory()) throw new CourseFileError(COURSE_ROOT_NAME, NOT_A_DIRECTORY);
 }
 
 /**
@@ -59,7 +59,7 @@ async function requireRootDirectory(root: string): Promise<void> {
 export async function lstatBelowRoot(root: string, rel: string): Promise<Stats> {
   const segments = rel.split("/");
   if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) {
-    throw new CourseReadError(rel === "" ? COURSE_ROOT_NAME : rel, INVALID_PATH);
+    throw new CourseFileError(rel === "" ? COURSE_ROOT_NAME : rel, INVALID_PATH);
   }
   await requireRootDirectory(root);
   let current = root;
@@ -69,14 +69,14 @@ export async function lstatBelowRoot(root: string, rel: string): Promise<Stats> 
     const path = join(current, segment);
     // A missing or unreadable segment names the requested file: that is what the caller asked for.
     const segmentStats = await withReason(rel, () => lstat(path));
-    if (segmentStats.isSymbolicLink()) throw new CourseReadError(segmentRel, SYMLINK);
+    if (segmentStats.isSymbolicLink()) throw new CourseFileError(segmentRel, SYMLINK);
     if (index < segments.length - 1 && !segmentStats.isDirectory()) {
-      throw new CourseReadError(segmentRel, NOT_A_DIRECTORY);
+      throw new CourseFileError(segmentRel, NOT_A_DIRECTORY);
     }
     current = path;
     stats = segmentStats;
   }
-  if (stats === undefined) throw new CourseReadError(rel, INVALID_PATH);
+  if (stats === undefined) throw new CourseFileError(rel, INVALID_PATH);
   return stats;
 }
 
@@ -86,15 +86,15 @@ export async function lstatBelowRoot(root: string, rel: string): Promise<Stats> 
  */
 export async function readCourseFile(root: string, rel: string): Promise<string> {
   const walked = await lstatBelowRoot(root, rel);
-  if (!walked.isFile()) throw new CourseReadError(rel, NOT_A_REGULAR_FILE);
-  if (walked.size > MAX_YAML_BYTES) throw new CourseReadError(rel, TOO_LARGE);
+  if (!walked.isFile()) throw new CourseFileError(rel, NOT_A_REGULAR_FILE);
+  if (walked.size > MAX_YAML_BYTES) throw new CourseFileError(rel, TOO_LARGE);
   const handle = await withReason(rel, () =>
     open(join(root, rel), constants.O_RDONLY | constants.O_NOFOLLOW),
   );
   try {
     const opened = await withReason(rel, () => handle.stat());
     if (!opened.isFile() || opened.dev !== walked.dev || opened.ino !== walked.ino) {
-      throw new CourseReadError(rel, CHANGED_DURING_READ);
+      throw new CourseFileError(rel, CHANGED_DURING_READ);
     }
     const buffer = Buffer.alloc(Math.min(opened.size, MAX_YAML_BYTES));
     const { bytesRead } = await withReason(rel, () => handle.read(buffer, 0, buffer.length, 0));

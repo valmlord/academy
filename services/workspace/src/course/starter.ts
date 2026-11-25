@@ -2,7 +2,7 @@ import type { BigIntStats } from "node:fs";
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { HIDDEN_DIR } from "@academy/lesson-schema/schema";
-import { CourseReadError, StarterRefusedError, StarterTooLargeError } from "../errors.js";
+import { CourseFileError, StarterRefusedError, StarterTooLargeError } from "../errors.js";
 import {
   fsFailureReason,
   lstatBelowRoot,
@@ -109,7 +109,7 @@ async function lessonIdentity(root: string, lessonDir: string): Promise<EntryIde
     const stats = await lstatBelowRoot(root, lessonDir);
     if (!stats.isDirectory()) throw new StarterRefusedError(lessonDir, NOT_A_DIRECTORY);
   } catch (error) {
-    if (error instanceof CourseReadError) throw new StarterRefusedError(error.file, error.reason);
+    if (error instanceof CourseFileError) throw new StarterRefusedError(error.file, error.reason);
     throw error;
   }
   return identityOf(lessonDir, await lstatOrRefuse(join(root, lessonDir), lessonDir));

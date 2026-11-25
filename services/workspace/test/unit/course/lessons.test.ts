@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { readCourseLessons } from "../../../src/course/lessons.js";
-import { CourseReadError, LessonNotFoundError } from "../../../src/errors.js";
+import { CourseFileError, LessonNotFoundError } from "../../../src/errors.js";
 
 const FIXTURE = fileURLToPath(new URL("../../fixtures/course", import.meta.url));
 const MODULE_DIR = "sample-course/01-basics";
@@ -21,11 +21,11 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-async function readError(): Promise<CourseReadError> {
+async function readError(): Promise<CourseFileError> {
   try {
     await readCourseLessons(root);
   } catch (error) {
-    if (error instanceof CourseReadError) return error;
+    if (error instanceof CourseFileError) return error;
     throw error;
   }
   throw new Error("readCourseLessons accepted the course");

@@ -1,5 +1,5 @@
 import type { CourseLessons } from "./course/lessons.js";
-import { CourseReadError } from "./errors.js";
+import { CourseFileError } from "./errors.js";
 import { parseWorkspaceLabels, type WorkspaceKey, workspaceNames } from "./identity.js";
 import type { IdleTracker } from "./idle.js";
 import type { KeyedMutex } from "./lock.js";
@@ -106,7 +106,7 @@ export class Reconciler {
       return await this.#options.readCourse();
     } catch (error: unknown) {
       const detail =
-        error instanceof CourseReadError ? `${error.file}: ${error.reason}` : errorKind(error);
+        error instanceof CourseFileError ? `${error.file}: ${error.reason}` : errorKind(error);
       this.#options.log.warn(`course unreadable: ${detail}`);
       return null;
     }

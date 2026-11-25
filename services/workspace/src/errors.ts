@@ -26,17 +26,17 @@ export class InvalidWorkspaceKeyError extends Error {
 }
 
 /**
- * A course file was refused or could not be read; the whole course is unavailable (design 6.5). `file` is
- * relative to the course root (`.` for the root itself) and `reason` comes from a closed set, so the
- * message never carries file contents or a system error's text, which would hold the absolute path.
+ * A course file the file layer refused or could not read. `file` is relative to the course root (`.` for the
+ * root itself) and `reason` is a closed reason, a schema issue's path and code, or a duplicated lesson id, so
+ * the message never carries a system error's text, which would hold the absolute path.
  */
-export class CourseReadError extends Error {
+export class CourseFileError extends Error {
   readonly file: string;
   readonly reason: string;
 
   constructor(relativeFile: string, reason: string) {
     super(`${relativeFile}: ${reason}`);
-    this.name = "CourseReadError";
+    this.name = "CourseFileError";
     this.file = relativeFile;
     this.reason = reason;
   }

@@ -1,7 +1,7 @@
 import type { FastifyBaseLogger, FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   ContainerNameUnresolvedError,
-  CourseReadError,
+  CourseFileError,
   DockerApiError,
   DockerResponseShapeError,
   DockerUnavailableError,
@@ -45,7 +45,7 @@ const CLASS_MAP: ReadonlyArray<readonly [ErrorClass, number, string]> = [
   [LessonHasNoWorkspaceError, 422, "lesson-has-no-workspace"],
   [StarterRefusedError, 500, "starter-invalid"],
   [StarterTooLargeError, 500, "starter-invalid"],
-  [CourseReadError, 500, "course-unreadable"],
+  [CourseFileError, 500, "course-unreadable"],
   [WorkspaceIdentityMismatchError, 500, "workspace-identity-mismatch"],
   [DockerApiError, 502, "docker-error"],
   // Docker answered, but contradicted itself (name taken, no container); a retry of the ensure converges.

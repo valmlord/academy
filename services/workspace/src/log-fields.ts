@@ -2,7 +2,7 @@
 // constructor's name or its `code`, and a getter on any of them may throw. A field of a thrown value that is not
 // one of our error classes reaches a log line only through these functions, and none of them throws, because
 // their callers run inside catch blocks that must not. Our own classes' messages and fields are built for
-// logging (design 10) and are printed directly: http/errors.ts, CourseReadError in reconcile.ts and
+// logging (design 10) and are printed directly: http/errors.ts, CourseFileError in reconcile.ts and
 // InvalidConfigError in main.ts.
 
 // The pattern of web's relay (apps/web/server/relay.ts), restated because the two share no package.
