@@ -66,8 +66,13 @@ function rootFailure(
 
 type CourseFailure = { kind: "course-failure"; error: CourseReadError };
 
-function courseFailure(courseId: string, file: string, reason: string): CourseFailure {
-  return { kind: "course-failure", error: new CourseReadError(courseId, file, reason) };
+function courseFailure(
+  courseId: string,
+  file: string,
+  reason: string,
+  title?: string,
+): CourseFailure {
+  return { kind: "course-failure", error: new CourseReadError(courseId, file, reason, title) };
 }
 
 async function listRoot(source: CourseSource): Promise<RootListing> {
@@ -129,7 +134,9 @@ async function readListedCourse(
       tree: { id: name, title: course.title, description: course.description, dir: name, modules },
     };
   } catch (error) {
-    if (error instanceof CourseFileError) return courseFailure(name, error.file, error.reason);
+    if (error instanceof CourseFileError) {
+      return courseFailure(name, error.file, error.reason, course.title);
+    }
     throw error;
   }
 }
