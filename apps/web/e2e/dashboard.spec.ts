@@ -65,6 +65,7 @@ test("the dashboard shows the first-run Card, course line and module rows (AC1, 
   expect(documentResponse?.ok()).toBe(true);
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
   const card = page.getByRole("region", { name: nextLessonHeading });
+  await expect(card.getByText(course.title, { exact: true })).toBeVisible();
   await expect(card.getByText(next.title, { exact: true })).toBeVisible();
   await expect(card.getByText(firstModule.module.title, { exact: true })).toBeVisible();
   await expect(card.getByText(lessonTypeLabels[next.type], { exact: true })).toBeVisible();
@@ -73,7 +74,7 @@ test("the dashboard shows the first-run Card, course line and module rows (AC1, 
     "href",
     lessonPath(dashboard.courseId, next.id),
   );
-  await expect(page.getByRole("heading", { level: 2, name: noPassedLessonsMessage })).toBeVisible();
+  await expect(page.getByText(noPassedLessonsMessage, { exact: true })).toBeVisible();
   await expect(page.getByRole("progressbar", { name: noPassedLessonsMessage })).toHaveAttribute(
     "aria-valuetext",
     progressValueText(0, dashboard.totalLessons),
@@ -102,10 +103,11 @@ test("the dashboard shows the first-run Card, course line and module rows (AC1, 
   expect(horizontalOverflow, "horizontal scroll at 375").toBeLessThanOrEqual(0);
 });
 
-test("Tab order runs through the top bar, the start button and the module rows", async ({
+test("Tab order runs through the top bar, the start button, the course heading link and the module rows", async ({
   page,
 }) => {
   const dashboard = await repoDashboard();
+  const course = await repoCourse();
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: homeTitle })).toBeVisible();
   const expected = [
@@ -114,6 +116,7 @@ test("Tab order runs through the top bar, the start button and the module rows",
     homeTitle,
     credentials().email,
     startLessonLabel,
+    course.title,
     ...dashboard.modules.map((module) => module.title),
   ];
 

@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 import { FocusOnMount } from "@/components/focus-on-mount";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { durationLabel, lessonTypeLabels, nextLessonHeading, startLessonLabel } from "@/lib/copy";
 import type { NextLessonView } from "@/lib/course/view";
 import { lessonPath } from "@/lib/routes";
@@ -13,13 +13,18 @@ export const NEXT_LESSON_HEADING_ID = "next-lesson-heading";
 
 export interface NextLessonCardProps {
   courseId: string;
+  courseTitle: string;
   lesson: NextLessonView;
 }
 
-// design/pages/dashboard F4.1-F4.3, first run: the first visible lesson, its module, type and duration,
-// and the start button to the lesson on its theory tab. Until #35 reads progress no lesson is started, so
-// the button never reads "continue" (dashboard R5).
-export function NextLessonCard({ courseId, lesson }: NextLessonCardProps): ReactElement {
+// design/pages/dashboard F4.1-F4.3, first run: the course name under the heading (A218-7), the lesson, its
+// module, type and duration, and the start button to the lesson on its theory tab. Until #35 reads progress no
+// lesson is started, so the button never reads "continue" (dashboard R5).
+export function NextLessonCard({
+  courseId,
+  courseTitle,
+  lesson,
+}: NextLessonCardProps): ReactElement {
   return (
     <section aria-labelledby={NEXT_LESSON_HEADING_ID}>
       <Card>
@@ -27,6 +32,7 @@ export function NextLessonCard({ courseId, lesson }: NextLessonCardProps): React
           <h2 id={NEXT_LESSON_HEADING_ID} tabIndex={-1} className="text-lg font-semibold">
             {nextLessonHeading}
           </h2>
+          <CardDescription>{courseTitle}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <p className="text-xl font-semibold">{lesson.title}</p>

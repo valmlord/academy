@@ -157,6 +157,10 @@ export const collapseOutcomesLabel = "Свернуть";
 export const nextLessonHeading = "Следующий урок";
 export const startLessonLabel = "Начать";
 export const noPassedLessonsMessage = "Пока нет пройденных уроков";
+// design/flows/ia.md vocabulary "next-lesson link": a course block's link to its next lesson.
+export function nextLessonLinkLabel(lessonTitle: string): string {
+  return `Следующий урок: ${lessonTitle}`;
+}
 export function moduleProgressLabel(passed: number, total: number): string {
   return `${passed} из ${total} уроков`;
 }

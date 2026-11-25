@@ -90,7 +90,7 @@ describe("createCourseReads", () => {
     const { reads, lines } = readsOver({ fs: nodeCourseFs, root });
 
     await reads.courseById(FIXTURE_COURSE_ID);
-    await reads.listNames();
+    await reads.everyCourse();
 
     expect(lines).toEqual([
       `web: course read failed: ${failure}`,
@@ -127,7 +127,6 @@ describe("createCourseReads", () => {
       const { reads, lines } = readsOver(fixtureSource(fixture.root));
 
       await reads.courseById(courseId);
-      await reads.listNames();
 
       expect(lines).toEqual([]);
     },

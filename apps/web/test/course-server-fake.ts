@@ -1,4 +1,3 @@
-import { firstReadableCourse } from "@/lib/course/courses";
 import { nodeCourseFs } from "@/lib/course/node-fs";
 import { type CourseReads, createCourseReads } from "@/lib/course/reads";
 import type * as courseServer from "@/lib/course/server";
@@ -44,13 +43,7 @@ function now(): Current {
 
 export const courseServerFake: typeof courseServer = {
   getCourseById: (courseId) => now().reads.courseById(courseId),
-  getCourseNames: () => now().reads.listNames(),
   getEveryCourse: () => now().reads.everyCourse(),
   getOtherCourses: (courseId) => now().reads.otherCourses(courseId),
-  getFirstReadableCourse: () =>
-    firstReadableCourse(
-      () => now().reads.listNames(),
-      (courseId) => now().reads.courseById(courseId),
-    ),
   getLessonText: (lessonDir, kind) => readLessonText(nodeCourseFs, now().root, lessonDir, kind),
 };

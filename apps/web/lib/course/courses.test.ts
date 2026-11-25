@@ -2,7 +2,7 @@
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   BROKEN_COURSE_ID,
   type CourseFixture,
@@ -12,15 +12,13 @@ import {
   recordingCourseFs,
 } from "@/test/course-fixture";
 import {
-  type CourseList,
   type CourseLookup,
-  firstReadableCourse,
-  listCourseNames,
+  type ListedCourseRead,
   readCourseById,
   readEveryCourse,
   readOtherCourses,
 } from "./courses";
-import { CourseReadError, CourseRootReadError, describeCourseFailure } from "./errors";
+import { CourseReadError, describeCourseFailure } from "./errors";
 import { nodeCourseFs } from "./node-fs";
 import { courseRoot } from "./root";
 
@@ -50,36 +48,6 @@ function outcome(lookup: CourseLookup): string {
   if (lookup.kind === "not-found") return "not-found";
   return `${lookup.kind} ${describeCourseFailure(lookup.error)}`;
 }
-
-describe("listCourseNames", () => {
-  it("lists real directories only, in plain-string order", async () => {
-    fixture.write("a-file", "not a course\n");
-    symlinkSync(fixture.path(FIXTURE_COURSE_ID), fixture.path("linked-course"));
-    mkdirSync(fixture.path("Zed"));
-
-    const list = await listCourseNames(fixtureSource(fixture.root));
-
-    expect(list).toEqual({ kind: "names", names: ["Zed", BROKEN_COURSE_ID, FIXTURE_COURSE_ID] });
-  });
-
-  it.each([
-    ["an empty root", () => emptyRoot(), "root: .: no course"],
-    ["a missing root", () => path.join(emptyRoot(), "absent"), "root: .: missing"],
-    [
-      "a relative COURSE_ROOT",
-      () => courseRoot({ COURSE_ROOT: "course" }, "/repo/apps/web"),
-      "root: COURSE_ROOT: must be an absolute path",
-    ],
-  ])("reports %s as a root failure", async (_label, root, line) => {
-    const source = { fs: nodeCourseFs, root };
-
-    const list = await listCourseNames(source);
-    const every = await readEveryCourse(source);
-
-    expect(list.kind === "root-failure" && describeCourseFailure(list.error)).toBe(line);
-    expect(every.kind === "root-failure" && describeCourseFailure(every.error)).toBe(line);
-  });
-});
 
 describe("readCourseById", () => {
   it.each<[unknown]>([["A B"], [".."], ["../course-b"], [42]])(
@@ -139,7 +107,40 @@ describe("readCourseById", () => {
   });
 });
 
+/** The listed name a read stands for: the tree's id, or the failing course's id. */
+function listedId(read: ListedCourseRead): string {
+  return read.kind === "course" ? read.tree.id : read.error.courseId;
+}
+
 describe("readEveryCourse", () => {
+  it("lists real directories only, in plain-string order", async () => {
+    fixture.write("a-file", "not a course\n");
+    symlinkSync(fixture.path(FIXTURE_COURSE_ID), fixture.path("linked-course"));
+    mkdirSync(fixture.path("Zed"));
+
+    const every = await readEveryCourse(fixtureSource(fixture.root));
+
+    expect(every.kind === "courses" && every.courses.map(listedId)).toEqual([
+      "Zed",
+      BROKEN_COURSE_ID,
+      FIXTURE_COURSE_ID,
+    ]);
+  });
+
+  it.each([
+    ["an empty root", () => emptyRoot(), "root: .: no course"],
+    ["a missing root", () => path.join(emptyRoot(), "absent"), "root: .: missing"],
+    [
+      "a relative COURSE_ROOT",
+      () => courseRoot({ COURSE_ROOT: "course" }, "/repo/apps/web"),
+      "root: COURSE_ROOT: must be an absolute path",
+    ],
+  ])("reports %s as a root failure", async (_label, root, line) => {
+    const every = await readEveryCourse({ fs: nodeCourseFs, root });
+
+    expect(every.kind === "root-failure" && describeCourseFailure(every.error)).toBe(line);
+  });
+
   it("reads every listed course in order, a failing one beside the readable one", async () => {
     const { fs, calls } = recordingCourseFs();
 
@@ -176,75 +177,5 @@ describe("readOtherCourses", () => {
       'readText "aaa-course/course.yaml"',
       'readText "broken-course/course.yaml"',
     ]);
-  });
-});
-
-describe("firstReadableCourse", () => {
-  function overFixture(): Parameters<typeof firstReadableCourse> {
-    const source = fixtureSource(fixture.root);
-    return [() => listCourseNames(source), (courseId) => readCourseById(source, courseId)];
-  }
-
-  function names(...listed: string[]): () => Promise<CourseList> {
-    return async () => ({ kind: "names", names: listed });
-  }
-
-  it("passes over a failing course to the first that reads", async () => {
-    const first = await firstReadableCourse(...overFixture());
-
-    expect(outcome(first)).toBe(`course ${FIXTURE_COURSE_ID}`);
-  });
-
-  it("returns the first failure in list order when no course reads", async () => {
-    rmSync(fixture.path("fixture-course/00-basics/module.yaml"));
-
-    const first = await firstReadableCourse(...overFixture());
-
-    expect(outcome(first)).toBe(
-      "course-failure course broken-course: broken-course/course.yaml: id is not the directory name",
-    );
-  });
-
-  it("returns the listing's root failure", async () => {
-    const source = { fs: nodeCourseFs, root: () => path.join(emptyRoot(), "absent") };
-    const courseById = vi.fn((courseId: string) => readCourseById(source, courseId));
-
-    const first = await firstReadableCourse(() => listCourseNames(source), courseById);
-
-    expect(outcome(first)).toBe("root-failure root: .: missing");
-    expect(courseById).not.toHaveBeenCalled();
-  });
-
-  it("fails the first non-slug name itself, never asking courseById", async () => {
-    const courseById = vi.fn(async (): Promise<CourseLookup> => ({ kind: "not-found" }));
-
-    const first = await firstReadableCourse(names("A B", "B C"), courseById);
-
-    expect(outcome(first)).toBe(
-      'course-failure course "A B": .: directory name is not a course id',
-    );
-    expect(courseById).not.toHaveBeenCalled();
-  });
-
-  it("answers no course when courseById finds none of the listed slugs", async () => {
-    const first = await firstReadableCourse(names("gone-a", "gone-b"), async () => ({
-      kind: "not-found",
-    }));
-
-    expect(outcome(first)).toBe("root-failure root: .: no course");
-  });
-
-  it("stops at a root failure courseById returns", async () => {
-    const courseById = vi.fn(
-      async (): Promise<CourseLookup> => ({
-        kind: "root-failure",
-        error: new CourseRootReadError(".", "missing"),
-      }),
-    );
-
-    const first = await firstReadableCourse(names("gone-a", "gone-b"), courseById);
-
-    expect(outcome(first)).toBe("root-failure root: .: missing");
-    expect(courseById).toHaveBeenCalledTimes(1);
   });
 });

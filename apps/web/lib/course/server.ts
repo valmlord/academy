@@ -1,13 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import {
-  type CourseList,
-  type CourseLookup,
-  type CourseRead,
-  type EveryCourse,
-  firstReadableCourse,
-  type OtherCourseList,
-} from "./courses";
+import type { CourseLookup, EveryCourse, OtherCourseList } from "./courses";
 import { LessonTextReadError } from "./errors";
 import { nodeCourseFs } from "./node-fs";
 import { createCourseReads } from "./reads";
@@ -27,18 +20,11 @@ export const getCourseById = cache(
   (courseId: unknown): Promise<CourseLookup> => reads.courseById(courseId),
 );
 
-export const getCourseNames = cache((): Promise<CourseList> => reads.listNames());
-
 // One listing and one read per listed course; cache() makes it once per request.
 export const getEveryCourse = cache((): Promise<EveryCourse> => reads.everyCourse());
 
 export const getOtherCourses = cache(
   (courseId: string): Promise<OtherCourseList> => reads.otherCourses(courseId),
-);
-
-// The one-course dashboard until #247.
-export const getFirstReadableCourse = cache(
-  (): Promise<CourseRead> => firstReadableCourse(getCourseNames, getCourseById),
 );
 
 export const getLessonText = cache(
