@@ -40,6 +40,16 @@ export type EveryCourse =
   | { kind: "courses"; courses: ListedCourseRead[] }
   | { kind: "root-failure"; error: CourseRootReadError };
 
+export interface OtherCourse {
+  id: string;
+  /** The title of the course's own `course.yaml`; `undefined` when that file fails `readCourseFile`. */
+  title: string | undefined;
+}
+
+export type OtherCourseList =
+  | { kind: "courses"; courses: OtherCourse[] }
+  | { kind: "root-failure"; error: CourseRootReadError };
+
 type RootListing =
   | { kind: "listed"; root: string; names: string[] }
   | { kind: "root-failure"; error: CourseRootReadError };
@@ -58,11 +68,9 @@ function rootFailure(
   return { kind: "root-failure", error: new CourseRootReadError(file, reason) };
 }
 
-function courseFailure(
-  courseId: string,
-  file: string,
-  reason: string,
-): { kind: "course-failure"; error: CourseReadError } {
+type CourseFailure = { kind: "course-failure"; error: CourseReadError };
+
+function courseFailure(courseId: string, file: string, reason: string): CourseFailure {
   return { kind: "course-failure", error: new CourseReadError(courseId, file, reason) };
 }
 
@@ -87,20 +95,38 @@ async function listRoot(source: CourseSource): Promise<RootListing> {
 }
 
 // `name` must be an element of the root's listing, never a caller's id: that is what keeps every path built
-// from a listed name. A type cannot say so without an assertion, so the function stays private to this module.
+// from a listed name. A type cannot say so without an assertion, so these functions stay private to this module.
+
+/** The listed course's own `course.yaml`, parsed, when the name is in the course id form and the id matches it. */
+async function readCourseFile(
+  fs: CourseFs,
+  root: string,
+  name: string,
+): Promise<{ kind: "course-file"; course: Course } | CourseFailure> {
+  if (!isCourseIdForm(name)) {
+    return courseFailure(name, COURSE_ROOT_FILE, DIRECTORY_NAME_IS_NOT_A_COURSE_ID);
+  }
+  const file = `${name}/${COURSE_FILE}`;
+  try {
+    const course = await parseFile(fs, root, file, Course);
+    if (course.id !== name) return courseFailure(name, file, ID_IS_NOT_THE_DIRECTORY_NAME);
+    return { kind: "course-file", course };
+  } catch (error) {
+    if (error instanceof CourseFileError) return courseFailure(name, error.file, error.reason);
+    throw error;
+  }
+}
+
 async function readListedCourse(
   fs: CourseFs,
   root: string,
   name: string,
 ): Promise<ListedCourseRead> {
-  if (!isCourseIdForm(name)) {
-    return courseFailure(name, COURSE_ROOT_FILE, DIRECTORY_NAME_IS_NOT_A_COURSE_ID);
-  }
+  // Before any module.yaml is opened, so a course claiming another course's id reads no more of itself.
+  const read = await readCourseFile(fs, root, name);
+  if (read.kind === "course-failure") return read;
+  const { course } = read;
   try {
-    const file = `${name}/${COURSE_FILE}`;
-    const course = await parseFile(fs, root, file, Course);
-    // Before any module.yaml is opened, so a course claiming another course's id reads no more of itself.
-    if (course.id !== name) return courseFailure(name, file, ID_IS_NOT_THE_DIRECTORY_NAME);
     const modules = await readModules(fs, root, name, course);
     return {
       kind: "course",
@@ -142,6 +168,27 @@ export async function readEveryCourse(source: CourseSource): Promise<EveryCourse
   const courses: ListedCourseRead[] = [];
   for (const name of listing.names) {
     courses.push(await readListedCourse(source.fs, listing.root, name));
+  }
+  return { kind: "courses", courses };
+}
+
+/**
+ * The listed courses other than `courseId`, in list order, each with the title of its `course.yaml` when
+ * `readCourseFile` accepts that file. One listing; a name not in the course id form is left out, and for every
+ * other name `readCourseFile` opens that course's `course.yaml` alone, so no module of another course is read.
+ * `courseId` is only compared with listed names.
+ */
+export async function readOtherCourses(
+  source: CourseSource,
+  courseId: string,
+): Promise<OtherCourseList> {
+  const listing = await listRoot(source);
+  if (listing.kind === "root-failure") return listing;
+  const courses: OtherCourse[] = [];
+  for (const name of listing.names) {
+    if (name === courseId || !isCourseIdForm(name)) continue;
+    const read = await readCourseFile(source.fs, listing.root, name);
+    courses.push({ id: name, title: read.kind === "course-file" ? read.course.title : undefined });
   }
   return { kind: "courses", courses };
 }

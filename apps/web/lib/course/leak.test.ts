@@ -5,12 +5,13 @@ import {
   BROKEN_COURSE_ID,
   type CourseFixture,
   createCourseFixture,
+  FIXTURE_COURSE_ID,
   fixtureSource,
   makeBrokenCourseReadable,
   recordingCourseFs,
   VISIBLE_MARKER,
 } from "@/test/course-fixture";
-import { readEveryCourse } from "./courses";
+import { readEveryCourse, readOtherCourses } from "./courses";
 import { learnerFiles } from "./files";
 import type { CourseFs } from "./node-fs";
 import type { CourseTree } from "./read";
@@ -99,5 +100,26 @@ describe("course views and texts", () => {
     expect(rendered).not.toContain("CANARY-");
     expect(rendered).toContain(VISIBLE_MARKER);
     expect(calls.filter((call) => !allowed.includes(call))).toEqual(['listDirs ""']);
+  });
+});
+
+describe("the other-course read", () => {
+  it("requests only each other course's course.yaml, once both read", async () => {
+    makeBrokenCourseReadable(fixture);
+    const { fs, calls } = recordingCourseFs();
+    const source = fixtureSource(fixture.root, fs);
+
+    const others = [
+      await readOtherCourses(source, FIXTURE_COURSE_ID),
+      await readOtherCourses(source, BROKEN_COURSE_ID),
+    ];
+
+    expect(others.map((list) => list.kind)).toEqual(["courses", "courses"]);
+    expect(calls).toEqual([
+      'listDirs ""',
+      'readText "broken-course/course.yaml"',
+      'listDirs ""',
+      'readText "fixture-course/course.yaml"',
+    ]);
   });
 });

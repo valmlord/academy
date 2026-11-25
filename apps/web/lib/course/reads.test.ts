@@ -88,6 +88,29 @@ describe("createCourseReads", () => {
     ]);
   });
 
+  it("logs the root line for the other courses of a missing root", async () => {
+    const { reads, lines } = readsOver({
+      fs: nodeCourseFs,
+      root: () => path.join(emptyRoot(), "absent"),
+    });
+
+    await reads.otherCourses(FIXTURE_COURSE_ID);
+
+    expect(lines).toEqual(["web: course read failed: root: .: missing"]);
+  });
+
+  it("logs nothing for a failing other course", async () => {
+    const { reads, lines } = readsOver(fixtureSource(fixture.root));
+
+    const others = await reads.otherCourses(FIXTURE_COURSE_ID);
+
+    expect(others).toEqual({
+      kind: "courses",
+      courses: [{ id: BROKEN_COURSE_ID, title: undefined }],
+    });
+    expect(lines).toEqual([]);
+  });
+
   it.each(["A B", "..", "no-such-course", FIXTURE_COURSE_ID])(
     "logs nothing for %s, which names no failing course",
     async (courseId) => {
